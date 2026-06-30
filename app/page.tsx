@@ -19,33 +19,36 @@ export default async function HomePage() {
       <section className="px-10 pt-8 pb-20 max-md:px-6">
         <div className="max-w-[1100px] mx-auto grid grid-cols-2 gap-[52px] items-center max-md:grid-cols-1">
           <div className="min-w-0">
-            <div className="mb-5">
-              <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-navy/55">
-                Learning Designed for GP Trainees
+            <h1 className="font-display text-navy mb-[26px]">
+              <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
+                Perform Your Best On SCA.
               </span>
-            </div>
-
-            <h1 className="font-display font-extrabold text-[46px] leading-[1.14] text-navy mb-[26px] max-sm:text-[34px]">
-              Stop Guessing What <Swash>Scores Marks.</Swash>
+              <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
+                Know Exactly What <Swash>Scores Marks</Swash>
+              </span>
             </h1>
 
+            <p className="text-[15.5px] leading-[1.7] text-navy/[0.68] mb-4">
+              Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about
+              demonstrating a specific set of consultation skills — naturally, under
+              exam conditions. Exploring a patient&apos;s ICE without it feeling like a
+              checklist. Sitting with diagnostic uncertainty and committing to a plan
+              anyway. Handling patient emotion without losing structure. Building a
+              shared management plan the patient actually buys into. These are the
+              skills RCGP examiners are scoring. That&apos;s exactly what scores marks.
+              And it&apos;s exactly what we teach.
+            </p>
+
             <p className="text-[15.5px] leading-[1.7] text-navy/[0.68] mb-[34px]">
-              Being a top SCA candidate is not about knowing more medicine; it&apos;s
-              about knowing how to demonstrate a specific set of skills RCGP
-              examiners are looking for. Skills which include handling patient
-              expectations and emotion, exploring a patient&apos;s circumstances, ideas,
-              concerns and expectations naturally, navigating the dilemmas thrown at
-              you and committing to appropriate plans even when there&apos;s diagnostic
-              uncertainty. These are exactly the skills we cover at SCA Explained.
               Start with{" "}
               <a
-                href="#webinar-dates"
+                href="#booking"
                 className="font-bold text-navy no-underline border-b-2 border-yellow"
               >
                 How To Get A Clear Pass
               </a>
-              , our 2-hour free training, where we cover the top tips you need to
-              secure your SCA pass.
+              , our free 2-hour training — the top tips you need, straight from
+              someone who knows what examiners are looking for.
             </p>
 
           </div>

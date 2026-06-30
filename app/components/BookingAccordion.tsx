@@ -76,9 +76,11 @@ export function BookingAccordion({ webinarEvents, intensiveEvents }: Props) {
       {open === "webinar" && (
         <div className="mt-5 bg-white rounded-2xl border border-navy/10 px-7 py-7">
           <p className="text-[14.5px] leading-[1.7] text-navy/65 mb-6 max-w-[640px]">
-            A free 90–120 minute online training covering how the SCA is marked,
-            the most common reasons candidates don&apos;t pass, consultation structure,
-            ICE, safety-netting, and the pitfalls that quietly cost marks. No card required.
+            This webinar focuses on what RCGP examiners are actually scoring when
+            they watch a consultation, and why candidates who know their medicine
+            still fall short. We go through the consultation skills that separate a
+            Clear Pass from a near-miss, so you leave knowing exactly what examiners
+            are looking for and how to show it.
           </p>
           <p className="text-[12px] font-bold tracking-[0.06em] uppercase text-navy/40 mb-3">
             Upcoming dates
@@ -91,10 +93,14 @@ export function BookingAccordion({ webinarEvents, intensiveEvents }: Props) {
       {open === "intensive" && (
         <div className="mt-5 bg-white rounded-2xl border border-navy/10 px-7 py-7">
           <p className="text-[14.5px] leading-[1.7] text-navy/65 mb-6 max-w-[640px]">
-            A small-group live workshop. Six stations across the session — maximum
-            two active candidates, each completing at least three realistic consultations,
-            with personalised, examiner-style feedback.
-            Observer places available at £50.
+            Coached practice built around how examiners actually score. Each active
+            participant works through at least 3 realistic SCA stations, with a maximum
+            of two active participants per session. After every station we reinforce
+            what you&apos;re doing well, call out the habits and pitfalls that cost marks,
+            and give you an honest score prediction against the examiner&apos;s criteria.
+            We finish with an individual action plan: specific, prioritised, and ready
+            to work on before exam day. Observers are welcome to join and learn from
+            every station.
           </p>
 
           {/* Feature cards */}
