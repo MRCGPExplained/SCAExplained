@@ -75,6 +75,9 @@ export async function createBooking(
     if (msg.includes("sold_out")) {
       return { error: "Sorry — that ticket just sold out. Try another date." };
     }
+    if (msg.includes("observer_not_unlocked")) {
+      return { error: "Observer places open once the first Active Candidate has booked. Check back soon." };
+    }
     console.error("[booking] reserve_booking failed:", msg);
     return { error: "Something went wrong reserving your place. Please try again." };
   }

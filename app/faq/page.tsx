@@ -72,8 +72,8 @@ export default function FAQPage() {
       <P>
         A small-group live workshop where active candidates practise realistic
         SCA consultations and receive detailed, examiner-style feedback. Each
-        session has a maximum of two active candidates, each completing four
-        consultations (eight consultations total across the session). Observer
+        session has a maximum of two active candidates, each completing three
+        consultations (six consultations total across the session). Observer
         places are also available for candidates who want to learn from watching
         before practising themselves.
       </P>
@@ -81,13 +81,13 @@ export default function FAQPage() {
       <H3>What&apos;s the difference between an Active Candidate and an Observer?</H3>
       <UL>
         <LI>
-          <strong>Active Candidate (£150)</strong> — you take part directly.
-          You complete four realistic SCA consultations and receive individual
+          <strong>Active Candidate (£200)</strong> — you take part directly.
+          You complete three realistic SCA consultations and receive individual
           examiner-style feedback, a score prediction, and a personalised
           improvement plan after each one.
         </LI>
         <LI>
-          <strong>Observer (£50)</strong> — you watch both active candidates
+          <strong>Observer (£30)</strong> — you watch both active candidates
           complete their consultations and receive the same feedback and
           teaching in real time. Ideal if you want to see the process in detail
           before booking an active place, or if you learn well by observation.
@@ -103,14 +103,14 @@ export default function FAQPage() {
 
       <H3>How long does the Intensive run?</H3>
       <P>
-        Approximately 2.5–3 hours. With two candidates each completing four
+        Approximately 2 hours. With two candidates each completing three
         consultations, plus feedback after each one, the session is substantial
         — plan to be available for the full duration.
       </P>
 
       <H3>What do I receive as an Active Candidate?</H3>
       <UL>
-        <LI>Four realistic, SCA-style consultations (ten minutes each).</LI>
+        <LI>Three realistic, SCA-style consultations (ten minutes each).</LI>
         <LI>Examiner-style feedback immediately after each consultation.</LI>
         <LI>A score prediction against the actual examiner criteria.</LI>
         <LI>Specific coaching on communication, structure, and management.</LI>

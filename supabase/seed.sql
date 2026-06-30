@@ -35,12 +35,12 @@ begin
   foreach v_start in array v_starts loop
     insert into events (event_type, title, description, start_time, end_time, status)
     values ('intensive', 'SCA Intensive',
-            'Small-group live workshop. Two active candidates, four consultations each.',
-            v_start, v_start + interval '3 hours', 'scheduled')
+            'Small-group live workshop. Two active candidates, three consultations each.',
+            v_start, v_start + interval '2 hours', 'scheduled')
     returning id into v_id;
 
     insert into ticket_types (event_id, name, capacity, price) values
-      (v_id, 'Active Candidate', 2, 15000),
-      (v_id, 'Observer', 8, 5000);
+      (v_id, 'Active Candidate', 2, 20000),
+      (v_id, 'Observer', 8, 3000);
   end loop;
 end $$;

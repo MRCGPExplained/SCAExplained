@@ -81,6 +81,18 @@ left join (
   group by ticket_type_id
 ) b on b.ticket_type_id = tt.id;
 
+-- ── settings ─────────────────────────────────────────────────────────────────
+-- Global tunables editable directly in the Supabase table editor with no
+-- redeploy. The reserve_booking RPC reads these via security definer so the
+-- anon key never has direct access.
+create table if not exists settings (
+  key   text primary key,
+  value text
+);
+
+insert into settings (key, value) values ('OBSERVER_UNLOCKED_AT', '1')
+on conflict (key) do nothing;
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 -- All application DB access is server-side via the service-role key, which
 -- bypasses RLS. We still enable RLS with NO public policies so that the anon
@@ -89,6 +101,7 @@ left join (
 alter table events       enable row level security;
 alter table ticket_types enable row level security;
 alter table bookings     enable row level security;
+alter table settings     enable row level security;
 
 -- ── Atomic reservation RPC ────────────────────────────────────────────────────
 -- Reserves one seat for a ticket type inside a single transaction. Locks the
@@ -109,15 +122,18 @@ security definer
 set search_path = public
 as $$
 declare
-  v_capacity int;
-  v_price    int;
-  v_event_id uuid;
-  v_taken    int;
-  v_booking  bookings;
+  v_capacity        int;
+  v_price           int;
+  v_event_id        uuid;
+  v_name            text;
+  v_taken           int;
+  v_booking         bookings;
+  v_threshold       int;
+  v_active_confirmed int;
 begin
   -- Serialise concurrent reservations on this ticket type.
-  select capacity, price, event_id
-    into v_capacity, v_price, v_event_id
+  select capacity, price, event_id, name
+    into v_capacity, v_price, v_event_id, v_name
   from ticket_types
   where id = p_ticket_type_id
   for update;
@@ -128,6 +144,28 @@ begin
 
   if v_event_id <> p_event_id then
     raise exception 'ticket_event_mismatch' using errcode = 'P0001';
+  end if;
+
+  -- Observer gating: compare confirmed Active bookings against the live
+  -- threshold in the settings table. Editable without a redeploy.
+  if v_name = 'Observer' then
+    select coalesce(value::int, 1) into v_threshold
+    from settings where key = 'OBSERVER_UNLOCKED_AT';
+
+    if v_threshold is null then
+      v_threshold := 1;
+    end if;
+
+    select count(*) into v_active_confirmed
+    from bookings b
+    join ticket_types tt on tt.id = b.ticket_type_id
+    where b.event_id = p_event_id
+      and tt.name = 'Active Candidate'
+      and b.status in ('confirmed', 'paid');
+
+    if v_active_confirmed < v_threshold then
+      raise exception 'observer_not_unlocked' using errcode = 'P0001';
+    end if;
   end if;
 
   select count(*) into v_taken

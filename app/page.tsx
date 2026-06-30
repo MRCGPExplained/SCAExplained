@@ -15,7 +15,7 @@ const FEATURES = [
   {
     emoji: "🩺",
     title: "SCA Intensive",
-    desc: "A small-group live workshop. Two active candidates each complete four realistic consultations, with observer places available.",
+    desc: "A small-group live workshop. Two active candidates each complete three realistic consultations, with observer places available.",
   },
   {
     emoji: "📊",
@@ -132,10 +132,10 @@ export default async function HomePage() {
             <div className="bg-navy rounded-2xl px-7 py-8 flex flex-col">
               <div className="flex gap-2 mb-4">
                 <span className="bg-white/15 text-white text-[11px] font-bold tracking-[0.06em] uppercase px-2.5 py-[5px] rounded-md">
-                  Active £150
+                  Active £200
                 </span>
                 <span className="bg-white/15 text-white text-[11px] font-bold tracking-[0.06em] uppercase px-2.5 py-[5px] rounded-md">
-                  Observer £50
+                  Observer £30
                 </span>
               </div>
               <h3 className="font-display font-bold text-xl text-white mb-2">
@@ -143,7 +143,7 @@ export default async function HomePage() {
               </h3>
               <p className="text-[13.5px] leading-[1.65] text-white/70 mb-5 grow">
                 A small-group live workshop. Maximum two active candidates each
-                complete four realistic consultations with personalised,
+                complete three realistic consultations with personalised,
                 examiner-style feedback. Observer places available.
               </p>
               <Button
