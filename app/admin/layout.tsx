@@ -17,18 +17,10 @@ export default function AdminLayout({
             SCA Admin
           </Link>
           <div className="flex gap-6">
-            <Link
-              href="/admin"
-              className="text-[13px] text-white/70 hover:text-white transition no-underline"
-            >
-              Events
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="text-[13px] text-white/70 hover:text-white transition no-underline"
-            >
-              Presets
-            </Link>
+            <Link href="/admin" className="text-[13px] text-white/70 hover:text-white transition no-underline">Events</Link>
+            <Link href="/admin/users" className="text-[13px] text-white/70 hover:text-white transition no-underline">Users</Link>
+            <Link href="/admin/sales" className="text-[13px] text-white/70 hover:text-white transition no-underline">Sales</Link>
+            <Link href="/admin/settings" className="text-[13px] text-white/70 hover:text-white transition no-underline">Presets</Link>
           </div>
         </div>
         <div className="flex items-center gap-5">
