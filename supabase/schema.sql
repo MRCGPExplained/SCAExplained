@@ -202,11 +202,11 @@ create extension if not exists pg_cron schema extensions;
 
 select cron.schedule(
   'expire-pending-bookings',
-  '*/30 * * * *',
+  '*/10 * * * *',
   $$
     update bookings
     set status = 'cancelled'
     where status = 'pending'
-      and created_at < now() - interval '30 minutes';
+      and created_at < now() - interval '10 minutes';
   $$
 );

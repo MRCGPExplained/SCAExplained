@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createBooking, type BookingState } from "./actions";
 import { formatPrice } from "@/lib/format";
 import type { UpcomingEvent } from "@/lib/types";
+
+const TIMEOUT_SECONDS = 10 * 60;
 
 const initial: BookingState = {};
 
@@ -13,10 +16,33 @@ export function BookingForm({ event }: { event: UpcomingEvent }) {
     bookable[0]?.ticketTypeId ?? ""
   );
   const [state, formAction, pending] = useActionState(createBooking, initial);
+  const [secondsLeft, setSecondsLeft] = useState(TIMEOUT_SECONDS);
+  const router = useRouter();
 
   const selected = event.tickets.find((t) => t.ticketTypeId === ticketTypeId);
   const isPaid = (selected?.price ?? 0) > 0;
   const showSelector = event.tickets.length > 1;
+
+  // 10-minute countdown for paid bookings — redirects to home when expired.
+  useEffect(() => {
+    if (!isPaid) return;
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(interval);
+          router.push("/");
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPaid, router]);
+
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const timeDisplay = `${mins}:${secs.toString().padStart(2, "0")}`;
+  const isUrgent = secondsLeft <= 120;
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -110,6 +136,17 @@ export function BookingForm({ event }: { event: UpcomingEvent }) {
           We&apos;ll send your confirmation and joining link here.
         </p>
       </div>
+
+      {isPaid && (
+        <p className={[
+          "text-[12px] font-semibold text-center rounded-lg px-3.5 py-2",
+          isUrgent
+            ? "bg-red-50 text-red-600 border border-red-200"
+            : "bg-navy/[0.04] text-navy/55",
+        ].join(" ")}>
+          ⏱ Complete your booking within {timeDisplay}
+        </p>
+      )}
 
       {state?.error && (
         <p className="rounded-lg bg-red-50 border border-red-200 px-3.5 py-2.5 text-[13px] text-red-700">

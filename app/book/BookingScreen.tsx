@@ -11,7 +11,7 @@ const INCLUDED: Record<UpcomingEvent["eventType"], string[]> = {
     "The pitfalls that quietly cost marks",
   ],
   intensive: [
-    "Four realistic SCA consultations per active candidate",
+    "Three realistic SCA consultations per active candidate",
     "Examiner-style feedback and a score prediction after each one",
     "Strengths, improvements and exam-technique coaching",
     "An individual improvement plan to take away",
