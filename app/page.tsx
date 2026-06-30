@@ -16,7 +16,7 @@ export default async function HomePage() {
   return (
     <main className="bg-cream">
       {/* HERO */}
-      <section className="px-10 pt-16 pb-20 max-md:px-6">
+      <section className="px-10 pt-8 pb-20 max-md:px-6">
         <div className="max-w-[1100px] mx-auto grid grid-cols-2 gap-[52px] items-center max-md:grid-cols-1">
           <div className="min-w-0">
             <div className="mb-5">
