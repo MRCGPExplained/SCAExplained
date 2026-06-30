@@ -2,7 +2,7 @@ import { ContentPage, H2, H3, P, UL, LI, Divider, Notice } from "@/app/component
 
 export const metadata = {
   title: "FAQ — SCA Explained",
-  description: "Answers to common questions about the Clear Pass Webinar and SCA Intensive.",
+  description: "Answers to common questions about How To Get A Clear Pass and the SCA Intensive.",
 };
 
 export default function FAQPage() {
@@ -34,11 +34,11 @@ export default function FAQPage() {
       </P>
 
       <Divider />
-      <H2>What Makes a Clear Pass (Free Webinar)</H2>
+      <H2>How To Get A Clear Pass (Free Webinar)</H2>
 
       <H3>What is the webinar?</H3>
       <P>
-        &quot;What Makes a Clear Pass&quot; is a free, 90–120 minute online
+        &quot;How To Get A Clear Pass&quot; is a free, 90–120 minute online
         training session. It covers how the SCA is marked, the most common
         reasons candidates don&apos;t pass, consultation structure, time
         management, ICE, safety-netting, shared decision making, communication,

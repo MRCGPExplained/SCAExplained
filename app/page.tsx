@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const FEATURES = [
   {
     emoji: "🎯",
-    title: "What Makes a Clear Pass",
+    title: "How To Get A Clear Pass",
     desc: "Our free training on exactly what examiners are scoring — structure, ICE, safety-netting, and the pitfalls that cost marks.",
   },
   {
@@ -65,7 +65,7 @@ export default async function HomePage() {
                 href="#webinar-dates"
                 className="font-bold text-navy no-underline border-b-2 border-yellow"
               >
-                What Makes a Clear Pass
+                How To Get A Clear Pass
               </a>
               , our 2-hour free training, where we cover the top tips you need to
               secure your SCA pass.
@@ -73,7 +73,7 @@ export default async function HomePage() {
 
             <div className="flex gap-3 flex-wrap">
               <Button href="#webinar-dates" variant="primary">
-                Book the Clear Pass Webinar (Free)
+                Book How To Get A Clear Pass (Free)
               </Button>
               <Button href="#intensive-dates" variant="yellow">
                 Book the SCA Intensive
@@ -112,7 +112,7 @@ export default async function HomePage() {
                 Free
               </span>
               <h3 className="font-display font-bold text-xl text-white mb-2">
-                What Makes a Clear Pass
+                How To Get A Clear Pass
               </h3>
               <p className="text-[13.5px] leading-[1.65] text-white/70 mb-5 grow">
                 A 90–120 minute online training covering how the SCA is marked,
@@ -124,7 +124,7 @@ export default async function HomePage() {
                 variant="yellow"
                 className="self-start"
               >
-                Book the Clear Pass Webinar (Free)
+                Book How To Get A Clear Pass (Free)
               </Button>
             </div>
 
@@ -159,9 +159,9 @@ export default async function HomePage() {
           {/* Webinar dates */}
           <div id="webinar-dates" className="mt-8">
             <p className="text-[13px] font-bold text-navy tracking-[0.04em] uppercase mb-3.5">
-              Upcoming Clear Pass Webinar Dates
+              Upcoming How To Get A Clear Pass Dates
             </p>
-            <DateList events={webinarEvents} rowTitle="What Makes a Clear Pass" />
+            <DateList events={webinarEvents} rowTitle="How To Get A Clear Pass" />
           </div>
 
           {/* Intensive dates */}
@@ -217,7 +217,7 @@ export default async function HomePage() {
             variant="whiteOutline"
             className="!px-[18px] !py-[9px] !text-[13px]"
           >
-            Book the Clear Pass Webinar (Free)
+            Book How To Get A Clear Pass (Free)
           </Button>
           <Button
             href="#intensive-dates"
@@ -236,7 +236,7 @@ export default async function HomePage() {
         </p>
         <div className="flex gap-5 flex-wrap">
           <a href="#webinar-dates" className="text-xs text-white/50 no-underline">
-            Free Training
+            Free Webinar
           </a>
           <a href="#intensive-dates" className="text-xs text-white/50 no-underline">
             SCA Intensive

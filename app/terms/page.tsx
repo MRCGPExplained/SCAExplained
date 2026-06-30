@@ -34,7 +34,7 @@ export default function TermsPage() {
       <Divider />
       <H2>2. Our sessions</H2>
 
-      <H3>What Makes a Clear Pass (free webinar)</H3>
+      <H3>How To Get A Clear Pass (free webinar)</H3>
       <P>
         This is a free online training session. Booking confirms your place at
         no charge. We reserve the right to limit places and to close bookings

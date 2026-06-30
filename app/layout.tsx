@@ -19,7 +19,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "SCA Explained — Learn What Scores Marks in the SCA",
   description:
-    "Premium SCA coaching for GP trainees. Free 'What Makes a Clear Pass' training and the small-group SCA Intensive — real consultations, examiner-style feedback, and a personalised improvement plan.",
+    "Premium SCA coaching for GP trainees. Free 'How To Get A Clear Pass' training and the small-group SCA Intensive — real consultations, examiner-style feedback, and a personalised improvement plan.",
 };
 
 export default function RootLayout({

@@ -9,11 +9,11 @@
 with w as (
   insert into events (event_type, title, description, start_time, end_time, status)
   values
-    ('webinar', 'What Makes a Clear Pass', '2-hour free training on what examiners are scoring.',
+    ('webinar', 'How To Get A Clear Pass', '2-hour free training on what examiners are scoring.',
        timestamptz '2026-07-08 18:00:00+01', timestamptz '2026-07-08 20:00:00+01', 'scheduled'),
-    ('webinar', 'What Makes a Clear Pass', '2-hour free training on what examiners are scoring.',
+    ('webinar', 'How To Get A Clear Pass', '2-hour free training on what examiners are scoring.',
        timestamptz '2026-07-22 18:00:00+01', timestamptz '2026-07-22 20:00:00+01', 'scheduled'),
-    ('webinar', 'What Makes a Clear Pass', '2-hour free training on what examiners are scoring.',
+    ('webinar', 'How To Get A Clear Pass', '2-hour free training on what examiners are scoring.',
        timestamptz '2026-08-05 18:00:00+01', timestamptz '2026-08-05 20:00:00+01', 'scheduled')
   returning id
 )

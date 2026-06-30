@@ -158,7 +158,7 @@ export async function createBooking(
     await sendConfirmationEmail({
       to: email,
       customerName: name,
-      eventTitle: event?.title ?? "What Makes a Clear Pass",
+      eventTitle: event?.title ?? "How To Get A Clear Pass",
       ticketName: ticket?.name ?? "Webinar (Free)",
       startTime: event?.start_time ?? "",
       endTime: event?.end_time ?? "",
