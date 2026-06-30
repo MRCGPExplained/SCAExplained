@@ -44,9 +44,33 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
   const [eventType, setEventType] = useState<string>(
     initial?.event_type ?? "intensive"
   );
+  const [title, setTitle] = useState(
+    initial?.title ?? INTENSIVE_TITLE
+  );
+  const [description, setDescription] = useState(
+    initial?.description ?? INTENSIVE_DESC
+  );
+  const [startTime, setStartTime] = useState(
+    initial?.start_time ?? "10:00"
+  );
+  const [endTime, setEndTime] = useState(
+    initial?.end_time ?? "12:00"
+  );
 
   const isEdit = mode === "edit";
   const isWebinar = eventType === "webinar";
+
+  function switchType(t: string) {
+    setEventType(t);
+    // Only auto-fill if in create mode and the user hasn't diverged from defaults
+    if (mode === "create") {
+      const isW = t === "webinar";
+      setTitle(isW ? WEBINAR_TITLE : INTENSIVE_TITLE);
+      setDescription(isW ? WEBINAR_DESC : INTENSIVE_DESC);
+      setStartTime(isW ? "18:00" : "10:00");
+      setEndTime(isW ? "20:00" : "12:00");
+    }
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-6 max-w-[640px]">
@@ -79,7 +103,7 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
                   name="event_type"
                   value={t}
                   checked={eventType === t}
-                  onChange={() => setEventType(t)}
+                  onChange={() => switchType(t)}
                   className="accent-navy"
                 />
                 {t === "intensive" ? "SCA Intensive (paid)" : "Free Webinar"}
@@ -97,7 +121,8 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
           name="title"
           type="text"
           required
-          defaultValue={initial?.title ?? (isWebinar ? WEBINAR_TITLE : INTENSIVE_TITLE)}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           className="field"
         />
       </div>
@@ -109,7 +134,8 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
           id="description"
           name="description"
           rows={2}
-          defaultValue={initial?.description ?? (isWebinar ? WEBINAR_DESC : INTENSIVE_DESC)}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           className="field resize-none"
         />
       </div>
@@ -134,7 +160,8 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
             name="start_time"
             type="time"
             required
-            defaultValue={initial?.start_time ?? (isWebinar ? "18:00" : "10:00")}
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
             className="field"
           />
         </div>
@@ -145,7 +172,8 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
             name="end_time"
             type="time"
             required
-            defaultValue={initial?.end_time ?? (isWebinar ? "20:00" : "12:00")}
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
             className="field"
           />
         </div>
