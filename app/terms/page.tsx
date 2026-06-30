@@ -48,7 +48,7 @@ export default function TermsPage() {
       </P>
       <UL>
         <LI>Active Candidate — £200 per session.</LI>
-        <LI>Observer — £30 per session.</LI>
+        <LI>Observer — £50 per session.</LI>
       </UL>
       <P>
         Prices include VAT where applicable. Payment is taken in full at the

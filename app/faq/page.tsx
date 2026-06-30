@@ -87,7 +87,7 @@ export default function FAQPage() {
           improvement plan after each one.
         </LI>
         <LI>
-          <strong>Observer (£30)</strong> — you watch both active candidates
+          <strong>Observer (£50)</strong> — you watch both active candidates
           complete their consultations and receive the same feedback and
           teaching in real time. Ideal if you want to see the process in detail
           before booking an active place, or if you learn well by observation.

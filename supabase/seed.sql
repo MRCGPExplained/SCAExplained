@@ -41,6 +41,6 @@ begin
 
     insert into ticket_types (event_id, name, capacity, price) values
       (v_id, 'Active Candidate', 2, 20000),
-      (v_id, 'Observer', 8, 3000);
+      (v_id, 'Observer', 8, 5000);
   end loop;
 end $$;

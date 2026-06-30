@@ -135,7 +135,7 @@ export default async function HomePage() {
                   Active £200
                 </span>
                 <span className="bg-white/15 text-white text-[11px] font-bold tracking-[0.06em] uppercase px-2.5 py-[5px] rounded-md">
-                  Observer £30
+                  Observer £50
                 </span>
               </div>
               <h3 className="font-display font-bold text-xl text-white mb-2">
