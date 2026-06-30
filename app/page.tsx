@@ -48,14 +48,6 @@ export default async function HomePage() {
               secure your SCA pass.
             </p>
 
-            <div className="flex gap-3 flex-wrap">
-              <Button href="#booking" variant="primary">
-                Book How To Get A Clear Pass (Free)
-              </Button>
-              <Button href="#booking" variant="yellow">
-                Book the SCA Intensive
-              </Button>
-            </div>
           </div>
 
           {/* Hero image — placeholder. Replace with a properly licensed
