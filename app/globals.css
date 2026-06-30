@@ -32,3 +32,28 @@ body {
 :target {
   scroll-margin-top: 88px;
 }
+
+/* ── Admin form utilities ─────────────────────────────────────── */
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-navy) 55%, transparent);
+}
+
+.field {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-navy) 15%, transparent);
+  background: white;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-navy);
+  outline: none;
+  width: 100%;
+  transition: border-color 150ms;
+}
+
+.field:focus {
+  border-color: color-mix(in srgb, var(--color-navy) 60%, transparent);
+}
