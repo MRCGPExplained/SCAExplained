@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 /** Shared wrapper for FAQ / Privacy / Terms. Keeps these pages consistent and
  *  on-brand without repeating the full homepage chrome. */
@@ -14,22 +14,6 @@ export function ContentPage({
 }) {
   return (
     <div className="bg-cream min-h-screen flex flex-col">
-      {/* Minimal header */}
-      <header className="bg-navy px-6 md:px-10 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-display font-bold text-white text-[15px] no-underline"
-        >
-          SCA Explained
-        </Link>
-        <Link
-          href="/"
-          className="text-[13px] text-white/60 no-underline hover:text-white/90 transition-colors"
-        >
-          ← Back to home
-        </Link>
-      </header>
-
       {/* Page header */}
       <div className="bg-navy px-6 md:px-10 pb-10 pt-6 border-t border-white/[0.07]">
         <div className="max-w-[760px] mx-auto">
