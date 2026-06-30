@@ -69,7 +69,9 @@ export default async function EditEventPage({
 
   // Defaults for any missing ticket fields
   const defaults = {
+    webinarTitle: "How To Get A Clear Pass",
     webinarCapacity: 200,
+    intensiveTitle: "SCA Intensive",
     activeCapacity: 2,
     activePricePounds: 200,
     observerCapacity: 8,

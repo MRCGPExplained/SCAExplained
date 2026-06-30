@@ -5,10 +5,12 @@ export const dynamic = "force-dynamic";
 
 const DEFAULTS: Record<string, string> = {
   OBSERVER_UNLOCKED_AT: "1",
+  DEFAULT_WEBINAR_TITLE: "How To Get A Clear Pass",
   DEFAULT_WEBINAR_CAPACITY: "200",
   DEFAULT_WEBINAR_START: "18:00",
   DEFAULT_WEBINAR_END: "20:00",
   DEFAULT_WEBINAR_DESCRIPTION: "2-hour free training on what examiners are scoring.",
+  DEFAULT_INTENSIVE_TITLE: "SCA Intensive",
   DEFAULT_INTENSIVE_ACTIVE_CAPACITY: "2",
   DEFAULT_INTENSIVE_ACTIVE_PRICE: "20000",
   DEFAULT_INTENSIVE_OBSERVER_CAPACITY: "8",

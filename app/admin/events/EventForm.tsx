@@ -4,7 +4,9 @@ import { useActionState, useState } from "react";
 import { type ActionResult } from "../actions";
 
 interface TicketDefaults {
+  webinarTitle: string;
   webinarCapacity: number;
+  intensiveTitle: string;
   activeCapacity: number;
   activePricePounds: number;
   observerCapacity: number;
@@ -45,7 +47,7 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
     initial?.event_type ?? "intensive"
   );
   const [title, setTitle] = useState(
-    initial?.title ?? INTENSIVE_TITLE
+    initial?.title ?? defaults.intensiveTitle
   );
   const [description, setDescription] = useState(
     initial?.description ?? INTENSIVE_DESC
@@ -65,7 +67,7 @@ export function EventForm({ mode, action, defaults, initial }: Props) {
     // Only auto-fill if in create mode and the user hasn't diverged from defaults
     if (mode === "create") {
       const isW = t === "webinar";
-      setTitle(isW ? WEBINAR_TITLE : INTENSIVE_TITLE);
+      setTitle(isW ? defaults.webinarTitle : defaults.intensiveTitle);
       setDescription(isW ? WEBINAR_DESC : INTENSIVE_DESC);
       setStartTime(isW ? "18:00" : "10:00");
       setEndTime(isW ? "20:00" : "12:00");

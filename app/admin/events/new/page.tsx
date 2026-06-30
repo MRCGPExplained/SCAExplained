@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 async function getDefaults() {
   const supabase = getSupabaseAdmin();
   const fallback = {
+    webinarTitle: "How To Get A Clear Pass",
     webinarCapacity: 200,
+    intensiveTitle: "SCA Intensive",
     activeCapacity: 2,
     activePricePounds: 200,
     observerCapacity: 8,
@@ -19,7 +21,9 @@ async function getDefaults() {
   const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]));
 
   return {
+    webinarTitle: map.DEFAULT_WEBINAR_TITLE ?? "How To Get A Clear Pass",
     webinarCapacity: parseInt(map.DEFAULT_WEBINAR_CAPACITY ?? "200", 10),
+    intensiveTitle: map.DEFAULT_INTENSIVE_TITLE ?? "SCA Intensive",
     activeCapacity: parseInt(map.DEFAULT_INTENSIVE_ACTIVE_CAPACITY ?? "2", 10),
     activePricePounds: parseInt(map.DEFAULT_INTENSIVE_ACTIVE_PRICE ?? "20000", 10) / 100,
     observerCapacity: parseInt(map.DEFAULT_INTENSIVE_OBSERVER_CAPACITY ?? "8", 10),

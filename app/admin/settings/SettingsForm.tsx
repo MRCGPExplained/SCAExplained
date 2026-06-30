@@ -18,6 +18,7 @@ const SETTINGS_SCHEMA = [
   {
     group: "Free webinar defaults",
     items: [
+      { key: "DEFAULT_WEBINAR_TITLE", label: "Default title", type: "text", hint: "" },
       { key: "DEFAULT_WEBINAR_CAPACITY", label: "Capacity", type: "number", hint: "" },
       { key: "DEFAULT_WEBINAR_START", label: "Default start time (HH:MM, UK)", type: "time", hint: "" },
       { key: "DEFAULT_WEBINAR_END", label: "Default end time (HH:MM, UK)", type: "time", hint: "" },
@@ -27,6 +28,7 @@ const SETTINGS_SCHEMA = [
   {
     group: "SCA Intensive defaults",
     items: [
+      { key: "DEFAULT_INTENSIVE_TITLE", label: "Default title", type: "text", hint: "" },
       { key: "DEFAULT_INTENSIVE_ACTIVE_CAPACITY", label: "Active Candidate capacity", type: "number", hint: "" },
       { key: "DEFAULT_INTENSIVE_ACTIVE_PRICE", label: "Active Candidate price (pence — 20000 = £200)", type: "number", hint: "" },
       { key: "DEFAULT_INTENSIVE_OBSERVER_CAPACITY", label: "Observer capacity", type: "number", hint: "" },
