@@ -190,3 +190,23 @@ begin
   return v_booking;
 end;
 $$;
+
+-- ── Pending booking expiry (pg_cron) ─────────────────────────────────────────
+-- Frees seats held by abandoned Stripe checkouts. Runs every 30 minutes.
+-- Requires the pg_cron extension — enable it in Supabase Dashboard →
+-- Database → Extensions → search "pg_cron" → Enable.
+-- Then run this block once to register the job.
+--
+-- To change the window: edit the interval '30 minutes' below and re-run.
+create extension if not exists pg_cron schema extensions;
+
+select cron.schedule(
+  'expire-pending-bookings',
+  '*/30 * * * *',
+  $$
+    update bookings
+    set status = 'cancelled'
+    where status = 'pending'
+      and created_at < now() - interval '30 minutes';
+  $$
+);
