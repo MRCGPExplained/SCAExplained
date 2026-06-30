@@ -93,7 +93,8 @@ export async function sendConfirmationEmail(
       ${zoomBlock}
       <tr><td style="padding:8px 28px 28px;">
         <p style="font-size:12px;color:#9a9ab0;margin:0;">
-          See you there. If you need to rearrange, just reply to this email.</p>
+          See you there. If you need to rearrange or have any questions, contact us at
+          <a href="mailto:mrcgpexplained@outlook.com" style="color:#9a9ab0;">mrcgpexplained@outlook.com</a>.</p>
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
