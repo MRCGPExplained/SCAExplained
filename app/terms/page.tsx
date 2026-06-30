@@ -43,8 +43,8 @@ export default function TermsPage() {
 
       <H3>SCA Intensive (paid workshop)</H3>
       <P>
-        A live online workshop with a maximum of two active candidate places and
-        a limited number of observer places per session. Prices are:
+        A live online workshop running six stations in total, with a maximum of
+        two active candidate places and a limited number of observer places per session. Prices are:
       </P>
       <UL>
         <LI>Active Candidate — £200 per session.</LI>

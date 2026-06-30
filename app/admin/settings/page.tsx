@@ -18,7 +18,7 @@ const DEFAULTS: Record<string, string> = {
   DEFAULT_INTENSIVE_START: "10:00",
   DEFAULT_INTENSIVE_END: "12:00",
   DEFAULT_INTENSIVE_DESCRIPTION:
-    "Small-group live workshop. Two active candidates, three consultations each.",
+    "Small-group live workshop. Six stations — maximum two active candidates, minimum three consultations each.",
 };
 
 async function getCurrentSettings(): Promise<Record<string, string>> {

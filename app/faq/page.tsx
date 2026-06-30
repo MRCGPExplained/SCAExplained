@@ -71,9 +71,9 @@ export default function FAQPage() {
       <H3>What is the SCA Intensive?</H3>
       <P>
         A small-group live workshop where active candidates practise realistic
-        SCA consultations and receive detailed, examiner-style feedback. Each
-        session has a maximum of two active candidates, each completing three
-        consultations (six consultations total across the session). Observer
+        SCA consultations and receive detailed, examiner-style feedback. Every
+        session runs six stations in total — with a maximum of two active
+        candidates, each completing at least three consultations. Observer
         places are also available for candidates who want to learn from watching
         before practising themselves.
       </P>
@@ -82,7 +82,7 @@ export default function FAQPage() {
       <UL>
         <LI>
           <strong>Active Candidate (£200)</strong> — you take part directly.
-          You complete three realistic SCA consultations and receive individual
+          You complete at least three realistic SCA consultations and receive individual
           examiner-style feedback, a score prediction, and a personalised
           improvement plan after each one.
         </LI>
@@ -103,14 +103,13 @@ export default function FAQPage() {
 
       <H3>How long does the Intensive run?</H3>
       <P>
-        Approximately 2 hours. With two candidates each completing three
-        consultations, plus feedback after each one, the session is substantial
-        — plan to be available for the full duration.
+        Approximately 2 hours. Six stations in total, with feedback after each
+        consultation — plan to be available for the full duration.
       </P>
 
       <H3>What do I receive as an Active Candidate?</H3>
       <UL>
-        <LI>Three realistic, SCA-style consultations (ten minutes each).</LI>
+        <LI>At least three realistic, SCA-style consultations (ten minutes each) across six stations.</LI>
         <LI>Examiner-style feedback immediately after each consultation.</LI>
         <LI>A score prediction against the actual examiner criteria.</LI>
         <LI>Specific coaching on communication, structure, and management.</LI>

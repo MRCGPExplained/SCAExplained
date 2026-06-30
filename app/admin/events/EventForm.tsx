@@ -39,7 +39,7 @@ const WEBINAR_TITLE = "How To Get A Clear Pass";
 const INTENSIVE_TITLE = "SCA Intensive";
 const WEBINAR_DESC = "2-hour free training on what examiners are scoring.";
 const INTENSIVE_DESC =
-  "Small-group live workshop. Two active candidates, three consultations each.";
+  "Small-group live workshop. Six stations — maximum two active candidates, minimum three consultations each.";
 
 export function EventForm({ mode, action, defaults, initial }: Props) {
   const [state, formAction, pending] = useActionState(action, {});

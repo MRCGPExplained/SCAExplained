@@ -13,7 +13,7 @@ const FEATURES = [
   {
     emoji: "🩺",
     title: "SCA Intensive",
-    desc: "A small-group live workshop. Two active candidates each complete three realistic consultations, with observer places available.",
+    desc: "A small-group live workshop. Six stations across the session — maximum two active candidates, each completing at least three consultations. Observer places available.",
   },
   {
     emoji: "📊",
@@ -91,8 +91,9 @@ export function BookingAccordion({ webinarEvents, intensiveEvents }: Props) {
       {open === "intensive" && (
         <div className="mt-5 bg-white rounded-2xl border border-navy/10 px-7 py-7">
           <p className="text-[14.5px] leading-[1.7] text-navy/65 mb-6 max-w-[640px]">
-            A small-group live workshop. Maximum two active candidates each complete
-            three realistic consultations with personalised, examiner-style feedback.
+            A small-group live workshop. Six stations across the session — maximum
+            two active candidates, each completing at least three realistic consultations,
+            with personalised, examiner-style feedback.
             Observer places available at £50.
           </p>
 
