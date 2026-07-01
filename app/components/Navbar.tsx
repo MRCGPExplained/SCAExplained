@@ -39,7 +39,7 @@ export function Navbar() {
             FAQ
           </Link>
           <a
-            href="#booking"
+            href="/#booking"
             className="bg-navy text-white text-[12.5px] font-bold px-4 py-2 rounded-lg hover:bg-navy/85 transition-colors no-underline"
           >
             Book now
