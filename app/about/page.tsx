@@ -13,7 +13,7 @@ export default function AboutPage() {
       title="About SCA Explained"
       subtitle="Built by a GP, for GP trainees."
     >
-      <H2>Why SCA Explained exists</H2>
+      <H2 underline>Why SCA Explained exists</H2>
 
       <H3>Most preparation is based on assumption, not what RCGP examiners are actually looking for</H3>
       <P>
@@ -37,7 +37,7 @@ export default function AboutPage() {
 
       <Divider />
 
-      <H2>What we focus on</H2>
+      <H2 underline>What we focus on</H2>
       <UL>
         <LI>
           <strong>Accuracy over anecdote.</strong> Everything is grounded in
@@ -63,11 +63,35 @@ export default function AboutPage() {
 
       <Divider />
 
-      <P>
-        <strong>Dr Brandon Ten-Fah</strong> is a GP with a passion for medical
-        education, always thinking about how to make the learning experience
-        better for those in training.
-      </P>
+      {/* Bio */}
+      <div className="flex gap-6 items-start max-sm:flex-col">
+        <div className="shrink-0">
+          <div className="w-[140px] h-[160px] rounded-2xl bg-navy relative overflow-hidden flex items-center justify-center max-sm:w-full max-sm:h-[180px]">
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "repeating-linear-gradient(135deg, rgba(246,212,75,0.06) 0px, rgba(246,212,75,0.06) 2px, transparent 2px, transparent 18px)",
+              }}
+            />
+            <span className="relative text-white/35 text-[11px] font-semibold tracking-[0.04em]">
+              Photo
+            </span>
+          </div>
+          <p className="text-[11px] text-navy/45 mt-2 leading-[1.5]">
+            BMS, MBBS, MRCGP
+          </p>
+        </div>
+        <div className="pt-1">
+          <p className="font-display font-bold text-[17px] text-navy mb-1.5">
+            Dr Brandon Ten-Fah
+          </p>
+          <p className="text-[14.5px] leading-[1.75] text-navy/75">
+            A GP with a passion for medical education, always thinking about
+            how to make the learning experience better for those in training.
+          </p>
+        </div>
+      </div>
     </ContentPage>
   );
 }

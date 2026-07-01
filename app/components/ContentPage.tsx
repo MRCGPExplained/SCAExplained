@@ -49,10 +49,12 @@ export function ContentPage({
 /* ── Prose helpers ─────────────────────────────────────────────────────────────
    Tailwind v4 doesn't ship @tailwindcss/typography in the same way, so we
    style prose elements directly via the utility classes below. */
-export function H2({ children }: { children: ReactNode }) {
+export function H2({ children, underline }: { children: ReactNode; underline?: boolean }) {
   return (
     <h2 className="font-display font-bold text-[20px] text-navy mt-10 mb-3 leading-[1.3] first:mt-0">
-      {children}
+      {underline ? (
+        <span className="border-b-[3px] border-yellow pb-0.5">{children}</span>
+      ) : children}
     </h2>
   );
 }
