@@ -1,6 +1,5 @@
 import { getUpcomingEvents } from "@/lib/events";
 import { Swash } from "./components/Swash";
-import { Button } from "./components/Button";
 import { BookingAccordion } from "./components/BookingAccordion";
 
 // Re-fetch on each request so availability and date lists stay current.
@@ -73,7 +72,7 @@ export default async function HomePage() {
       {/* BOOKING ACCORDION */}
       <section id="booking" className="px-10 pb-20 max-md:px-6">
         <h2 className="font-display font-extrabold text-[28px] text-navy text-center mb-8 max-w-[1000px] mx-auto">
-          Choose How You Want to Start
+          Our Webinars
         </h2>
         <BookingAccordion
           webinarEvents={webinarEvents}
@@ -81,30 +80,8 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* CLOSING STRIP */}
-      <section className="bg-navy px-10 py-[22px] flex items-center justify-center gap-5 flex-wrap max-md:px-6">
-        <span className="text-sm text-white/85 font-medium">
-          Ready to find out where you stand?
-        </span>
-        <div className="flex gap-2.5 flex-wrap">
-          <Button
-            href="#booking"
-            variant="whiteOutline"
-            className="!px-[18px] !py-[9px] !text-[13px]"
-          >
-            Book How To Get A Clear Pass (Free)
-          </Button>
-          <Button
-            href="#booking"
-            variant="yellow"
-            className="!px-[18px] !py-2 !text-[13px]"
-          >
-            Book the SCA Intensive
-          </Button>
-        </div>
-      </section>
 
-      {/* FOOTER */}
+{/* FOOTER */}
       <footer className="bg-navy border-t border-white/[0.08] px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6">
         <p className="text-xs text-white/40">
           For educational purposes only. © 2026 SCA Explained.
