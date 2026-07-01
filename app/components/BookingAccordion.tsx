@@ -134,6 +134,11 @@ export function BookingAccordion({ webinarEvents, intensiveEvents }: Props) {
             <span className="bg-navy/[0.07] text-navy text-[11px] font-bold tracking-[0.06em] uppercase px-3 py-1.5 rounded-lg">Observer £50</span>
           </div>
 
+          <p className="text-[12.5px] text-navy/60 mb-4">
+            <span className="font-bold text-navy">Best attended 8-10 weeks before your SCA sitting</span>{" "}
+            — gives you time to act on your individual plan before exam day.
+          </p>
+
           <p className="text-[12px] font-bold tracking-[0.06em] uppercase text-navy/40 mb-3">
             Upcoming dates
           </p>
