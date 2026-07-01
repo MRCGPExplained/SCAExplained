@@ -29,7 +29,7 @@ export default async function HomePage() {
 
             <p className="text-[15.5px] leading-[1.7] text-navy/[0.68] mb-4">
               Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about
-              demonstrating a specific set of consultation skills — naturally, under
+              demonstrating a specific set of consultation skills, naturally under
               exam conditions. Exploring a patient&apos;s ICE without it feeling like a
               checklist. Sitting with diagnostic uncertainty and committing to a plan
               anyway. Handling patient emotion without losing structure. Building a
@@ -46,7 +46,7 @@ export default async function HomePage() {
               >
                 How To Get A Clear Pass
               </a>
-              , our free 2-hour training — the top tips you need, straight from
+              , our free 2-hour training: the top tips you need, straight from
               someone who knows what examiners are looking for.
             </p>
 

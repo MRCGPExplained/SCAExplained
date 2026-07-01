@@ -76,11 +76,21 @@ export function BookingAccordion({ webinarEvents, intensiveEvents }: Props) {
       {open === "webinar" && (
         <div className="mt-5 bg-white rounded-2xl border border-navy/10 px-7 py-7">
           <p className="text-[14.5px] leading-[1.7] text-navy/65 mb-6 max-w-[640px]">
-            This webinar focuses on what RCGP examiners are actually scoring when
-            they watch a consultation, and why candidates who know their medicine
-            still fall short. We go through the consultation skills that separate a
-            Clear Pass from a near-miss, so you leave knowing exactly what examiners
-            are looking for and how to show it.
+            This webinar is built around one question: what are RCGP examiners
+            actually scoring when they watch a consultation? Most candidates assume
+            it&apos;s clinical knowledge. It isn&apos;t. There is a specific set of consultation
+            skills the SCA is designed to assess, and a large number of well-prepared
+            candidates fall short not because they don&apos;t know the medicine, but because
+            they don&apos;t know what they&apos;re being scored on.
+          </p>
+          <p className="text-[14.5px] leading-[1.7] text-navy/65 mb-6 max-w-[640px]">
+            We go through each of these skills in detail: how to explore ICE
+            naturally, how to handle uncertainty without losing the patient&apos;s
+            confidence, how to structure a management plan the patient actually agrees
+            with. We cover the habits that quietly cost marks and the adjustments that
+            shift your score. You&apos;ll leave knowing exactly what examiners are looking
+            for, why some candidates consistently pass when others don&apos;t, and precisely
+            what to work on before exam day.
           </p>
           <p className="text-[12px] font-bold tracking-[0.06em] uppercase text-navy/40 mb-3">
             Upcoming dates
