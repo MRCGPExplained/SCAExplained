@@ -6,8 +6,8 @@ export function Navbar() {
       <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 no-underline group">
-          <span className="w-8 h-8 rounded-full bg-navy flex items-center justify-center group-hover:bg-navy/85 transition-colors shrink-0">
-            <svg viewBox="0 0 20 20" fill="white" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
+          <span className="w-8 h-8 rounded-full bg-navy text-white group-hover:bg-yellow group-hover:text-navy group-hover:shadow-[0_0_14px_rgba(246,212,75,0.55)] transition-all duration-200 shrink-0 flex items-center justify-center">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 1a6 6 0 0 0-3.815 10.631C7.237 12.5 8 13.443 8 14.456v.644a.75.75 0 0 0 .572.729 6.016 6.016 0 0 0 2.856 0A.75.75 0 0 0 12 15.1v-.644c0-1.013.763-1.957 1.815-2.825A6 6 0 0 0 10 1z"/>
               <path d="M8.863 17.414a.75.75 0 0 0-.226 1.483 9.066 9.066 0 0 0 2.726 0 .75.75 0 0 0-.226-1.483 7.553 7.553 0 0 1-2.274 0z"/>
             </svg>
@@ -19,6 +19,12 @@ export function Navbar() {
 
         {/* Right */}
         <div className="flex items-center gap-5">
+          <Link
+            href="/about"
+            className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline"
+          >
+            About
+          </Link>
           <Link
             href="/faq"
             className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline"

@@ -116,6 +116,9 @@ export default async function HomePage() {
           <a href="#booking" className="text-xs text-white/50 no-underline">
             SCA Intensive
           </a>
+          <a href="/about" className="text-xs text-white/50 no-underline">
+            About
+          </a>
           <a href="/faq" className="text-xs text-white/50 no-underline">
             FAQ
           </a>
