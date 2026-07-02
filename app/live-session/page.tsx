@@ -1,14 +1,8 @@
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
 export default async function LiveSessionPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/live-session");
-
   const adminSupabase = getSupabaseAdmin();
   const { data: setting } = adminSupabase
     ? await adminSupabase.from("settings").select("value").eq("key", "LIVE_SESSION_ZOOM_URL").single<{ value: string }>()

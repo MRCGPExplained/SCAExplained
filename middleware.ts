@@ -87,11 +87,6 @@ export async function middleware(req: NextRequest) {
     return supabaseAuthCheck(req, "/login");
   }
 
-  // ── Live session (auth required) ──────────────────────────────────────────
-  if (pathname === "/live-session" || pathname.startsWith("/live-session/")) {
-    return supabaseAuthCheck(req, "/login");
-  }
-
   return NextResponse.next();
 }
 
@@ -103,7 +98,5 @@ export const config = {
     "/bundle/:path*",
     "/dashboard",
     "/dashboard/:path*",
-    "/live-session",
-    "/live-session/:path*",
   ],
 };
