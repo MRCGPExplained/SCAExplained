@@ -20,6 +20,9 @@ export default function AdminLayout({
             <Link href="/admin" className="text-[13px] text-white/70 hover:text-white transition no-underline">Events</Link>
             <Link href="/admin/users" className="text-[13px] text-white/70 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/sales" className="text-[13px] text-white/70 hover:text-white transition no-underline">Sales</Link>
+            <Link href="/admin/stations" className="text-[13px] text-white/70 hover:text-white transition no-underline">Stations</Link>
+            <Link href="/admin/video-course" className="text-[13px] text-white/70 hover:text-white transition no-underline">Video Course</Link>
+            <Link href="/admin/case-bank-users" className="text-[13px] text-white/70 hover:text-white transition no-underline">Case Bank</Link>
             <Link href="/admin/settings" className="text-[13px] text-white/70 hover:text-white transition no-underline">Presets</Link>
           </div>
         </div>

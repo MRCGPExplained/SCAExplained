@@ -4,7 +4,6 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail } from "@/lib/email";
 
-// Stripe needs the raw, unparsed body to verify the signature.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -33,12 +32,19 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    await confirmBooking(session);
+    const type = session.metadata?.type;
+
+    if (type === "case_bank" || type === "video_course" || type === "bundle") {
+      await confirmProductPurchase(session, type);
+    } else {
+      await confirmBooking(session);
+    }
   }
 
-  // Always 200 so Stripe doesn't retry on handled events.
   return NextResponse.json({ received: true });
 }
+
+// ── SCA Intensive booking ─────────────────────────────────────────────────────
 
 async function confirmBooking(session: Stripe.Checkout.Session) {
   const bookingId = session.metadata?.booking_id;
@@ -51,7 +57,6 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
-  // Mark paid (idempotent — re-delivery just re-sets the same row).
   const { data: booking, error } = await supabase
     .from("bookings")
     .update({ status: "paid", stripe_checkout_session_id: session.id })
@@ -69,7 +74,6 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Pull event (incl. zoom_link) + ticket name for the confirmation email.
   const { data: ev } = await supabase
     .from("events")
     .select("title, start_time, end_time, zoom_link")
@@ -96,4 +100,83 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
     endTime: ev?.end_time ?? "",
     zoomLink: ev?.zoom_link ?? null,
   });
+}
+
+// ── Product purchases (case_bank / video_course / bundle) ────────────────────
+
+async function confirmProductPurchase(
+  session: Stripe.Checkout.Session,
+  type: "case_bank" | "video_course" | "bundle"
+) {
+  const userId = session.metadata?.user_id;
+  const userEmail = session.metadata?.user_email ?? "";
+
+  if (!userId) {
+    console.error(`[webhook] ${type} checkout without user_id`);
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const now = new Date();
+  const ninetyDaysLater = new Date(now);
+  ninetyDaysLater.setDate(ninetyDaysLater.getDate() + 90);
+  const expiresAt = ninetyDaysLater.toISOString();
+
+  const grantVideoCourse = type === "video_course" || type === "bundle";
+  const grantCaseBank = type === "case_bank" || type === "bundle";
+
+  // Upsert: set product flags, take greatest expires_at
+  const { error } = await supabase.rpc("upsert_user_access", {
+    p_user_id: userId,
+    p_has_video_course: grantVideoCourse,
+    p_has_case_bank: grantCaseBank,
+    p_expires_at: expiresAt,
+  });
+
+  if (error) {
+    // Fallback: manual upsert if RPC not available yet
+    const { data: existing } = await supabase
+      .from("user_access")
+      .select("has_video_course, has_case_bank, expires_at")
+      .eq("user_id", userId)
+      .single<{ has_video_course: boolean; has_case_bank: boolean; expires_at: string | null }>();
+
+    const newExpiry =
+      existing?.expires_at && existing.expires_at > expiresAt
+        ? existing.expires_at
+        : expiresAt;
+
+    const { error: upsertErr } = await supabase.from("user_access").upsert({
+      user_id: userId,
+      has_video_course: grantVideoCourse || (existing?.has_video_course ?? false),
+      has_case_bank: grantCaseBank || (existing?.has_case_bank ?? false),
+      expires_at: newExpiry,
+    });
+
+    if (upsertErr) {
+      console.error("[webhook] failed to write user_access:", upsertErr.message);
+      return;
+    }
+  }
+
+  const productLabel =
+    type === "bundle"
+      ? "SCA Video Course + Case Bank"
+      : type === "video_course"
+      ? "SCA Video Course"
+      : "SCA Case Bank";
+
+  if (userEmail) {
+    await sendConfirmationEmail({
+      to: userEmail,
+      customerName: userEmail,
+      eventTitle: `${productLabel} — 90-Day Access`,
+      ticketName: "Access granted",
+      startTime: now.toISOString(),
+      endTime: expiresAt,
+      zoomLink: null,
+    });
+  }
 }
