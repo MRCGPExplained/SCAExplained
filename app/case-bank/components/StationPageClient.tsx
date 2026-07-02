@@ -269,7 +269,9 @@ export function StationPageClient({
   const supabase = createSupabaseBrowserClient();
 
   const [starred, setStarred] = useState(initialStarred);
-  const [showRoom, setShowRoom] = useState(false);
+  const [showRoom, setShowRoom] = useState(() =>
+    typeof window !== "undefined" && !!sessionStorage.getItem("studyRoomId")
+  );
   const [showReport, setShowReport] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
@@ -589,7 +591,7 @@ export function StationPageClient({
               onPhaseComplete={handlePhaseComplete}
             />
 
-            {showRoom && (
+            <div style={{ display: showRoom ? undefined : "none" }}>
               <StudyRoomPanel
                 stationId={station.id}
                 stationNumber={station.number}
@@ -600,7 +602,7 @@ export function StationPageClient({
                 onStationChange={handleStationChange}
                 onRoomStatusChange={handleRoomStatusChange}
               />
-            )}
+            </div>
           </div>
         </div>
       </div>

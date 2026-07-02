@@ -234,6 +234,18 @@ export function StudyRoomPanel({
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Auto-rejoin saved room on mount (survives navigation and panel toggle)
+  useEffect(() => {
+    const savedId = sessionStorage.getItem("studyRoomId");
+    if (!savedId || room) return;
+    supabase
+      .from("study_rooms")
+      .select("*")
+      .eq("id", savedId)
+      .single<StudyRoom>()
+      .then(({ data }) => { if (data) setRoom(data); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleCreate() {
     setLoading(true);
     const result = await createStudyRoomAction();
@@ -242,13 +254,15 @@ export function StudyRoomPanel({
       setLoading(false);
       return;
     }
-    // Fetch full room data
     const { data } = await supabase
       .from("study_rooms")
       .select("*")
       .eq("id", result.roomId!)
       .single<StudyRoom>();
-    if (data) setRoom(data);
+    if (data) {
+      sessionStorage.setItem("studyRoomId", data.id);
+      setRoom(data);
+    }
     setLoading(false);
   }
 
@@ -267,13 +281,17 @@ export function StudyRoomPanel({
       .select("*")
       .eq("id", result.roomId!)
       .single<StudyRoom>();
-    if (data) setRoom(data);
+    if (data) {
+      sessionStorage.setItem("studyRoomId", data.id);
+      setRoom(data);
+    }
     setLoading(false);
   }
 
   async function handleLeave() {
     if (!room) return;
     await leaveStudyRoomAction(room.id);
+    sessionStorage.removeItem("studyRoomId");
     setRoom(null);
     setParticipants([]);
     setMessages([]);
@@ -312,7 +330,7 @@ export function StudyRoomPanel({
         style={{ background: "white", border: "1px solid rgba(26,27,82,0.10)" }}
       >
         <div className="px-4 py-3" style={{ background: NAVY }}>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: YELLOW }}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
             Study Room
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -369,7 +387,7 @@ export function StudyRoomPanel({
         style={{ background: NAVY }}
       >
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: YELLOW }}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
             Study Room
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -398,7 +416,7 @@ export function StudyRoomPanel({
             <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
               {p.isSelf ? "You" : p.displayName}
               {p.isHost && (
-                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: YELLOW, color: NAVY, fontWeight: 700 }}>
+                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(31,41,55,0.12)", color: "rgba(31,41,55,0.5)", fontWeight: 600 }}>
                   HOST
                 </span>
               )}
