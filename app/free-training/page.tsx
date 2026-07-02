@@ -19,45 +19,15 @@ export default async function FreeTrainingPage() {
     ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3`
     : null;
 
-  const NAVY = "#1A1B52";
-  const YELLOW = "#F6D44B";
-
   return (
-    <main className="max-w-[800px] mx-auto px-6 py-10">
-      <div className="mb-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] px-2.5 py-1 rounded-full" style={{ background: "rgba(26,27,82,0.07)", color: "rgba(26,27,82,0.55)" }}>
-          Free
-        </span>
-        <h1 className="font-display font-extrabold text-[28px] mt-3 mb-2" style={{ color: NAVY }}>
-          How To Get A Clear Pass
-        </h1>
-        <p className="text-[15px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.60)" }}>
-          This is the foundation of everything on SCA Explained. Before you practise stations or
-          watch the video course, watch this. It covers what the SCA is actually testing, how
-          examiners mark, and the specific consultation skills that determine whether you get a
-          Clear Pass or not.
-        </p>
-      </div>
-
+    <main>
       {EMBED_URL ? (
         <VideoEmbed src={EMBED_URL} />
       ) : (
-        <div
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "360px", background: "rgba(26,27,82,0.06)", borderRadius: "16px", border: "2px dashed rgba(26,27,82,0.15)" }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "rgba(26,27,82,0.06)" }}>
           <p style={{ color: "rgba(26,27,82,0.40)", fontSize: "14px" }}>Video coming soon.</p>
         </div>
       )}
-
-      <div className="mt-8 rounded-2xl p-6" style={{ background: "white", border: "1px solid rgba(26,27,82,0.10)" }}>
-        <p className="text-[14px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.65)" }}>
-          Ready to go deeper? The{" "}
-          <a href="/programme" className="font-semibold no-underline" style={{ color: NAVY, borderBottom: `2px solid ${YELLOW}` }}>
-            SCA Explained Programme
-          </a>{" "}
-          covers every clinical system in detail and gives you 246 practice stations to apply what you&apos;ve learned.
-        </p>
-      </div>
     </main>
   );
 }

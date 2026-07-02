@@ -6,15 +6,10 @@ export function VideoEmbed({ src }: { src: string }) {
     <div
       onContextMenu={(e) => e.preventDefault()}
       style={{
-        position: "relative",
         width: "100vw",
-        left: "50%",
-        transform: "translateX(-50%)",
-        paddingBottom: "56.25%",
-        height: 0,
+        height: "100vh",
         background: NAVY,
         overflow: "hidden",
-        boxShadow: "0 8px 40px rgba(26,27,82,0.22)",
         userSelect: "none",
       }}
     >
@@ -25,7 +20,7 @@ export function VideoEmbed({ src }: { src: string }) {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         sandbox="allow-scripts allow-same-origin allow-presentation"
-        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", display: "block" }}
       />
     </div>
   );
