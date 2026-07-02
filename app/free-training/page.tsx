@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { VideoEmbed } from "./VideoEmbed";
 
 export const dynamic = "force-dynamic";
 
@@ -39,20 +40,7 @@ export default async function FreeTrainingPage() {
       </div>
 
       {EMBED_URL ? (
-        <div
-          onContextMenu={(e) => e.preventDefault()}
-          style={{ position: "relative", paddingBottom: "56.25%", height: 0, background: NAVY, borderRadius: "16px", overflow: "hidden", boxShadow: "0 8px 32px rgba(26,27,82,0.18)" }}
-        >
-          <iframe
-            src={EMBED_URL}
-            title="How To Get A Clear Pass"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            sandbox="allow-scripts allow-same-origin allow-presentation"
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-          />
-        </div>
+        <VideoEmbed src={EMBED_URL} />
       ) : (
         <div
           style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "360px", background: "rgba(26,27,82,0.06)", borderRadius: "16px", border: "2px dashed rgba(26,27,82,0.15)" }}
