@@ -192,6 +192,11 @@ create policy "Room participants can read rooms" on study_rooms
     or host_user_id = auth.uid()
   );
 
+-- Any authenticated user can look up a room by code in order to join it.
+-- Rooms are ephemeral (deleted after 24h) and contain no sensitive data.
+create policy "Authenticated users can look up rooms to join" on study_rooms
+  for select using (auth.uid() is not null);
+
 -- User profiles (display name, initials for rooms)
 create table if not exists user_profiles (
   id           uuid primary key references auth.users,
