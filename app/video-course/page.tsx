@@ -31,11 +31,11 @@ export default async function VideoCoursePage() {
     .from("user_access")
     .select("expires_at")
     .eq("user_id", user.id)
-    .eq("has_video_course", true)
+    .eq("has_programme", true)
     .gt("expires_at", new Date().toISOString())
     .single<{ expires_at: string }>();
 
-  if (!access) redirect("/video-course/purchase");
+  if (!access) redirect("/programme");
 
   const { data: systems } = await supabase
     .from("video_course_systems")

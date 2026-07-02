@@ -16,9 +16,7 @@ export async function POST(req: Request) {
   }
 
   const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    return NextResponse.json({ error: "missing signature" }, { status: 400 });
-  }
+  if (!signature) return NextResponse.json({ error: "missing signature" }, { status: 400 });
 
   const rawBody = await req.text();
 
@@ -34,8 +32,8 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const type = session.metadata?.type;
 
-    if (type === "case_bank" || type === "video_course" || type === "bundle") {
-      await confirmProductPurchase(session, type);
+    if (type === "programme") {
+      await confirmProgrammePurchase(session);
     } else {
       await confirmBooking(session);
     }
@@ -62,12 +60,7 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
     .update({ status: "paid", stripe_checkout_session_id: session.id })
     .eq("id", bookingId)
     .select("customer_name, customer_email, event_id, ticket_type_id")
-    .single<{
-      customer_name: string;
-      customer_email: string;
-      event_id: string;
-      ticket_type_id: string;
-    }>();
+    .single<{ customer_name: string; customer_email: string; event_id: string; ticket_type_id: string }>();
 
   if (error || !booking) {
     console.error("[webhook] failed to mark booking paid:", error?.message);
@@ -78,12 +71,7 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
     .from("events")
     .select("title, start_time, end_time, zoom_link")
     .eq("id", eventId ?? booking.event_id)
-    .single<{
-      title: string;
-      start_time: string;
-      end_time: string;
-      zoom_link: string | null;
-    }>();
+    .single<{ title: string; start_time: string; end_time: string; zoom_link: string | null }>();
 
   const { data: ticket } = await supabase
     .from("ticket_types")
@@ -102,17 +90,14 @@ async function confirmBooking(session: Stripe.Checkout.Session) {
   });
 }
 
-// ── Product purchases (case_bank / video_course / bundle) ────────────────────
+// ── Programme purchase ────────────────────────────────────────────────────────
 
-async function confirmProductPurchase(
-  session: Stripe.Checkout.Session,
-  type: "case_bank" | "video_course" | "bundle"
-) {
+async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;
   const userEmail = session.metadata?.user_email ?? "";
 
   if (!userId) {
-    console.error(`[webhook] ${type} checkout without user_id`);
+    console.error("[webhook] programme checkout without user_id");
     return;
   }
 
@@ -120,62 +105,40 @@ async function confirmProductPurchase(
   if (!supabase) return;
 
   const now = new Date();
-  const ninetyDaysLater = new Date(now);
-  ninetyDaysLater.setDate(ninetyDaysLater.getDate() + 90);
-  const expiresAt = ninetyDaysLater.toISOString();
+  const expiresAt = new Date(now);
+  expiresAt.setDate(expiresAt.getDate() + 90);
 
-  const grantVideoCourse = type === "video_course" || type === "bundle";
-  const grantCaseBank = type === "case_bank" || type === "bundle";
+  const { data: existing } = await supabase
+    .from("user_access")
+    .select("expires_at")
+    .eq("user_id", userId)
+    .single<{ expires_at: string | null }>();
 
-  // Upsert: set product flags, take greatest expires_at
-  const { error } = await supabase.rpc("upsert_user_access", {
-    p_user_id: userId,
-    p_has_video_course: grantVideoCourse,
-    p_has_case_bank: grantCaseBank,
-    p_expires_at: expiresAt,
+  const newExpiry =
+    existing?.expires_at && existing.expires_at > expiresAt.toISOString()
+      ? existing.expires_at
+      : expiresAt.toISOString();
+
+  const { error } = await supabase.from("user_access").upsert({
+    user_id: userId,
+    has_programme: true,
+    expires_at: newExpiry,
+    renewal_reminder_sent_at: null,
   });
 
   if (error) {
-    // Fallback: manual upsert if RPC not available yet
-    const { data: existing } = await supabase
-      .from("user_access")
-      .select("has_video_course, has_case_bank, expires_at")
-      .eq("user_id", userId)
-      .single<{ has_video_course: boolean; has_case_bank: boolean; expires_at: string | null }>();
-
-    const newExpiry =
-      existing?.expires_at && existing.expires_at > expiresAt
-        ? existing.expires_at
-        : expiresAt;
-
-    const { error: upsertErr } = await supabase.from("user_access").upsert({
-      user_id: userId,
-      has_video_course: grantVideoCourse || (existing?.has_video_course ?? false),
-      has_case_bank: grantCaseBank || (existing?.has_case_bank ?? false),
-      expires_at: newExpiry,
-    });
-
-    if (upsertErr) {
-      console.error("[webhook] failed to write user_access:", upsertErr.message);
-      return;
-    }
+    console.error("[webhook] failed to write user_access:", error.message);
+    return;
   }
-
-  const productLabel =
-    type === "bundle"
-      ? "SCA Video Course + Case Bank"
-      : type === "video_course"
-      ? "SCA Video Course"
-      : "SCA Case Bank";
 
   if (userEmail) {
     await sendConfirmationEmail({
       to: userEmail,
       customerName: userEmail,
-      eventTitle: `${productLabel} — 90-Day Access`,
+      eventTitle: "The SCA Explained Programme — 90-Day Access",
       ticketName: "Access granted",
       startTime: now.toISOString(),
-      endTime: expiresAt,
+      endTime: newExpiry,
       zoomLink: null,
     });
   }

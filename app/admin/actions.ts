@@ -484,8 +484,7 @@ export async function createCaseBankUser(
   if (grantAccess && expiresAtRaw) {
     const { error: accessErr } = await supabase.from("user_access").upsert({
       user_id: userId,
-      has_case_bank: true,
-      has_video_course: false,
+      has_programme: true,
       expires_at: new Date(expiresAtRaw + "T23:59:59Z").toISOString(),
     });
     if (accessErr) {
@@ -506,7 +505,6 @@ export async function grantUserAccess(
 
   const userId = String(formData.get("user_id") ?? "");
   const expiresAtRaw = String(formData.get("expires_at") ?? "").trim();
-  const product = String(formData.get("product") ?? "case_bank");
 
   if (!userId || !expiresAtRaw) {
     return { error: "User and expiry date are required." };
@@ -514,12 +512,11 @@ export async function grantUserAccess(
 
   const expiresAt = new Date(expiresAtRaw + "T23:59:59Z").toISOString();
 
-  // Fetch existing flags so we don't overwrite the other product
   const { data: existing } = await supabase
     .from("user_access")
-    .select("has_video_course, has_case_bank, expires_at")
+    .select("expires_at")
     .eq("user_id", userId)
-    .single<{ has_video_course: boolean; has_case_bank: boolean; expires_at: string | null }>();
+    .single<{ expires_at: string | null }>();
 
   const newExpiry =
     existing?.expires_at && existing.expires_at > expiresAt
@@ -528,15 +525,9 @@ export async function grantUserAccess(
 
   const { error } = await supabase.from("user_access").upsert({
     user_id: userId,
-    has_video_course:
-      product === "video_course" || product === "bundle"
-        ? true
-        : (existing?.has_video_course ?? false),
-    has_case_bank:
-      product === "case_bank" || product === "bundle"
-        ? true
-        : (existing?.has_case_bank ?? false),
+    has_programme: true,
     expires_at: newExpiry,
+    renewal_reminder_sent_at: null,
   });
 
   if (error) return { error: error.message };

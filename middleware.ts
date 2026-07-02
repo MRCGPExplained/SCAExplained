@@ -3,28 +3,15 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 async function sha256hex(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text)
-  );
-  return Array.from(new Uint8Array(buf), (b) =>
-    b.toString(16).padStart(2, "0")
-  ).join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Routes within /case-bank or /video-course that don't require a logged-in user
-const CASE_BANK_PUBLIC = [
-  "/case-bank/login",
-  "/case-bank/register",
-  "/case-bank/purchase",
-];
+const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/register", "/case-bank/purchase"];
 const VIDEO_COURSE_PUBLIC = ["/video-course/purchase"];
 const BUNDLE_PUBLIC = ["/bundle/purchase"];
 
-async function supabaseAuthCheck(
-  req: NextRequest,
-  loginPath: string
-): Promise<NextResponse> {
+async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({ request: req });
 
   const supabase = createServerClient(
@@ -32,25 +19,17 @@ async function supabaseAuthCheck(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
+        getAll() { return req.cookies.getAll(); },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            req.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request: req });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
         },
       },
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     const url = req.nextUrl.clone();
@@ -65,55 +44,54 @@ async function supabaseAuthCheck(
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ── Admin auth (cookie hash) ──────────────────────────────────────────────
+  // ── Admin auth ────────────────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") return NextResponse.next();
-
     const session = req.cookies.get("admin_session")?.value ?? "";
     const pw = process.env.ADMIN_PASSWORD ?? "";
-
     if (pw) {
       const expected = await sha256hex(pw);
       if (session === expected) return NextResponse.next();
     } else if (process.env.NODE_ENV !== "production") {
       return NextResponse.next();
     }
-
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  // ── Case bank auth (Supabase JWT) ─────────────────────────────────────────
+  // ── Case bank ─────────────────────────────────────────────────────────────
   if (pathname.startsWith("/case-bank")) {
-    const isPublic = CASE_BANK_PUBLIC.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
-    );
+    const isPublic = CASE_BANK_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
     if (isPublic) return NextResponse.next();
-    return supabaseAuthCheck(req, "/case-bank/login");
+    return supabaseAuthCheck(req, "/login");
   }
 
-  // ── Video course auth (Supabase JWT) ──────────────────────────────────────
+  // ── Video course ──────────────────────────────────────────────────────────
   if (pathname.startsWith("/video-course")) {
-    const isPublic = VIDEO_COURSE_PUBLIC.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
-    );
+    const isPublic = VIDEO_COURSE_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
     if (isPublic) return NextResponse.next();
-    return supabaseAuthCheck(req, "/case-bank/login");
+    return supabaseAuthCheck(req, "/login");
   }
 
-  // ── Bundle purchase (public) ───────────────────────────────────────────────
+  // ── Bundle ────────────────────────────────────────────────────────────────
   if (pathname.startsWith("/bundle")) {
-    const isPublic = BUNDLE_PUBLIC.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
-    );
+    const isPublic = BUNDLE_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
     if (isPublic) return NextResponse.next();
     return supabaseAuthCheck(req, "/login");
   }
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    return supabaseAuthCheck(req, "/login");
+  }
+
+  // ── Free training + Live session (auth required, no programme needed) ─────
+  if (pathname === "/free-training" || pathname.startsWith("/free-training/")) {
+    return supabaseAuthCheck(req, "/login");
+  }
+  if (pathname === "/live-session" || pathname.startsWith("/live-session/")) {
     return supabaseAuthCheck(req, "/login");
   }
 
@@ -121,5 +99,16 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/case-bank/:path*", "/video-course/:path*", "/bundle/:path*", "/dashboard", "/dashboard/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/case-bank/:path*",
+    "/video-course/:path*",
+    "/bundle/:path*",
+    "/dashboard",
+    "/dashboard/:path*",
+    "/free-training",
+    "/free-training/:path*",
+    "/live-session",
+    "/live-session/:path*",
+  ],
 };

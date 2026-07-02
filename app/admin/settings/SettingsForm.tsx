@@ -5,6 +5,17 @@ import { updateSettings } from "../actions";
 
 const SETTINGS_SCHEMA = [
   {
+    group: "Live Session",
+    items: [
+      {
+        key: "LIVE_SESSION_ZOOM_URL",
+        label: "Zoom registration URL for the next live session",
+        type: "url",
+        hint: "Paste the Zoom registration link here. Leave blank to show 'No session scheduled' on the live-session page.",
+      },
+    ],
+  },
+  {
     group: "Observer gating",
     items: [
       {

@@ -69,7 +69,7 @@ export async function registerAction(
 export async function logoutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
-  redirect("/case-bank/login");
+  redirect("/login");
 }
 
 // ── Stars ─────────────────────────────────────────────────────────────────────

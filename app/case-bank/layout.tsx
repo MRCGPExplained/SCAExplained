@@ -27,7 +27,7 @@ export default async function CaseBankLayout({
           .from("user_access")
           .select("expires_at")
           .eq("user_id", user.id)
-          .eq("has_case_bank", true)
+          .eq("has_programme", true)
           .gt("expires_at", new Date().toISOString())
           .single<{ expires_at: string }>(),
       ]);

@@ -10,9 +10,7 @@ async function getData() {
   const [authResult, profilesResult, accessResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("user_profiles").select("id, display_name, initials"),
-    supabase
-      .from("user_access")
-      .select("user_id, has_video_course, has_case_bank, expires_at"),
+    supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at"),
   ]);
 
   const authUsers = (authResult.data as { users?: { id: string; email?: string; created_at: string }[] })?.users ?? [];
@@ -32,8 +30,8 @@ async function getData() {
 
   const now = new Date();
   users.sort((a, b) => {
-    const aActive = a.access && new Date(a.access.expires_at) > now && (a.access.has_video_course || a.access.has_case_bank) ? 1 : 0;
-    const bActive = b.access && new Date(b.access.expires_at) > now && (b.access.has_video_course || b.access.has_case_bank) ? 1 : 0;
+    const aActive = a.access && a.access.has_programme && new Date(a.access.expires_at) > now ? 1 : 0;
+    const bActive = b.access && b.access.has_programme && new Date(b.access.expires_at) > now ? 1 : 0;
     if (aActive !== bActive) return bActive - aActive;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
