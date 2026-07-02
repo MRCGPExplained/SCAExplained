@@ -11,7 +11,7 @@ import {
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 
-const NAVY = "#1A1B52";
+const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 

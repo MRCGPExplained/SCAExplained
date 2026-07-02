@@ -15,51 +15,18 @@ const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
-// ── Accordion ─────────────────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────────────────────
 
-function Section({
-  title,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div
-      className="rounded-xl overflow-hidden mb-2.5"
-      style={{ border: "1px solid rgba(26,27,82,0.10)" }}
-    >
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3.5 transition-colors"
-        style={{
-          background: open ? NAVY : "white",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <span
-          className="font-display font-bold text-[13.5px]"
-          style={{ color: open ? "white" : NAVY, transition: "color 0.2s" }}
-        >
-          {title}
-        </span>
-        <span
-          className="text-[18px] font-bold leading-none"
-          style={{ color: open ? YELLOW : NAVY }}
-        >
-          {open ? "−" : "+"}
-        </span>
-      </button>
-      {open && (
-        <div className="bg-white px-5 py-4">{children}</div>
-      )}
-    </div>
-  );
-}
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "video";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "brief", label: "Doctor's Brief" },
+  { key: "story", label: "Patient's Story" },
+  { key: "data", label: "Data Gathering" },
+  { key: "management", label: "Management" },
+  { key: "explanation", label: "Example Explanation" },
+  { key: "takeaways", label: "Key Takeaways" },
+];
 
 // ── Content helpers ────────────────────────────────────────────────────────────
 
@@ -305,6 +272,7 @@ export function StationPageClient({
   const [showRoom, setShowRoom] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [starPending, setStarPending] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("brief");
 
   // Room state (exposed from StudyRoomPanel)
   const [inRoom, setInRoom] = useState(false);
@@ -476,13 +444,13 @@ export function StationPageClient({
             onClick={() => setShowRoom((v) => !v)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
-              background: showRoom ? YELLOW : "transparent",
-              border: `1.5px solid ${showRoom ? YELLOW : "rgba(255,255,255,0.25)"}`,
-              color: showRoom ? NAVY : "rgba(255,255,255,0.6)",
+              background: "transparent",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.6)",
               cursor: "pointer",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={showRoom ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
@@ -493,9 +461,9 @@ export function StationPageClient({
             onClick={handleToggleStar}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
-              background: starred ? YELLOW : "transparent",
-              border: `1.5px solid ${starred ? YELLOW : "rgba(255,255,255,0.25)"}`,
-              color: starred ? NAVY : "rgba(255,255,255,0.6)",
+              background: "transparent",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.6)",
               cursor: "pointer",
             }}
           >
@@ -547,59 +515,62 @@ export function StationPageClient({
         </div>
       </div>
 
+      {/* Tab strip */}
+      <div style={{ background: "white", borderBottom: "1px solid rgba(31,41,55,0.10)" }}>
+        <div className="max-w-[1300px] mx-auto px-6 flex items-end">
+          {(embedUrl ? [...TABS, { key: "video" as TabKey, label: "From Me" }] : TABS).map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="py-2.5 px-4 text-[12.5px] transition-colors whitespace-nowrap"
+                style={{
+                  background: "none",
+                  border: "none",
+                  borderBottom: active ? `2px solid ${YELLOW}` : "2px solid transparent",
+                  marginBottom: "-1px",
+                  cursor: "pointer",
+                  color: active ? NAVY : "rgba(31,41,55,0.40)",
+                  fontWeight: active ? 600 : 400,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main grid */}
       <div className="max-w-[1300px] mx-auto px-6 py-6">
         <div
           className="grid gap-5 items-start"
           style={{ gridTemplateColumns: "1fr 240px" }}
         >
-          {/* Station content */}
-          <div>
-            <Section title="Doctor's Brief" defaultOpen={true}>
-              <DoctorBriefContent station={station} />
-            </Section>
-
-            <Section title="Patient's Story">
-              <PatientStoryContent station={station} />
-            </Section>
-
-            <Section title="Data Gathering & Diagnosis">
-              <BulletList items={station.data_gathering} />
-            </Section>
-
-            <Section title="Management">
-              <BulletList items={station.management} />
-            </Section>
-
-            <Section title="Example Explanation">
-              <p
-                className="text-[13.5px] leading-[1.85]"
-                style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}
-              >
+          {/* Tab content */}
+          <div className="rounded-xl bg-white px-6 py-5" style={{ border: "1px solid rgba(31,41,55,0.10)" }}>
+            {activeTab === "brief" && <DoctorBriefContent station={station} />}
+            {activeTab === "story" && <PatientStoryContent station={station} />}
+            {activeTab === "data" && <BulletList items={station.data_gathering} />}
+            {activeTab === "management" && <BulletList items={station.management} />}
+            {activeTab === "explanation" && (
+              <p className="text-[13.5px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
                 {station.example_explanation}
               </p>
-            </Section>
-
-            <Section title="Key Takeaways">
-              <BulletList items={station.key_takeaways} />
-            </Section>
-
-            {embedUrl && (
-              <Section title="Message from Me">
-                <div
-                  className="relative rounded-lg overflow-hidden"
-                  style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}
-                >
-                  <iframe
-                    src={embedUrl}
-                    title="Message from Me"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                  />
-                </div>
-              </Section>
+            )}
+            {activeTab === "takeaways" && <BulletList items={station.key_takeaways} />}
+            {activeTab === "video" && embedUrl && (
+              <div className="relative rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}>
+                <iframe
+                  src={embedUrl}
+                  title="Message from Me"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
             )}
           </div>
 
