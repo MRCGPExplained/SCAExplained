@@ -29,17 +29,11 @@ export function Navbar() {
             FAQ
           </Link>
           <Link
-            href="/case-bank/login"
-            className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline"
-          >
-            Sign in
-          </Link>
-          <a
-            href="/#webinar"
+            href="/login"
             className="bg-navy text-white text-[12.5px] font-bold px-4 py-2 rounded-lg hover:bg-navy/85 transition-colors no-underline"
           >
-            Get started
-          </a>
+            Login
+          </Link>
         </div>
       </div>
     </header>

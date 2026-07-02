@@ -109,12 +109,17 @@ export async function middleware(req: NextRequest) {
       (p) => pathname === p || pathname.startsWith(p + "/")
     );
     if (isPublic) return NextResponse.next();
-    return supabaseAuthCheck(req, "/case-bank/login");
+    return supabaseAuthCheck(req, "/login");
+  }
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+  if (pathname.startsWith("/dashboard")) {
+    return supabaseAuthCheck(req, "/login");
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/case-bank/:path*", "/video-course/:path*", "/bundle/:path*"],
+  matcher: ["/admin/:path*", "/case-bank/:path*", "/video-course/:path*", "/bundle/:path*", "/dashboard", "/dashboard/:path*"],
 };

@@ -2,6 +2,7 @@ import { getUpcomingEvents } from "@/lib/events";
 import { Swash } from "./components/Swash";
 import { DateList } from "./components/DateList";
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,9 @@ function PriceCard({
 
 export default async function HomePage() {
   const webinarEvents = await getUpcomingEvents("webinar");
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const buyHref = user ? "/dashboard" : "/register";
 
   return (
     <main className="bg-cream">
@@ -257,7 +261,7 @@ export default async function HomePage() {
                 "90-day access",
               ]}
               cta="Buy the Video Course"
-              href="/video-course/purchase"
+              href={buyHref}
             />
 
             <PriceCard
@@ -272,7 +276,7 @@ export default async function HomePage() {
                 "90-day access",
               ]}
               cta="Buy the Case Bank"
-              href="/case-bank/purchase"
+              href={buyHref}
             />
 
             <PriceCard
@@ -288,7 +292,7 @@ export default async function HomePage() {
                 "90-day access to both",
               ]}
               cta="Buy the Bundle"
-              href="/bundle/purchase"
+              href={buyHref}
               highlight
             />
           </div>
