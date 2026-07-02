@@ -55,7 +55,6 @@ export function StudyRoomPanel({
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const prevStationRef = useRef<number | null>(null);
   const supabase = createSupabaseBrowserClient();
 
   const iAmHost = room ? room.host_user_id === userId : false;
@@ -166,6 +165,12 @@ export function StudyRoomPanel({
 
           onTimerSync(phase, timeLeft, running);
         }
+
+        // Station: guests follow host
+        const isGuest = updated.host_user_id !== userId;
+        if (isGuest && updated.current_station_number && updated.current_station_number !== stationNumber) {
+          onStationChange?.(updated.current_station_number);
+        }
       }
     );
 
@@ -196,12 +201,6 @@ export function StudyRoomPanel({
       }
     );
 
-    // Navigation sync — guests follow host
-    channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
-      const num = (payload as { stationNumber: number }).stationNumber;
-      if (num && onStationChange) onStationChange(num);
-    });
-
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await channel.track({ userId, displayName, initials });
@@ -220,27 +219,15 @@ export function StudyRoomPanel({
     onRoomStatusChange?.(!!room, iAmHost, room?.id ?? null);
   }, [room?.id, iAmHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Host broadcasts navigation when stationNumber prop changes
+  // Host: write current station to DB whenever room loads or station changes.
+  // Guests receive it via the postgres_changes UPDATE subscription below.
   useEffect(() => {
-    if (!room || !iAmHost) {
-      prevStationRef.current = stationNumber;
-      return;
-    }
-    if (prevStationRef.current !== null && prevStationRef.current !== stationNumber) {
-      // Broadcast to currently-connected guests
-      channelRef.current?.send({
-        type: "broadcast",
-        event: "navigate",
-        payload: { stationNumber },
-      });
-      // Persist so late joiners / rejoins land on the right station
-      supabase
-        .from("study_rooms")
-        .update({ current_station_number: stationNumber })
-        .eq("id", room.id);
-    }
-    prevStationRef.current = stationNumber;
-  }, [stationNumber, iAmHost, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!room || !iAmHost) return;
+    supabase
+      .from("study_rooms")
+      .update({ current_station_number: stationNumber })
+      .eq("id", room.id);
+  }, [room?.id, stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load persisted messages when room is joined
   useEffect(() => {
