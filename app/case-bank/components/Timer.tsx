@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 
-const NAVY = "#1A1B52";
+const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 
 export function Timer({
@@ -53,7 +53,7 @@ export function Timer({
 
   const phaseLabel = phase === "PREREAD" ? "Pre-Read" : "Consultation";
 
-  const borderColor = isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : "rgba(26,27,82,0.18)";
+  const borderColor = isOrange ? "#F97316" : "rgba(31,41,55,0.15)";
   const digitColor = isOrange ? "#F97316" : NAVY;
 
   return (
@@ -65,6 +65,11 @@ export function Timer({
         transition: "border-color 0.5s",
       }}
     >
+      {/* Phase label */}
+      <div className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: isOrange ? "#F97316" : "rgba(31,41,55,0.4)", transition: "color 0.5s" }}>
+        {phaseLabel}
+      </div>
+
       {/* Time digits */}
       <div
         className="font-display font-extrabold text-[32px] tracking-[0.04em]"
@@ -82,7 +87,7 @@ export function Timer({
           className="h-full rounded-full"
           style={{
             width: `${progress}%`,
-            background: isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : NAVY,
+            background: isOrange ? "#F97316" : NAVY,
             transition: "width 1s linear, background 0.5s",
           }}
         />

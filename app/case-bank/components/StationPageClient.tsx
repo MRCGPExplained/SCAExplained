@@ -11,7 +11,7 @@ import { StudyRoomPanel } from "./StudyRoom";
 import { ReportModal } from "./ReportModal";
 import { toggleStarAction, recordAttemptAction } from "../actions";
 
-const NAVY = "#1A1B52";
+const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
@@ -474,20 +474,24 @@ export function StationPageClient({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowRoom((v) => !v)}
-            className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
-              background: showRoom ? "rgba(246,212,75,0.15)" : "rgba(255,255,255,0.08)",
-              border: `1.5px solid ${showRoom ? YELLOW : "rgba(255,255,255,0.2)"}`,
-              color: showRoom ? YELLOW : "rgba(255,255,255,0.6)",
+              background: showRoom ? YELLOW : "transparent",
+              border: `1.5px solid ${showRoom ? YELLOW : "rgba(255,255,255,0.25)"}`,
+              color: showRoom ? NAVY : "rgba(255,255,255,0.6)",
               cursor: "pointer",
             }}
           >
-            👥 Study Room
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Study Room
           </button>
 
           <button
             onClick={handleToggleStar}
-            className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
               background: starred ? YELLOW : "transparent",
               border: `1.5px solid ${starred ? YELLOW : "rgba(255,255,255,0.25)"}`,
@@ -495,20 +499,26 @@ export function StationPageClient({
               cursor: "pointer",
             }}
           >
-            {starred ? "★ Starred" : "☆ Star"}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            {starred ? "Starred" : "Star"}
           </button>
 
           <button
             onClick={() => setShowReport(true)}
-            className="rounded-md px-3 py-1.5 text-[12px]"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
               background: "transparent",
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "rgba(255,255,255,0.45)",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.6)",
               cursor: "pointer",
             }}
           >
-            Report Issue
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
+            Report
           </button>
 
           {prevStationNumber && (
