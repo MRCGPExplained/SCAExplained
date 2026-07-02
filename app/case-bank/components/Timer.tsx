@@ -53,32 +53,22 @@ export function Timer({
 
   const phaseLabel = phase === "PREREAD" ? "Pre-Read" : "Consultation";
 
+  const borderColor = isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : "rgba(26,27,82,0.18)";
+  const digitColor = isOrange ? "#F97316" : NAVY;
+
   return (
     <div
       className="rounded-2xl px-5 py-4 text-center"
       style={{
-        background: "rgba(255,255,255,0.06)",
-        border: `1.5px solid ${isOrange ? "rgba(249,115,22,0.4)" : "transparent"}`,
-        minWidth: 200,
+        background: "white",
+        border: `2px solid ${borderColor}`,
         transition: "border-color 0.5s",
       }}
     >
-      {/* Phase label */}
-      <div
-        className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1"
-        style={{
-          color:
-            phase === "PREREAD" ? YELLOW : isOrange ? "#F97316" : "rgba(255,255,255,0.45)",
-          transition: "color 0.5s",
-        }}
-      >
-        {phaseLabel}
-      </div>
-
       {/* Time digits */}
       <div
-        className="font-display font-extrabold text-[30px] tracking-[0.04em]"
-        style={{ color: isOrange ? "#F97316" : "white", transition: "color 0.5s" }}
+        className="font-display font-extrabold text-[32px] tracking-[0.04em]"
+        style={{ color: digitColor, transition: "color 0.5s" }}
       >
         {mins}:{secs}
       </div>
@@ -86,13 +76,13 @@ export function Timer({
       {/* Progress bar */}
       <div
         className="h-[3px] rounded-full my-2 overflow-hidden"
-        style={{ background: "rgba(255,255,255,0.1)" }}
+        style={{ background: "rgba(26,27,82,0.08)" }}
       >
         <div
           className="h-full rounded-full"
           style={{
             width: `${progress}%`,
-            background: isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : "rgba(255,255,255,0.5)",
+            background: isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : NAVY,
             transition: "width 1s linear, background 0.5s",
           }}
         />
@@ -105,9 +95,9 @@ export function Timer({
             onClick={running ? onPause : onStart}
             className="rounded-lg px-3.5 py-1.5 text-[12px] font-bold"
             style={{
-              background: running ? "rgba(255,255,255,0.15)" : YELLOW,
+              background: running ? "rgba(26,27,82,0.08)" : NAVY,
               border: "none",
-              color: running ? "white" : NAVY,
+              color: running ? NAVY : "white",
               cursor: "pointer",
             }}
           >
@@ -119,26 +109,14 @@ export function Timer({
               className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
               style={{
                 background: "transparent",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "rgba(255,255,255,0.55)",
+                border: "1px solid rgba(26,27,82,0.15)",
+                color: "rgba(26,27,82,0.5)",
                 cursor: "pointer",
               }}
             >
               Skip →
             </button>
           )}
-        </div>
-      )}
-
-      {!isHost && (
-        <div className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.3)" }}>
-          Host controls the timer
-        </div>
-      )}
-
-      {phase === "PREREAD" && isHost && (
-        <div className="text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
-          Read the brief, then start when ready
         </div>
       )}
     </div>

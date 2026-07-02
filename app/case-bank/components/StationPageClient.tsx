@@ -528,8 +528,8 @@ export function StationPageClient({
           {nextStationNumber && (
             <button
               onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
-              className="rounded-md px-3 py-1.5 text-[12px] font-bold"
-              style={{ background: YELLOW, border: "none", color: NAVY, cursor: "pointer" }}
+              className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
+              style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}
             >
               Next →
             </button>
@@ -541,9 +541,7 @@ export function StationPageClient({
       <div className="max-w-[1300px] mx-auto px-6 py-6">
         <div
           className="grid gap-5 items-start"
-          style={{
-            gridTemplateColumns: showRoom ? "1fr 240px 270px" : "1fr 240px",
-          }}
+          style={{ gridTemplateColumns: "1fr 240px" }}
         >
           {/* Station content */}
           <div>
@@ -595,72 +593,22 @@ export function StationPageClient({
             )}
           </div>
 
-          {/* Timer + nav */}
-          <div className="sticky top-4 flex flex-col gap-2.5">
-            <div style={{ background: NAVY, borderRadius: 16, padding: "4px 0" }}>
-              <Timer
-                phase={timerPhase}
-                timeLeft={timeLeft}
-                running={timerRunning}
-                isHost={!inRoom || iAmHost}
-                onStart={handleTimerStart}
-                onPause={handleTimerPause}
-                onSkipPreread={handleSkipPreread}
-                onReset={handleTimerReset}
-                onTick={handleTick}
-                onPhaseComplete={handlePhaseComplete}
-              />
-            </div>
+          {/* Timer + study room */}
+          <div className="sticky top-4 flex flex-col gap-3">
+            <Timer
+              phase={timerPhase}
+              timeLeft={timeLeft}
+              running={timerRunning}
+              isHost={!inRoom || iAmHost}
+              onStart={handleTimerStart}
+              onPause={handleTimerPause}
+              onSkipPreread={handleSkipPreread}
+              onReset={handleTimerReset}
+              onTick={handleTick}
+              onPhaseComplete={handlePhaseComplete}
+            />
 
-            <div className="flex flex-col gap-2">
-              {nextStationNumber && (
-                <span
-                  title={inRoom && !iAmHost ? "Host is navigating" : undefined}
-                  style={{ display: "block" }}
-                >
-                  <button
-                    onClick={inRoom && !iAmHost ? undefined : () => router.push(`/case-bank/${nextStationNumber}`)}
-                    className="w-full rounded-lg py-2.5 font-display font-bold text-[13px]"
-                    style={{
-                      background: YELLOW,
-                      border: "none",
-                      color: NAVY,
-                      cursor: inRoom && !iAmHost ? "not-allowed" : "pointer",
-                      opacity: inRoom && !iAmHost ? 0.45 : 1,
-                      pointerEvents: inRoom && !iAmHost ? "none" : undefined,
-                    }}
-                  >
-                    Next Station →
-                  </button>
-                </span>
-              )}
-              {prevStationNumber && (
-                <span
-                  title={inRoom && !iAmHost ? "Host is navigating" : undefined}
-                  style={{ display: "block" }}
-                >
-                  <button
-                    onClick={inRoom && !iAmHost ? undefined : () => router.push(`/case-bank/${prevStationNumber}`)}
-                    className="w-full rounded-lg py-2.5 font-display font-semibold text-[13px]"
-                    style={{
-                      background: "white",
-                      border: "1px solid rgba(26,27,82,0.12)",
-                      color: NAVY,
-                      cursor: inRoom && !iAmHost ? "not-allowed" : "pointer",
-                      opacity: inRoom && !iAmHost ? 0.45 : 1,
-                      pointerEvents: inRoom && !iAmHost ? "none" : undefined,
-                    }}
-                  >
-                    ← Previous Station
-                  </button>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Study room */}
-          {showRoom && (
-            <div className="sticky top-4">
+            {showRoom && (
               <StudyRoomPanel
                 stationId={station.id}
                 stationNumber={station.number}
@@ -671,8 +619,8 @@ export function StationPageClient({
                 onStationChange={handleStationChange}
                 onRoomStatusChange={handleRoomStatusChange}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
