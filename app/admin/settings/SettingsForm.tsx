@@ -19,10 +19,16 @@ const SETTINGS_SCHEMA = [
     group: "Live Session",
     items: [
       {
+        key: "LIVE_SESSION_DATE",
+        label: "Next session date & time",
+        type: "text",
+        hint: "e.g. Thursday 10 July 2026, 7:00pm – 8:30pm. Shown on the live-session page above the registration button.",
+      },
+      {
         key: "LIVE_SESSION_ZOOM_URL",
-        label: "Zoom registration URL for the next live session",
+        label: "Zoom registration URL",
         type: "url",
-        hint: "Paste the Zoom registration link here. Leave blank to show 'No session scheduled' on the live-session page.",
+        hint: "Paste the Zoom registration link here. Leave blank to show 'No session scheduled'.",
       },
     ],
   },

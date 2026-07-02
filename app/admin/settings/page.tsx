@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 const DEFAULTS: Record<string, string> = {
   FREE_TRAINING_YOUTUBE_ID: "",
   LIVE_SESSION_ZOOM_URL: "",
+  LIVE_SESSION_DATE: "",
   OBSERVER_UNLOCKED_AT: "1",
   DEFAULT_WEBINAR_TITLE: "How To Get A Clear Pass",
   DEFAULT_WEBINAR_CAPACITY: "200",

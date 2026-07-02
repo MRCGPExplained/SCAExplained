@@ -4,11 +4,13 @@ export const dynamic = "force-dynamic";
 
 export default async function LiveSessionPage() {
   const adminSupabase = getSupabaseAdmin();
-  const { data: setting } = adminSupabase
-    ? await adminSupabase.from("settings").select("value").eq("key", "LIVE_SESSION_ZOOM_URL").single<{ value: string }>()
+  const { data: settings } = adminSupabase
+    ? await adminSupabase.from("settings").select("key, value").in("key", ["LIVE_SESSION_ZOOM_URL", "LIVE_SESSION_DATE"])
     : { data: null };
 
-  const zoomUrl = setting?.value?.trim() || null;
+  const settingsMap = Object.fromEntries((settings ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
+  const zoomUrl = settingsMap["LIVE_SESSION_ZOOM_URL"]?.trim() || null;
+  const sessionDate = settingsMap["LIVE_SESSION_DATE"]?.trim() || null;
   const NAVY = "#1A1B52";
   const YELLOW = "#F6D44B";
 
@@ -46,15 +48,23 @@ export default async function LiveSessionPage() {
       </div>
 
       {zoomUrl ? (
-        <a
-          href={zoomUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full text-center rounded-xl py-4 font-display font-bold text-[15px] no-underline"
-          style={{ background: NAVY, color: "white" }}
-        >
-          Register for the Next Session →
-        </a>
+        <div className="flex flex-col gap-4">
+          {sessionDate && (
+            <div className="rounded-xl px-6 py-4 flex items-center gap-3" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
+              <span className="text-[20px]">📅</span>
+              <p className="text-[15px] font-semibold" style={{ color: NAVY }}>{sessionDate}</p>
+            </div>
+          )}
+          <a
+            href={zoomUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center rounded-xl py-4 font-display font-bold text-[15px] no-underline"
+            style={{ background: NAVY, color: "white" }}
+          >
+            Register for the Next Session →
+          </a>
+        </div>
       ) : (
         <div className="rounded-xl py-4 px-6 text-center" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(26,27,82,0.45)" }}>
