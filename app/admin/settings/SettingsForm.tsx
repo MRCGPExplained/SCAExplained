@@ -5,6 +5,17 @@ import { updateSettings } from "../actions";
 
 const SETTINGS_SCHEMA = [
   {
+    group: "Free Training",
+    items: [
+      {
+        key: "FREE_TRAINING_YOUTUBE_ID",
+        label: "How To Get A Clear Pass — YouTube video ID",
+        type: "text",
+        hint: "The ID from the YouTube URL, e.g. dQw4w9WgXcQ (not the full URL). Leave blank to show a placeholder.",
+      },
+    ],
+  },
+  {
     group: "Live Session",
     items: [
       {

@@ -4,6 +4,7 @@ import { SettingsForm } from "./SettingsForm";
 export const dynamic = "force-dynamic";
 
 const DEFAULTS: Record<string, string> = {
+  FREE_TRAINING_YOUTUBE_ID: "",
   LIVE_SESSION_ZOOM_URL: "",
   OBSERVER_UNLOCKED_AT: "1",
   DEFAULT_WEBINAR_TITLE: "How To Get A Clear Pass",
