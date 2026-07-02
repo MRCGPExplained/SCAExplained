@@ -50,8 +50,6 @@ export function StudyRoomPanel({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
-  const [selfMuted, setSelfMuted] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -290,20 +288,20 @@ export function StudyRoomPanel({
             Create Room
           </button>
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <input
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               placeholder="Room code"
               maxLength={8}
-              className="flex-1 rounded-lg px-3 py-2 text-[13px] font-mono"
-              style={{ border: "1px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "monospace" }}
+              className="flex-1 rounded-md px-2.5 py-1.5 text-[12px]"
+              style={{ border: "1px solid rgba(31,41,55,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "monospace" }}
             />
             <button
               onClick={handleJoin}
               disabled={loading || !joinCode.trim()}
-              className="rounded-lg px-3 py-2 text-[13px] font-bold"
+              className="rounded-md px-3 py-1.5 text-[12px] font-bold"
               style={{ background: YELLOW, border: "none", color: NAVY, cursor: "pointer", opacity: loading ? 0.6 : 1 }}
             >
               Join
@@ -331,10 +329,6 @@ export function StudyRoomPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22C55E" }} />
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>Live</span>
-          </div>
           <button
             onClick={handleLeave}
             className="text-[10px] px-2 py-1 rounded"
@@ -351,87 +345,18 @@ export function StudyRoomPanel({
           <div
             key={p.userId}
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-            style={{ background: p.isSelf ? "rgba(246,212,75,0.08)" : "transparent" }}
+            style={{ background: p.isSelf ? "rgba(246,212,75,0.06)" : "transparent" }}
           >
-            <div className="relative shrink-0">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
-                style={{
-                  background: p.isSelf ? YELLOW : "rgba(26,27,82,0.1)",
-                  color: p.isSelf ? NAVY : "rgba(26,27,82,0.55)",
-                  border: `2px solid ${p.isHost ? YELLOW : "transparent"}`,
-                }}
-              >
-                {p.initials}
-              </div>
-              {p.muted && (
-                <div
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full flex items-center justify-center text-[5px]"
-                  style={{ background: "#EF4444", border: "1.5px solid white", color: "white" }}
-                >
-                  ✕
-                </div>
+            <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
+              {p.isSelf ? "You" : p.displayName}
+              {p.isHost && (
+                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: YELLOW, color: NAVY, fontWeight: 700 }}>
+                  HOST
+                </span>
               )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
-                {p.isSelf ? "You" : p.displayName}
-                {p.isHost && (
-                  <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: YELLOW, color: NAVY, fontWeight: 700 }}>
-                    HOST
-                  </span>
-                )}
-              </div>
-              <div className="text-[10px]" style={{ color: p.muted ? "#EF4444" : "#22C55E" }}>
-                {p.muted ? "Muted" : "Live"}
-              </div>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Invite */}
-      <div className="px-2.5 py-2" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
-        <button
-          onClick={() => setShowInvite((v) => !v)}
-          className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-[12px] font-semibold"
-          style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.10)", color: NAVY, cursor: "pointer" }}
-        >
-          <span>+ Invite a Friend</span>
-          <span className="text-[10px]" style={{ color: "rgba(26,27,82,0.4)" }}>
-            Share code: {room.room_code}
-          </span>
-        </button>
-
-        {showInvite && (
-          <div className="mt-2 p-3 rounded-lg text-[12px]" style={{ background: LIGHT_BG }}>
-            <p className="mb-1" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Share this code with friends:
-            </p>
-            <div
-              className="font-mono font-bold text-[15px] text-center py-2 rounded-lg"
-              style={{ background: "white", color: NAVY, letterSpacing: "0.1em", border: "1px solid rgba(26,27,82,0.12)" }}
-            >
-              {room.room_code}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Mute */}
-      <div className="px-2.5 py-2" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
-        <button
-          onClick={() => setSelfMuted((m) => !m)}
-          className="w-full rounded-lg py-2 text-[12px] font-semibold"
-          style={{
-            background: selfMuted ? "rgba(239,68,68,0.07)" : LIGHT_BG,
-            border: `1.5px solid ${selfMuted ? "#EF4444" : "rgba(26,27,82,0.10)"}`,
-            color: selfMuted ? "#EF4444" : NAVY,
-            cursor: "pointer",
-          }}
-        >
-          {selfMuted ? "🔇 Unmute Yourself" : "🎙️ Mute Yourself"}
-        </button>
       </div>
 
       {/* Chat */}

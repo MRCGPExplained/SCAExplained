@@ -49,7 +49,7 @@ export function Timer({
   const secs = (timeLeft % 60).toString().padStart(2, "0");
   const isOrange = phase === "CONSULT" && timeLeft <= 120;
   const totalDuration = PHASE_DURATIONS[phase];
-  const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
+  const progress = (timeLeft / totalDuration) * 100;
 
   const phaseLabel = phase === "PREREAD" ? "Pre-Read" : "Consultation";
 
