@@ -88,12 +88,12 @@ export function StudyRoomPanel({
         initials: prof?.initials ?? "?",
         isHost: room ? p.user_id === room.host_user_id : false,
         isSelf: p.user_id === userId,
-        muted: p.user_id === userId ? selfMuted : p.muted,
+        muted: p.muted,
         joinedAt: p.joined_at,
       };
     });
     setParticipants(plist);
-  }, [supabase, userId, room, selfMuted]);
+  }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!room) return;
@@ -145,10 +145,25 @@ export function StudyRoomPanel({
       () => { refreshParticipants(room.id); }
     );
 
-    // Chat
-    channel.on("broadcast", { event: "chat" }, ({ payload }) => {
-      setMessages((m) => [...m, payload as ChatMessage]);
-    });
+    // Chat — new messages from other participants via postgres realtime
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${room.id}` },
+      (payload) => {
+        const m = payload.new as { id: string; user_id: string; display_name: string; message: string; created_at: string };
+        if (m.user_id === userId) return; // sender already added optimistically
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: m.id,
+            from: m.display_name,
+            fromSelf: false,
+            text: m.message,
+            time: new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+      }
+    );
 
     // Navigation sync — guests follow host
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
@@ -189,6 +204,31 @@ export function StudyRoomPanel({
     }
     prevStationRef.current = stationNumber;
   }, [stationNumber, iAmHost, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load persisted messages when room is joined
+  useEffect(() => {
+    if (!room) return;
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    supabase
+      .from("room_messages")
+      .select("id, user_id, display_name, message, created_at")
+      .eq("room_id", room.id)
+      .gt("created_at", cutoff)
+      .order("created_at", { ascending: true })
+      .limit(200)
+      .then(({ data }) => {
+        if (!data) return;
+        setMessages(
+          data.map((m) => ({
+            id: m.id,
+            from: m.display_name,
+            fromSelf: m.user_id === userId,
+            text: m.message,
+            time: new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          }))
+        );
+      });
+  }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -239,19 +279,27 @@ export function StudyRoomPanel({
     setMessages([]);
   }
 
-  function sendChat() {
+  async function sendChat() {
     if (!chatInput.trim() || !room) return;
-    const msg: ChatMessage = {
-      id: `${Date.now()}`,
-      from: displayName,
-      fromSelf: true,
-      text: chatInput.trim(),
-      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-    };
-    const channel = supabase.channel(`room:${room.id}`);
-    channel.send({ type: "broadcast", event: "chat", payload: msg });
-    setMessages((m) => [...m, msg]);
+    const text = chatInput.trim();
     setChatInput("");
+    const { data } = await supabase
+      .from("room_messages")
+      .insert({ room_id: room.id, user_id: userId, display_name: displayName, message: text })
+      .select("id, created_at")
+      .single();
+    if (data) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          from: displayName,
+          fromSelf: true,
+          text,
+          time: new Date(data.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
   }
 
   const hostName = participants.find((p) => p.isHost)?.displayName ?? "host";

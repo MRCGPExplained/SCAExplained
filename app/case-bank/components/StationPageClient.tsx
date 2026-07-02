@@ -48,7 +48,7 @@ function BulletList({ items }: { items: string[] }) {
         <li key={i} className="flex gap-3 items-start">
           <span
             className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
-            style={{ background: YELLOW }}
+            style={{ background: "rgba(31,41,55,0.25)" }}
           />
           <span className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {item}
@@ -113,11 +113,11 @@ function PatientStoryContent({ station }: { station: Station }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Opening statement */}
-      <div className="rounded-lg p-4" style={{ background: NAVY }}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: YELLOW }}>
+      <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
+        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
           Opening Statement
         </div>
-        <p className="text-[13.5px] leading-[1.65] italic" style={{ color: "white" }}>
+        <p className="text-[13.5px] leading-[1.65] italic" style={{ color: NAVY }}>
           &ldquo;{station.opening_statement}&rdquo;
         </p>
       </div>
@@ -211,11 +211,11 @@ function PatientStoryContent({ station }: { station: Station }) {
 
       {/* Question for doctor */}
       {station.question_for_doctor && (
-        <div className="rounded-lg p-4" style={{ background: NAVY }}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: YELLOW }}>
+        <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
+          <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
             Question for the Doctor
           </div>
-          <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(255,255,255,0.85)" }}>
+          <p className="text-[13px] leading-[1.6]" style={{ color: NAVY }}>
             {station.question_for_doctor}
           </p>
         </div>
