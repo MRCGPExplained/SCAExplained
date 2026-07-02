@@ -30,6 +30,12 @@ export function Navbar({
           <Link href="/pricing" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Pricing</Link>
           <Link href="/faq" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">FAQ</Link>
 
+          {isLoggedIn && hasProgramme && (
+            <>
+              <Link href="/video-course" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Video Course</Link>
+              <Link href="/case-bank" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Case Bank</Link>
+            </>
+          )}
           {isLoggedIn ? (
             <Link href="/programme" className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-colors" style={{ background: NAVY, color: "white" }}>
               {displayName ? displayName.split(" ")[0] : "Account"}
