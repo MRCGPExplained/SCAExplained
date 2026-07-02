@@ -47,7 +47,7 @@ export function Timer({
 
   const mins = Math.floor(timeLeft / 60).toString().padStart(2, "0");
   const secs = (timeLeft % 60).toString().padStart(2, "0");
-  const isRed = phase === "CONSULT" && timeLeft <= 120;
+  const isOrange = phase === "CONSULT" && timeLeft <= 120;
   const totalDuration = PHASE_DURATIONS[phase];
   const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
 
@@ -58,7 +58,7 @@ export function Timer({
       className="rounded-2xl px-5 py-4 text-center"
       style={{
         background: "rgba(255,255,255,0.06)",
-        border: `1.5px solid ${isRed ? "rgba(239,68,68,0.4)" : "transparent"}`,
+        border: `1.5px solid ${isOrange ? "rgba(249,115,22,0.4)" : "transparent"}`,
         minWidth: 200,
         transition: "border-color 0.5s",
       }}
@@ -68,7 +68,7 @@ export function Timer({
         className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1"
         style={{
           color:
-            phase === "PREREAD" ? YELLOW : isRed ? "#EF4444" : "rgba(255,255,255,0.45)",
+            phase === "PREREAD" ? YELLOW : isOrange ? "#F97316" : "rgba(255,255,255,0.45)",
           transition: "color 0.5s",
         }}
       >
@@ -78,7 +78,7 @@ export function Timer({
       {/* Time digits */}
       <div
         className="font-display font-extrabold text-[30px] tracking-[0.04em]"
-        style={{ color: isRed ? "#EF4444" : "white", transition: "color 0.5s" }}
+        style={{ color: isOrange ? "#F97316" : "white", transition: "color 0.5s" }}
       >
         {mins}:{secs}
       </div>
@@ -92,7 +92,7 @@ export function Timer({
           className="h-full rounded-full"
           style={{
             width: `${progress}%`,
-            background: isRed ? "#EF4444" : phase === "PREREAD" ? YELLOW : "rgba(255,255,255,0.5)",
+            background: isOrange ? "#F97316" : phase === "PREREAD" ? YELLOW : "rgba(255,255,255,0.5)",
             transition: "width 1s linear, background 0.5s",
           }}
         />

@@ -68,8 +68,7 @@ export default async function StationPage({ params }: PageProps) {
     .select("id", { count: "exact", head: true })
     .eq("published", true);
 
-  // Fetch user's starred and notes
-  const [{ data: star }, { data: notes }, { data: profile }] =
+  const [{ data: star }, { data: profile }] =
     await Promise.all([
       supabase
         .from("station_stars")
@@ -77,12 +76,6 @@ export default async function StationPage({ params }: PageProps) {
         .eq("user_id", user.id)
         .eq("station_id", station.id)
         .single<{ id: string }>(),
-      supabase
-        .from("station_notes")
-        .select("content")
-        .eq("user_id", user.id)
-        .eq("station_id", station.id)
-        .single<{ content: string }>(),
       supabase
         .from("user_profiles")
         .select("display_name,initials")
@@ -98,7 +91,6 @@ export default async function StationPage({ params }: PageProps) {
       prevStationNumber={prevStation?.number ?? null}
       nextStationNumber={nextStation?.number ?? null}
       initialStarred={!!star}
-      initialNotes={notes?.content ?? ""}
       userDisplayName={profile?.display_name ?? user.email ?? ""}
       userInitials={profile?.initials ?? "?"}
     />

@@ -4,10 +4,9 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Station, TimerPhase } from "@/lib/case-bank-types";
-import { PHASE_DURATIONS, SUBJECT_COLORS } from "@/lib/case-bank-types";
+import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
-import { NotesPanel } from "./NotesPanel";
 import { StudyRoomPanel } from "./StudyRoom";
 import { ReportModal } from "./ReportModal";
 import { toggleStarAction, recordAttemptAction } from "../actions";
@@ -286,7 +285,6 @@ export function StationPageClient({
   prevStationNumber,
   nextStationNumber,
   initialStarred,
-  initialNotes,
   userDisplayName,
   userInitials,
 }: {
@@ -296,7 +294,6 @@ export function StationPageClient({
   prevStationNumber: number | null;
   nextStationNumber: number | null;
   initialStarred: boolean;
-  initialNotes: string;
   userDisplayName: string;
   userInitials: string;
 }) {
@@ -445,10 +442,6 @@ export function StationPageClient({
     [router]
   );
 
-  const subjectColors = SUBJECT_COLORS[station.subject] ?? {
-    bg: "rgba(246,212,75,0.15)",
-    text: YELLOW,
-  };
   const embedUrl = station.editor_video_url
     ? getYouTubeEmbedUrl(station.editor_video_url)
     : null;
@@ -544,60 +537,12 @@ export function StationPageClient({
         </div>
       </div>
 
-      {/* Station header */}
-      <div
-        className="px-6 py-5"
-        style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <div
-          className="max-w-[1300px] mx-auto flex flex-wrap items-start justify-between gap-5"
-        >
-          <div>
-            <span
-              className="block text-[11px] font-bold uppercase tracking-[0.1em] mb-1.5"
-              style={{ color: YELLOW }}
-            >
-              Station {station.number}
-            </span>
-            <h1
-              className="font-display font-extrabold text-[22px] leading-tight mb-3 text-white"
-            >
-              {station.title}
-            </h1>
-            <Link
-              href={`/case-bank?subject=${encodeURIComponent(station.subject)}`}
-              className="inline-block text-[12px] font-semibold px-3 py-1 rounded-full no-underline"
-              style={{
-                background: subjectColors.bg,
-                color: subjectColors.text,
-                border: "1px solid rgba(246,212,75,0.3)",
-              }}
-            >
-              {station.subject} →
-            </Link>
-          </div>
-
-          <Timer
-            phase={timerPhase}
-            timeLeft={timeLeft}
-            running={timerRunning}
-            isHost={!inRoom || iAmHost}
-            onStart={handleTimerStart}
-            onPause={handleTimerPause}
-            onSkipPreread={handleSkipPreread}
-            onReset={handleTimerReset}
-            onTick={handleTick}
-            onPhaseComplete={handlePhaseComplete}
-          />
-        </div>
-      </div>
-
       {/* Main grid */}
       <div className="max-w-[1300px] mx-auto px-6 py-6">
         <div
           className="grid gap-5 items-start"
           style={{
-            gridTemplateColumns: showRoom ? "1fr 300px 270px" : "1fr 300px",
+            gridTemplateColumns: showRoom ? "1fr 240px 270px" : "1fr 240px",
           }}
         >
           {/* Station content */}
@@ -650,9 +595,22 @@ export function StationPageClient({
             )}
           </div>
 
-          {/* Notes + nav */}
+          {/* Timer + nav */}
           <div className="sticky top-4 flex flex-col gap-2.5">
-            <NotesPanel stationId={station.id} initialContent={initialNotes} />
+            <div style={{ background: NAVY, borderRadius: 16, padding: "4px 0" }}>
+              <Timer
+                phase={timerPhase}
+                timeLeft={timeLeft}
+                running={timerRunning}
+                isHost={!inRoom || iAmHost}
+                onStart={handleTimerStart}
+                onPause={handleTimerPause}
+                onSkipPreread={handleSkipPreread}
+                onReset={handleTimerReset}
+                onTick={handleTick}
+                onPhaseComplete={handlePhaseComplete}
+              />
+            </div>
 
             <div className="flex flex-col gap-2">
               {nextStationNumber && (
