@@ -17,5 +17,6 @@ export function NavbarWrapper({
   if (pathname.startsWith("/case-bank")) return null;
   if (pathname.startsWith("/video-course")) return null;
   if (pathname.startsWith("/free-training")) return null;
+  if (pathname.startsWith("/how-to-get-a-clear-pass")) return null;
   return <Navbar isLoggedIn={isLoggedIn} hasProgramme={hasProgramme} displayName={displayName} />;
 }

@@ -87,10 +87,7 @@ export async function middleware(req: NextRequest) {
     return supabaseAuthCheck(req, "/login");
   }
 
-  // ── Free training + Live session (auth required, no programme needed) ─────
-  if (pathname === "/free-training" || pathname.startsWith("/free-training/")) {
-    return supabaseAuthCheck(req, "/login");
-  }
+  // ── Live session (auth required) ──────────────────────────────────────────
   if (pathname === "/live-session" || pathname.startsWith("/live-session/")) {
     return supabaseAuthCheck(req, "/login");
   }
@@ -106,8 +103,6 @@ export const config = {
     "/bundle/:path*",
     "/dashboard",
     "/dashboard/:path*",
-    "/free-training",
-    "/free-training/:path*",
     "/live-session",
     "/live-session/:path*",
   ],

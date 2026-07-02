@@ -38,7 +38,7 @@ export default async function HomePage() {
 
             <p className="text-[15.5px] leading-[1.7] text-navy/[0.68] mb-[34px]">
               Start with{" "}
-              <Link href="/free-training" className="font-bold text-navy no-underline border-b-2 border-yellow">
+              <Link href="/how-to-get-a-clear-pass" className="font-bold text-navy no-underline border-b-2 border-yellow">
                 How To Get A Clear Pass
               </Link>
               {" "}— our free recorded training covering exactly what examiners are looking for.
@@ -82,7 +82,7 @@ export default async function HomePage() {
                   Our recorded training covering exactly how the SCA is marked and what examiners are looking for.
                 </p>
                 <ul className="flex flex-col gap-2 mb-6">
-                  {["Free to watch", "Registration required", "Foundation for everything"].map((f) => (
+                  {["Free to watch", "No registration needed", "Foundation for everything"].map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <span className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold mt-0.5" style={{ background: "rgba(26,27,82,0.08)", color: NAVY }}>✓</span>
                       <span className="text-[13px]" style={{ color: "rgba(26,27,82,0.70)" }}>{f}</span>
@@ -90,7 +90,7 @@ export default async function HomePage() {
                   ))}
                 </ul>
                 <div className="mt-auto">
-                  <Link href="/free-training" className="block w-full text-center rounded-xl py-3 font-display font-bold text-[14px] no-underline" style={{ background: NAVY, color: "white" }}>
+                  <Link href="/how-to-get-a-clear-pass" className="block w-full text-center rounded-xl py-3 font-display font-bold text-[14px] no-underline" style={{ background: NAVY, color: "white" }}>
                     Watch Free
                   </Link>
                 </div>
@@ -158,7 +158,7 @@ export default async function HomePage() {
       <footer className="bg-navy border-t border-white/[0.08] px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6">
         <p className="text-xs text-white/40">For educational purposes only. © 2026 SCA Explained.</p>
         <div className="flex gap-5 flex-wrap">
-          <Link href="/free-training" className="text-xs text-white/50 no-underline">Free Training</Link>
+          <Link href="/how-to-get-a-clear-pass" className="text-xs text-white/50 no-underline">Free Training</Link>
           <Link href="/live-session" className="text-xs text-white/50 no-underline">Live Session</Link>
           <Link href="/programme" className="text-xs text-white/50 no-underline">The Programme</Link>
           <Link href="/about" className="text-xs text-white/50 no-underline">About</Link>

@@ -26,7 +26,7 @@ export function Navbar({
 
         <div className="flex items-center gap-5">
           <Link href="/about" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">About</Link>
-          <Link href="/free-training" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Free Training</Link>
+          <Link href="/how-to-get-a-clear-pass" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Free Training</Link>
           <Link href="/live-session" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Live Session</Link>
 
           {isLoggedIn && hasProgramme ? (
