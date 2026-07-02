@@ -6,6 +6,7 @@ export function VideoEmbed({ src }: { src: string }) {
     <div
       onContextMenu={(e) => e.preventDefault()}
       style={{
+        position: "relative",
         width: "100vw",
         height: "100vh",
         background: NAVY,
@@ -22,6 +23,8 @@ export function VideoEmbed({ src }: { src: string }) {
         sandbox="allow-scripts allow-same-origin allow-presentation"
         style={{ width: "100%", height: "100%", display: "block" }}
       />
+      {/* Cover the YouTube title bar */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "60px", background: NAVY, pointerEvents: "none" }} />
     </div>
   );
 }
