@@ -25,9 +25,10 @@ export function Navbar({
         </Link>
 
         <div className="flex items-center gap-5">
+          <Link href="/" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Home</Link>
           <Link href="/about" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">About</Link>
+          <Link href="/pricing" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Pricing</Link>
           <Link href="/faq" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">FAQ</Link>
-          <Link href="/contact" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Contact Us</Link>
 
           {isLoggedIn && hasProgramme ? (
             <>
