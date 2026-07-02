@@ -44,6 +44,7 @@ export type StudyRoom = {
   room_code: string;
   host_user_id: string;
   current_station_id: string | null;
+  current_station_number: number | null;
   timer_phase: "PREREAD" | "CONSULT";
   timer_started_at: string | null;
   timer_paused_at: string | null;

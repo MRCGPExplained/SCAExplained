@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Station, TimerPhase } from "@/lib/case-bank-types";
@@ -269,9 +269,12 @@ export function StationPageClient({
   const supabase = createSupabaseBrowserClient();
 
   const [starred, setStarred] = useState(initialStarred);
-  const [showRoom, setShowRoom] = useState(() =>
-    typeof window !== "undefined" && !!sessionStorage.getItem("studyRoomId")
-  );
+  const [showRoom, setShowRoom] = useState(false);
+  // Initialise from sessionStorage after hydration (useState initialiser runs on
+  // the server where window is undefined, so we use an effect instead)
+  useEffect(() => {
+    if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
+  }, []);
   const [showReport, setShowReport] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");

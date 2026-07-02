@@ -147,7 +147,8 @@ create table if not exists study_rooms (
   id                    uuid primary key default gen_random_uuid(),
   room_code             text unique not null,
   host_user_id          uuid references auth.users not null,
-  current_station_id    uuid references stations,
+  current_station_id     uuid references stations,
+  current_station_number integer,
   timer_phase           text default 'PREREAD', -- PREREAD or CONSULT
   timer_started_at      timestamptz,
   timer_paused_at       timestamptz,

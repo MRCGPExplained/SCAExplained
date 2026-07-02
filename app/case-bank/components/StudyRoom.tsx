@@ -95,6 +95,37 @@ export function StudyRoomPanel({
     setParticipants(plist);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync timer and station immediately when joining / rejoining a room
+  useEffect(() => {
+    if (!room) return;
+
+    // Timer: calculate current state from persisted timestamps
+    if (onTimerSync) {
+      const phase = room.timer_phase as TimerPhase;
+      let timeLeft: number;
+      let running: boolean;
+      if (room.timer_paused_at && room.timer_paused_remaining !== null) {
+        timeLeft = room.timer_paused_remaining;
+        running = false;
+      } else if (room.timer_started_at && !room.timer_paused_at) {
+        const elapsed = Math.floor(
+          (Date.now() - new Date(room.timer_started_at).getTime()) / 1000
+        );
+        timeLeft = Math.max(0, PHASE_DURATIONS[phase] - elapsed);
+        running = true;
+      } else {
+        timeLeft = PHASE_DURATIONS[phase];
+        running = false;
+      }
+      onTimerSync(phase, timeLeft, running);
+    }
+
+    // Station: navigate guest to wherever the host currently is
+    if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumber) {
+      onStationChange?.(room.current_station_number);
+    }
+  }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!room) return;
 
@@ -196,11 +227,17 @@ export function StudyRoomPanel({
       return;
     }
     if (prevStationRef.current !== null && prevStationRef.current !== stationNumber) {
+      // Broadcast to currently-connected guests
       channelRef.current?.send({
         type: "broadcast",
         event: "navigate",
         payload: { stationNumber },
       });
+      // Persist so late joiners / rejoins land on the right station
+      supabase
+        .from("study_rooms")
+        .update({ current_station_number: stationNumber })
+        .eq("id", room.id);
     }
     prevStationRef.current = stationNumber;
   }, [stationNumber, iAmHost, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
