@@ -201,10 +201,27 @@ export function StudyRoomPanel({
       }
     );
 
+    // Guest listens for host station changes
+    channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
+      const { stationNumber: target } = payload as { stationNumber: number };
+      if (!iAmHost && target && target !== stationNumber) {
+        onStationChange?.(target);
+      }
+    });
+
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await channel.track({ userId, displayName, initials });
         refreshParticipants(room.id);
+        // Host announces current station on every (re)connect so online guests
+        // follow immediately — no prevStationRef needed, no SQL dependency
+        if (iAmHost) {
+          channel.send({
+            type: "broadcast",
+            event: "navigate",
+            payload: { stationNumber },
+          });
+        }
       }
     });
 
