@@ -2,23 +2,40 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-export default async function LiveSessionPage() {
-  const adminSupabase = getSupabaseAdmin();
-  const { data: settings } = adminSupabase
-    ? await adminSupabase.from("settings").select("key, value").in("key", ["LIVE_SESSION_ZOOM_URL", "LIVE_SESSION_DATE"])
-    : { data: null };
+const NAVY = "#1A1B52";
 
-  const settingsMap = Object.fromEntries((settings ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
-  const zoomUrl = settingsMap["LIVE_SESSION_ZOOM_URL"]?.trim() || null;
-  const sessionDate = settingsMap["LIVE_SESSION_DATE"]?.trim() || null;
-  const NAVY = "#1A1B52";
-  const YELLOW = "#F6D44B";
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+  }).format(new Date(iso));
+}
+
+export default async function LiveSessionPage() {
+  const supabase = getSupabaseAdmin();
+
+  // Auto-delete sessions older than 1 day
+  if (supabase) {
+    await supabase
+      .from("live_sessions")
+      .delete()
+      .lt("scheduled_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  }
+
+  const { data: sessions } = supabase
+    ? await supabase
+        .from("live_sessions")
+        .select("id, zoom_url, scheduled_at")
+        .order("scheduled_at", { ascending: true })
+    : { data: [] };
+
+  const upcomingSessions = sessions ?? [];
 
   return (
     <main className="max-w-[680px] mx-auto px-6 py-10">
       <div className="mb-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] px-2.5 py-1 rounded-full" style={{ background: "rgba(26,27,82,0.07)", color: "rgba(26,27,82,0.55)" }}>
-          Free+
+          Free
         </span>
         <h1 className="font-display font-extrabold text-[28px] mt-3 mb-2" style={{ color: NAVY }}>
           Monthly Live Practice Session
@@ -47,28 +64,30 @@ export default async function LiveSessionPage() {
         </ul>
       </div>
 
-      {zoomUrl ? (
+      {upcomingSessions.length > 0 ? (
         <div className="flex flex-col gap-4">
-          {sessionDate && (
-            <div className="rounded-xl px-6 py-4 flex items-center gap-3" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
-              <span className="text-[20px]">📅</span>
-              <p className="text-[15px] font-semibold" style={{ color: NAVY }}>{sessionDate}</p>
+          {upcomingSessions.map((s) => (
+            <div key={s.id} className="flex flex-col gap-3">
+              <div className="rounded-xl px-6 py-4 flex items-center gap-3" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
+                <span className="text-[18px]">📅</span>
+                <p className="text-[15px] font-semibold" style={{ color: NAVY }}>{formatDate(s.scheduled_at)}</p>
+              </div>
+              <a
+                href={s.zoom_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center rounded-xl py-4 font-display font-bold text-[15px] no-underline"
+                style={{ background: NAVY, color: "white" }}
+              >
+                Register for this Session →
+              </a>
             </div>
-          )}
-          <a
-            href={zoomUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center rounded-xl py-4 font-display font-bold text-[15px] no-underline"
-            style={{ background: NAVY, color: "white" }}
-          >
-            Register for the Next Session →
-          </a>
+          ))}
         </div>
       ) : (
         <div className="rounded-xl py-4 px-6 text-center" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(26,27,82,0.45)" }}>
-            No session currently scheduled — check back soon.
+            No sessions currently scheduled — check back soon.
           </p>
         </div>
       )}
