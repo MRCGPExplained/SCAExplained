@@ -344,8 +344,8 @@ export function StationPageClient({
   async function handleSkipPreread() {
     setTimerPhase("CONSULT");
     setTimeLeft(PHASE_DURATIONS.CONSULT);
-    setTimerRunning(false);
-    broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, false);
+    setTimerRunning(true);
+    broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, true);
     if (roomId && iAmHost) {
       await supabase
         .from("study_rooms")
@@ -562,7 +562,7 @@ export function StationPageClient({
       {/* Tab strip */}
       <div style={{ background: "white", borderBottom: "1px solid rgba(31,41,55,0.10)" }}>
         <div className="max-w-[1300px] mx-auto px-6 flex items-end">
-          {(embedUrl ? [...TABS, { key: "video" as TabKey, label: "From Me" }] : TABS).map((tab) => {
+          {(embedUrl ? [...TABS, { key: "video" as TabKey, label: "Video Lesson" }] : TABS).map((tab) => {
             const active = activeTab === tab.key;
             return (
               <button
@@ -608,7 +608,7 @@ export function StationPageClient({
               <div className="relative rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}>
                 <iframe
                   src={embedUrl}
-                  title="Message from Me"
+                  title="Video Lesson"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

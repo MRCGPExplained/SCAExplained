@@ -550,19 +550,6 @@ export function StudyRoomPanel({
         </div>
       </div>
 
-      {/* Failsafe: guest is out of sync with host */}
-      {!iAmHost && hostStation && hostStation !== stationNumber && (
-        <div className="px-3.5 py-2" style={{ background: "rgba(246,212,75,0.10)", borderTop: "1px solid rgba(246,212,75,0.25)" }}>
-          <button
-            onClick={() => onStationChange?.(hostStation)}
-            className="w-full text-[11px] font-semibold uppercase tracking-[0.06em] py-1.5 rounded-lg"
-            style={{ background: "rgba(246,212,75,0.25)", border: "none", color: NAVY, cursor: "pointer" }}
-          >
-            go to current station
-          </button>
-        </div>
-      )}
-
       {/* Room code */}
       <div
         className="flex items-center justify-between px-3.5 py-2.5"

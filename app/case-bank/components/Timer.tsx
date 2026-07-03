@@ -98,11 +98,11 @@ export function Timer({
         <div className="flex gap-1.5 justify-center mt-2">
           <button
             onClick={running ? onPause : onStart}
-            className="rounded-lg px-3.5 py-1.5 text-[12px] font-bold"
+            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
             style={{
-              background: running ? "rgba(26,27,82,0.08)" : NAVY,
-              border: "none",
-              color: running ? NAVY : "white",
+              background: "transparent",
+              border: "1px solid rgba(26,27,82,0.15)",
+              color: "rgba(26,27,82,0.5)",
               cursor: "pointer",
             }}
           >
