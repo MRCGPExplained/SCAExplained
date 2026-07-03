@@ -273,11 +273,12 @@ export async function transferHostAction(
 
   if (!room || room.host_user_id !== user.id) return { error: "Only the host can transfer." };
 
-  await supabase
+  const { error } = await supabase
     .from("study_rooms")
     .update({ host_user_id: newHostUserId })
     .eq("id", roomId);
 
+  if (error) return { error: error.message };
   return { success: true };
 }
 
