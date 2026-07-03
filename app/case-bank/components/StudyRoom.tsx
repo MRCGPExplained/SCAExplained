@@ -65,6 +65,8 @@ export function StudyRoomPanel({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; userId: string; displayName: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Always-current host user ID so stale channel callbacks read the right value
+  const currentHostIdRef = useRef<string | null>(null);
   const supabase = createSupabaseBrowserClient();
 
   const iAmHost = room ? room.host_user_id === userId : false;
@@ -84,7 +86,7 @@ export function StudyRoomPanel({
     return () => document.removeEventListener("click", close);
   }, [contextMenu]);
 
-  const refreshParticipants = useCallback(async (roomId: string, hostUserIdOverride?: string) => {
+  const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("room_participants")
       .select("user_id,joined_at,muted")
@@ -104,7 +106,8 @@ export function StudyRoomPanel({
       (profiles ?? []).map((p) => [p.id, p])
     );
 
-    const effectiveHostId = hostUserIdOverride ?? (room ? room.host_user_id : null);
+    // Always read from ref — never from a potentially stale closure over `room`
+    const hostId = currentHostIdRef.current;
 
     const plist: Participant[] = data.map((p) => {
       const prof = profileMap.get(p.user_id);
@@ -112,7 +115,7 @@ export function StudyRoomPanel({
         userId: p.user_id,
         displayName: prof?.display_name ?? "Unknown",
         initials: prof?.initials ?? "?",
-        isHost: effectiveHostId ? p.user_id === effectiveHostId : false,
+        isHost: hostId ? p.user_id === hostId : false,
         isSelf: p.user_id === userId,
         muted: p.muted,
         joinedAt: p.joined_at,
@@ -128,27 +131,30 @@ export function StudyRoomPanel({
 
     setParticipants(plist);
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
-  }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabase, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleTransferHost(targetUserId: string) {
     if (!room) return;
     setContextMenu(null);
     const result = await transferHostAction(room.id, targetUserId);
     if (result.error) return;
+    // Update ref first so refreshParticipants reads the new host immediately
+    currentHostIdRef.current = targetUserId;
     setRoom((prev) => prev ? { ...prev, host_user_id: targetUserId } : prev);
     channelRef.current?.send({
       type: "broadcast",
       event: "host-change",
       payload: { newHostUserId: targetUserId },
     });
-    refreshParticipants(room.id, targetUserId);
+    refreshParticipants(room.id);
   }
 
-  // On join/rejoin: seed hostStation and redirect guest if needed.
+  // On join/rejoin: seed hostStation, currentHostIdRef, and redirect guest if needed.
   // Timer is NOT restored from DB — it resets to PREREAD on every station change,
   // and live sync happens via broadcast only.
   useEffect(() => {
     if (!room) return;
+    currentHostIdRef.current = room.host_user_id;
     if (room.current_station_number) setHostStation(room.current_station_number);
     if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumberRef.current) {
       onStationChange?.(room.current_station_number);
@@ -253,11 +259,12 @@ export function StudyRoomPanel({
       }
     });
 
-    // Host transfer — update local room so iAmHost recomputes, refresh participant badges
+    // Host transfer — update ref immediately so refreshParticipants reads the new host
     channel.on("broadcast", { event: "host-change" }, ({ payload }) => {
       const { newHostUserId } = payload as { newHostUserId: string };
+      currentHostIdRef.current = newHostUserId;
       setRoom((prev) => prev ? { ...prev, host_user_id: newHostUserId } : prev);
-      refreshParticipants(room.id, newHostUserId);
+      refreshParticipants(room.id);
     });
 
     // Guest listens for host station changes
