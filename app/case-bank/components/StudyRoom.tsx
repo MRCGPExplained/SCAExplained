@@ -178,6 +178,11 @@ export function StudyRoomPanel({
       { event: "UPDATE", schema: "public", table: "study_rooms", filter: `id=eq.${room.id}` },
       (payload) => {
         const updated = payload.new as StudyRoom;
+        // Keep ref in sync with DB truth; refresh participants immediately on host change
+        if (updated.host_user_id && updated.host_user_id !== currentHostIdRef.current) {
+          currentHostIdRef.current = updated.host_user_id;
+          refreshParticipants(room.id);
+        }
         setRoom(updated);
 
         if (onTimerSync) {

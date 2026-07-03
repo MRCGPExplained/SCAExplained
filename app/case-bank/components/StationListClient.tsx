@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS, SUBJECT_COLORS } from "@/lib/case-bank-types";
@@ -43,18 +43,15 @@ function SubjectTag({
 export function StationListClient({
   stations,
   starredIds: initialStarredIds,
+  lastStation,
 }: {
   stations: StationListRow[];
   starredIds: string[];
+  lastStation: number | null;
 }) {
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
-  const [lastStation, setLastStation] = useState<number | null>(null);
-  useEffect(() => {
-    const n = parseInt(localStorage.getItem("lastCaseBankStation") ?? "", 10);
-    if (!isNaN(n)) setLastStation(n);
-  }, []);
 
   const starredSet = useMemo(() => new Set(initialStarredIds), [initialStarredIds]);
 

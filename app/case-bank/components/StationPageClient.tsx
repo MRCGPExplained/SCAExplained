@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { ReportModal } from "./ReportModal";
-import { toggleStarAction } from "../actions";
+import { toggleStarAction, updateLastStationAction } from "../actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -409,9 +409,9 @@ export function StationPageClient({
     }
   }
 
-  // Persist last-visited station so the case bank list can highlight it (survives logout)
+  // Persist last-visited station to Supabase so it survives cache clears and works across devices
   useEffect(() => {
-    localStorage.setItem("lastCaseBankStation", String(station.number));
+    updateLastStationAction(station.number);
   }, [station.number]);
 
   function handleStationJump() {

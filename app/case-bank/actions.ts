@@ -245,6 +245,16 @@ export async function leaveStudyRoomAction(
   return { success: true };
 }
 
+export async function updateLastStationAction(stationNumber: number): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("user_profiles")
+    .update({ last_station_number: stationNumber })
+    .eq("id", user.id);
+}
+
 export async function transferHostAction(
   roomId: string,
   newHostUserId: string

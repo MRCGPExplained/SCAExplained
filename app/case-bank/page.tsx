@@ -32,10 +32,10 @@ export default async function CaseBankPage() {
     .order("number", { ascending: true })
     .returns<StationListRow[]>();
 
-  const { data: stars } = await supabase
-    .from("station_stars")
-    .select("station_id")
-    .eq("user_id", user.id);
+  const [{ data: stars }, { data: profile }] = await Promise.all([
+    supabase.from("station_stars").select("station_id").eq("user_id", user.id),
+    supabase.from("user_profiles").select("last_station_number").eq("id", user.id).single<{ last_station_number: number | null }>(),
+  ]);
 
   const starredIds = new Set((stars ?? []).map((s: { station_id: string }) => s.station_id));
 
@@ -43,6 +43,7 @@ export default async function CaseBankPage() {
     <StationListClient
       stations={stations ?? []}
       starredIds={[...starredIds]}
+      lastStation={profile?.last_station_number ?? null}
     />
   );
 }
