@@ -60,6 +60,7 @@ export function StudyRoomPanel({
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
   const [hostNameState, setHostNameState] = useState<string | null>(null);
+  const [hostStation, setHostStation] = useState<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabase = createSupabaseBrowserClient();
@@ -109,11 +110,12 @@ export function StudyRoomPanel({
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // On join/rejoin: redirect guest to the host's current station (DB source of truth).
-  // Timer is NOT restored from DB here — it resets to PREREAD on every station change,
+  // On join/rejoin: seed hostStation and redirect guest if needed.
+  // Timer is NOT restored from DB — it resets to PREREAD on every station change,
   // and live sync happens via broadcast only.
   useEffect(() => {
     if (!room) return;
+    if (room.current_station_number) setHostStation(room.current_station_number);
     if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumberRef.current) {
       onStationChange?.(room.current_station_number);
     }
@@ -215,6 +217,7 @@ export function StudyRoomPanel({
     // Guest listens for host station changes
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
       const { stationNumber: target } = payload as { stationNumber: number };
+      if (target) setHostStation(target);
       if (!iAmHost && target && target !== stationNumberRef.current) {
         onStationChange?.(target);
       }
@@ -235,6 +238,10 @@ export function StudyRoomPanel({
             broadcastTimerRef.current = (phase, timeLeft, running) => {
               channel.send({ type: "broadcast", event: "timer", payload: { phase, timeLeft, running } });
             };
+          }
+          // Announce current timer state (covers auto-start and late-joining guests)
+          if (timerStateRef?.current) {
+            channel.send({ type: "broadcast", event: "timer", payload: timerStateRef.current });
           }
         }
       }
@@ -542,6 +549,19 @@ export function StudyRoomPanel({
           </button>
         </div>
       </div>
+
+      {/* Failsafe: guest is out of sync with host */}
+      {!iAmHost && hostStation && hostStation !== stationNumber && (
+        <div className="px-3.5 py-2" style={{ background: "rgba(246,212,75,0.10)", borderTop: "1px solid rgba(246,212,75,0.25)" }}>
+          <button
+            onClick={() => onStationChange?.(hostStation)}
+            className="w-full text-[11px] font-semibold uppercase tracking-[0.06em] py-1.5 rounded-lg"
+            style={{ background: "rgba(246,212,75,0.25)", border: "none", color: NAVY, cursor: "pointer" }}
+          >
+            go to current station
+          </button>
+        </div>
+      )}
 
       {/* Room code */}
       <div

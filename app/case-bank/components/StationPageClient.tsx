@@ -294,7 +294,7 @@ export function StationPageClient({
   // Timer state
   const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
   const [timeLeft, setTimeLeft] = useState(PHASE_DURATIONS.PREREAD);
-  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(true);
   const [attemptRecorded, setAttemptRecorded] = useState(false);
 
   const handleRoomStatusChange = useCallback(
@@ -318,10 +318,6 @@ export function StationPageClient({
   async function handleTimerStart() {
     setTimerRunning(true);
     broadcastTimerRef.current?.(timerPhase, timeLeft, true);
-    if (!attemptRecorded) {
-      setAttemptRecorded(true);
-      recordAttemptAction(station.id);
-    }
     if (roomId && iAmHost) {
       // Compute started_at so elapsed = already-consumed time, preserving remaining
       const startedAt = new Date(
@@ -410,6 +406,12 @@ export function StationPageClient({
     }
   }
 
+  // Record attempt on mount — timer auto-starts so entering the station counts
+  useEffect(() => {
+    recordAttemptAction(station.id);
+    setAttemptRecorded(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Keep timerStateRef in sync so presence-join re-announcements have current values
   useEffect(() => {
     timerStateRef.current = { phase: timerPhase, timeLeft, running: timerRunning };
@@ -422,8 +424,8 @@ export function StationPageClient({
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     setTimerPhase("PREREAD");
     setTimeLeft(PHASE_DURATIONS.PREREAD);
-    setTimerRunning(false);
-    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
+    setTimerRunning(true);
+    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, true);
   }, [station.number]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer sync received from StudyRoom (guest path — broadcast only)

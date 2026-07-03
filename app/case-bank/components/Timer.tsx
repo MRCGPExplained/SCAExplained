@@ -119,7 +119,7 @@ export function Timer({
                 cursor: "pointer",
               }}
             >
-              Skip →
+              Skip
             </button>
           )}
           <button
@@ -132,7 +132,7 @@ export function Timer({
               cursor: "pointer",
             }}
           >
-            ↺
+            Reset
           </button>
         </div>
       )}
