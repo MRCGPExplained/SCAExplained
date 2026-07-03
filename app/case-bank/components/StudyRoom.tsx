@@ -558,7 +558,11 @@ export function StudyRoomPanel({
             key={p.userId}
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
             style={{
-              background: p.isSelf ? "rgba(246,212,75,0.06)" : "transparent",
+              background: p.isHost
+                ? "rgba(246,212,75,0.15)"
+                : p.isSelf
+                ? "rgba(59,130,246,0.08)"
+                : "transparent",
               cursor: iAmHost && !p.isSelf ? "context-menu" : "default",
             }}
             onContextMenu={iAmHost && !p.isSelf ? (e) => {
