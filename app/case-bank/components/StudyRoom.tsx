@@ -84,7 +84,7 @@ export function StudyRoomPanel({
     return () => document.removeEventListener("click", close);
   }, [contextMenu]);
 
-  const refreshParticipants = useCallback(async (roomId: string) => {
+  const refreshParticipants = useCallback(async (roomId: string, hostUserIdOverride?: string) => {
     const { data } = await supabase
       .from("room_participants")
       .select("user_id,joined_at,muted")
@@ -104,18 +104,28 @@ export function StudyRoomPanel({
       (profiles ?? []).map((p) => [p.id, p])
     );
 
+    const effectiveHostId = hostUserIdOverride ?? (room ? room.host_user_id : null);
+
     const plist: Participant[] = data.map((p) => {
       const prof = profileMap.get(p.user_id);
       return {
         userId: p.user_id,
         displayName: prof?.display_name ?? "Unknown",
         initials: prof?.initials ?? "?",
-        isHost: room ? p.user_id === room.host_user_id : false,
+        isHost: effectiveHostId ? p.user_id === effectiveHostId : false,
         isSelf: p.user_id === userId,
         muted: p.muted,
         joinedAt: p.joined_at,
       };
     });
+
+    // Order: host first, then others, self last
+    plist.sort((a, b) => {
+      if (a.isHost !== b.isHost) return a.isHost ? -1 : 1;
+      if (a.isSelf !== b.isSelf) return a.isSelf ? 1 : -1;
+      return 0;
+    });
+
     setParticipants(plist);
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -131,7 +141,7 @@ export function StudyRoomPanel({
       event: "host-change",
       payload: { newHostUserId: targetUserId },
     });
-    refreshParticipants(room.id);
+    refreshParticipants(room.id, targetUserId);
   }
 
   // On join/rejoin: seed hostStation and redirect guest if needed.
@@ -247,7 +257,7 @@ export function StudyRoomPanel({
     channel.on("broadcast", { event: "host-change" }, ({ payload }) => {
       const { newHostUserId } = payload as { newHostUserId: string };
       setRoom((prev) => prev ? { ...prev, host_user_id: newHostUserId } : prev);
-      refreshParticipants(room.id);
+      refreshParticipants(room.id, newHostUserId);
     });
 
     // Guest listens for host station changes

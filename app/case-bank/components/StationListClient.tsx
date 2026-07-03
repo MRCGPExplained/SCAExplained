@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS, SUBJECT_COLORS } from "@/lib/case-bank-types";
@@ -50,6 +50,11 @@ export function StationListClient({
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
+  const [lastStation, setLastStation] = useState<number | null>(null);
+  useEffect(() => {
+    const n = parseInt(localStorage.getItem("lastCaseBankStation") ?? "", 10);
+    if (!isNaN(n)) setLastStation(n);
+  }, []);
 
   const starredSet = useMemo(() => new Set(initialStarredIds), [initialStarredIds]);
 
@@ -173,6 +178,7 @@ export function StationListClient({
           )}
           {filtered.map((station) => {
             const isStarred = starredSet.has(station.id);
+            const isLast = station.number === lastStation;
             return (
               <Link
                 key={station.id}
@@ -180,7 +186,7 @@ export function StationListClient({
                 className="flex items-center gap-4 rounded-[10px] px-4 py-3.5 no-underline transition-all hover:shadow-md"
                 style={{
                   background: LIGHT_BG,
-                  border: "1px solid rgba(26,27,82,0.07)",
+                  border: isLast ? `2px solid ${NAVY}` : "1px solid rgba(26,27,82,0.07)",
                 }}
               >
                 {/* Number */}

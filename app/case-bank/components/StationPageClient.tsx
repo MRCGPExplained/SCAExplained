@@ -409,6 +409,11 @@ export function StationPageClient({
     }
   }
 
+  // Persist last-visited station so the case bank list can highlight it (survives logout)
+  useEffect(() => {
+    localStorage.setItem("lastCaseBankStation", String(station.number));
+  }, [station.number]);
+
   function handleStationJump() {
     const n = parseInt(jumpValue, 10);
     if (!isNaN(n) && n >= 1 && n <= totalStations) {
@@ -480,17 +485,18 @@ export function StationPageClient({
           ) : jumpOpen ? (
             <div className="flex items-center gap-1.5">
               <input
-                type="number"
-                min={1}
-                max={totalStations}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={jumpValue}
-                onChange={(e) => setJumpValue(e.target.value)}
+                onChange={(e) => setJumpValue(e.target.value.replace(/\D/g, ""))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStationJump();
                   if (e.key === "Escape") { setJumpOpen(false); setJumpValue(""); }
                 }}
                 autoFocus
-                className="rounded-md px-2 py-1 text-[12px] text-center w-[56px]"
+                placeholder={String(station.number)}
+                className="rounded-md px-2 py-1 text-[12px] text-center w-[52px]"
                 style={{
                   background: "rgba(255,255,255,0.12)",
                   border: "1px solid rgba(255,255,255,0.3)",
@@ -503,13 +509,6 @@ export function StationPageClient({
                 / {totalStations}
               </span>
               <button
-                onClick={handleStationJump}
-                className="text-[12px] font-semibold rounded-md px-2 py-1"
-                style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "rgba(255,255,255,0.75)", cursor: "pointer" }}
-              >
-                Go
-              </button>
-              <button
                 onClick={() => { setJumpOpen(false); setJumpValue(""); }}
                 className="text-[12px]"
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}
@@ -520,8 +519,14 @@ export function StationPageClient({
           ) : (
             <button
               onClick={() => setJumpOpen(true)}
-              className="text-[12px] font-semibold"
-              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.65)", cursor: "pointer", padding: 0 }}
+              className="text-[12px] font-semibold rounded-md"
+              style={{
+                background: "none",
+                border: "1.5px solid rgba(255,255,255,0.25)",
+                color: "rgba(255,255,255,0.65)",
+                cursor: "pointer",
+                padding: "3px 10px",
+              }}
             >
               Station {station.number} / {totalStations}
             </button>
