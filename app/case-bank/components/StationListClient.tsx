@@ -42,26 +42,21 @@ function SubjectTag({
 
 export function StationListClient({
   stations,
-  attemptedIds: initialAttemptedIds,
   starredIds: initialStarredIds,
 }: {
   stations: StationListRow[];
-  attemptedIds: string[];
   starredIds: string[];
 }) {
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
-  const [showUnattempted, setShowUnattempted] = useState(false);
 
-  const attemptedSet = useMemo(() => new Set(initialAttemptedIds), [initialAttemptedIds]);
   const starredSet = useMemo(() => new Set(initialStarredIds), [initialStarredIds]);
 
   const filtered = useMemo(() => {
     return stations.filter((s) => {
       if (activeSubject !== "All" && s.subject !== activeSubject) return false;
       if (showStarred && !starredSet.has(s.id)) return false;
-      if (showUnattempted && attemptedSet.has(s.id)) return false;
       if (
         search &&
         !s.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -70,10 +65,7 @@ export function StationListClient({
         return false;
       return true;
     });
-  }, [stations, activeSubject, showStarred, showUnattempted, search, attemptedSet, starredSet]);
-
-  const attempted = stations.filter((s) => attemptedSet.has(s.id)).length;
-  const progressPct = stations.length > 0 ? Math.round((attempted / stations.length) * 100) : 0;
+  }, [stations, activeSubject, showStarred, search, starredSet]);
 
   const subjectCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -88,45 +80,16 @@ export function StationListClient({
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* Page header */}
-        <div
-          className="flex flex-wrap items-start justify-between gap-4 mb-7"
-        >
-          <div>
-            <h1
-              className="font-display font-extrabold text-[26px] mb-1.5"
-              style={{ color: NAVY }}
-            >
-              SCA Case Bank
-            </h1>
-            <p className="text-[13.5px]" style={{ color: "rgba(26,27,82,0.55)" }}>
-              {attempted} of {stations.length} stations attempted&nbsp;·&nbsp;
-              <span style={{ color: NAVY, fontWeight: 600 }}>{stations.length} total</span>
-            </p>
-          </div>
-
-          {/* Progress */}
-          <div style={{ minWidth: 200 }}>
-            <div className="flex justify-between mb-1.5">
-              <span
-                className="text-[11px] font-bold uppercase tracking-[0.06em]"
-                style={{ color: "rgba(26,27,82,0.5)" }}
-              >
-                Progress
-              </span>
-              <span className="text-[11px] font-bold" style={{ color: NAVY }}>
-                {progressPct}%
-              </span>
-            </div>
-            <div
-              className="h-1.5 rounded-full overflow-hidden"
-              style={{ background: "rgba(26,27,82,0.08)" }}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${progressPct}%`, background: YELLOW }}
-              />
-            </div>
-          </div>
+        <div className="mb-7">
+          <h1
+            className="font-display font-extrabold text-[26px] mb-1.5"
+            style={{ color: NAVY }}
+          >
+            SCA Case Bank
+          </h1>
+          <p className="text-[13.5px]" style={{ color: "rgba(26,27,82,0.55)" }}>
+            <span style={{ color: NAVY, fontWeight: 600 }}>{stations.length}</span> practice stations
+          </p>
         </div>
 
         {/* Search + filters */}
@@ -160,19 +123,6 @@ export function StationListClient({
               }}
             >
               ★ Starred only
-            </button>
-            <button
-              onClick={() => setShowUnattempted((v) => !v)}
-              className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
-              style={{
-                background: showUnattempted ? NAVY : LIGHT_BG,
-                border: `1.5px solid ${showUnattempted ? NAVY : "rgba(26,27,82,0.10)"}`,
-                color: showUnattempted ? "white" : "rgba(26,27,82,0.6)",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Not yet attempted
             </button>
           </div>
         </div>
@@ -222,7 +172,6 @@ export function StationListClient({
             </div>
           )}
           {filtered.map((station) => {
-            const isAttempted = attemptedSet.has(station.id);
             const isStarred = starredSet.has(station.id);
             return (
               <Link
@@ -234,15 +183,15 @@ export function StationListClient({
                   border: "1px solid rgba(26,27,82,0.07)",
                 }}
               >
-                {/* Number / check */}
+                {/* Number */}
                 <div
                   className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold"
                   style={{
-                    background: isAttempted ? NAVY : "rgba(26,27,82,0.08)",
-                    color: isAttempted ? "white" : "rgba(26,27,82,0.4)",
+                    background: "rgba(26,27,82,0.08)",
+                    color: "rgba(26,27,82,0.4)",
                   }}
                 >
-                  {isAttempted ? "✓" : station.number}
+                  {station.number}
                 </div>
 
                 {/* Title + subject */}

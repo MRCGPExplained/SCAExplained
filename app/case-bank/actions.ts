@@ -126,26 +126,6 @@ export async function saveNotesAction(
   return { success: true };
 }
 
-// ── Attempts ──────────────────────────────────────────────────────────────────
-
-export async function recordAttemptAction(
-  stationId: string
-): Promise<ActionResult> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated." };
-
-  await supabase
-    .from("station_attempts")
-    .insert({ user_id: user.id, station_id: stationId })
-    .then(() => {});
-  // on conflict do nothing via RLS / unique constraint is fine here
-
-  return { success: true };
-}
-
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 export async function submitReportAction(
@@ -261,6 +241,32 @@ export async function leaveStudyRoomAction(
     .delete()
     .eq("room_id", roomId)
     .eq("user_id", user.id);
+
+  return { success: true };
+}
+
+export async function transferHostAction(
+  roomId: string,
+  newHostUserId: string
+): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const { data: room } = await supabase
+    .from("study_rooms")
+    .select("host_user_id")
+    .eq("id", roomId)
+    .single<{ host_user_id: string }>();
+
+  if (!room || room.host_user_id !== user.id) return { error: "Only the host can transfer." };
+
+  await supabase
+    .from("study_rooms")
+    .update({ host_user_id: newHostUserId })
+    .eq("id", roomId);
 
   return { success: true };
 }

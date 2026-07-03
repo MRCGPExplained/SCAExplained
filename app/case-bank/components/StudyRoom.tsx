@@ -7,6 +7,7 @@ import {
   createStudyRoomAction,
   joinStudyRoomAction,
   leaveStudyRoomAction,
+  transferHostAction,
 } from "../actions";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
@@ -61,6 +62,7 @@ export function StudyRoomPanel({
   const [loading, setLoading] = useState(false);
   const [hostNameState, setHostNameState] = useState<string | null>(null);
   const [hostStation, setHostStation] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; userId: string; displayName: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabase = createSupabaseBrowserClient();
@@ -73,6 +75,14 @@ export function StudyRoomPanel({
   useEffect(() => {
     stationNumberRef.current = stationNumber;
   }, [stationNumber]);
+
+  // Close context menu when clicking anywhere outside it
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [contextMenu]);
 
   const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
@@ -109,6 +119,20 @@ export function StudyRoomPanel({
     setParticipants(plist);
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleTransferHost(targetUserId: string) {
+    if (!room) return;
+    setContextMenu(null);
+    const result = await transferHostAction(room.id, targetUserId);
+    if (result.error) return;
+    setRoom((prev) => prev ? { ...prev, host_user_id: targetUserId } : prev);
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "host-change",
+      payload: { newHostUserId: targetUserId },
+    });
+    refreshParticipants(room.id);
+  }
 
   // On join/rejoin: seed hostStation and redirect guest if needed.
   // Timer is NOT restored from DB — it resets to PREREAD on every station change,
@@ -205,6 +229,11 @@ export function StudyRoomPanel({
       }
     });
 
+    // Presence sync fires whenever anyone joins or leaves — refresh participant list immediately
+    channel.on("presence", { event: "sync" }, () => {
+      refreshParticipants(room.id);
+    });
+
     // Host re-announces station + timer whenever a new guest joins the channel
     channel.on("presence", { event: "join" }, () => {
       if (!iAmHost) return;
@@ -212,6 +241,13 @@ export function StudyRoomPanel({
       if (timerStateRef?.current) {
         channel.send({ type: "broadcast", event: "timer", payload: timerStateRef.current });
       }
+    });
+
+    // Host transfer — update local room so iAmHost recomputes, refresh participant badges
+    channel.on("broadcast", { event: "host-change" }, ({ payload }) => {
+      const { newHostUserId } = payload as { newHostUserId: string };
+      setRoom((prev) => prev ? { ...prev, host_user_id: newHostUserId } : prev);
+      refreshParticipants(room.id);
     });
 
     // Guest listens for host station changes
@@ -258,6 +294,19 @@ export function StudyRoomPanel({
   useEffect(() => {
     onRoomStatusChange?.(!!room, iAmHost, room?.id ?? null, hostNameState);
   }, [room?.id, iAmHost, hostNameState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When host role transfers to/from this user, wire or clear broadcastTimerRef
+  useEffect(() => {
+    if (!broadcastTimerRef) return;
+    if (iAmHost && channelRef.current) {
+      const ch = channelRef.current;
+      broadcastTimerRef.current = (phase, timeLeft, running) => {
+        ch.send({ type: "broadcast", event: "timer", payload: { phase, timeLeft, running } });
+      };
+    } else if (!iAmHost) {
+      broadcastTimerRef.current = null;
+    }
+  }, [iAmHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Host: write current station to DB whenever room loads or station changes.
   // Guests receive it via the postgres_changes UPDATE subscription below.
@@ -459,6 +508,7 @@ export function StudyRoomPanel({
 
   // ── In a room ──────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(26,27,82,0.10)" }}>
       {/* Header */}
       <div
@@ -490,7 +540,14 @@ export function StudyRoomPanel({
           <div
             key={p.userId}
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-            style={{ background: p.isSelf ? "rgba(246,212,75,0.06)" : "transparent" }}
+            style={{
+              background: p.isSelf ? "rgba(246,212,75,0.06)" : "transparent",
+              cursor: iAmHost && !p.isSelf ? "context-menu" : "default",
+            }}
+            onContextMenu={iAmHost && !p.isSelf ? (e) => {
+              e.preventDefault();
+              setContextMenu({ x: e.clientX, y: e.clientY, userId: p.userId, displayName: p.displayName });
+            } : undefined}
           >
             <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
               {p.isSelf ? "You" : p.displayName}
@@ -561,5 +618,46 @@ export function StudyRoomPanel({
         </span>
       </div>
     </div>
+
+    {/* Right-click context menu for host transfer */}
+    {contextMenu && (
+      <div
+        style={{
+          position: "fixed",
+          top: contextMenu.y,
+          left: contextMenu.x,
+          zIndex: 1000,
+          background: "white",
+          border: "1px solid rgba(26,27,82,0.12)",
+          borderRadius: 8,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          padding: 4,
+          minWidth: 160,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => handleTransferHost(contextMenu.userId)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            padding: "7px 12px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 12,
+            color: NAVY,
+            borderRadius: 6,
+            fontFamily: "inherit",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(26,27,82,0.05)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+        >
+          Make {contextMenu.displayName} host
+        </button>
+      </div>
+    )}
+    </>
   );
 }

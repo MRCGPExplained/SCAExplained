@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { ReportModal } from "./ReportModal";
-import { toggleStarAction, recordAttemptAction } from "../actions";
+import { toggleStarAction } from "../actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -291,11 +291,14 @@ export function StationPageClient({
     running: false,
   });
 
+  // Station jump
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [jumpValue, setJumpValue] = useState("");
+
   // Timer state
   const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
   const [timeLeft, setTimeLeft] = useState(PHASE_DURATIONS.PREREAD);
   const [timerRunning, setTimerRunning] = useState(true);
-  const [attemptRecorded, setAttemptRecorded] = useState(false);
 
   const handleRoomStatusChange = useCallback(
     (nowInRoom: boolean, nowHost: boolean, nowRoomId: string | null, nowHostName: string | null) => {
@@ -406,11 +409,14 @@ export function StationPageClient({
     }
   }
 
-  // Record attempt on mount — timer auto-starts so entering the station counts
-  useEffect(() => {
-    recordAttemptAction(station.id);
-    setAttemptRecorded(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  function handleStationJump() {
+    const n = parseInt(jumpValue, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalStations) {
+      setJumpOpen(false);
+      setJumpValue("");
+      router.push(`/case-bank/${n}`);
+    }
+  }
 
   // Keep timerStateRef in sync so presence-join re-announcements have current values
   useEffect(() => {
@@ -467,12 +473,59 @@ export function StationPageClient({
             ← Case Bank
           </Link>
           <span style={{ color: "rgba(255,255,255,0.2)" }}>|</span>
-          <span
-            className="text-[12px] font-semibold"
-            style={{ color: "rgba(255,255,255,0.65)" }}
-          >
-            Station {station.number} of {totalStations}
-          </span>
+          {inRoom && !iAmHost ? (
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Station {station.number} / {totalStations}
+            </span>
+          ) : jumpOpen ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                min={1}
+                max={totalStations}
+                value={jumpValue}
+                onChange={(e) => setJumpValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleStationJump();
+                  if (e.key === "Escape") { setJumpOpen(false); setJumpValue(""); }
+                }}
+                autoFocus
+                className="rounded-md px-2 py-1 text-[12px] text-center w-[56px]"
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  color: "white",
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
+              />
+              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                / {totalStations}
+              </span>
+              <button
+                onClick={handleStationJump}
+                className="text-[12px] font-semibold rounded-md px-2 py-1"
+                style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "rgba(255,255,255,0.75)", cursor: "pointer" }}
+              >
+                Go
+              </button>
+              <button
+                onClick={() => { setJumpOpen(false); setJumpValue(""); }}
+                className="text-[12px]"
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setJumpOpen(true)}
+              className="text-[12px] font-semibold"
+              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.65)", cursor: "pointer", padding: 0 }}
+            >
+              Station {station.number} / {totalStations}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

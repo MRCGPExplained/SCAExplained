@@ -32,19 +32,16 @@ export default async function CaseBankPage() {
     .order("number", { ascending: true })
     .returns<StationListRow[]>();
 
-  // Fetch user's attempts and stars
-  const [{ data: attempts }, { data: stars }] = await Promise.all([
-    supabase.from("station_attempts").select("station_id").eq("user_id", user.id),
-    supabase.from("station_stars").select("station_id").eq("user_id", user.id),
-  ]);
+  const { data: stars } = await supabase
+    .from("station_stars")
+    .select("station_id")
+    .eq("user_id", user.id);
 
-  const attemptedIds = new Set((attempts ?? []).map((a: { station_id: string }) => a.station_id));
   const starredIds = new Set((stars ?? []).map((s: { station_id: string }) => s.station_id));
 
   return (
     <StationListClient
       stations={stations ?? []}
-      attemptedIds={[...attemptedIds]}
       starredIds={[...starredIds]}
     />
   );
