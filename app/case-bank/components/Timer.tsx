@@ -122,6 +122,18 @@ export function Timer({
               Skip →
             </button>
           )}
+          <button
+            onClick={onReset}
+            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(26,27,82,0.15)",
+              color: "rgba(26,27,82,0.5)",
+              cursor: "pointer",
+            }}
+          >
+            ↺
+          </button>
         </div>
       )}
     </div>

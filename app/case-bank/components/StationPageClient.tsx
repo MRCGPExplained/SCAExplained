@@ -285,6 +285,11 @@ export function StationPageClient({
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomHostName, setRoomHostName] = useState<string | null>(null);
   const broadcastTimerRef = useRef<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>(null);
+  const timerStateRef = useRef<{ phase: TimerPhase; timeLeft: number; running: boolean }>({
+    phase: "PREREAD",
+    timeLeft: PHASE_DURATIONS.PREREAD,
+    running: false,
+  });
 
   // Timer state
   const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
@@ -405,7 +410,23 @@ export function StationPageClient({
     }
   }
 
-  // Timer sync received from StudyRoom (guest path)
+  // Keep timerStateRef in sync so presence-join re-announcements have current values
+  useEffect(() => {
+    timerStateRef.current = { phase: timerPhase, timeLeft, running: timerRunning };
+  }, [timerPhase, timeLeft, timerRunning]);
+
+  // Reset timer to PREREAD whenever the station changes (desired behavior).
+  // Skip the very first render — useState already initialises to PREREAD.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    setTimerPhase("PREREAD");
+    setTimeLeft(PHASE_DURATIONS.PREREAD);
+    setTimerRunning(false);
+    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
+  }, [station.number]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Timer sync received from StudyRoom (guest path — broadcast only)
   const handleTimerSync = useCallback(
     (phase: TimerPhase, time: number, running: boolean) => {
       setTimerPhase(phase);
@@ -628,6 +649,7 @@ export function StationPageClient({
                 onStationChange={handleStationChange}
                 onRoomStatusChange={handleRoomStatusChange}
                 broadcastTimerRef={broadcastTimerRef}
+                timerStateRef={timerStateRef}
               />
             </div>
           </div>

@@ -36,6 +36,8 @@ interface StudyRoomProps {
   onRoomStatusChange?: (inRoom: boolean, iAmHost: boolean, roomId: string | null, hostName: string | null) => void;
   /** Ref the parent fills so it can call broadcastTimer(phase, timeLeft, running) */
   broadcastTimerRef?: MutableRefObject<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>;
+  /** Read-only ref the panel reads to re-announce timer state to late-joining guests */
+  timerStateRef?: MutableRefObject<{ phase: TimerPhase; timeLeft: number; running: boolean }>;
 }
 
 export function StudyRoomPanel({
@@ -48,6 +50,7 @@ export function StudyRoomPanel({
   onStationChange,
   onRoomStatusChange,
   broadcastTimerRef,
+  timerStateRef,
 }: StudyRoomProps) {
   const [room, setRoom] = useState<StudyRoom | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -106,33 +109,12 @@ export function StudyRoomPanel({
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync timer and station immediately when joining / rejoining a room
+  // On join/rejoin: redirect guest to the host's current station (DB source of truth).
+  // Timer is NOT restored from DB here — it resets to PREREAD on every station change,
+  // and live sync happens via broadcast only.
   useEffect(() => {
     if (!room) return;
-
-    // Timer: calculate current state from persisted timestamps
-    if (onTimerSync) {
-      const phase = room.timer_phase as TimerPhase;
-      let timeLeft: number;
-      let running: boolean;
-      if (room.timer_paused_at && room.timer_paused_remaining !== null) {
-        timeLeft = room.timer_paused_remaining;
-        running = false;
-      } else if (room.timer_started_at && !room.timer_paused_at) {
-        const elapsed = Math.floor(
-          (Date.now() - new Date(room.timer_started_at).getTime()) / 1000
-        );
-        timeLeft = Math.max(0, PHASE_DURATIONS[phase] - elapsed);
-        running = true;
-      } else {
-        timeLeft = PHASE_DURATIONS[phase];
-        running = false;
-      }
-      onTimerSync(phase, timeLeft, running);
-    }
-
-    // Station: navigate guest to wherever the host currently is
-    if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumber) {
+    if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumberRef.current) {
       onStationChange?.(room.current_station_number);
     }
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -218,6 +200,15 @@ export function StudyRoomPanel({
       const { phase, timeLeft, running } = payload as { phase: TimerPhase; timeLeft: number; running: boolean };
       if (!iAmHost) {
         onTimerSync?.(phase, timeLeft, running);
+      }
+    });
+
+    // Host re-announces station + timer whenever a new guest joins the channel
+    channel.on("presence", { event: "join" }, () => {
+      if (!iAmHost) return;
+      channel.send({ type: "broadcast", event: "navigate", payload: { stationNumber: stationNumberRef.current } });
+      if (timerStateRef?.current) {
+        channel.send({ type: "broadcast", event: "timer", payload: timerStateRef.current });
       }
     });
 
