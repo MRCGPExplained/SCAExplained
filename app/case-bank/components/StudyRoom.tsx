@@ -33,7 +33,9 @@ interface StudyRoomProps {
   initials: string;
   onTimerSync?: (phase: TimerPhase, timeLeft: number, running: boolean) => void;
   onStationChange?: (stationNumber: number) => void;
-  onRoomStatusChange?: (inRoom: boolean, iAmHost: boolean, roomId: string | null) => void;
+  onRoomStatusChange?: (inRoom: boolean, iAmHost: boolean, roomId: string | null, hostName: string | null) => void;
+  /** Ref the parent fills so it can call broadcastTimer(phase, timeLeft, running) */
+  broadcastTimerRef?: MutableRefObject<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>;
 }
 
 export function StudyRoomPanel({
@@ -45,6 +47,7 @@ export function StudyRoomPanel({
   onTimerSync,
   onStationChange,
   onRoomStatusChange,
+  broadcastTimerRef,
 }: StudyRoomProps) {
   const [room, setRoom] = useState<StudyRoom | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -53,6 +56,7 @@ export function StudyRoomPanel({
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hostNameState, setHostNameState] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabase = createSupabaseBrowserClient();
@@ -99,6 +103,7 @@ export function StudyRoomPanel({
       };
     });
     setParticipants(plist);
+    setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId, room]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync timer and station immediately when joining / rejoining a room
@@ -208,6 +213,14 @@ export function StudyRoomPanel({
       }
     );
 
+    // Guest receives timer state from host broadcasts
+    channel.on("broadcast", { event: "timer" }, ({ payload }) => {
+      const { phase, timeLeft, running } = payload as { phase: TimerPhase; timeLeft: number; running: boolean };
+      if (!iAmHost) {
+        onTimerSync?.(phase, timeLeft, running);
+      }
+    });
+
     // Guest listens for host station changes
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
       const { stationNumber: target } = payload as { stationNumber: number };
@@ -226,11 +239,18 @@ export function StudyRoomPanel({
             event: "navigate",
             payload: { stationNumber: stationNumberRef.current },
           });
+          // Fill the ref so the parent can trigger timer broadcasts
+          if (broadcastTimerRef) {
+            broadcastTimerRef.current = (phase, timeLeft, running) => {
+              channel.send({ type: "broadcast", event: "timer", payload: { phase, timeLeft, running } });
+            };
+          }
         }
       }
     });
 
     return () => {
+      if (broadcastTimerRef) broadcastTimerRef.current = null;
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
@@ -238,8 +258,8 @@ export function StudyRoomPanel({
 
   // Notify parent when room / host status changes
   useEffect(() => {
-    onRoomStatusChange?.(!!room, iAmHost, room?.id ?? null);
-  }, [room?.id, iAmHost]); // eslint-disable-line react-hooks/exhaustive-deps
+    onRoomStatusChange?.(!!room, iAmHost, room?.id ?? null, hostNameState);
+  }, [room?.id, iAmHost, hostNameState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Host: write current station to DB whenever room loads or station changes.
   // Guests receive it via the postgres_changes UPDATE subscription below.

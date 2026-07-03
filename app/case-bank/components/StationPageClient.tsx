@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Station, TimerPhase } from "@/lib/case-bank-types";
@@ -283,6 +283,8 @@ export function StationPageClient({
   const [inRoom, setInRoom] = useState(false);
   const [iAmHost, setIAmHost] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomHostName, setRoomHostName] = useState<string | null>(null);
+  const broadcastTimerRef = useRef<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>(null);
 
   // Timer state
   const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
@@ -291,10 +293,11 @@ export function StationPageClient({
   const [attemptRecorded, setAttemptRecorded] = useState(false);
 
   const handleRoomStatusChange = useCallback(
-    (nowInRoom: boolean, nowHost: boolean, nowRoomId: string | null) => {
+    (nowInRoom: boolean, nowHost: boolean, nowRoomId: string | null, nowHostName: string | null) => {
       setInRoom(nowInRoom);
       setIAmHost(nowHost);
       setRoomId(nowRoomId);
+      setRoomHostName(nowHostName);
     },
     []
   );
@@ -309,6 +312,7 @@ export function StationPageClient({
 
   async function handleTimerStart() {
     setTimerRunning(true);
+    broadcastTimerRef.current?.(timerPhase, timeLeft, true);
     if (!attemptRecorded) {
       setAttemptRecorded(true);
       recordAttemptAction(station.id);
@@ -327,6 +331,7 @@ export function StationPageClient({
 
   async function handleTimerPause() {
     setTimerRunning(false);
+    broadcastTimerRef.current?.(timerPhase, timeLeft, false);
     if (roomId && iAmHost) {
       await supabase
         .from("study_rooms")
@@ -339,6 +344,7 @@ export function StationPageClient({
     setTimerPhase("CONSULT");
     setTimeLeft(PHASE_DURATIONS.CONSULT);
     setTimerRunning(false);
+    broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, false);
     if (roomId && iAmHost) {
       await supabase
         .from("study_rooms")
@@ -357,6 +363,7 @@ export function StationPageClient({
     setTimerPhase("PREREAD");
     setTimeLeft(PHASE_DURATIONS.PREREAD);
     setTimerRunning(false);
+    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
     if (roomId && iAmHost) {
       await supabase
         .from("study_rooms")
@@ -381,6 +388,7 @@ export function StationPageClient({
       setTimerPhase("CONSULT");
       setTimeLeft(PHASE_DURATIONS.CONSULT);
       setTimerRunning(true);
+      broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, true);
       if (roomId && iAmHost) {
         await supabase
           .from("study_rooms")
@@ -494,28 +502,36 @@ export function StationPageClient({
             Report
           </button>
 
-          {prevStationNumber && (
-            <button
-              onClick={() => router.push(`/case-bank/${prevStationNumber}`)}
-              className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "none",
-                color: "rgba(255,255,255,0.6)",
-                cursor: "pointer",
-              }}
-            >
-              ← Prev
-            </button>
-          )}
-          {nextStationNumber && (
-            <button
-              onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
-              className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
-              style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}
-            >
-              Next →
-            </button>
+          {inRoom && !iAmHost ? (
+            <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+              {roomHostName ?? "Host"} is navigating
+            </span>
+          ) : (
+            <>
+              {prevStationNumber && (
+                <button
+                  onClick={() => router.push(`/case-bank/${prevStationNumber}`)}
+                  className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    border: "none",
+                    color: "rgba(255,255,255,0.6)",
+                    cursor: "pointer",
+                  }}
+                >
+                  ← Prev
+                </button>
+              )}
+              {nextStationNumber && (
+                <button
+                  onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
+                  className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}
+                >
+                  Next →
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -581,18 +597,25 @@ export function StationPageClient({
 
           {/* Timer + study room */}
           <div className="sticky top-4 flex flex-col gap-3">
-            <Timer
-              phase={timerPhase}
-              timeLeft={timeLeft}
-              running={timerRunning}
-              isHost={!inRoom || iAmHost}
-              onStart={handleTimerStart}
-              onPause={handleTimerPause}
-              onSkipPreread={handleSkipPreread}
-              onReset={handleTimerReset}
-              onTick={handleTick}
-              onPhaseComplete={handlePhaseComplete}
-            />
+            <div>
+              <Timer
+                phase={timerPhase}
+                timeLeft={timeLeft}
+                running={timerRunning}
+                isHost={!inRoom || iAmHost}
+                onStart={handleTimerStart}
+                onPause={handleTimerPause}
+                onSkipPreread={handleSkipPreread}
+                onReset={handleTimerReset}
+                onTick={handleTick}
+                onPhaseComplete={handlePhaseComplete}
+              />
+              {inRoom && !iAmHost && (
+                <p className="text-center text-[11px] mt-1.5" style={{ color: "rgba(31,41,55,0.4)" }}>
+                  Timer controlled by {roomHostName ?? "host"}
+                </p>
+              )}
+            </div>
 
             <div style={{ display: showRoom ? undefined : "none" }}>
               <StudyRoomPanel
@@ -604,6 +627,7 @@ export function StationPageClient({
                 onTimerSync={handleTimerSync}
                 onStationChange={handleStationChange}
                 onRoomStatusChange={handleRoomStatusChange}
+                broadcastTimerRef={broadcastTimerRef}
               />
             </div>
           </div>
