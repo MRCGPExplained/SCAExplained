@@ -59,6 +59,13 @@ export function StudyRoomPanel({
 
   const iAmHost = room ? room.host_user_id === userId : false;
 
+  // Ref so channel callbacks always read the latest stationNumber without
+  // needing the channel effect to re-run (App Router updates props in place)
+  const stationNumberRef = useRef(stationNumber);
+  useEffect(() => {
+    stationNumberRef.current = stationNumber;
+  }, [stationNumber]);
+
   const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("room_participants")
@@ -168,7 +175,7 @@ export function StudyRoomPanel({
 
         // Station: guests follow host
         const isGuest = updated.host_user_id !== userId;
-        if (isGuest && updated.current_station_number && updated.current_station_number !== stationNumber) {
+        if (isGuest && updated.current_station_number && updated.current_station_number !== stationNumberRef.current) {
           onStationChange?.(updated.current_station_number);
         }
       }
@@ -204,7 +211,7 @@ export function StudyRoomPanel({
     // Guest listens for host station changes
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
       const { stationNumber: target } = payload as { stationNumber: number };
-      if (!iAmHost && target && target !== stationNumber) {
+      if (!iAmHost && target && target !== stationNumberRef.current) {
         onStationChange?.(target);
       }
     });
@@ -213,13 +220,11 @@ export function StudyRoomPanel({
       if (status === "SUBSCRIBED") {
         await channel.track({ userId, displayName, initials });
         refreshParticipants(room.id);
-        // Host announces current station on every (re)connect so online guests
-        // follow immediately — no prevStationRef needed, no SQL dependency
         if (iAmHost) {
           channel.send({
             type: "broadcast",
             event: "navigate",
-            payload: { stationNumber },
+            payload: { stationNumber: stationNumberRef.current },
           });
         }
       }
@@ -245,6 +250,19 @@ export function StudyRoomPanel({
       .update({ current_station_number: stationNumber })
       .eq("id", room.id);
   }, [room?.id, stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Host: broadcast station change via the existing channel whenever stationNumber changes.
+  // This handles App Router navigation which updates props in-place without remounting
+  // the component, so the channel subscription effect (which only fires on room?.id
+  // change) won't re-run. The SUBSCRIBED callback covers the initial broadcast on join.
+  useEffect(() => {
+    if (!room || !iAmHost || !channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "navigate",
+      payload: { stationNumber },
+    });
+  }, [stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load persisted messages when room is joined
   useEffect(() => {
@@ -284,7 +302,9 @@ export function StudyRoomPanel({
       .select("*")
       .eq("id", savedId)
       .single<StudyRoom>()
-      .then(({ data }) => { if (data) setRoom(data); });
+      .then(({ data }) => {
+        if (data) setRoom(data);
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCreate() {
