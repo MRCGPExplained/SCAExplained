@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
-import { sendConfirmationEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendVideoRequestEmail } from "@/lib/email";
 
 export interface ActionResult {
   error?: string;
@@ -270,6 +270,39 @@ export async function leaveStudyRoomAction(
     .delete()
     .eq("room_id", roomId)
     .eq("user_id", user.id);
+
+  return { success: true };
+}
+
+export async function requestVideoLessonAction(
+  stationNumber: number,
+  stationTitle: string,
+  stationSubject: string,
+  message: string
+): Promise<ActionResult> {
+  if (!message.trim()) return { error: "Message is required." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single<{ display_name: string }>();
+
+  try {
+    await sendVideoRequestEmail({
+      stationNumber,
+      stationTitle,
+      stationSubject,
+      userName: profile?.display_name ?? user.email ?? "Unknown",
+      message: message.trim(),
+    });
+  } catch {
+    // Email failure doesn't fail the action
+  }
 
   return { success: true };
 }

@@ -8,7 +8,8 @@ import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
-import { ReportModal } from "./ReportModal";
+import { FeedbackModal } from "./ReportModal";
+import { VideoRequestModal } from "./VideoRequestModal";
 import { toggleStarAction, updateLastStationAction } from "../actions";
 
 const NAVY = "#1F2937";
@@ -26,6 +27,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "management", label: "Management" },
   { key: "explanation", label: "Example Explanation" },
   { key: "takeaways", label: "Key Takeaways" },
+  { key: "video", label: "Video Lesson" },
 ];
 
 // ── Content helpers ────────────────────────────────────────────────────────────
@@ -275,7 +277,8 @@ export function StationPageClient({
   useEffect(() => {
     if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
   }, []);
-  const [showReport, setShowReport] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showVideoRequest, setShowVideoRequest] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
 
@@ -569,7 +572,7 @@ export function StationPageClient({
           </button>
 
           <button
-            onClick={() => setShowReport(true)}
+            onClick={() => setShowFeedback(true)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
               background: "transparent",
@@ -579,9 +582,9 @@ export function StationPageClient({
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            Report
+            Feedback
           </button>
 
           {inRoom && !iAmHost ? (
@@ -621,7 +624,7 @@ export function StationPageClient({
       {/* Tab strip */}
       <div style={{ background: "white", borderBottom: "1px solid rgba(31,41,55,0.10)" }}>
         <div className="max-w-[1300px] mx-auto px-6 flex items-end">
-          {(embedUrl ? [...TABS, { key: "video" as TabKey, label: "Video Lesson" }] : TABS).map((tab) => {
+          {TABS.map((tab) => {
             const active = activeTab === tab.key;
             return (
               <button
@@ -663,17 +666,43 @@ export function StationPageClient({
               </p>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} />}
-            {activeTab === "video" && embedUrl && (
-              <div className="relative rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}>
-                <iframe
-                  src={embedUrl}
-                  title="Video Lesson"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full"
-                />
-              </div>
+            {activeTab === "video" && (
+              embedUrl ? (
+                <div className="flex flex-col gap-5">
+                  <div className="relative rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}>
+                    <iframe
+                      src={embedUrl}
+                      title="Video Lesson"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  </div>
+                  <p className="text-[13.5px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
+                    This walkthrough covers the key clinical points for this station — guidelines, red flags, and how to structure your consultation.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-start gap-5 py-2">
+                  <p className="text-[14px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
+                    I am currently in the process of creating videos to help explain clinical guidelines and situations better to all SCA candidates. I would like to prioritise high impact videos first.
+                  </p>
+                  <p className="text-[14px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
+                    If you are having a hard time with this station or topic, please use the button below and send me your thoughts on what you would like to know more about. Give as much detail as you can — it will guide me as to what you want to hear about.
+                  </p>
+                  <button
+                    onClick={() => setShowVideoRequest(true)}
+                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-semibold"
+                    style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                    Request Video Lesson
+                  </button>
+                </div>
+              )
             )}
           </div>
 
@@ -717,12 +746,21 @@ export function StationPageClient({
         </div>
       </div>
 
-      {showReport && (
-        <ReportModal
+      {showFeedback && (
+        <FeedbackModal
           stationId={station.id}
           stationNumber={station.number}
           stationTitle={station.title}
-          onClose={() => setShowReport(false)}
+          onClose={() => setShowFeedback(false)}
+        />
+      )}
+
+      {showVideoRequest && (
+        <VideoRequestModal
+          stationNumber={station.number}
+          stationTitle={station.title}
+          stationSubject={station.subject}
+          onClose={() => setShowVideoRequest(false)}
         />
       )}
     </main>

@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { submitReportAction } from "../actions";
+import { requestVideoLessonAction } from "../actions";
 
 const NAVY = "#1A1B52";
 const LIGHT_BG = "#F3F2FB";
 
-export function FeedbackModal({
-  stationId,
+export function VideoRequestModal({
   stationNumber,
   stationTitle,
+  stationSubject,
   onClose,
 }: {
-  stationId: string;
   stationNumber: number;
   stationTitle: string;
+  stationSubject: string;
   onClose: () => void;
 }) {
   const [text, setText] = useState("");
@@ -26,14 +26,14 @@ export function FeedbackModal({
     if (!text.trim()) return;
     setLoading(true);
     setError("");
-    const result = await submitReportAction(stationId, stationNumber, stationTitle, text);
+    const result = await requestVideoLessonAction(stationNumber, stationTitle, stationSubject, text);
     if (result.error) {
       setError(result.error);
       setLoading(false);
       return;
     }
     setSent(true);
-    setTimeout(onClose, 2000);
+    setTimeout(onClose, 2500);
   }
 
   return (
@@ -43,26 +43,23 @@ export function FeedbackModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-[440px] rounded-2xl p-7"
-        style={{
-          background: "white",
-          boxShadow: "0 20px 60px rgba(26,27,82,0.25)",
-        }}
+        className="w-full max-w-[460px] rounded-2xl p-7"
+        style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
       >
         {sent ? (
           <div className="text-center py-5">
             <div className="text-[32px] mb-3">✓</div>
             <div className="font-display font-bold text-[15px] mb-1" style={{ color: NAVY }}>
-              Feedback sent
+              Request sent
             </div>
             <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Thanks — I&apos;ll look into it shortly.
+              Thanks — this will help me prioritise what to record next.
             </div>
           </div>
         ) : (
           <>
             <h2 className="font-display font-bold text-[16px] mb-1" style={{ color: NAVY }}>
-              Share Feedback
+              Request a Video Lesson
             </h2>
             <p className="text-[12.5px] mb-4" style={{ color: "rgba(26,27,82,0.55)" }}>
               Station {stationNumber} — {stationTitle}
@@ -80,8 +77,8 @@ export function FeedbackModal({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="A typo, a clinical concern, a suggestion — anything helpful…"
-              className="w-full rounded-lg px-4 py-3 text-[13px] leading-relaxed resize-y min-h-[120px]"
+              placeholder="What are you struggling with? What would you like the video to cover? The more detail, the better."
+              className="w-full rounded-lg px-4 py-3 text-[13px] leading-relaxed resize-y min-h-[130px]"
               style={{
                 border: "1px solid rgba(26,27,82,0.15)",
                 color: NAVY,
@@ -110,7 +107,7 @@ export function FeedbackModal({
                   opacity: loading || !text.trim() ? 0.6 : 1,
                 }}
               >
-                {loading ? "Sending…" : "Send Feedback"}
+                {loading ? "Sending…" : "Send Request"}
               </button>
             </div>
           </>
