@@ -34,12 +34,21 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const name = profile?.display_name ?? null;
+  const firstName = name ? name.trim().split(" ")[0] : null;
+
   return (
     <div className="min-h-screen px-6 pt-12 pb-16" style={{ background: "#FAFAF8" }}>
       <div className="w-full max-w-[560px] mx-auto">
         <div className="mb-8">
           <h1 className="font-display font-extrabold text-[28px]" style={{ color: DARK }}>
-            SCA <span style={{ color: YELLOW }}>Explained</span> Resources
+            {firstName ? `Hi ${firstName}! 👋` : "Hi there! 👋"}
           </h1>
         </div>
 

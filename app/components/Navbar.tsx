@@ -48,7 +48,7 @@ export function Navbar({
                 Resources
               </Link>
               <Link
-                href="/dashboard"
+                href="/account"
                 className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-all hover:bg-white/20"
                 style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
               >
