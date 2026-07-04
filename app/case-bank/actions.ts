@@ -183,15 +183,14 @@ export async function submitReportAction(
     .eq("id", user.id)
     .single<{ display_name: string }>();
 
-  try {
-    await sendFeedbackEmail({
-      stationNumber,
-      stationTitle,
-      userName: profile?.display_name ?? user.email ?? "Unknown",
-      message: content.trim(),
-    });
-  } catch {
-    // Email failure doesn't fail the submission
+  const emailSent = await sendFeedbackEmail({
+    stationNumber,
+    stationTitle,
+    userName: profile?.display_name ?? user.email ?? "Unknown",
+    message: content.trim(),
+  });
+  if (!emailSent) {
+    console.error(`[feedback] Email failed to send for station #${stationNumber}`);
   }
 
   return { success: true };
@@ -273,6 +272,30 @@ export async function leaveStudyRoomAction(
     .eq("room_id", roomId)
     .eq("user_id", user.id);
 
+  return { success: true };
+}
+
+export async function claimHostAction(roomId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  // Verify the caller is actually in the room
+  const { data: participant } = await supabase
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", roomId)
+    .eq("user_id", user.id)
+    .single<{ user_id: string }>();
+
+  if (!participant) return { error: "You are not in this room." };
+
+  const { error } = await supabase
+    .from("study_rooms")
+    .update({ host_user_id: user.id })
+    .eq("id", roomId);
+
+  if (error) return { error: error.message };
   return { success: true };
 }
 

@@ -8,6 +8,7 @@ import {
   joinStudyRoomAction,
   leaveStudyRoomAction,
   transferHostAction,
+  claimHostAction,
 } from "../actions";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
@@ -442,7 +443,7 @@ export function StudyRoomPanel({
   async function handleClaimHost() {
     if (!room) return;
     setShowClaimModal(false);
-    const result = await transferHostAction(room.id, userId);
+    const result = await claimHostAction(room.id);
     if (result.error) return;
     currentHostIdRef.current = userId;
     setRoom((prev) => prev ? { ...prev, host_user_id: userId } : prev);
@@ -702,32 +703,30 @@ export function StudyRoomPanel({
         </span>
       </div>
 
-      {/* Claim Host — guests only */}
-      {!iAmHost && (
-        <div
-          className="flex justify-center px-3.5 py-2.5"
-          style={{ background: "white", borderTop: "1px solid rgba(26,27,82,0.05)" }}
-        >
-          <button
-            onClick={() => setShowClaimModal(true)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 10,
-              letterSpacing: "0.07em",
-              textTransform: "uppercase",
-              color: "rgba(26,27,82,0.28)",
-              fontFamily: "inherit",
-              fontWeight: 600,
-              padding: 0,
-            }}
-          >
-            Claim Host
-          </button>
-        </div>
-      )}
     </div>
+
+    {/* Claim Host — guests only, sits below the room panel */}
+    {!iAmHost && (
+      <div className="flex justify-center pt-2">
+        <button
+          onClick={() => setShowClaimModal(true)}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 10,
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            color: "rgba(26,27,82,0.28)",
+            fontFamily: "inherit",
+            fontWeight: 600,
+            padding: 0,
+          }}
+        >
+          Claim Host
+        </button>
+      </div>
+    )}
 
     {/* Claim Host modal */}
     {showClaimModal && (
