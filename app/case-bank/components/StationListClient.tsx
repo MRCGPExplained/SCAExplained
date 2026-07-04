@@ -48,6 +48,31 @@ function PlayIcon() {
   );
 }
 
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  return (
+    <button
+      onClick={onChange}
+      role="switch"
+      aria-checked={checked}
+      className="inline-flex items-center gap-2 text-[12px] font-semibold"
+      style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: "rgba(26,27,82,0.6)", padding: 0 }}
+    >
+      <div style={{
+        width: 32, height: 18, borderRadius: 9,
+        background: checked ? NAVY : "rgba(26,27,82,0.2)",
+        position: "relative", transition: "background 0.15s", flexShrink: 0,
+      }}>
+        <div style={{
+          position: "absolute", top: 2, left: checked ? 16 : 2,
+          width: 14, height: 14, borderRadius: "50%",
+          background: "white", transition: "left 0.15s",
+        }} />
+      </div>
+      {label}
+    </button>
+  );
+}
+
 export function StationListClient({
   stations,
   starredIds: initialStarredIds,
@@ -61,9 +86,9 @@ export function StationListClient({
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [showTitles, setShowTitles] = useState(true);
   const [lastStation, setLastStation] = useState<number | null>(initialLastStation);
 
-  // localStorage fallback for last station (works without DB migration)
   useEffect(() => {
     if (lastStation === null) {
       const n = parseInt(localStorage.getItem("lastCaseBankStation") ?? "", 10);
@@ -142,7 +167,30 @@ export function StationListClient({
               fontFamily: "inherit",
             }}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Subject dropdown — leftmost */}
+            <select
+              value={activeSubject}
+              onChange={(e) => setActiveSubject(e.target.value)}
+              className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold"
+              style={{
+                border: "1.5px solid rgba(26,27,82,0.12)",
+                background: "white",
+                color: NAVY,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                outline: "none",
+              }}
+            >
+              {(SUBJECTS as readonly string[]).map((s) => (
+                <option key={s} value={s} style={{ background: "white", color: NAVY }}>
+                  {s === "All"
+                    ? `All subjects (${stations.length})`
+                    : `${s} (${subjectCounts[s] ?? 0})`}
+                </option>
+              ))}
+            </select>
+
             <button
               onClick={() => setShowStarred((v) => !v)}
               className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
@@ -156,6 +204,7 @@ export function StationListClient({
             >
               ★ Starred only
             </button>
+
             <button
               onClick={() => setShowVideo((v) => !v)}
               className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
@@ -170,33 +219,16 @@ export function StationListClient({
               <PlayIcon />
               Video lesson
             </button>
-          </div>
-        </div>
 
-        {/* Subject dropdown */}
-        <div className="mb-5">
-          <select
-            value={activeSubject}
-            onChange={(e) => setActiveSubject(e.target.value)}
-            className="rounded-lg px-3.5 py-2 text-[13px] font-semibold"
-            style={{
-              border: "1.5px solid rgba(26,27,82,0.12)",
-              background: "white",
-              color: NAVY,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              outline: "none",
-              minWidth: 180,
-            }}
-          >
-            {(SUBJECTS as readonly string[]).map((s) => (
-              <option key={s} value={s} style={{ background: "white", color: NAVY }}>
-                {s === "All"
-                  ? `All subjects (${stations.length})`
-                  : `${s} (${subjectCounts[s] ?? 0})`}
-              </option>
-            ))}
-          </select>
+            {/* Show Titles toggle — pushed to the right */}
+            <div className="ml-auto">
+              <Toggle
+                checked={showTitles}
+                onChange={() => setShowTitles((v) => !v)}
+                label="Show Titles"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Count */}
@@ -224,8 +256,8 @@ export function StationListClient({
                 href={`/case-bank/${station.number}`}
                 className="flex items-center gap-4 rounded-[10px] px-4 py-3.5 no-underline transition-all hover:shadow-md"
                 style={{
-                  background: LIGHT_BG,
-                  border: isLast ? `3px solid ${YELLOW}` : "1px solid rgba(26,27,82,0.07)",
+                  background: isLast ? `rgba(246,212,75,0.22)` : LIGHT_BG,
+                  border: "1px solid rgba(26,27,82,0.07)",
                 }}
               >
                 {/* Number */}
@@ -239,23 +271,27 @@ export function StationListClient({
                   {station.number}
                 </div>
 
-                {/* Title + subject */}
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="text-[14px] font-semibold truncate mb-1"
-                    style={{ color: NAVY }}
-                  >
-                    {station.title}
+                {/* Title + subject — hidden when showTitles is off */}
+                {showTitles && (
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-[14px] font-semibold truncate mb-1"
+                      style={{ color: NAVY }}
+                    >
+                      {station.title}
+                    </div>
+                    <SubjectTag
+                      subject={station.subject}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setActiveSubject(station.subject);
+                      }}
+                      small
+                    />
                   </div>
-                  <SubjectTag
-                    subject={station.subject}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setActiveSubject(station.subject);
-                    }}
-                    small
-                  />
-                </div>
+                )}
+
+                {!showTitles && <div className="flex-1" />}
 
                 {station.editor_video_url && (
                   <span
