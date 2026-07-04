@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS } from "@/lib/case-bank-types";
 
-const NAVY = "#1A1B52";
+const NAVY = "#333333";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
@@ -25,11 +25,11 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
       role="switch"
       aria-checked={checked}
       className="inline-flex items-center gap-2 text-[12px] font-semibold"
-      style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: "rgba(26,27,82,0.6)", padding: 0 }}
+      style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: "rgba(51,51,51,0.6)", padding: 0 }}
     >
       <div style={{
         width: 32, height: 18, borderRadius: 9,
-        background: checked ? NAVY : "rgba(26,27,82,0.2)",
+        background: checked ? NAVY : "rgba(51,51,51,0.2)",
         position: "relative", transition: "background 0.15s", flexShrink: 0,
       }}>
         <div style={{
@@ -100,7 +100,7 @@ export function StationListClient({
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1 text-[13px] font-medium no-underline"
-            style={{ color: "rgba(26,27,82,0.45)" }}
+            style={{ color: "rgba(51,51,51,0.45)" }}
           >
             ← Dashboard
           </Link>
@@ -114,7 +114,7 @@ export function StationListClient({
           >
             SCA Explained Case Bank
           </h1>
-          <p className="text-[13.5px]" style={{ color: "rgba(26,27,82,0.55)" }}>
+          <p className="text-[13.5px]" style={{ color: "rgba(51,51,51,0.55)" }}>
             <span style={{ color: NAVY, fontWeight: 600 }}>{stations.length}</span> practice stations
           </p>
         </div>
@@ -122,7 +122,7 @@ export function StationListClient({
         {/* Search + filters */}
         <div
           className="rounded-xl p-4 mb-4"
-          style={{ background: "white", border: "1px solid rgba(26,27,82,0.09)" }}
+          style={{ background: "white", border: "1px solid rgba(51,51,51,0.09)" }}
         >
           <input
             value={search}
@@ -130,7 +130,7 @@ export function StationListClient({
             placeholder="Search stations by title or subject…"
             className="w-full rounded-lg px-4 py-2.5 text-[13.5px] mb-3.5"
             style={{
-              border: "1px solid rgba(26,27,82,0.12)",
+              border: "1px solid rgba(51,51,51,0.12)",
               color: NAVY,
               background: LIGHT_BG,
               outline: "none",
@@ -144,7 +144,7 @@ export function StationListClient({
               onChange={(e) => setActiveSubject(e.target.value)}
               className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold"
               style={{
-                border: "1.5px solid rgba(26,27,82,0.12)",
+                border: "1.5px solid rgba(51,51,51,0.12)",
                 background: "white",
                 color: NAVY,
                 cursor: "pointer",
@@ -165,9 +165,9 @@ export function StationListClient({
               onClick={() => setShowStarred((v) => !v)}
               className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
               style={{
-                background: showStarred ? YELLOW : LIGHT_BG,
-                border: `1.5px solid ${showStarred ? YELLOW : "rgba(26,27,82,0.10)"}`,
-                color: showStarred ? NAVY : "rgba(26,27,82,0.6)",
+                background: showStarred ? "rgba(246,212,75,0.18)" : LIGHT_BG,
+                border: `1.5px solid ${showStarred ? YELLOW : "rgba(51,51,51,0.10)"}`,
+                color: showStarred ? NAVY : "rgba(51,51,51,0.6)",
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
@@ -180,8 +180,8 @@ export function StationListClient({
               className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
               style={{
                 background: showVideo ? "rgba(59,130,246,0.12)" : LIGHT_BG,
-                border: `1.5px solid ${showVideo ? "rgba(59,130,246,0.4)" : "rgba(26,27,82,0.10)"}`,
-                color: showVideo ? "#1D4ED8" : "rgba(26,27,82,0.6)",
+                border: `1.5px solid ${showVideo ? "rgba(59,130,246,0.4)" : "rgba(51,51,51,0.10)"}`,
+                color: showVideo ? "#1D4ED8" : "rgba(51,51,51,0.6)",
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
@@ -202,7 +202,7 @@ export function StationListClient({
         </div>
 
         {/* Count */}
-        <p className="text-[12px] mb-3" style={{ color: "rgba(26,27,82,0.45)" }}>
+        <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
           {filtered.length} station{filtered.length !== 1 ? "s" : ""}
           {activeSubject !== "All" ? ` in ${activeSubject}` : ""}
         </p>
@@ -212,7 +212,7 @@ export function StationListClient({
           {filtered.length === 0 && (
             <div
               className="text-center py-12 text-[14px]"
-              style={{ color: "rgba(26,27,82,0.4)" }}
+              style={{ color: "rgba(51,51,51,0.4)" }}
             >
               No stations match your filters.
             </div>
@@ -226,16 +226,17 @@ export function StationListClient({
                 href={`/case-bank/${station.number}`}
                 className="flex items-center gap-4 rounded-[10px] px-4 py-3 no-underline transition-all hover:shadow-md"
                 style={{
-                  background: isLast ? `rgba(246,212,75,0.09)` : LIGHT_BG,
-                  border: "1px solid rgba(26,27,82,0.07)",
+                  background: LIGHT_BG,
+                  border: "1px solid rgba(51,51,51,0.07)",
+                  borderLeft: isLast ? `3px solid rgba(51,51,51,0.35)` : "1px solid rgba(51,51,51,0.07)",
                 }}
               >
                 {/* Number */}
                 <div
                   className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold"
                   style={{
-                    background: "rgba(26,27,82,0.08)",
-                    color: "rgba(26,27,82,0.4)",
+                    background: "rgba(51,51,51,0.08)",
+                    color: "rgba(51,51,51,0.4)",
                   }}
                 >
                   {station.number}
@@ -263,7 +264,7 @@ export function StationListClient({
                   <span className="shrink-0 text-[14px]" style={{ color: YELLOW }}>★</span>
                 )}
 
-                <span className="shrink-0 text-[14px]" style={{ color: "rgba(26,27,82,0.25)" }}>
+                <span className="shrink-0 text-[14px]" style={{ color: "rgba(51,51,51,0.25)" }}>
                   →
                 </span>
               </Link>
