@@ -68,6 +68,35 @@ export async function registerAction(
 
 export async function logoutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    // Transfer host for any rooms this user owns before leaving
+    const { data: hostedRooms } = await supabase
+      .from("study_rooms")
+      .select("id")
+      .eq("host_user_id", user.id);
+
+    for (const room of hostedRooms ?? []) {
+      const { data: others } = await supabase
+        .from("room_participants")
+        .select("user_id")
+        .eq("room_id", room.id)
+        .neq("user_id", user.id);
+
+      if (others && others.length > 0) {
+        const newHost = others[Math.floor(Math.random() * others.length)];
+        await supabase
+          .from("study_rooms")
+          .update({ host_user_id: newHost.user_id })
+          .eq("id", room.id);
+      }
+    }
+
+    // Remove from all rooms
+    await supabase.from("room_participants").delete().eq("user_id", user.id);
+  }
+
   await supabase.auth.signOut();
   redirect("/login");
 }

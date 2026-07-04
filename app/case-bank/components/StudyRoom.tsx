@@ -440,6 +440,21 @@ export function StudyRoomPanel({
 
   async function handleLeave() {
     if (!room) return;
+    // If we're the host and others are present, hand off before leaving
+    if (iAmHost) {
+      const others = participants.filter(p => !p.isSelf);
+      if (others.length > 0) {
+        const newHost = others[Math.floor(Math.random() * others.length)];
+        const result = await transferHostAction(room.id, newHost.userId);
+        if (!result.error) {
+          channelRef.current?.send({
+            type: "broadcast",
+            event: "host-change",
+            payload: { newHostUserId: newHost.userId },
+          });
+        }
+      }
+    }
     await leaveStudyRoomAction(room.id);
     sessionStorage.removeItem("studyRoomId");
     setRoom(null);
