@@ -25,25 +25,20 @@ export function Navbar({
         </Link>
 
         <div className="flex items-center gap-5">
-          <Link href="/" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Home</Link>
-          <Link href="/about" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">About</Link>
-          <Link href="/pricing" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Pricing</Link>
-          <Link href="/faq" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">FAQ</Link>
-
-          {isLoggedIn && hasProgramme && (
+          {isLoggedIn ? (
             <>
               <Link href="/video-course" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Video Course</Link>
               <Link href="/case-bank" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Case Bank</Link>
+              <Link href="/dashboard" className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-colors" style={{ background: NAVY, color: "white" }}>Account</Link>
             </>
-          )}
-          {isLoggedIn ? (
-            <Link href="/programme" className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-colors" style={{ background: NAVY, color: "white" }}>
-              {displayName ? displayName.split(" ")[0] : "Account"}
-            </Link>
           ) : (
-            <Link href="/login" className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-colors" style={{ background: NAVY, color: "white" }}>
-              Login
-            </Link>
+            <>
+              <Link href="/" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Home</Link>
+              <Link href="/about" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">About</Link>
+              <Link href="/pricing" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">Pricing</Link>
+              <Link href="/faq" className="text-[13px] font-semibold text-navy/60 hover:text-navy transition-colors no-underline">FAQ</Link>
+              <Link href="/login" className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-colors" style={{ background: NAVY, color: "white" }}>Login</Link>
+            </>
           )}
         </div>
       </div>
