@@ -165,8 +165,8 @@ export function StationListClient({
               onClick={() => setShowStarred((v) => !v)}
               className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
               style={{
-                background: showStarred ? YELLOW : "rgba(246,212,75,0.15)",
-                border: `1.5px solid ${showStarred ? YELLOW : "rgba(246,212,75,0.5)"}`,
+                background: showStarred ? YELLOW : LIGHT_BG,
+                border: `1.5px solid ${showStarred ? YELLOW : "rgba(26,27,82,0.10)"}`,
                 color: showStarred ? NAVY : "rgba(26,27,82,0.6)",
                 cursor: "pointer",
                 fontFamily: "inherit",
@@ -243,18 +243,12 @@ export function StationListClient({
 
                 {/* Title · Subject inline, or plain Station N */}
                 {showTitles ? (
-                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <div className="flex-1 min-w-0">
                     <span
-                      className="text-[13.5px] font-semibold truncate"
+                      className="text-[13.5px] font-semibold truncate block"
                       style={{ color: NAVY }}
                     >
                       {station.title}
-                    </span>
-                    <span
-                      className="shrink-0 text-[12px]"
-                      style={{ color: "rgba(26,27,82,0.35)" }}
-                    >
-                      · {station.subject}
                     </span>
                   </div>
                 ) : (
