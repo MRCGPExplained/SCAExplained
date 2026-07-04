@@ -172,7 +172,7 @@ export function StationListClient({
                 fontFamily: "inherit",
               }}
             >
-              ★ Starred only
+              <span style={{ color: showStarred ? YELLOW : "inherit" }}>★</span> Starred only
             </button>
 
             <button
