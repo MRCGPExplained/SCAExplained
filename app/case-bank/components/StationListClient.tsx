@@ -117,7 +117,7 @@ export function StationListClient({
             className="font-display font-extrabold text-[26px] mb-1.5"
             style={{ color: NAVY }}
           >
-            SCA Case Bank
+            SCA Explained Case Bank
           </h1>
           <p className="text-[13.5px]" style={{ color: "rgba(26,27,82,0.55)" }}>
             <span style={{ color: NAVY, fontWeight: 600 }}>{stations.length}</span> practice stations
@@ -180,9 +180,9 @@ export function StationListClient({
             onChange={(e) => setActiveSubject(e.target.value)}
             className="rounded-lg px-3.5 py-2 text-[13px] font-semibold"
             style={{
-              border: `1.5px solid ${activeSubject !== "All" ? NAVY : "rgba(26,27,82,0.12)"}`,
-              background: activeSubject !== "All" ? NAVY : "white",
-              color: activeSubject !== "All" ? "white" : NAVY,
+              border: "1.5px solid rgba(26,27,82,0.12)",
+              background: "white",
+              color: NAVY,
               cursor: "pointer",
               fontFamily: "inherit",
               outline: "none",
@@ -225,7 +225,7 @@ export function StationListClient({
                 className="flex items-center gap-4 rounded-[10px] px-4 py-3.5 no-underline transition-all hover:shadow-md"
                 style={{
                   background: LIGHT_BG,
-                  border: isLast ? `2px solid ${NAVY}` : "1px solid rgba(26,27,82,0.07)",
+                  border: isLast ? `3px solid ${YELLOW}` : "1px solid rgba(26,27,82,0.07)",
                 }}
               >
                 {/* Number */}
