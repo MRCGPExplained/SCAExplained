@@ -51,7 +51,7 @@ export function Timer({
   const totalDuration = PHASE_DURATIONS[phase];
   const progress = (timeLeft / totalDuration) * 100;
 
-  const phaseLabel = phase === "PREREAD" ? "Pre-Read" : "Consultation";
+  const phaseLabel = phase === "PREREAD" ? "Preparation" : "Consultation";
 
   const borderColor = isOrange ? "#F97316" : "rgba(31,41,55,0.15)";
   const digitColor = isOrange ? "#F97316" : NAVY;
