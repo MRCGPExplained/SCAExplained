@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
-import { sendConfirmationEmail, sendVideoRequestEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail } from "@/lib/email";
 
 export interface ActionResult {
   error?: string;
@@ -177,19 +177,21 @@ export async function submitReportAction(
     content: content.trim(),
   });
 
-  // Email notification to admin
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single<{ display_name: string }>();
+
   try {
-    await sendConfirmationEmail({
-      to: "mrcgpexplained@outlook.com",
-      customerName: "SCA Explained Admin",
-      eventTitle: `Station Report: #${stationNumber} — ${stationTitle}`,
-      ticketName: "Station Issue Report",
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      zoomLink: null,
+    await sendFeedbackEmail({
+      stationNumber,
+      stationTitle,
+      userName: profile?.display_name ?? user.email ?? "Unknown",
+      message: content.trim(),
     });
   } catch {
-    // Email failure doesn't fail the report
+    // Email failure doesn't fail the submission
   }
 
   return { success: true };

@@ -61,6 +61,7 @@ export function StudyRoomPanel({
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
   const [hostNameState, setHostNameState] = useState<string | null>(null);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const [hostStation, setHostStation] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; userId: string; displayName: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -438,6 +439,40 @@ export function StudyRoomPanel({
     setLoading(false);
   }
 
+  async function handleClaimHost() {
+    if (!room) return;
+    setShowClaimModal(false);
+    const result = await transferHostAction(room.id, userId);
+    if (result.error) return;
+    currentHostIdRef.current = userId;
+    setRoom((prev) => prev ? { ...prev, host_user_id: userId } : prev);
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "host-change",
+      payload: { newHostUserId: userId },
+    });
+    refreshParticipants(room.id);
+    // Post system message so everyone sees the change
+    const systemText = `${displayName} has taken over as host.`;
+    const { data } = await supabase
+      .from("room_messages")
+      .insert({ room_id: room.id, user_id: userId, display_name: "System", message: systemText })
+      .select("id, created_at")
+      .single();
+    if (data) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          from: "System",
+          fromSelf: false,
+          text: systemText,
+          time: new Date(data.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
+  }
+
   async function handleLeave() {
     if (!room) return;
     // If we're the host and others are present, hand off before leaving
@@ -608,25 +643,33 @@ export function StudyRoomPanel({
           Chat
         </div>
         <div className="max-h-[130px] overflow-y-auto flex flex-col gap-2 mb-2.5">
-          {messages.map((msg) => (
-            <div key={msg.id}>
-              <div className="text-[10px] mb-0.5" style={{ color: "rgba(26,27,82,0.4)" }}>
-                <strong style={{ color: msg.fromSelf ? NAVY : "rgba(26,27,82,0.7)" }}>
-                  {msg.fromSelf ? "You" : msg.from}
-                </strong>{" "}
-                · {msg.time}
+          {messages.map((msg) =>
+            msg.from === "System" ? (
+              <div key={msg.id} className="text-center py-0.5">
+                <span className="text-[10.5px] italic" style={{ color: "rgba(26,27,82,0.38)" }}>
+                  {msg.text}
+                </span>
               </div>
-              <div className="text-[12px] leading-snug break-words" style={{ color: "rgba(26,27,82,0.8)" }}>
-                {msg.text.startsWith("http") ? (
-                  <a href={msg.text} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#2563EB", wordBreak: "break-all" }}>
-                    {msg.text}
-                  </a>
-                ) : (
-                  msg.text
-                )}
+            ) : (
+              <div key={msg.id}>
+                <div className="text-[10px] mb-0.5" style={{ color: "rgba(26,27,82,0.4)" }}>
+                  <strong style={{ color: msg.fromSelf ? NAVY : "rgba(26,27,82,0.7)" }}>
+                    {msg.fromSelf ? "You" : msg.from}
+                  </strong>{" "}
+                  · {msg.time}
+                </div>
+                <div className="text-[12px] leading-snug break-words" style={{ color: "rgba(26,27,82,0.8)" }}>
+                  {msg.text.startsWith("http") ? (
+                    <a href={msg.text} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#2563EB", wordBreak: "break-all" }}>
+                      {msg.text}
+                    </a>
+                  ) : (
+                    msg.text
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-1.5">
@@ -658,7 +701,70 @@ export function StudyRoomPanel({
           {room.room_code}
         </span>
       </div>
+
+      {/* Claim Host — guests only */}
+      {!iAmHost && (
+        <div
+          className="flex justify-center px-3.5 py-2.5"
+          style={{ background: "white", borderTop: "1px solid rgba(26,27,82,0.05)" }}
+        >
+          <button
+            onClick={() => setShowClaimModal(true)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 10,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: "rgba(26,27,82,0.28)",
+              fontFamily: "inherit",
+              fontWeight: 600,
+              padding: 0,
+            }}
+          >
+            Claim Host
+          </button>
+        </div>
+      )}
     </div>
+
+    {/* Claim Host modal */}
+    {showClaimModal && (
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50 px-6"
+        style={{ background: "rgba(26,27,82,0.5)" }}
+        onClick={(e) => e.target === e.currentTarget && setShowClaimModal(false)}
+      >
+        <div
+          className="w-full max-w-[380px] rounded-2xl p-6"
+          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+        >
+          <h2 className="font-display font-bold text-[15px] mb-2" style={{ color: NAVY }}>
+            Claim Host
+          </h2>
+          <p className="text-[13.5px] leading-[1.7] mb-5" style={{ color: "rgba(26,27,82,0.65)" }}>
+            <strong style={{ color: NAVY }}>{hostName}</strong> is the current host. Would you like to assume the role?
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setShowClaimModal(false)}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
+            >
+              Go Back
+            </button>
+            <button
+              onClick={handleClaimHost}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+              style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Right-click context menu for host transfer */}
     {contextMenu && (

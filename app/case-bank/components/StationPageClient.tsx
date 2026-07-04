@@ -686,10 +686,7 @@ export function StationPageClient({
               ) : (
                 <div className="flex flex-col items-start gap-5 py-2">
                   <p className="text-[14px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
-                    I am currently in the process of creating videos to help explain clinical guidelines and situations better to all SCA candidates. I would like to prioritise high impact videos first.
-                  </p>
-                  <p className="text-[14px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
-                    If you are having a hard time with this station or topic, please use the button below and send me your thoughts on what you would like to know more about. Give as much detail as you can — it will guide me as to what you want to hear about.
+                    I am always in the process of creating videos to help explain clinical guidelines and situations for topics candidates need additional support with. If you are having a hard time with this station or topic, please use the button below and send me your thoughts on what you would like to know more about. Give as much detail as you can as this will guide me as to what you want to hear about.
                   </p>
                   <button
                     onClick={() => setShowVideoRequest(true)}
