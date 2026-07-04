@@ -24,12 +24,14 @@ function SubjectTag({
       onClick={onClick}
       style={{
         background: colors.bg,
-        color: colors.text,
+        color: "rgba(26,27,82,0.45)",
         border: "none",
         borderRadius: 20,
         padding: small ? "2px 8px" : "3px 10px",
-        fontSize: small ? 11 : 12,
+        fontSize: small ? 10 : 11,
         fontWeight: 600,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
         cursor: onClick ? "pointer" : "default",
         whiteSpace: "nowrap",
         fontFamily: "inherit",
@@ -293,7 +295,7 @@ export function StationListClient({
 
                 {!showTitles && (
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-semibold" style={{ color: "rgba(26,27,82,0.35)" }}>
+                    <div className="text-[14px] font-semibold" style={{ color: NAVY }}>
                       Station {station.number}
                     </div>
                   </div>
