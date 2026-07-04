@@ -256,7 +256,7 @@ export function StationListClient({
                 href={`/case-bank/${station.number}`}
                 className="flex items-center gap-4 rounded-[10px] px-4 py-3.5 no-underline transition-all hover:shadow-md"
                 style={{
-                  background: isLast ? `rgba(246,212,75,0.22)` : LIGHT_BG,
+                  background: isLast ? `rgba(246,212,75,0.09)` : LIGHT_BG,
                   border: "1px solid rgba(26,27,82,0.07)",
                 }}
               >
@@ -291,7 +291,13 @@ export function StationListClient({
                   </div>
                 )}
 
-                {!showTitles && <div className="flex-1" />}
+                {!showTitles && (
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-semibold" style={{ color: "rgba(26,27,82,0.35)" }}>
+                      Station {station.number}
+                    </div>
+                  </div>
+                )}
 
                 {station.editor_video_url && (
                   <span
