@@ -3,44 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
-import { SUBJECTS, SUBJECT_COLORS } from "@/lib/case-bank-types";
+import { SUBJECTS } from "@/lib/case-bank-types";
 
 const NAVY = "#1A1B52";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
-function SubjectTag({
-  subject,
-  onClick,
-  small,
-}: {
-  subject: string;
-  onClick?: (e: React.MouseEvent) => void;
-  small?: boolean;
-}) {
-  const colors = SUBJECT_COLORS[subject] ?? { bg: "rgba(26,27,82,0.07)", text: NAVY };
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: colors.bg,
-        color: "rgba(26,27,82,0.45)",
-        border: "none",
-        borderRadius: 20,
-        padding: small ? "2px 8px" : "3px 10px",
-        fontSize: small ? 10 : 11,
-        fontWeight: 600,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
-        cursor: onClick ? "pointer" : "default",
-        whiteSpace: "nowrap",
-        fontFamily: "inherit",
-      }}
-    >
-      {subject}
-    </button>
-  );
-}
 
 function PlayIcon() {
   return (
@@ -197,8 +165,8 @@ export function StationListClient({
               onClick={() => setShowStarred((v) => !v)}
               className="rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
               style={{
-                background: showStarred ? YELLOW : LIGHT_BG,
-                border: `1.5px solid ${showStarred ? YELLOW : "rgba(26,27,82,0.10)"}`,
+                background: showStarred ? YELLOW : "rgba(246,212,75,0.15)",
+                border: `1.5px solid ${showStarred ? YELLOW : "rgba(246,212,75,0.5)"}`,
                 color: showStarred ? NAVY : "rgba(26,27,82,0.6)",
                 cursor: "pointer",
                 fontFamily: "inherit",
@@ -256,7 +224,7 @@ export function StationListClient({
               <Link
                 key={station.id}
                 href={`/case-bank/${station.number}`}
-                className="flex items-center gap-4 rounded-[10px] px-4 py-3.5 no-underline transition-all hover:shadow-md"
+                className="flex items-center gap-4 rounded-[10px] px-4 py-3 no-underline transition-all hover:shadow-md"
                 style={{
                   background: isLast ? `rgba(246,212,75,0.09)` : LIGHT_BG,
                   border: "1px solid rgba(26,27,82,0.07)",
@@ -264,7 +232,7 @@ export function StationListClient({
               >
                 {/* Number */}
                 <div
-                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold"
+                  className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold"
                   style={{
                     background: "rgba(26,27,82,0.08)",
                     color: "rgba(26,27,82,0.4)",
@@ -273,45 +241,32 @@ export function StationListClient({
                   {station.number}
                 </div>
 
-                {/* Title + subject — hidden when showTitles is off */}
-                {showTitles && (
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="text-[14px] font-semibold truncate mb-1"
+                {/* Title · Subject inline, or plain Station N */}
+                {showTitles ? (
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <span
+                      className="text-[13.5px] font-semibold truncate"
                       style={{ color: NAVY }}
                     >
                       {station.title}
-                    </div>
-                    <SubjectTag
-                      subject={station.subject}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setActiveSubject(station.subject);
-                      }}
-                      small
-                    />
+                    </span>
+                    <span
+                      className="shrink-0 text-[12px]"
+                      style={{ color: "rgba(26,27,82,0.35)" }}
+                    >
+                      · {station.subject}
+                    </span>
                   </div>
-                )}
-
-                {!showTitles && (
+                ) : (
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-semibold" style={{ color: NAVY }}>
+                    <span className="text-[13.5px] font-semibold" style={{ color: NAVY }}>
                       Station {station.number}
-                    </div>
+                    </span>
                   </div>
-                )}
-
-                {station.editor_video_url && (
-                  <span
-                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(59,130,246,0.09)", color: "#1D4ED8" }}
-                  >
-                    <PlayIcon /> Video
-                  </span>
                 )}
 
                 {isStarred && (
-                  <span className="shrink-0 text-[15px]" style={{ color: YELLOW }}>★</span>
+                  <span className="shrink-0 text-[14px]" style={{ color: YELLOW }}>★</span>
                 )}
 
                 <span className="shrink-0 text-[14px]" style={{ color: "rgba(26,27,82,0.25)" }}>
