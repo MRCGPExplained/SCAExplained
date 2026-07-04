@@ -409,8 +409,9 @@ export function StationPageClient({
     }
   }
 
-  // Persist last-visited station to Supabase so it survives cache clears and works across devices
+  // Persist last-visited station — Supabase for cross-device, localStorage as immediate fallback
   useEffect(() => {
+    localStorage.setItem("lastCaseBankStation", String(station.number));
     updateLastStationAction(station.number);
   }, [station.number]);
 

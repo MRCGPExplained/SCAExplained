@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS, SUBJECT_COLORS } from "@/lib/case-bank-types";
@@ -40,10 +40,18 @@ function SubjectTag({
   );
 }
 
+function PlayIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ flexShrink: 0 }}>
+      <path d="M2 1.5L9 5L2 8.5V1.5Z" />
+    </svg>
+  );
+}
+
 export function StationListClient({
   stations,
   starredIds: initialStarredIds,
-  lastStation,
+  lastStation: initialLastStation,
 }: {
   stations: StationListRow[];
   starredIds: string[];
@@ -52,6 +60,16 @@ export function StationListClient({
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [lastStation, setLastStation] = useState<number | null>(initialLastStation);
+
+  // localStorage fallback for last station (works without DB migration)
+  useEffect(() => {
+    if (lastStation === null) {
+      const n = parseInt(localStorage.getItem("lastCaseBankStation") ?? "", 10);
+      if (!isNaN(n)) setLastStation(n);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const starredSet = useMemo(() => new Set(initialStarredIds), [initialStarredIds]);
 
@@ -59,6 +77,7 @@ export function StationListClient({
     return stations.filter((s) => {
       if (activeSubject !== "All" && s.subject !== activeSubject) return false;
       if (showStarred && !starredSet.has(s.id)) return false;
+      if (showVideo && !s.editor_video_url) return false;
       if (
         search &&
         !s.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -67,7 +86,7 @@ export function StationListClient({
         return false;
       return true;
     });
-  }, [stations, activeSubject, showStarred, search, starredSet]);
+  }, [stations, activeSubject, showStarred, showVideo, search, starredSet]);
 
   const subjectCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -80,6 +99,17 @@ export function StationListClient({
   return (
     <main style={{ minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
+
+        {/* Dashboard back link */}
+        <div className="mb-5">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-[13px] font-medium no-underline"
+            style={{ color: "rgba(26,27,82,0.45)" }}
+          >
+            ← Dashboard
+          </Link>
+        </div>
 
         {/* Page header */}
         <div className="mb-7">
@@ -126,35 +156,47 @@ export function StationListClient({
             >
               ★ Starred only
             </button>
-          </div>
-        </div>
-
-        {/* Subject tabs */}
-        <div
-          className="flex gap-1.5 overflow-x-auto pb-1 mb-5"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {(SUBJECTS as readonly string[]).map((s) => (
             <button
-              key={s}
-              onClick={() => setActiveSubject(s)}
-              className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all"
+              onClick={() => setShowVideo((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
               style={{
-                background: activeSubject === s ? NAVY : "white",
-                border: `1.5px solid ${activeSubject === s ? NAVY : "rgba(26,27,82,0.12)"}`,
-                color: activeSubject === s ? "white" : "rgba(26,27,82,0.65)",
+                background: showVideo ? "rgba(59,130,246,0.12)" : LIGHT_BG,
+                border: `1.5px solid ${showVideo ? "rgba(59,130,246,0.4)" : "rgba(26,27,82,0.10)"}`,
+                color: showVideo ? "#1D4ED8" : "rgba(26,27,82,0.6)",
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              {s}
-              {s !== "All" && subjectCounts[s] !== undefined && (
-                <span className="ml-1 opacity-60 text-[10px]">
-                  {subjectCounts[s]}
-                </span>
-              )}
+              <PlayIcon />
+              Video lesson
             </button>
-          ))}
+          </div>
+        </div>
+
+        {/* Subject dropdown */}
+        <div className="mb-5">
+          <select
+            value={activeSubject}
+            onChange={(e) => setActiveSubject(e.target.value)}
+            className="rounded-lg px-3.5 py-2 text-[13px] font-semibold"
+            style={{
+              border: `1.5px solid ${activeSubject !== "All" ? NAVY : "rgba(26,27,82,0.12)"}`,
+              background: activeSubject !== "All" ? NAVY : "white",
+              color: activeSubject !== "All" ? "white" : NAVY,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              outline: "none",
+              minWidth: 180,
+            }}
+          >
+            {(SUBJECTS as readonly string[]).map((s) => (
+              <option key={s} value={s} style={{ background: "white", color: NAVY }}>
+                {s === "All"
+                  ? `All subjects (${stations.length})`
+                  : `${s} (${subjectCounts[s] ?? 0})`}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Count */}
@@ -214,6 +256,15 @@ export function StationListClient({
                     small
                   />
                 </div>
+
+                {station.editor_video_url && (
+                  <span
+                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(59,130,246,0.09)", color: "#1D4ED8" }}
+                  >
+                    <PlayIcon /> Video
+                  </span>
+                )}
 
                 {isStarred && (
                   <span className="shrink-0 text-[15px]" style={{ color: YELLOW }}>★</span>

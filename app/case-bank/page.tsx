@@ -27,7 +27,7 @@ export default async function CaseBankPage() {
   // Fetch all published stations
   const { data: stations } = await supabase
     .from("stations")
-    .select("id,number,title,subject,consultation_type,published")
+    .select("id,number,title,subject,consultation_type,published,editor_video_url")
     .eq("published", true)
     .order("number", { ascending: true })
     .returns<StationListRow[]>();

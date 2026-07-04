@@ -37,6 +37,7 @@ export type StationListRow = {
   subject: string;
   consultation_type: string;
   published: boolean;
+  editor_video_url: string | null;
 };
 
 export type StudyRoom = {
