@@ -49,8 +49,8 @@ export function Navbar({
               </Link>
               <Link
                 href="/account"
-                className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-all hover:bg-white/20"
-                style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
+                className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-all bg-white/[.12] hover:bg-white/[.22]"
+                style={{ color: "white" }}
               >
                 Account
               </Link>
