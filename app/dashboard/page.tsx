@@ -34,32 +34,20 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
-  const name = profile?.display_name ?? null;
-  const firstName = name ? name.trim().split(" ")[0] : null;
-
   return (
     <div className="min-h-screen px-6 pt-12 pb-16" style={{ background: "#FAFAF8" }}>
       <div className="w-full max-w-[560px] mx-auto">
         <div className="mb-8">
-          <p className="font-display font-bold text-[13px] mb-1.5" style={{ color: "rgba(51,51,51,0.4)" }}>
-            SCA <span style={{ color: YELLOW }}>Explained</span>
-          </p>
           <h1 className="font-display font-extrabold text-[28px]" style={{ color: DARK }}>
-            {firstName ? `Welcome back, ${firstName}.` : "Welcome back."}
+            SCA <span style={{ color: YELLOW }}>Explained</span> Resources
           </h1>
         </div>
 
         <div className="flex flex-col gap-4">
           <Link
             href="/video-course"
-            className="rounded-2xl p-6 flex items-center gap-5 no-underline"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
+            className="bg-white rounded-2xl p-6 flex items-center gap-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
+            style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
           >
             <VideoIcon />
             <div className="flex-1 min-w-0">
@@ -71,8 +59,8 @@ export default async function DashboardPage() {
 
           <Link
             href="/case-bank"
-            className="rounded-2xl p-6 flex items-center gap-5 no-underline"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
+            className="bg-white rounded-2xl p-6 flex items-center gap-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
+            style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
           >
             <CaseIcon />
             <div className="flex-1 min-w-0">

@@ -40,14 +40,16 @@ export function Navbar({
             <>
               <Link
                 href="/dashboard"
-                className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100"
+                className="text-[13px] font-semibold no-underline transition-colors"
                 style={{ color: "rgba(255,255,255,0.60)" }}
+                onMouseOver={(e) => (e.currentTarget.style.color = "white")}
+                onMouseOut={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.60)")}
               >
                 Resources
               </Link>
               <Link
                 href="/dashboard"
-                className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline"
+                className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-all hover:bg-white/20"
                 style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
               >
                 Account
