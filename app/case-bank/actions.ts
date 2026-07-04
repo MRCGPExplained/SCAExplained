@@ -171,12 +171,7 @@ export async function submitReportAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated." };
 
-  await supabase.from("station_reports").insert({
-    station_id: stationId,
-    user_id: user.id,
-    content: content.trim(),
-  });
-
+  // Fetch profile and send email first — DB insert is secondary
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("display_name")
@@ -191,6 +186,17 @@ export async function submitReportAction(
   });
   if (!emailSent) {
     console.error(`[feedback] Email failed to send for station #${stationNumber}`);
+  }
+
+  // Best-effort DB record — don't block on failure
+  try {
+    await supabase.from("station_reports").insert({
+      station_id: stationId,
+      user_id: user.id,
+      content: content.trim(),
+    });
+  } catch {
+    console.error("[feedback] DB insert failed");
   }
 
   return { success: true };
