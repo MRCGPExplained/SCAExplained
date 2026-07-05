@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/case-bank/actions";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 
 export const dynamic = "force-dynamic";
 
@@ -64,12 +65,15 @@ export default async function AccountPage() {
             )}
           </div>
 
+          {/* Change password */}
+          <ChangePasswordForm />
+
           {/* Sign out */}
           <form action={logoutAction}>
             <button
               type="submit"
               className="w-full rounded-2xl p-4 text-[14px] font-semibold text-left transition-colors"
-              style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", color: "rgba(51,51,51,0.55)", cursor: "pointer" }}
+              style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", color: "rgba(185,28,28,0.65)", cursor: "pointer" }}
             >
               Sign out →
             </button>
