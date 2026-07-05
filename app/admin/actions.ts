@@ -461,6 +461,97 @@ export async function reorderVideoLessonsAction(
   return {};
 }
 
+// ── Homepage Videos ───────────────────────────────────────────────────────────
+
+function homepageVideoFromForm(formData: FormData) {
+  return {
+    title: String(formData.get("title") ?? "").trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    bunny_video_id: String(formData.get("bunny_video_id") ?? "").trim() || null,
+    display_order: parseInt(String(formData.get("display_order") ?? "1"), 10) || 1,
+    published: formData.get("published") === "true",
+  };
+}
+
+export async function createHomepageVideoAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const payload = homepageVideoFromForm(formData);
+  if (!payload.title) return { error: "Title is required." };
+
+  const { error } = await supabase.from("homepage_videos").insert(payload);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/homepage-videos");
+  revalidatePath("/");
+  redirect("/admin/homepage-videos");
+}
+
+export async function updateHomepageVideoAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "");
+  const payload = homepageVideoFromForm(formData);
+  if (!payload.title) return { error: "Title is required." };
+
+  const { error } = await supabase.from("homepage_videos").update(payload).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/homepage-videos");
+  revalidatePath("/");
+  redirect("/admin/homepage-videos");
+}
+
+export async function toggleHomepageVideoPublishedAction(formData: FormData) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const id = String(formData.get("id"));
+  const published = formData.get("published") === "true";
+  await supabase.from("homepage_videos").update({ published }).eq("id", id);
+  revalidatePath("/admin/homepage-videos");
+  revalidatePath("/");
+}
+
+export async function deleteHomepageVideoAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("homepage_videos").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/homepage-videos");
+  revalidatePath("/");
+  return {};
+}
+
+export async function reorderHomepageVideosAction(
+  items: { id: string; display_order: number }[]
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  for (const item of items) {
+    const { error } = await supabase
+      .from("homepage_videos")
+      .update({ display_order: item.display_order })
+      .eq("id", item.id);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/homepage-videos");
+  revalidatePath("/");
+  return {};
+}
+
 // ── Case Bank User Management ──────────────────────────────────────────────────
 
 export async function createCaseBankUser(
