@@ -95,24 +95,13 @@ export function StationListClient({
     <main style={{ minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
 
-        {/* Dashboard back link */}
-        <div className="mb-5">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1 text-[13px] font-medium no-underline"
-            style={{ color: "rgba(51,51,51,0.45)" }}
-          >
-            ← Dashboard
-          </Link>
-        </div>
-
         {/* Page header */}
         <div className="mb-7">
           <h1
             className="font-display font-extrabold text-[26px] mb-1.5"
             style={{ color: NAVY }}
           >
-            SCA Explained Case Bank
+            Case Bank
           </h1>
           <p className="text-[13.5px]" style={{ color: "rgba(51,51,51,0.55)" }}>
             <span style={{ color: NAVY, fontWeight: 600 }}>{stations.length}</span> practice stations

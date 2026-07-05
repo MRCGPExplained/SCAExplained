@@ -49,13 +49,7 @@ export default async function VideoCoursePage() {
 
   return (
     <main className="max-w-[900px] mx-auto px-6 py-10">
-      <div className="mb-2">
-        <Link href="/dashboard" className="text-[13px] font-medium no-underline" style={{ color: "rgba(51,51,51,0.45)" }}>
-          ← Dashboard
-        </Link>
-      </div>
-
-      <div className="mb-8 mt-4">
+      <div className="mb-8">
         <h1 className="font-display font-extrabold text-[28px] mb-2" style={{ color: DARK }}>
           Video Course
         </h1>
