@@ -61,7 +61,7 @@ export default async function VideoModulePage({ params }: { params: Promise<{ id
       </div>
 
       <h1 className="font-display font-extrabold text-[28px] mb-6" style={{ color: DARK }}>
-        {mod.title}
+        {idx + 1}: {mod.title}
       </h1>
 
       {/* Video embed */}
