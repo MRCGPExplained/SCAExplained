@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <ContentPage
       title="Terms & Conditions"
-      subtitle="Last updated: 30 June 2026"
+      subtitle="Last updated: 5 July 2026"
     >
       <P>
         These terms govern your use of the SCA Explained website
@@ -118,7 +118,23 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>5. Conduct during sessions</H2>
+      <H2>5. Digital products — no right to refund</H2>
+      <P>
+        The SCA Explained Programme is a digital product. By completing your
+        purchase you expressly request immediate access to the Programme and
+        acknowledge that, in doing so, you waive your right to cancel under the
+        Consumer Contracts (Information, Cancellation and Additional Charges)
+        Regulations 2013. All sales of the Programme are final. No refunds will
+        be issued once access has been granted.
+      </P>
+      <P>
+        This waiver does not affect your statutory rights in respect of
+        defective or misdescribed products, nor does it limit our liability for
+        fraud or any matter that cannot be excluded by law.
+      </P>
+
+      <Divider />
+      <H2>6. Conduct during sessions</H2>
       <P>
         All participants are expected to behave professionally and respectfully
         towards other attendees, the facilitator, and any simulated patients.
@@ -131,7 +147,7 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>6. Intellectual property</H2>
+      <H2>7. Intellectual property</H2>
       <P>
         All content delivered in our sessions — including materials, feedback
         frameworks, case structures, and improvement plans — is the intellectual
@@ -141,7 +157,7 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>7. Disclaimer</H2>
+      <H2>8. Disclaimer</H2>
       <P>
         SCA Explained provides coaching and educational content to support your
         SCA preparation. Our sessions are designed to help you develop skills
@@ -156,7 +172,7 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>8. Limitation of liability</H2>
+      <H2>9. Limitation of liability</H2>
       <P>
         To the fullest extent permitted by law, SCA Explained shall not be
         liable for any indirect, incidental, or consequential losses arising
@@ -172,7 +188,7 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>9. Governing law</H2>
+      <H2>10. Governing law</H2>
       <P>
         These terms are governed by the laws of England and Wales. Any disputes
         shall be subject to the exclusive jurisdiction of the courts of England
@@ -180,7 +196,7 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>10. Changes to these terms</H2>
+      <H2>11. Changes to these terms</H2>
       <P>
         We may update these terms from time to time. The version in force at the
         time of your booking is the one that applies to it. Material changes

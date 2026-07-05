@@ -37,9 +37,8 @@ export function ContentPage({
           For educational purposes only. © 2026 SCA Explained.
         </p>
         <div className="flex gap-5 flex-wrap">
-          <Link href="/faq" className="text-xs text-white/50 no-underline hover:text-white/80">FAQ</Link>
-          <Link href="/privacy" className="text-[11px] text-white/30 no-underline hover:text-white/60">Privacy</Link>
-          <Link href="/terms" className="text-[11px] text-white/30 no-underline hover:text-white/60">Terms</Link>
+          <Link href="/privacy" className="text-[11px] text-white/40 no-underline hover:text-white/60">Privacy</Link>
+          <Link href="/terms" className="text-[11px] text-white/40 no-underline hover:text-white/60">Terms</Link>
         </div>
       </footer>
     </div>
