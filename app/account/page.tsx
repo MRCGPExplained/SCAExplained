@@ -72,7 +72,7 @@ export default async function AccountPage() {
           <form action={logoutAction}>
             <button
               type="submit"
-              className="w-full bg-white hover:bg-[rgba(51,51,51,0.04)] rounded-2xl p-4 text-[14px] font-semibold text-left transition-colors"
+              className="w-full bg-white hover:bg-[rgba(246,212,75,0.10)] rounded-2xl p-4 text-[14px] font-semibold text-left transition-colors"
               style={{ border: "1px solid rgba(51,51,51,0.10)", color: "rgba(51,51,51,0.55)", cursor: "pointer" }}
             >
               Sign out →
