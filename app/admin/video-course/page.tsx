@@ -9,7 +9,7 @@ export default async function AdminVideoCoursePage() {
   const { data: systems } = supabase
     ? await supabase
         .from("video_course_systems")
-        .select("id, title, description, youtube_url, display_order, published")
+        .select("id, title, description, bunny_video_id, duration_minutes, display_order, published")
         .order("display_order", { ascending: true })
     : { data: [] };
 
@@ -44,7 +44,8 @@ export default async function AdminVideoCoursePage() {
               <tr className="border-b border-navy/10 bg-navy/[0.03]">
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50 w-10">#</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Title</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">YouTube</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Video</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Mins</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Actions</th>
               </tr>
@@ -60,11 +61,14 @@ export default async function AdminVideoCoursePage() {
                     )}
                   </td>
                   <td className="px-5 py-3 text-[12px]">
-                    {system.youtube_url ? (
+                    {system.bunny_video_id ? (
                       <span className="text-green-600 font-semibold">Set</span>
                     ) : (
                       <span className="text-navy/30 italic">Not set</span>
                     )}
+                  </td>
+                  <td className="px-5 py-3 text-[12px] text-navy/50">
+                    {system.duration_minutes ?? "—"}
                   </td>
                   <td className="px-5 py-3">
                     <span

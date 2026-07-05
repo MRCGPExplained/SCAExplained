@@ -365,7 +365,9 @@ function videoCourseSystemFromForm(formData: FormData) {
   return {
     title: String(formData.get("title") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim() || null,
-    youtube_url: String(formData.get("youtube_url") ?? "").trim() || null,
+    bunny_video_id: String(formData.get("bunny_video_id") ?? "").trim() || null,
+    thumbnail_url: String(formData.get("thumbnail_url") ?? "").trim() || null,
+    duration_minutes: parseInt(String(formData.get("duration_minutes") ?? ""), 10) || null,
     display_order: parseInt(String(formData.get("display_order") ?? "0"), 10),
     published: formData.get("published") === "true",
   };

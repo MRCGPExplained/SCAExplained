@@ -13,7 +13,7 @@ export default async function EditVideoSystemPage({ params }: { params: Promise<
 
   const { data: system } = await supabase
     .from("video_course_systems")
-    .select("id, title, description, youtube_url, display_order, published")
+    .select("id, title, description, bunny_video_id, thumbnail_url, duration_minutes, display_order, published")
     .eq("id", id)
     .single();
 
