@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
-import { toggleVideoSystemPublishedAction, deleteVideoSystemAction } from "../actions";
+import { VideoRowActions } from "./VideoRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -78,37 +78,7 @@ export default async function AdminVideoCoursePage() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/admin/video-course/${system.id}/edit`}
-                        className="text-[12px] font-semibold text-navy/60 hover:text-navy transition no-underline"
-                      >
-                        Edit
-                      </Link>
-                      <form action={toggleVideoSystemPublishedAction}>
-                        <input type="hidden" name="id" value={system.id} />
-                        <input type="hidden" name="published" value={system.published ? "false" : "true"} />
-                        <button type="submit" className="text-[12px] font-semibold text-navy/40 hover:text-navy transition">
-                          {system.published ? "Unpublish" : "Publish"}
-                        </button>
-                      </form>
-                      <form
-                        action={async () => {
-                          "use server";
-                          await deleteVideoSystemAction(system.id);
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className="text-[12px] font-semibold text-red-600/60 hover:text-red-600 transition"
-                          onClick={(e) => {
-                            if (!confirm(`Delete "${system.title}"? This cannot be undone.`)) e.preventDefault();
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    </div>
+                    <VideoRowActions id={system.id} title={system.title} published={system.published} />
                   </td>
                 </tr>
               ))}
