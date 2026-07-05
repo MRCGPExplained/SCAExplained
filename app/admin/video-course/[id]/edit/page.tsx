@@ -26,7 +26,7 @@ export default async function EditVideoSystemPage({ params }: { params: Promise<
           ← Video Course
         </Link>
         <span className="text-navy/20">/</span>
-        <h1 className="font-display font-extrabold text-[22px] text-navy">Edit — {system.title}</h1>
+        <h1 className="font-display font-extrabold text-[22px] text-navy">Edit Lesson — {system.title}</h1>
       </div>
       <SystemForm action={updateVideoSystemAction} initial={system} submitLabel="Save Changes" />
     </div>

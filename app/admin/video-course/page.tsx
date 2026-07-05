@@ -1,12 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
-import { VideoRowActions } from "./VideoRowActions";
+import { LessonTable } from "./LessonTable";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminVideoCoursePage() {
   const supabase = getSupabaseAdmin();
-  const { data: systems } = supabase
+  const { data: lessons } = supabase
     ? await supabase
         .from("video_course_systems")
         .select("id, title, description, bunny_video_id, duration_minutes, display_order, published")
@@ -19,72 +19,26 @@ export default async function AdminVideoCoursePage() {
         <div>
           <h1 className="font-display font-extrabold text-[26px] text-navy">Video Course</h1>
           <p className="text-[13px] text-navy/50 mt-0.5">
-            {systems?.length ?? 0} systems · drag to reorder (coming soon)
+            {lessons?.length ?? 0} lessons · drag rows to reorder
           </p>
         </div>
         <Link
           href="/admin/video-course/new"
           className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-navy/90 transition no-underline"
         >
-          + Add System
+          + Add Lesson
         </Link>
       </div>
 
-      {!systems || systems.length === 0 ? (
+      {!lessons || lessons.length === 0 ? (
         <div className="rounded-2xl border border-navy/10 bg-white px-8 py-12 text-center">
-          <p className="text-[14px] text-navy/50 mb-4">No video systems yet.</p>
+          <p className="text-[14px] text-navy/50 mb-4">No lessons yet.</p>
           <Link href="/admin/video-course/new" className="text-[13px] font-semibold text-navy underline">
-            Add your first system
+            Add your first lesson
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl border border-navy/10 bg-white overflow-hidden">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-navy/10 bg-navy/[0.03]">
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50 w-10">#</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Title</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Video</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Mins</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Status</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {systems.map((system, i) => (
-                <tr key={system.id} className={i < systems.length - 1 ? "border-b border-navy/[0.06]" : ""}>
-                  <td className="px-5 py-3 text-navy/30 text-[12px]">{system.display_order}</td>
-                  <td className="px-5 py-3">
-                    <div className="font-semibold text-navy">{system.title}</div>
-                    {system.description && (
-                      <div className="text-[12px] text-navy/45 mt-0.5 line-clamp-1">{system.description}</div>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-[12px]">
-                    {system.bunny_video_id ? (
-                      <span className="text-green-600 font-semibold">Set</span>
-                    ) : (
-                      <span className="text-navy/30 italic">Not set</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-[12px] text-navy/50">
-                    {system.duration_minutes ?? "—"}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${system.published ? "bg-green-50 text-green-700" : "bg-navy/10 text-navy/40"}`}
-                    >
-                      {system.published ? "Published" : "Draft"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <VideoRowActions id={system.id} title={system.title} published={system.published} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <LessonTable initial={lessons} />
       )}
     </div>
   );

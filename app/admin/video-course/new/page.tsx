@@ -10,9 +10,9 @@ export default function NewVideoSystemPage() {
           ← Video Course
         </Link>
         <span className="text-navy/20">/</span>
-        <h1 className="font-display font-extrabold text-[22px] text-navy">Add System</h1>
+        <h1 className="font-display font-extrabold text-[22px] text-navy">Add Lesson</h1>
       </div>
-      <SystemForm action={createVideoSystemAction} submitLabel="Create System" />
+      <SystemForm action={createVideoSystemAction} submitLabel="Create Lesson" />
     </div>
   );
 }

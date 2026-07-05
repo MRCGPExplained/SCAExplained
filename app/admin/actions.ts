@@ -442,6 +442,25 @@ export async function deleteVideoSystemAction(id: string): Promise<ActionResult>
   return {};
 }
 
+export async function reorderVideoLessonsAction(
+  items: { id: string; display_order: number }[]
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  for (const item of items) {
+    const { error } = await supabase
+      .from("video_course_systems")
+      .update({ display_order: item.display_order })
+      .eq("id", item.id);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/video-course");
+  revalidatePath("/video-course");
+  return {};
+}
+
 // ── Case Bank User Management ──────────────────────────────────────────────────
 
 export async function createCaseBankUser(
