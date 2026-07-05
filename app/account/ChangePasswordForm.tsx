@@ -36,8 +36,8 @@ export function ChangePasswordForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl p-4 text-[14px] font-semibold text-left transition-colors"
-        style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", color: "rgba(51,51,51,0.55)", cursor: "pointer" }}
+        className="w-full bg-white hover:bg-[rgba(51,51,51,0.04)] rounded-2xl p-4 text-[14px] font-semibold text-left transition-colors"
+        style={{ border: "1px solid rgba(51,51,51,0.10)", color: "rgba(51,51,51,0.55)", cursor: "pointer" }}
       >
         Change password →
       </button>
