@@ -47,10 +47,9 @@ export default async function VideoModulePage({ params }: { params: Promise<{ id
   const prev = idx > 0 ? modules![idx - 1] : null;
   const next = idx < modules!.length - 1 ? modules![idx + 1] : null;
 
-  const cdnHost = process.env.BUNNY_CDN_HOSTNAME;
   const libId = process.env.BUNNY_LIBRARY_ID;
-  const embedUrl = mod.bunny_video_id && cdnHost && libId
-    ? `https://${cdnHost}/embed/${libId}/${mod.bunny_video_id}`
+  const embedUrl = mod.bunny_video_id && libId
+    ? `https://iframe.mediadelivery.net/embed/${libId}/${mod.bunny_video_id}`
     : null;
 
   return (
