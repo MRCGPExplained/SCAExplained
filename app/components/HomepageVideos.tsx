@@ -40,13 +40,13 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
             }}
           >
             {/* Thumbnail */}
-            <div className="relative overflow-hidden shrink-0 w-full sm:w-[38%] h-[200px] sm:h-full">
+            <div className="relative overflow-hidden shrink-0 w-full sm:w-auto h-[200px] sm:h-full">
               {v.thumbnail_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={v.thumbnail_url}
                   alt={v.title}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover sm:w-auto sm:h-full sm:object-contain"
                   style={{ display: "block" }}
                 />
               ) : (
