@@ -12,9 +12,9 @@ type HomepageVideo = {
 
 function PlayIcon() {
   return (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-      <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.45)" />
-      <path d="M20 16L34 24L20 32V16Z" fill="white" />
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r="18" fill="rgba(0,0,0,0.40)" />
+      <path d="M15 11.5L25.5 18L15 24.5V11.5Z" fill="white" />
     </svg>
   );
 }
@@ -26,24 +26,24 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
+      <div className="flex flex-col gap-4">
         {videos.map((v) => (
           <button
             key={v.id}
             onClick={() => setActive(v)}
-            className="text-left rounded-2xl overflow-hidden cursor-pointer group transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            className="text-left w-full rounded-2xl overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:-translate-y-0.5 flex flex-col sm:flex-row"
             style={{
-              aspectRatio: "1 / 1",
               background: "white",
               border: "1px solid rgba(51,51,51,0.10)",
               boxShadow: "0 2px 10px rgba(51,51,51,0.06)",
-              display: "flex",
-              flexDirection: "column",
               padding: 0,
             }}
           >
             {/* Thumbnail */}
-            <div className="relative overflow-hidden" style={{ flex: "0 0 62%" }}>
+            <div
+              className="relative overflow-hidden shrink-0 w-full sm:w-[38%]"
+              style={{ aspectRatio: "16 / 9" }}
+            >
               {v.thumbnail_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -54,7 +54,7 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "rgba(51,51,51,0.08)" }}>
-                  <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.30)" }}>{v.title}</span>
+                  <span className="text-[13px] font-semibold px-4 text-center" style={{ color: "rgba(51,51,51,0.30)" }}>{v.title}</span>
                 </div>
               )}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -63,11 +63,14 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
             </div>
 
             {/* Text */}
-            <div className="flex flex-col justify-center px-5 py-4" style={{ flex: "1 1 0" }}>
-              <p className="font-display font-bold text-[15px] leading-snug" style={{ color: "#333333" }}>{v.title}</p>
+            <div className="flex flex-col justify-center px-7 py-5 flex-1">
+              <p className="font-display font-bold text-[17px] leading-snug mb-1.5" style={{ color: "#333333" }}>{v.title}</p>
               {v.description && (
-                <p className="text-[12.5px] mt-1 leading-[1.5] line-clamp-2" style={{ color: "rgba(51,51,51,0.55)" }}>{v.description}</p>
+                <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.55)" }}>{v.description}</p>
               )}
+              <p className="text-[12px] font-semibold mt-3 flex items-center gap-1.5" style={{ color: "rgba(51,51,51,0.35)" }}>
+                <span>▶</span> Watch
+              </p>
             </div>
           </button>
         ))}
