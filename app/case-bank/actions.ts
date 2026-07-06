@@ -37,6 +37,7 @@ export async function registerAction(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const displayName = String(formData.get("display_name") ?? "").trim();
+  const next = String(formData.get("next") ?? "/dashboard");
 
   if (!email || !password || !displayName) {
     return { error: "Name, email, and password are required." };
@@ -63,7 +64,7 @@ export async function registerAction(
     initials: initials || "?",
   });
 
-  redirect("/dashboard");
+  redirect(next);
 }
 
 export async function logoutAction(): Promise<void> {

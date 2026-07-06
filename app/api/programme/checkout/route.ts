@@ -31,8 +31,8 @@ export async function POST() {
       user_id: user.id,
       user_email: user.email ?? "",
     },
-    success_url: `${origin}/programme?purchased=1`,
-    cancel_url: `${origin}/programme`,
+    success_url: `${origin}/confirmation?type=paid`,
+    cancel_url: `${origin}/checkout`,
   });
 
   return NextResponse.json({ url: session.url });

@@ -461,6 +461,43 @@ export async function reorderVideoLessonsAction(
   return {};
 }
 
+// ── Promo Code Settings ───────────────────────────────────────────────────────
+
+export async function savePromoCodeSettingsAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult & { ok?: boolean }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const newCode = String(formData.get("PROMO_CODE_VALUE") ?? "").trim().toUpperCase();
+  const active = formData.get("PROMO_CODE_ACTIVE") === "true" ? "true" : "false";
+  const expiry = String(formData.get("PROMO_CODE_EXPIRY") ?? "").trim();
+  const maxUses = String(formData.get("PROMO_CODE_MAX_USES") ?? "10").trim();
+
+  // Check if code changed → reset uses
+  const { data: existing } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", "PROMO_CODE_VALUE")
+    .maybeSingle();
+  const codeChanged = existing?.value !== newCode;
+
+  const upserts = [
+    { key: "PROMO_CODE_VALUE", value: newCode },
+    { key: "PROMO_CODE_ACTIVE", value: active },
+    { key: "PROMO_CODE_EXPIRY", value: expiry },
+    { key: "PROMO_CODE_MAX_USES", value: maxUses },
+    ...(codeChanged ? [{ key: "PROMO_CODE_USES", value: "0" }] : []),
+  ];
+
+  const { error } = await supabase.from("settings").upsert(upserts, { onConflict: "key" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/promo-codes");
+  return { ok: true };
+}
+
 // ── Homepage Videos ───────────────────────────────────────────────────────────
 
 function homepageVideoFromForm(formData: FormData) {
