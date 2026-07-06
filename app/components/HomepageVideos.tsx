@@ -46,7 +46,7 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
                 <img
                   src={v.thumbnail_url}
                   alt={v.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   style={{ display: "block" }}
                 />
               ) : (
