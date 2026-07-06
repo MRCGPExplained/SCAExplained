@@ -83,7 +83,7 @@ export default async function HomePage() {
 
       {/* HOMEPAGE VIDEOS */}
       {videos.length > 0 && (
-        <section className="px-10 pb-20 max-md:px-6">
+        <section className="px-10 pb-10 max-md:px-6">
           <div className="max-w-[1000px] mx-auto">
             <div className="text-center mb-10">
               <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
@@ -100,9 +100,9 @@ export default async function HomePage() {
       <section className="px-10 py-20 max-md:px-6">
         <div className="max-w-[1000px] mx-auto flex gap-8 items-start max-md:flex-col">
 
-          {/* CTA — anchored top, 60% */}
+          {/* CTA — anchored top, 50% */}
           <div
-            className="flex-[6] min-w-0 max-md:w-full rounded-2xl p-8"
+            className="flex-1 min-w-0 max-md:w-full rounded-2xl p-8"
             style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.40)" }}
           >
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>The Complete SCA Package</p>
@@ -170,8 +170,8 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* LIVE EVENTS — 40% */}
-          <div className="flex-[4] min-w-0">
+          {/* LIVE EVENTS — 50% */}
+          <div className="flex-1 min-w-0">
             <div className="mb-8">
               <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
                 Live Sessions
