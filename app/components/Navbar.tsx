@@ -24,7 +24,7 @@ export function Navbar({
 }) {
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.08]" style={{ background: DARK }}>
-      <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 h-14 flex items-center justify-between">
+      <div className="px-10 max-md:px-6 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 no-underline">
           <span
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 select-none transition-opacity duration-200 hover:opacity-80"
@@ -68,13 +68,6 @@ export function Navbar({
                 style={{ color: "white" }}
               >
                 Login
-              </Link>
-              <Link
-                href="/register"
-                className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-opacity hover:opacity-90"
-                style={{ background: YELLOW, color: DARK }}
-              >
-                Sign Up
               </Link>
             </>
           )}

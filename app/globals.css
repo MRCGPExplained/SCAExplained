@@ -57,3 +57,8 @@ body {
 .field:focus {
   border-color: color-mix(in srgb, var(--color-navy) 60%, transparent);
 }
+
+@keyframes highlight {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
