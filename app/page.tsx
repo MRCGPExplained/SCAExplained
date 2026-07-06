@@ -42,7 +42,7 @@ export default async function HomePage() {
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
       <section className="px-10 pt-10 pb-20 max-md:px-6">
-        <div className="max-w-[680px] mx-auto">
+        <div className="max-w-[860px] mx-auto">
           <h1 className="font-display mb-[26px]" style={{ color: DARK }}>
             <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
               Perform Your Best On SCA.
