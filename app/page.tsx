@@ -100,28 +100,78 @@ export default async function HomePage() {
       <section className="px-10 py-20 max-md:px-6">
         <div className="max-w-[1000px] mx-auto flex gap-8 items-start max-md:flex-col">
 
-          {/* CTA — anchored top */}
+          {/* CTA — anchored top, 60% */}
           <div
-            className="shrink-0 w-[300px] max-md:w-full rounded-2xl p-8"
-            style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.35)" }}
+            className="flex-[6] min-w-0 max-md:w-full rounded-2xl p-8"
+            style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.40)" }}
           >
-            <h2 className="font-display font-extrabold text-[22px] leading-[1.25] mb-3" style={{ color: DARK }}>
-              Ready to get your Clear Pass?
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>The Complete SCA Package</p>
+            <h2 className="font-display font-extrabold text-[26px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              Everything you need to get your Clear Pass.
             </h2>
-            <p className="text-[14px] leading-[1.6] mb-6" style={{ color: "rgba(51,51,51,0.60)" }}>
-              The Complete SCA Package — case bank, video course, and live sessions.
+            <p className="text-[14.5px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.62)" }}>
+              The SCA isn&apos;t a knowledge test — it&apos;s a performance. Our package is built around one goal: helping you demonstrate the consultation skills RCGP examiners are actually scoring, confidently and consistently under exam conditions.
             </p>
-            <Link
-              href="/checkout"
-              className="inline-block font-bold text-[13.5px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: YELLOW, color: DARK }}
-            >
-              Get Access
-            </Link>
+
+            <div className="flex flex-col gap-4 mb-8">
+              {/* Video Course */}
+              <div className="flex gap-4 items-start">
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <rect x="1" y="3" width="14" height="14" rx="2.5" stroke="#333" strokeWidth="1.5"/>
+                    <path d="M15 8l4-3v10l-4-3V8z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M6 7.5l5 2.5-5 2.5V7.5z" fill="#333"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Skills Video Course</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Structured lessons on ICE, managing uncertainty, patient emotion, and the specific frameworks examiners reward. Watch at your own pace, revisit anytime.</p>
+                </div>
+              </div>
+
+              {/* Case Bank */}
+              <div className="flex gap-4 items-start">
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <rect x="3" y="2" width="14" height="16" rx="2" stroke="#333" strokeWidth="1.5"/>
+                    <path d="M7 7h6M7 10.5h6M7 14h4" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Clinical Case Bank</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Practice cases built to mirror the real exam. Each scenario trains you to apply skills under pressure — not just recall facts — so you perform when it counts.</p>
+                </div>
+              </div>
+
+              {/* Live Sessions */}
+              <div className="flex gap-4 items-start">
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="8" stroke="#333" strokeWidth="1.5"/>
+                    <path d="M10 6v4l2.5 2.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Live Zoom Sessions</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Regular group sessions where you practice consultations and get direct feedback. See the dates on the right and register for any that suit you.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 flex-wrap">
+              <Link
+                href="/checkout"
+                className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                style={{ background: YELLOW, color: DARK }}
+              >
+                Get Access
+              </Link>
+              <p className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.45)" }}>£60 · 90 days access</p>
+            </div>
           </div>
 
-          {/* LIVE EVENTS */}
-          <div className="flex-1 min-w-0">
+          {/* LIVE EVENTS — 40% */}
+          <div className="flex-[4] min-w-0">
             <div className="mb-8">
               <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
                 Live Sessions
