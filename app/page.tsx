@@ -38,6 +38,16 @@ export default async function HomePage() {
       : null,
   })).filter((v) => v.embed_url);
 
+  const { data: rawSessions } = supabaseAdmin
+    ? await supabaseAdmin
+        .from("live_sessions")
+        .select("id, scheduled_at, zoom_url")
+        .gte("scheduled_at", new Date().toISOString())
+        .order("scheduled_at", { ascending: true })
+    : { data: [] };
+
+  const sessions = (rawSessions ?? []) as { id: string; scheduled_at: string; zoom_url: string }[];
+
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
@@ -63,7 +73,7 @@ export default async function HomePage() {
 
           <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.68)" }}>
             Start with{" "}
-            <Link href="/how-to-get-a-clear-pass" className="font-bold no-underline border-b-2 border-yellow" style={{ color: DARK }}>
+            <Link href="/how-to-get-a-clear-pass" className="font-bold no-underline" style={{ color: DARK }}>
               How To Get A Clear Pass
             </Link>
             {" "}— our free recorded training covering exactly what examiners are looking for.
@@ -76,14 +86,86 @@ export default async function HomePage() {
         <section className="px-10 pb-20 max-md:px-6">
           <div className="max-w-[1000px] mx-auto">
             <div className="text-center mb-10">
-              <h2 className="font-display font-extrabold text-[26px]" style={{ color: DARK }}>
+              <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
                 Learn About Our Programme
               </h2>
+              <div className="h-[3px] rounded-full mt-2 mx-auto w-[80px]" style={{ background: YELLOW }} />
             </div>
             <HomepageVideos videos={videos} />
           </div>
         </section>
       )}
+
+      {/* CTA BAND */}
+      <section className="px-10 py-20 max-md:px-6" style={{ background: DARK }}>
+        <div className="max-w-[860px] mx-auto text-center">
+          <h2 className="font-display font-extrabold text-[32px] leading-[1.2] text-white mb-3 max-sm:text-[26px]">
+            Ready to get your Clear Pass?
+          </h2>
+          <p className="text-[15px] mb-8" style={{ color: "rgba(255,255,255,0.55)" }}>
+            The Complete SCA Package — case bank, video course, and live sessions.
+          </p>
+          <Link
+            href="/checkout"
+            className="inline-block font-bold text-[14px] px-8 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+            style={{ background: YELLOW, color: DARK }}
+          >
+            Get Access
+          </Link>
+        </div>
+      </section>
+
+      {/* LIVE EVENTS */}
+      <section className="px-10 py-20 max-md:px-6">
+        <div className="max-w-[860px] mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
+              Live Sessions
+            </h2>
+            <div className="h-[3px] rounded-full mt-2 mx-auto w-[56px]" style={{ background: YELLOW }} />
+          </div>
+
+          {sessions.length === 0 ? (
+            <p className="text-center text-[14.5px]" style={{ color: "rgba(51,51,51,0.45)" }}>
+              No sessions scheduled right now — check back soon.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {sessions.map((s) => {
+                const date = new Date(s.scheduled_at);
+                const formatted = date.toLocaleDateString("en-GB", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                  timeZone: "Europe/London",
+                });
+                const time = date.toLocaleTimeString("en-GB", {
+                  hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+                });
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 max-sm:flex-col max-sm:items-start"
+                    style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
+                  >
+                    <div>
+                      <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>{formatted}</p>
+                      <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT</p>
+                    </div>
+                    <Link
+                      href={s.zoom_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
+                      style={{ background: YELLOW, color: DARK }}
+                    >
+                      Register
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
