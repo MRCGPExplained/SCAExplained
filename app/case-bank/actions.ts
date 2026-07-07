@@ -65,7 +65,7 @@ export async function registerAction(
 
   if (profileErr) console.error("[register] profile insert failed:", profileErr.message);
 
-  redirect(next);
+  redirect(`/register/check-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function logoutAction(): Promise<void> {
