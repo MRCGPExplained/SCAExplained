@@ -127,7 +127,7 @@ export default function SystemForm({ action, initial, submitLabel = "Save" }: Sy
         <button
           type="submit"
           disabled={isPending}
-          className="bg-navy text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg hover:bg-navy/90 transition disabled:opacity-50"
+          className="bg-navy text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-50"
         >
           {isPending ? "Saving…" : submitLabel}
         </button>

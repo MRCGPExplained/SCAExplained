@@ -62,7 +62,7 @@ export function HomepageVideoTable({ initial }: { initial: HomepageVideo[] }) {
               onDragStart={() => onDragStart(i)}
               onDragOver={(e) => onDragOver(e, i)}
               onDrop={onDrop}
-              className={`${i < videos.length - 1 ? "border-b border-navy/[0.06]" : ""} cursor-grab active:cursor-grabbing active:bg-navy/[0.02]`}
+              className={`${i < videos.length - 1 ? "border-b border-navy/[0.06]" : ""} cursor-grab active:cursor-grabbing hover:bg-[#F6D44B]/10 active:bg-[#F6D44B]/10`}
             >
               <td className="px-3 py-3 text-navy/20 text-[14px] select-none">⠿</td>
               <td className="px-5 py-3 text-navy/30 text-[12px]">{i + 1}</td>

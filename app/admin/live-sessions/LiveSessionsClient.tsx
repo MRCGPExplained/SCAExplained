@@ -83,7 +83,7 @@ export function LiveSessionsClient({ sessions }: { sessions: Session[] }) {
           <button
             type="submit"
             disabled={pending}
-            className="bg-navy text-white text-[14px] font-bold px-5 py-2.5 rounded-xl hover:bg-navy/90 transition disabled:opacity-60 self-start"
+            className="bg-navy text-white text-[14px] font-bold px-5 py-2.5 rounded-xl hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-60 self-start"
           >
             {pending ? "Adding…" : "Add Session"}
           </button>

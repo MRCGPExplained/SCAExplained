@@ -24,7 +24,7 @@ export default async function AdminVideoCoursePage() {
         </div>
         <Link
           href="/admin/video-course/new"
-          className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-navy/90 transition no-underline"
+          className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition no-underline"
         >
           + Add Lesson
         </Link>

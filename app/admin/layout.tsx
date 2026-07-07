@@ -7,7 +7,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#F4F3F0]">
+    <div className="min-h-screen bg-[#F4F3F0]" style={{ "--color-navy": "#333333" } as React.CSSProperties}>
       <nav className="bg-[#333333] px-8 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-white/[0.08]">
         <div className="flex items-center gap-8">
           <Link

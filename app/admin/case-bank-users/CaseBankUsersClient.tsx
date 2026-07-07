@@ -73,7 +73,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
           <h1 className="font-display font-extrabold text-[26px] text-navy">Users</h1>
           <p className="text-[13px] text-navy/50 mt-0.5">{users.length} registered · {activeCount} with active programme access</p>
         </div>
-        <button onClick={() => { setShowCreate((v) => !v); setCreateError(""); }} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-navy/90 transition">
+        <button onClick={() => { setShowCreate((v) => !v); setCreateError(""); }} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition">
           {showCreate ? "Cancel" : "+ Create User"}
         </button>
       </div>
@@ -89,7 +89,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
             <div><label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Access Expires</label><input name="expires_at" type="date" defaultValue={defaultExpiry()} className="w-full border border-navy/20 rounded-lg px-3 py-2 text-[14px] outline-none focus:border-navy/50" /></div>
             <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-[13px] text-navy cursor-pointer"><input name="grant_access" type="checkbox" value="true" defaultChecked className="rounded" />Grant programme access on creation</label></div>
             {createError && <p className="col-span-2 text-[13px] text-red-600">{createError}</p>}
-            <div className="col-span-2 flex justify-end"><button type="submit" disabled={createLoading} className="bg-navy text-white text-[13px] font-semibold px-5 py-2 rounded-lg hover:bg-navy/90 transition disabled:opacity-50">{createLoading ? "Creating…" : "Create User"}</button></div>
+            <div className="col-span-2 flex justify-end"><button type="submit" disabled={createLoading} className="bg-navy text-white text-[13px] font-semibold px-5 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-50">{createLoading ? "Creating…" : "Create User"}</button></div>
           </form>
         </div>
       )}
@@ -147,14 +147,14 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                     </tr>
                     {isGrantOpen && (
                       <tr className={!isLast ? "border-b border-navy/[0.06]" : ""}>
-                        <td colSpan={6} className="px-5 py-3 bg-navy/[0.02]">
+                        <td colSpan={6} className="px-5 py-3 bg-[#F6D44B]/[0.06]">
                           <form onSubmit={handleGrant} className="flex items-end gap-3 flex-wrap">
                             <input type="hidden" name="user_id" value={user.id} />
                             <div>
                               <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Expires</label>
                               <input name="expires_at" type="date" required defaultValue={user.access ? user.access.expires_at.slice(0, 10) : defaultExpiry()} className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50" />
                             </div>
-                            <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-navy/90 transition disabled:opacity-50">Grant Programme Access</button>
+                            <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-50">Grant Programme Access</button>
                             <button type="button" onClick={() => setOpenGrant(null)} className="text-[12px] text-navy/40 hover:text-navy/70 transition">Cancel</button>
                           </form>
                         </td>

@@ -82,7 +82,7 @@ export function PromoCodeForm({ values }: { values: Record<string, string> }) {
       <button
         type="submit"
         disabled={pending}
-        className="bg-navy text-white text-[14px] font-bold px-6 py-3 rounded-xl hover:bg-navy/90 transition disabled:opacity-60 self-start"
+        className="bg-navy text-white text-[14px] font-bold px-6 py-3 rounded-xl hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-60 self-start"
       >
         {pending ? "Saving…" : "Save"}
       </button>

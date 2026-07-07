@@ -59,7 +59,7 @@ export default async function AdminStationsPage() {
             {(stations ?? []).map((s) => (
               <tr
                 key={s.id}
-                className="border-b border-navy/06 last:border-0 hover:bg-[#F3F2FB] transition"
+                className="border-b border-navy/06 last:border-0 hover:bg-[#F6D44B]/10 transition"
               >
                 <td className="px-5 py-3 font-bold text-navy/60 w-12">{s.number}</td>
                 <td className="px-5 py-3 font-semibold text-navy max-w-[340px]">
