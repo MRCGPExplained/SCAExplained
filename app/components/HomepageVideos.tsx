@@ -31,7 +31,7 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
           <button
             key={v.id}
             onClick={() => setActive(v)}
-            className="text-left w-full rounded-2xl overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:-translate-y-0.5 flex flex-col sm:flex-row sm:h-[130px]"
+            className="text-left w-full rounded-2xl overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:-translate-y-0.5 flex flex-col sm:flex-row"
             style={{
               background: "white",
               border: "1px solid rgba(51,51,51,0.10)",
@@ -40,13 +40,13 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
             }}
           >
             {/* Thumbnail */}
-            <div className="relative overflow-hidden shrink-0 w-full sm:w-auto h-[200px] sm:h-full">
+            <div className="relative overflow-hidden shrink-0 w-full sm:w-[200px] h-[200px] sm:h-auto sm:self-stretch">
               {v.thumbnail_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={v.thumbnail_url}
                   alt={v.title}
-                  className="w-full h-full object-cover sm:w-auto sm:h-full sm:object-contain"
+                  className="w-full h-full object-cover"
                   style={{ display: "block" }}
                 />
               ) : (
@@ -61,9 +61,9 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
 
             {/* Text */}
             <div className="flex flex-col justify-center px-6 py-4 flex-1 min-w-0 overflow-hidden">
-              <p className="font-display font-bold text-[15px] leading-snug mb-1 line-clamp-1" style={{ color: "#333333" }}>{v.title}</p>
+              <p className="font-display font-bold text-[15px] leading-snug mb-1" style={{ color: "#333333" }}>{v.title}</p>
               {v.description && (
-                <p className="text-[13.5px] leading-[1.6] line-clamp-2" style={{ color: "rgba(51,51,51,0.55)" }}>{v.description}</p>
+                <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.55)" }}>{v.description}</p>
               )}
               <p className="text-[12px] font-semibold mt-2 flex items-center gap-1.5" style={{ color: "rgba(51,51,51,0.35)" }}>
                 <span>▶</span> Watch
