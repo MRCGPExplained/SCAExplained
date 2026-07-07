@@ -17,12 +17,14 @@ export default function AdminLayout({
             SCA Admin
           </Link>
           <div className="flex gap-6">
-            <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
-            <Link href="/admin/video-course" className="text-[13px] text-white/60 hover:text-white transition no-underline">Video Course</Link>
-            <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
-            <Link href="/admin/live-sessions" className="text-[13px] text-white/60 hover:text-white transition no-underline">Live Sessions</Link>
             <Link href="/admin/homepage-videos" className="text-[13px] text-white/60 hover:text-white transition no-underline">Homepage Videos</Link>
+            <Link href="/admin/live-sessions" className="text-[13px] text-white/60 hover:text-white transition no-underline">Free Live Sessions</Link>
+            <Link href="/admin/video-course" className="text-[13px] text-white/60 hover:text-white transition no-underline">Skills Workshop</Link>
+            <Link href="/admin/recorded-consultations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Recorded Consultations</Link>
+            <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
+            <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/promo-codes" className="text-[13px] text-white/60 hover:text-white transition no-underline">Promo Codes</Link>
+            <Link href="/admin/beta-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Beta Users</Link>
           </div>
         </div>
         <div className="flex items-center gap-5">

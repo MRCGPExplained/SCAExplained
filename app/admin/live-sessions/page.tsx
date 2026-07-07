@@ -24,7 +24,7 @@ export default async function AdminLiveSessionsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-extrabold text-[26px] text-navy">Live Sessions</h1>
+        <h1 className="font-display font-extrabold text-[26px] text-navy">Free Live Sessions</h1>
         <p className="text-[13px] text-navy/50 mt-0.5">
           Sessions are shown on the public live-session page, sorted by date. Past sessions are removed automatically.
         </p>

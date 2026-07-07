@@ -501,3 +501,138 @@ export async function deleteCaseBankUser(userId: string): Promise<ActionResult> 
   revalidatePath("/admin/case-bank-users");
   return {};
 }
+
+// ── Recorded Consultations ────────────────────────────────────────────────────
+
+function recordedConsultationFromForm(formData: FormData) {
+  return {
+    title: String(formData.get("title") ?? "").trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    bunny_video_id: String(formData.get("bunny_video_id") ?? "").trim() || null,
+    thumbnail_url: String(formData.get("thumbnail_url") ?? "").trim() || null,
+    duration_minutes: parseInt(String(formData.get("duration_minutes") ?? ""), 10) || null,
+    display_order: parseInt(String(formData.get("display_order") ?? "1"), 10),
+    published: formData.get("published") === "true",
+  };
+}
+
+export async function createRecordedConsultationAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const payload = recordedConsultationFromForm(formData);
+  if (!payload.title) return { error: "Title is required." };
+
+  const { error } = await supabase.from("recorded_consultations").insert(payload);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/recorded-consultations");
+  redirect("/admin/recorded-consultations");
+}
+
+export async function updateRecordedConsultationAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "ID missing." };
+
+  const payload = recordedConsultationFromForm(formData);
+
+  const { error } = await supabase
+    .from("recorded_consultations")
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/recorded-consultations");
+  redirect("/admin/recorded-consultations");
+}
+
+export async function toggleRecordedConsultationPublishedAction(formData: FormData) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const id = String(formData.get("id") ?? "");
+  const published = formData.get("published") === "true";
+
+  await supabase.from("recorded_consultations").update({ published }).eq("id", id);
+  revalidatePath("/admin/recorded-consultations");
+}
+
+export async function deleteRecordedConsultationAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("recorded_consultations").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/recorded-consultations");
+  return {};
+}
+
+export async function reorderRecordedConsultationsAction(
+  items: { id: string; display_order: number }[]
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  for (const item of items) {
+    const { error } = await supabase
+      .from("recorded_consultations")
+      .update({ display_order: item.display_order })
+      .eq("id", item.id);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/recorded-consultations");
+  return {};
+}
+
+// ── Beta Users ────────────────────────────────────────────────────────────────
+
+export async function addBetaUserAction(
+  _prev: ActionResult | undefined,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!email) return { error: "Email is required." };
+
+  const authResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  const authUsers = (authResult.data as { users?: { id: string; email?: string }[] })?.users ?? [];
+  const user = authUsers.find((u) => u.email?.toLowerCase() === email);
+
+  if (!user) return { error: "No account found with that email." };
+
+  const { error } = await supabase
+    .from("beta_users")
+    .upsert({ user_id: user.id, note }, { onConflict: "user_id" });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/beta-users");
+  return {};
+}
+
+export async function removeBetaUserAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("beta_users").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/beta-users");
+  return {};
+}
