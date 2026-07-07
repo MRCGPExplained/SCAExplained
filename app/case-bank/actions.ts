@@ -36,15 +36,18 @@ export async function registerAction(
 ): Promise<ActionResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("display_name") ?? "").trim();
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
+  const scaMonth = parseInt(String(formData.get("sca_month") ?? ""), 10) || null;
+  const scaYear = parseInt(String(formData.get("sca_year") ?? ""), 10) || null;
   const next = String(formData.get("next") ?? "/dashboard");
 
-  if (!email || !password || !displayName) {
-    return { error: "Name, email, and password are required." };
+  if (!email || !password || !firstName || !lastName) {
+    return { error: "First name, surname, email, and password are required." };
   }
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
+
+  const displayName = `${firstName} ${lastName}`;
+  const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -52,16 +55,12 @@ export async function registerAction(
   if (error) return { error: error.message };
   if (!data.user) return { error: "Failed to create account. Try again." };
 
-  const words = displayName.trim().split(/\s+/);
-  const initials = words
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-
   await supabase.from("user_profiles").insert({
     id: data.user.id,
     display_name: displayName,
     initials: initials || "?",
+    sca_month: scaMonth,
+    sca_year: scaYear,
   });
 
   redirect(next);

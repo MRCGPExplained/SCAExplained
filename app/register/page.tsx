@@ -33,9 +33,15 @@ function RegisterForm() {
           </div>
         )}
 
-        <div className="mb-4">
-          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Full name</label>
-          <input name="display_name" type="text" required placeholder="Dr Jane Smith" autoComplete="name" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>First name</label>
+            <input name="first_name" type="text" required placeholder="Jane" autoComplete="given-name" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
+          </div>
+          <div className="flex-1">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Surname</label>
+            <input name="last_name" type="text" required placeholder="Smith" autoComplete="family-name" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
+          </div>
         </div>
 
         <div className="mb-4">
@@ -43,9 +49,27 @@ function RegisterForm() {
           <input name="email" type="email" required autoComplete="email" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Password</label>
-          <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="8+ characters" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
+          <input name="password" type="password" required autoComplete="new-password" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }} />
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Expected SCA date</label>
+          <div className="flex gap-3">
+            <select name="sca_month" className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
+              <option value="">Month</option>
+              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
+                <option key={m} value={i + 1}>{m}</option>
+              ))}
+            </select>
+            <select name="sca_year" className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
+              <option value="">Year</option>
+              {[2025, 2026, 2027, 2028].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button type="submit" disabled={pending} className="w-full rounded-lg py-3 font-display font-bold text-[14px] transition-opacity" style={{ background: DARK, color: "white", opacity: pending ? 0.6 : 1, cursor: pending ? "not-allowed" : "pointer" }}>
