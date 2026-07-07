@@ -384,7 +384,6 @@ export async function createCaseBankUser(
   const password = String(formData.get("password") ?? "");
   const firstName = String(formData.get("first_name") ?? "").trim();
   const lastName = String(formData.get("last_name") ?? "").trim();
-  const grantAccess = formData.get("grant_access") === "true";
   const expiresAtRaw = String(formData.get("expires_at") ?? "").trim();
 
   if (!email || !password || !firstName || !lastName) {
@@ -415,7 +414,7 @@ export async function createCaseBankUser(
     return { error: profileErr.message };
   }
 
-  if (grantAccess && expiresAtRaw) {
+  if (expiresAtRaw) {
     const { error: accessErr } = await supabase.from("user_access").upsert({
       user_id: userId,
       has_programme: true,
