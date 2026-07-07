@@ -61,8 +61,7 @@ export function Navbar({
             <>
               <Link href="/" className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100" style={{ color: "rgba(255,255,255,0.60)" }}>Home</Link>
               <Link href="/about" className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100" style={{ color: "rgba(255,255,255,0.60)" }}>About</Link>
-              <Link href="/faq" className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100" style={{ color: "rgba(255,255,255,0.60)" }}>FAQ</Link>
-              <Link
+<Link
                 href="/login"
                 className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline bg-white/[.12] hover:bg-white/[.22] transition-all"
                 style={{ color: "white" }}

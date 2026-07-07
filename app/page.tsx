@@ -71,13 +71,6 @@ export default async function HomePage() {
             are scoring. That&apos;s exactly what we teach.
           </p>
 
-          <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.68)" }}>
-            Start with{" "}
-            <Link href="/how-to-get-a-clear-pass" className="font-bold no-underline" style={{ color: DARK }}>
-              How To Get A Clear Pass
-            </Link>
-            {" "}— our free recorded training covering exactly what examiners are looking for.
-          </p>
         </div>
       </section>
 
