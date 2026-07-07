@@ -92,6 +92,7 @@ export default async function HomePage() {
             </p>
 
             <div className="flex flex-col gap-4 mb-8">
+              {/* Skills Workshop */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -101,11 +102,27 @@ export default async function HomePage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Skills Video Course</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Structured lessons on ICE, managing uncertainty, patient emotion, and the specific frameworks examiners reward. Watch at your own pace, revisit anytime.</p>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Skills Workshop</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Build the consultation skills that score marks in the SCA. Master ICE, shared decision-making, safety netting, managing uncertainty, and the communication techniques examiners are looking for.</p>
                 </div>
               </div>
 
+              {/* Recorded Consultations */}
+              <div className="flex gap-4 items-start">
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <rect x="1" y="3" width="14" height="14" rx="2.5" stroke="#333" strokeWidth="1.5"/>
+                    <path d="M15 8l4-3v10l-4-3V8z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M6 7.5l5 2.5-5 2.5V7.5z" fill="#333"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Recorded Consultations</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Watch complete, exam-style consultations from start to finish. Learn how high-scoring consultations flow by seeing realistic doctor–patient interactions with expert explanations.</p>
+                </div>
+              </div>
+
+              {/* Case Bank */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -114,21 +131,26 @@ export default async function HomePage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Clinical Case Bank</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Practice cases built to mirror the real exam. Each scenario trains you to apply skills under pressure — not just recall facts — so you perform when it counts.</p>
+                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Case Bank</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Practise with a growing library of realistic SCA cases. Strengthen your clinical reasoning, consultation structure, and confidence through targeted exam-style scenarios.</p>
                 </div>
               </div>
 
+              {/* SCA Masterclass */}
               <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(51,51,51,0.07)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="8" stroke="#333" strokeWidth="1.5"/>
-                    <path d="M10 6v4l2.5 2.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 2L2 6l8 4 8-4-8-4z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M2 6v5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M6 9.5v3.5c0 1.1 1.8 2 4 2s4-.9 4-2V9.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </div>
                 <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Live Zoom Sessions</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Regular group sessions where you practise consultations and get direct feedback. Upcoming dates are listed below.</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="font-display font-bold text-[14.5px]" style={{ color: "rgba(51,51,51,0.40)" }}>SCA Masterclass</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(51,51,51,0.08)", color: "rgba(51,51,51,0.45)" }}>Coming Soon</span>
+                  </div>
+                  <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.38)" }}>A comprehensive, cohort-based programme covering every SCA presentation. Work through all 250+ stations system by system with live teaching, guided practice, and personalised coaching.</p>
                 </div>
               </div>
             </div>
