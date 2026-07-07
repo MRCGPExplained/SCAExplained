@@ -70,7 +70,7 @@ export default function ConfirmedClient({ isBeta }: { isBeta: boolean }) {
                 Email confirmed
               </h1>
               <p className="text-[13.5px] leading-[1.6] mb-6" style={{ color: "rgba(51,51,51,0.55)" }}>
-                Your account is verified. Get access to start preparing.
+                Your account is verified.
               </p>
             </>
           )}
