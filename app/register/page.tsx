@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -13,13 +13,6 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const [state, formAction, pending] = useActionState(registerAction, {});
-  const [formKey, setFormKey] = useState(0);
-
-  // Reset form (clear all inputs) whenever an error comes back
-  useEffect(() => {
-    if (state.error) setFormKey((k) => k + 1);
-  }, [state.error]);
-
   const today = new Date().toISOString().split("T")[0];
 
   return (
@@ -38,7 +31,7 @@ function RegisterForm() {
         </div>
       )}
 
-      <form key={formKey} action={formAction}>
+      <form action={formAction}>
         <input type="hidden" name="next" value={next} />
 
         <div className="flex gap-3 mb-4">
