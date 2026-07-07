@@ -8,20 +8,19 @@ export const dynamic = "force-dynamic";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
-type CourseModule = {
+type Consultation = {
   id: string;
   title: string;
   description: string | null;
   bunny_video_id: string | null;
-  thumbnail_url: string | null;
   duration_minutes: number | null;
   display_order: number;
 };
 
-export default async function VideoCoursePage() {
+export default async function RecordedConsultationsPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/video-course");
+  if (!user) redirect("/login?next=/recorded-consultations");
 
   const { data: access } = await supabase
     .from("user_access")
@@ -34,13 +33,13 @@ export default async function VideoCoursePage() {
   if (!access) redirect("/programme");
 
   const admin = getSupabaseAdmin();
-  const { data: modules } = admin
+  const { data: consultations } = admin
     ? await admin
-        .from("video_course_systems")
-        .select("id,title,description,bunny_video_id,thumbnail_url,duration_minutes,display_order")
+        .from("recorded_consultations")
+        .select("id,title,description,bunny_video_id,duration_minutes,display_order")
         .eq("published", true)
         .order("display_order", { ascending: true })
-        .returns<CourseModule[]>()
+        .returns<Consultation[]>()
     : { data: [] };
 
   const cdnHost = process.env.BUNNY_CDN_HOSTNAME;
@@ -52,22 +51,22 @@ export default async function VideoCoursePage() {
           ← Dashboard
         </Link>
         <h1 className="font-display font-extrabold text-[28px] mt-1" style={{ color: DARK }}>
-          Skills Workshop
+          Recorded Consultations
         </h1>
         <p className="text-[14px] leading-[1.7] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
-          System-by-system teaching built around what examiners actually assess.
+          Watch complete exam-style consultations from start to finish with expert commentary.
         </p>
       </div>
 
-      {(!modules || modules.length === 0) ? (
+      {(!consultations || consultations.length === 0) ? (
         <div className="rounded-2xl px-8 py-12 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)" }}>
-          <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.45)" }}>Videos are being uploaded — check back soon.</p>
+          <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.45)" }}>Consultations are being recorded — check back soon.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {modules.map((mod, i) => {
-            const thumbSrc = mod.thumbnail_url ?? (cdnHost && mod.bunny_video_id ? `https://${cdnHost}/${mod.bunny_video_id}/thumbnail.jpg` : null);
-            const hasVideo = !!mod.bunny_video_id;
+          {consultations.map((c, i) => {
+            const thumbSrc = cdnHost && c.bunny_video_id ? `https://${cdnHost}/${c.bunny_video_id}/thumbnail.jpg` : null;
+            const hasVideo = !!c.bunny_video_id;
 
             const inner = (
               <div
@@ -83,10 +82,10 @@ export default async function VideoCoursePage() {
                 <div className="relative shrink-0 w-[140px] h-[88px] sm:w-[168px] sm:h-[100px]" style={{ background: "rgba(51,51,51,0.08)" }}>
                   {thumbSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumbSrc} alt={mod.title} className="w-full h-full object-cover" />
+                    <img src={thumbSrc} alt={c.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-[11px] font-semibold px-3 text-center" style={{ color: "rgba(51,51,51,0.28)" }}>{mod.title}</span>
+                      <span className="text-[11px] font-semibold px-3 text-center" style={{ color: "rgba(51,51,51,0.28)" }}>{c.title}</span>
                     </div>
                   )}
                   {!hasVideo && (
@@ -106,26 +105,26 @@ export default async function VideoCoursePage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0 px-5 py-3">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="mb-0.5">
                     <span className="text-[11px] font-bold" style={{ color: "rgba(51,51,51,0.30)" }}>{String(i + 1).padStart(2, "0")}</span>
                   </div>
-                  <p className="font-display font-bold text-[15px] leading-snug" style={{ color: DARK }}>{mod.title}</p>
-                  {mod.description && (
-                    <p className="text-[12.5px] mt-1 leading-[1.5] line-clamp-2" style={{ color: "rgba(51,51,51,0.50)" }}>{mod.description}</p>
+                  <p className="font-display font-bold text-[15px] leading-snug" style={{ color: DARK }}>{c.title}</p>
+                  {c.description && (
+                    <p className="text-[12.5px] mt-1 leading-[1.5] line-clamp-2" style={{ color: "rgba(51,51,51,0.50)" }}>{c.description}</p>
                   )}
-                  {mod.duration_minutes && (
-                    <p className="text-[11px] mt-1.5 font-semibold" style={{ color: "rgba(51,51,51,0.35)" }}>{mod.duration_minutes} min</p>
+                  {c.duration_minutes && (
+                    <p className="text-[11px] mt-1.5 font-semibold" style={{ color: "rgba(51,51,51,0.35)" }}>{c.duration_minutes} min</p>
                   )}
                 </div>
               </div>
             );
 
             return hasVideo ? (
-              <Link key={mod.id} href={`/video-course/${mod.id}`} className="no-underline block">
+              <Link key={c.id} href={`/recorded-consultations/${c.id}`} className="no-underline block">
                 {inner}
               </Link>
             ) : (
-              <div key={mod.id}>{inner}</div>
+              <div key={c.id}>{inner}</div>
             );
           })}
         </div>
