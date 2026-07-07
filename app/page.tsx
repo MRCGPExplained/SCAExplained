@@ -136,21 +136,22 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* SCA Masterclass */}
+              {/* AI Roleplay */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(51,51,51,0.07)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 2L2 6l8 4 8-4-8-4z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
-                    <path d="M2 6v5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
-                    <path d="M6 9.5v3.5c0 1.1 1.8 2 4 2s4-.9 4-2V9.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M3 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7l-4 3V4z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <circle cx="7" cy="8" r="1" fill="#333"/>
+                    <circle cx="10" cy="8" r="1" fill="#333"/>
+                    <circle cx="13" cy="8" r="1" fill="#333"/>
                   </svg>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-display font-bold text-[14.5px]" style={{ color: "rgba(51,51,51,0.40)" }}>SCA Masterclass</p>
+                    <p className="font-display font-bold text-[14.5px]" style={{ color: "rgba(51,51,51,0.40)" }}>AI Roleplay</p>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(51,51,51,0.08)", color: "rgba(51,51,51,0.45)" }}>Coming Soon</span>
                   </div>
-                  <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.38)" }}>A comprehensive, cohort-based programme covering every SCA presentation. Work through all 250+ stations system by system with live teaching, guided practice, and personalised coaching.</p>
+                  <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.38)" }}>Practise with an AI patient fine-tuned to reward the exact consultation behaviours and skills that score marks — giving you realistic, pressure-free repetitions whenever you need them.</p>
                 </div>
               </div>
             </div>
