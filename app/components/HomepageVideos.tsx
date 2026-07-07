@@ -60,12 +60,12 @@ export function HomepageVideos({ videos }: { videos: HomepageVideo[] }) {
             </div>
 
             {/* Text */}
-            <div className="flex flex-col justify-center px-6 py-4 flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-col justify-center px-6 py-4 flex-1 min-w-0 overflow-hidden group-hover:bg-[#FFFBEA] transition-colors">
               <p className="font-display font-bold text-[15px] leading-snug mb-1" style={{ color: "#333333" }}>{v.title}</p>
               {v.description && (
                 <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.55)" }}>{v.description}</p>
               )}
-              <p className="text-[12px] font-semibold mt-2 flex items-center gap-1.5" style={{ color: "rgba(51,51,51,0.35)" }}>
+              <p className="text-[12px] font-semibold mt-2 flex items-center gap-1.5 text-[#333333]/35 group-hover:text-[#F6D44B] transition-colors">
                 <span>▶</span> Watch
               </p>
             </div>
