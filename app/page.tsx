@@ -81,26 +81,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* HOMEPAGE VIDEOS */}
-      {videos.length > 0 && (
-        <section className="px-10 pb-10 max-md:px-6">
-          <div className="max-w-[1000px] mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
-                Learn About Our Programme
-              </h2>
-              <div className="h-[3px] rounded-full mt-2 mx-auto w-[80px]" style={{ background: YELLOW }} />
-            </div>
-            <HomepageVideos videos={videos} />
-          </div>
-        </section>
-      )}
-
-      {/* CTA + LIVE EVENTS */}
-      <section className="px-10 py-20 max-md:px-6">
+      {/* CTA + VIDEOS */}
+      <section className="px-10 pb-16 max-md:px-6">
         <div className="max-w-[1000px] mx-auto flex gap-8 items-start max-md:flex-col">
 
-          {/* CTA — anchored top, 50% */}
+          {/* CTA — left, anchored top */}
           <div
             className="flex-1 min-w-0 max-md:w-full rounded-2xl p-8"
             style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.40)" }}
@@ -114,7 +99,6 @@ export default async function HomePage() {
             </p>
 
             <div className="flex flex-col gap-4 mb-8">
-              {/* Video Course */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -129,7 +113,6 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* Case Bank */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -143,7 +126,6 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* Live Sessions */}
               <div className="flex gap-4 items-start">
                 <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -153,7 +135,7 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Live Zoom Sessions</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Regular group sessions where you practice consultations and get direct feedback. See the dates on the right and register for any that suit you.</p>
+                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Regular group sessions where you practise consultations and get direct feedback. Upcoming dates are listed below.</p>
                 </div>
               </div>
             </div>
@@ -170,56 +152,71 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* LIVE EVENTS — 50% */}
-          <div className="flex-1 min-w-0">
-            <div className="mb-8">
-              <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
-                Live Sessions
-              </h2>
-              <div className="h-[3px] rounded-full mt-2 w-[56px]" style={{ background: YELLOW }} />
-            </div>
-
-            {sessions.length === 0 ? (
-              <p className="text-[14.5px]" style={{ color: "rgba(51,51,51,0.45)" }}>
-                No sessions scheduled right now — check back soon.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {sessions.map((s) => {
-                  const date = new Date(s.scheduled_at);
-                  const formatted = date.toLocaleDateString("en-GB", {
-                    weekday: "long", day: "numeric", month: "long", year: "numeric",
-                    timeZone: "Europe/London",
-                  });
-                  const time = date.toLocaleTimeString("en-GB", {
-                    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
-                  });
-                  return (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 max-sm:flex-col max-sm:items-start"
-                      style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
-                    >
-                      <div>
-                        <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>{formatted}</p>
-                        <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT</p>
-                      </div>
-                      <Link
-                        href={s.zoom_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
-                        style={{ background: YELLOW, color: DARK }}
-                      >
-                        Register
-                      </Link>
-                    </div>
-                  );
-                })}
+          {/* VIDEOS — right */}
+          {videos.length > 0 && (
+            <div className="flex-1 min-w-0">
+              <div className="mb-6">
+                <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
+                  Learn About Our Programme
+                </h2>
+                <div className="h-[3px] rounded-full mt-2 w-[80px]" style={{ background: YELLOW }} />
               </div>
-            )}
+              <HomepageVideos videos={videos} />
+            </div>
+          )}
+
+        </div>
+      </section>
+
+      {/* LIVE EVENTS */}
+      <section className="px-10 py-16 max-md:px-6">
+        <div className="max-w-[1000px] mx-auto">
+          <div className="mb-8">
+            <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
+              Live Sessions
+            </h2>
+            <div className="h-[3px] rounded-full mt-2 w-[56px]" style={{ background: YELLOW }} />
           </div>
 
+          {sessions.length === 0 ? (
+            <p className="text-[14.5px]" style={{ color: "rgba(51,51,51,0.45)" }}>
+              No sessions scheduled right now — check back soon.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {sessions.map((s) => {
+                const date = new Date(s.scheduled_at);
+                const formatted = date.toLocaleDateString("en-GB", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                  timeZone: "Europe/London",
+                });
+                const time = date.toLocaleTimeString("en-GB", {
+                  hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+                });
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 max-sm:flex-col max-sm:items-start"
+                    style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
+                  >
+                    <div>
+                      <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>{formatted}</p>
+                      <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT</p>
+                    </div>
+                    <Link
+                      href={s.zoom_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
+                      style={{ background: YELLOW, color: DARK }}
+                    >
+                      Register
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
