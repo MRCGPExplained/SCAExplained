@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -44,15 +45,18 @@ export async function GET(request: NextRequest) {
             .eq("id", beta.id);
         }
 
-        // Grant 1 year of access if not already granted
-        const oneYearFromNow = new Date();
-        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-        await supabase
-          .from("user_access")
-          .upsert(
-            { user_id: user.id, expires_at: oneYearFromNow.toISOString() },
-            { onConflict: "user_id" }
-          );
+        // Grant 1 year of access — use admin client to bypass RLS
+        const admin = getSupabaseAdmin();
+        if (admin) {
+          const oneYearFromNow = new Date();
+          oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+          await admin
+            .from("user_access")
+            .upsert(
+              { user_id: user.id, expires_at: oneYearFromNow.toISOString() },
+              { onConflict: "user_id" }
+            );
+        }
       }
 
       const destination = beta ? "beta" : "standard";

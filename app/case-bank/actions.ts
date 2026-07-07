@@ -46,6 +46,10 @@ export async function registerAction(
     return { error: "First name, surname, email, and password are required." };
   }
 
+  if (!scaMonth || !scaYear) {
+    return { error: "Please select your expected SCA month and year." };
+  }
+
   const displayName = `${firstName} ${lastName}`;
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 

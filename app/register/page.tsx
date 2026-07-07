@@ -57,14 +57,14 @@ function RegisterForm() {
         <div className="mb-6">
           <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Expected SCA date</label>
           <div className="flex gap-3">
-            <select name="sca_month" className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
-              <option value="">Month</option>
+            <select name="sca_month" required className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
+              <option value="" disabled>Month</option>
               {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
                 <option key={m} value={i + 1}>{m}</option>
               ))}
             </select>
-            <select name="sca_year" className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
-              <option value="">Year</option>
+            <select name="sca_year" required className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
+              <option value="" disabled>Year</option>
               {[2025, 2026, 2027, 2028].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
