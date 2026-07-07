@@ -28,10 +28,9 @@ export default async function DashboardPage() {
       label: "Skills Workshop",
       description: "System-by-system teaching — every consultation skill examiners score",
       icon: (
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-          <rect x="1" y="3" width="15" height="12" rx="2" stroke={DARK} strokeWidth="1.5"/>
-          <path d="M17 8.5l4-3v9l-4-3v-3z" stroke={DARK} strokeWidth="1.5" strokeLinejoin="round"/>
-          <path d="M6 7l6 3-6 3V7z" fill={DARK}/>
+        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
+          <path d="M9 7.5l6 3.5-6 3.5V7.5z" fill={DARK}/>
         </svg>
       ),
     },
@@ -40,7 +39,7 @@ export default async function DashboardPage() {
       label: "Recorded Consultations",
       description: "Watch complete exam-style consultations from start to finish",
       icon: (
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
           <path d="M9 7.5l6 3.5-6 3.5V7.5z" fill={DARK}/>
         </svg>
@@ -51,7 +50,7 @@ export default async function DashboardPage() {
       label: "Case Bank",
       description: "246 practice stations · study rooms · notes",
       icon: (
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <rect x="3" y="2" width="14" height="18" rx="2" stroke={DARK} strokeWidth="1.5"/>
           <path d="M7 7.5h8M7 11h8M7 14.5h5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
@@ -76,10 +75,7 @@ export default async function DashboardPage() {
               className="bg-white rounded-2xl p-6 flex items-center gap-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
               style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
             >
-              <div
-                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: "rgba(246,212,75,0.18)" }}
-              >
+              <div className="shrink-0 flex items-center justify-center">
                 {item.icon}
               </div>
               <div className="flex-1 min-w-0">
