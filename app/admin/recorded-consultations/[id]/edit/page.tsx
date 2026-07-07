@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { updateRecordedConsultationAction } from "../../../../actions";
+import { updateRecordedConsultationAction } from "../../../actions";
 import ConsultationForm from "../../ConsultationForm";
 
 export const dynamic = "force-dynamic";
