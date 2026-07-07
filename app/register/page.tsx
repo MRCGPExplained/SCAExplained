@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -13,6 +13,14 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const [state, formAction, pending] = useActionState(registerAction, {});
+  const [formKey, setFormKey] = useState(0);
+
+  // Reset form (clear all inputs) whenever an error comes back
+  useEffect(() => {
+    if (state.error) setFormKey((k) => k + 1);
+  }, [state.error]);
+
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}>
@@ -24,14 +32,14 @@ function RegisterForm() {
         </Link>
       </p>
 
-      <form action={formAction}>
-        <input type="hidden" name="next" value={next} />
+      {state.error && (
+        <div className="rounded-lg px-4 py-3 mb-4 text-[13px]" style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", color: "#B91C1C" }}>
+          {state.error}
+        </div>
+      )}
 
-        {state.error && (
-          <div className="rounded-lg px-4 py-3 mb-4 text-[13px]" style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", color: "#B91C1C" }}>
-            {state.error}
-          </div>
-        )}
+      <form key={formKey} action={formAction}>
+        <input type="hidden" name="next" value={next} />
 
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
@@ -56,20 +64,14 @@ function RegisterForm() {
 
         <div className="mb-6">
           <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Expected SCA date</label>
-          <div className="flex gap-3">
-            <select name="sca_month" required className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
-              <option value="" disabled>Month</option>
-              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
-            <select name="sca_year" required className="flex-1 rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}>
-              <option value="" disabled>Year</option>
-              {[2025, 2026, 2027, 2028].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+          <input
+            name="sca_date"
+            type="date"
+            required
+            min={today}
+            className="w-full rounded-lg px-4 py-2.5 text-[13.5px]"
+            style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}
+          />
         </div>
 
         <button type="submit" disabled={pending} className="w-full rounded-lg py-3 font-display font-bold text-[14px] transition-opacity" style={{ background: DARK, color: "white", opacity: pending ? 0.6 : 1, cursor: pending ? "not-allowed" : "pointer" }}>

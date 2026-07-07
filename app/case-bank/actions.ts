@@ -38,21 +38,20 @@ export async function registerAction(
   const password = String(formData.get("password") ?? "");
   const firstName = String(formData.get("first_name") ?? "").trim();
   const lastName = String(formData.get("last_name") ?? "").trim();
-  const scaMonth = parseInt(String(formData.get("sca_month") ?? ""), 10) || null;
-  const scaYear = parseInt(String(formData.get("sca_year") ?? ""), 10) || null;
+  const scaDateRaw = String(formData.get("sca_date") ?? "").trim();
+  const scaMonth = scaDateRaw ? new Date(scaDateRaw).getUTCMonth() + 1 : null;
+  const scaYear = scaDateRaw ? new Date(scaDateRaw).getUTCFullYear() : null;
   const next = String(formData.get("next") ?? "/dashboard");
 
   if (!email || !password || !firstName || !lastName) {
     return { error: "First name, surname, email, and password are required." };
   }
 
-  if (!scaMonth || !scaYear) {
-    return { error: "Please select your expected SCA month and year." };
+  if (!scaDateRaw || !scaMonth || !scaYear) {
+    return { error: "Please select your expected SCA date." };
   }
 
-  const now = new Date();
-  const scaDate = new Date(scaYear, scaMonth - 1, 1);
-  if (scaDate <= now) {
+  if (new Date(scaDateRaw) <= new Date()) {
     return { error: "Your expected SCA date must be in the future." };
   }
 
