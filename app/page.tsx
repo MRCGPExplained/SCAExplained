@@ -7,7 +7,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
-const YELLOW = "#F6D44B";
+const YELLOW = "#B7F230";
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
@@ -55,7 +55,7 @@ export default async function HomePage() {
         <div className="max-w-[860px] mx-auto">
           <h1 className="font-display mb-[26px]" style={{ color: DARK }}>
             <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
-              Perform Your Best On SCA.
+              Perform Your Best On SCA<span style={{ color: YELLOW }}>.</span>
             </span>
             <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
               Know Exactly What <Swash>Scores Marks</Swash>
@@ -103,7 +103,7 @@ export default async function HomePage() {
           {/* CTA — anchored top, 50% */}
           <div
             className="flex-1 min-w-0 max-md:w-full rounded-2xl p-8"
-            style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.40)" }}
+            style={{ background: "#F4FFDA", border: "1px solid rgba(183,242,48,0.40)" }}
           >
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>The Complete SCA Package</p>
             <h2 className="font-display font-extrabold text-[26px] leading-[1.2] mb-3" style={{ color: DARK }}>
@@ -116,7 +116,7 @@ export default async function HomePage() {
             <div className="flex flex-col gap-4 mb-8">
               {/* Video Course */}
               <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(183,242,48,0.25)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                     <rect x="1" y="3" width="14" height="14" rx="2.5" stroke="#333" strokeWidth="1.5"/>
                     <path d="M15 8l4-3v10l-4-3V8z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
@@ -131,7 +131,7 @@ export default async function HomePage() {
 
               {/* Case Bank */}
               <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(183,242,48,0.25)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                     <rect x="3" y="2" width="14" height="16" rx="2" stroke="#333" strokeWidth="1.5"/>
                     <path d="M7 7h6M7 10.5h6M7 14h4" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
@@ -145,7 +145,7 @@ export default async function HomePage() {
 
               {/* Live Sessions */}
               <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
+                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(183,242,48,0.25)" }}>
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                     <circle cx="10" cy="10" r="8" stroke="#333" strokeWidth="1.5"/>
                     <path d="M10 6v4l2.5 2.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
