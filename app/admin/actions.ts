@@ -382,14 +382,17 @@ export async function createCaseBankUser(
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("display_name") ?? "").trim();
-  const initials = String(formData.get("initials") ?? "").trim().toUpperCase().slice(0, 2);
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
   const grantAccess = formData.get("grant_access") === "true";
   const expiresAtRaw = String(formData.get("expires_at") ?? "").trim();
 
-  if (!email || !password || !displayName || !initials) {
-    return { error: "Email, password, display name, and initials are required." };
+  if (!email || !password || !firstName || !lastName) {
+    return { error: "Email, password, first name, and last name are required." };
   }
+
+  const displayName = `${firstName} ${lastName}`;
+  const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
 
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
     email,

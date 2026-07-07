@@ -50,6 +50,12 @@ export async function registerAction(
     return { error: "Please select your expected SCA month and year." };
   }
 
+  const now = new Date();
+  const scaDate = new Date(scaYear, scaMonth - 1, 1);
+  if (scaDate <= now) {
+    return { error: "Your expected SCA date must be in the future." };
+  }
+
   const displayName = `${firstName} ${lastName}`;
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 
