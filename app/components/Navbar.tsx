@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 const DARK = "#333333";
-const YELLOW = "#B7F230";
+const YELLOW = "#F6D44B";
 
 function SpeechIcon() {
   return (
