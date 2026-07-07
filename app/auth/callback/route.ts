@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           await admin
             .from("user_access")
             .upsert(
-              { user_id: user.id, expires_at: oneYearFromNow.toISOString() },
+              { user_id: user.id, has_programme: true, expires_at: oneYearFromNow.toISOString() },
               { onConflict: "user_id" }
             );
         }
