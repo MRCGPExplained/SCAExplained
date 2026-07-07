@@ -30,64 +30,12 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const type = session.metadata?.type;
-
-    if (type === "programme") {
+    if (session.metadata?.type === "programme") {
       await confirmProgrammePurchase(session);
-    } else {
-      await confirmBooking(session);
     }
   }
 
   return NextResponse.json({ received: true });
-}
-
-// ── SCA Intensive booking ─────────────────────────────────────────────────────
-
-async function confirmBooking(session: Stripe.Checkout.Session) {
-  const bookingId = session.metadata?.booking_id;
-  const eventId = session.metadata?.event_id;
-  if (!bookingId) {
-    console.error("[webhook] checkout.session.completed without booking_id");
-    return;
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return;
-
-  const { data: booking, error } = await supabase
-    .from("bookings")
-    .update({ status: "paid", stripe_checkout_session_id: session.id })
-    .eq("id", bookingId)
-    .select("customer_name, customer_email, event_id, ticket_type_id")
-    .single<{ customer_name: string; customer_email: string; event_id: string; ticket_type_id: string }>();
-
-  if (error || !booking) {
-    console.error("[webhook] failed to mark booking paid:", error?.message);
-    return;
-  }
-
-  const { data: ev } = await supabase
-    .from("events")
-    .select("title, start_time, end_time, zoom_link")
-    .eq("id", eventId ?? booking.event_id)
-    .single<{ title: string; start_time: string; end_time: string; zoom_link: string | null }>();
-
-  const { data: ticket } = await supabase
-    .from("ticket_types")
-    .select("name")
-    .eq("id", booking.ticket_type_id)
-    .single<{ name: string }>();
-
-  await sendConfirmationEmail({
-    to: booking.customer_email,
-    customerName: booking.customer_name,
-    eventTitle: ev?.title ?? "SCA Intensive",
-    ticketName: ticket?.name ?? "Active Candidate",
-    startTime: ev?.start_time ?? "",
-    endTime: ev?.end_time ?? "",
-    zoomLink: ev?.zoom_link ?? null,
-  });
 }
 
 // ── Programme purchase ────────────────────────────────────────────────────────
