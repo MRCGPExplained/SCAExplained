@@ -59,8 +59,10 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const destination = beta ? "beta" : "standard";
-      return NextResponse.redirect(`${origin}/auth/confirmed?access=${destination}`);
+      if (beta) {
+        return NextResponse.redirect(`${origin}/auth/confirmed`);
+      }
+      return NextResponse.redirect(`${origin}/login`);
     }
   }
 
