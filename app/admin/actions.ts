@@ -490,7 +490,6 @@ export async function deleteCaseBankUser(userId: string): Promise<ActionResult> 
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
   await supabase.from("station_reports").delete().eq("user_id", userId);
   await supabase.from("station_attempts").delete().eq("user_id", userId);
-  await supabase.from("station_notes").delete().eq("user_id", userId);
   await supabase.from("station_stars").delete().eq("user_id", userId);
   await supabase.from("user_access").delete().eq("user_id", userId);
   await supabase.from("user_profiles").delete().eq("id", userId);
