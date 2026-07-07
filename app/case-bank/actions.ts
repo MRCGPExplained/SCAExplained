@@ -55,13 +55,15 @@ export async function registerAction(
   if (error) return { error: error.message };
   if (!data.user) return { error: "Failed to create account. Try again." };
 
-  await supabase.from("user_profiles").insert({
+  const { error: profileErr } = await supabase.from("user_profiles").insert({
     id: data.user.id,
     display_name: displayName,
     initials: initials || "?",
     sca_month: scaMonth,
     sca_year: scaYear,
   });
+
+  if (profileErr) console.error("[register] profile insert failed:", profileErr.message);
 
   redirect(next);
 }
