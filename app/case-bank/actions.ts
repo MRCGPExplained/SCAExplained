@@ -50,7 +50,13 @@ export async function registerAction(
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com"}/auth/callback`,
+    },
+  });
 
   if (error) return { error: error.message };
   if (!data.user) return { error: "Failed to create account. Try again." };

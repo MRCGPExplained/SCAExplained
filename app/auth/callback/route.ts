@@ -35,12 +35,24 @@ export async function GET(request: NextRequest) {
         .eq("email", user.email ?? "")
         .maybeSingle();
 
-      // Backfill user_id if this is their first login
-      if (beta && !beta.user_id) {
+      // Backfill user_id and grant access on first confirmation
+      if (beta) {
+        if (!beta.user_id) {
+          await supabase
+            .from("beta_users")
+            .update({ user_id: user.id })
+            .eq("id", beta.id);
+        }
+
+        // Grant 1 year of access if not already granted
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
         await supabase
-          .from("beta_users")
-          .update({ user_id: user.id })
-          .eq("id", beta.id);
+          .from("user_access")
+          .upsert(
+            { user_id: user.id, expires_at: oneYearFromNow.toISOString() },
+            { onConflict: "user_id" }
+          );
       }
 
       const destination = beta ? "beta" : "standard";
