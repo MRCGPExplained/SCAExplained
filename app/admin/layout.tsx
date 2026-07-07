@@ -24,7 +24,6 @@ export default function AdminLayout({
             <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/promo-codes" className="text-[13px] text-white/60 hover:text-white transition no-underline">Promo Codes</Link>
-            <Link href="/admin/beta-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Beta Users</Link>
           </div>
         </div>
         <div className="flex items-center gap-5">

@@ -9,7 +9,7 @@ async function getData() {
 
   const [authResult, profilesResult, accessResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
-    supabase.from("user_profiles").select("id, display_name, initials"),
+    supabase.from("user_profiles").select("id, display_name, initials, beta"),
     supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at"),
   ]);
 
@@ -24,7 +24,7 @@ async function getData() {
     id: u.id,
     email: u.email ?? "",
     created_at: u.created_at,
-    profile: profileMap.get(u.id) ?? null,
+    profile: profileMap.get(u.id) ? { ...profileMap.get(u.id)!, beta: profileMap.get(u.id)?.beta ?? false } : null,
     access: accessMap.get(u.id) ?? null,
   }));
 

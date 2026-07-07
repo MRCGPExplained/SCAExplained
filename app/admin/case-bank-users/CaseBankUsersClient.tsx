@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser } from "../actions";
+import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction } from "../actions";
 
 type UserAccess = { has_programme: boolean; expires_at: string; renewal_reminder_sent_at: string | null } | null;
 
@@ -9,7 +9,7 @@ export type CaseBankUser = {
   id: string;
   email: string;
   created_at: string;
-  profile: { id: string; display_name: string; initials: string } | null;
+  profile: { id: string; display_name: string; initials: string; beta: boolean } | null;
   access: UserAccess;
 };
 
@@ -25,6 +25,14 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
   const [createLoading, startCreate] = useTransition();
   const [openGrant, setOpenGrant] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function handleToggleBeta(userId: string, currentBeta: boolean) {
+    startTransition(async () => {
+      const result = await toggleBetaAction(userId, !currentBeta);
+      if (result?.error) alert(`Error: ${result.error}`);
+      else window.location.reload();
+    });
+  }
 
   const now = new Date().toISOString();
   const activeCount = users.filter((u) => u.access?.has_programme && u.access.expires_at > now).length;
@@ -106,6 +114,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Joined</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Programme</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Expires</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Beta</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Actions</th>
               </tr>
             </thead>
@@ -138,6 +147,17 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                         {user.access ? new Date(user.access.expires_at).toLocaleDateString("en-GB") : "—"}
                       </td>
                       <td className="px-5 py-3">
+                        {user.profile ? (
+                          <button
+                            onClick={() => handleToggleBeta(user.id, user.profile!.beta)}
+                            disabled={isPending}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition disabled:opacity-40 ${user.profile.beta ? "bg-[#F6D44B] text-[#333333]" : "bg-navy/10 text-navy/40 hover:bg-navy/20"}`}
+                          >
+                            {user.profile.beta ? "Beta" : "Off"}
+                          </button>
+                        ) : <span className="text-navy/30 text-[12px]">—</span>}
+                      </td>
+                      <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <button onClick={() => setOpenGrant(isGrantOpen ? null : user.id)} className="text-[12px] font-semibold text-navy/60 hover:text-navy transition">Grant Access</button>
                           {user.access && <button onClick={() => handleRevoke(user.id)} disabled={isPending} className="text-[12px] font-semibold text-orange-600/70 hover:text-orange-600 transition disabled:opacity-40">Revoke</button>}
@@ -147,7 +167,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                     </tr>
                     {isGrantOpen && (
                       <tr className={!isLast ? "border-b border-navy/[0.06]" : ""}>
-                        <td colSpan={6} className="px-5 py-3 bg-[#F6D44B]/[0.06]">
+                        <td colSpan={7} className="px-5 py-3 bg-[#F6D44B]/[0.06]">
                           <form onSubmit={handleGrant} className="flex items-end gap-3 flex-wrap">
                             <input type="hidden" name="user_id" value={user.id} />
                             <div>

@@ -595,45 +595,19 @@ export async function reorderRecordedConsultationsAction(
   return {};
 }
 
-// ── Beta Users ────────────────────────────────────────────────────────────────
+// ── Beta flag ─────────────────────────────────────────────────────────────────
 
-export async function addBetaUserAction(
-  _prev: ActionResult | undefined,
-  formData: FormData
-): Promise<ActionResult> {
+export async function toggleBetaAction(userId: string, beta: boolean): Promise<ActionResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
-
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const note = String(formData.get("note") ?? "").trim() || null;
-
-  if (!email) return { error: "Email is required." };
-
-  // Try to find an existing user — populate user_id if they're already registered
-  const authResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  const authUsers = (authResult.data as { users?: { id: string; email?: string }[] })?.users ?? [];
-  const existingUser = authUsers.find((u) => u.email?.toLowerCase() === email);
 
   const { error } = await supabase
-    .from("beta_users")
-    .upsert(
-      { email, note, user_id: existingUser?.id ?? null },
-      { onConflict: "email" }
-    );
+    .from("user_profiles")
+    .update({ beta })
+    .eq("id", userId);
 
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/beta-users");
-  return {};
-}
-
-export async function removeBetaUserAction(id: string): Promise<ActionResult> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Database not available." };
-
-  const { error } = await supabase.from("beta_users").delete().eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/admin/beta-users");
+  revalidatePath("/admin/case-bank-users");
   return {};
 }
