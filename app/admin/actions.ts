@@ -609,15 +609,17 @@ export async function addBetaUserAction(
 
   if (!email) return { error: "Email is required." };
 
+  // Try to find an existing user — populate user_id if they're already registered
   const authResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
   const authUsers = (authResult.data as { users?: { id: string; email?: string }[] })?.users ?? [];
-  const user = authUsers.find((u) => u.email?.toLowerCase() === email);
-
-  if (!user) return { error: "No account found with that email." };
+  const existingUser = authUsers.find((u) => u.email?.toLowerCase() === email);
 
   const { error } = await supabase
     .from("beta_users")
-    .upsert({ user_id: user.id, note }, { onConflict: "user_id" });
+    .upsert(
+      { email, note, user_id: existingUser?.id ?? null },
+      { onConflict: "email" }
+    );
 
   if (error) return { error: error.message };
 

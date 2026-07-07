@@ -31,9 +31,17 @@ export async function GET(request: NextRequest) {
     if (user) {
       const { data: beta } = await supabase
         .from("beta_users")
-        .select("id")
-        .eq("user_id", user.id)
+        .select("id, user_id")
+        .eq("email", user.email ?? "")
         .maybeSingle();
+
+      // Backfill user_id if this is their first login
+      if (beta && !beta.user_id) {
+        await supabase
+          .from("beta_users")
+          .update({ user_id: user.id })
+          .eq("id", beta.id);
+      }
 
       const destination = beta ? "beta" : "standard";
       return NextResponse.redirect(`${origin}/auth/confirmed?access=${destination}`);

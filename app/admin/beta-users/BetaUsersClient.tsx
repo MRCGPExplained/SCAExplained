@@ -91,7 +91,14 @@ export default function BetaUsersClient({ users }: { users: BetaUser[] }) {
             <tbody>
               {users.map((u, i) => (
                 <tr key={u.id} className={i < users.length - 1 ? "border-b border-navy/[0.06]" : ""}>
-                  <td className="px-5 py-3 font-semibold text-navy">{u.email}</td>
+                  <td className="px-5 py-3 font-semibold text-navy">
+                    <span>{u.email}</span>
+                    {!u.user_id && (
+                      <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "rgba(51,51,51,0.08)", color: "rgba(51,51,51,0.45)" }}>
+                        Pending
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-navy/50 text-[12px]">{u.note ?? "—"}</td>
                   <td className="px-5 py-3 text-navy/40 text-[12px] whitespace-nowrap">
                     {new Date(u.created_at).toLocaleDateString("en-GB")}
