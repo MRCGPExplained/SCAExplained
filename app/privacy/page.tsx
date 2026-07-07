@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         this policy. If you have any questions, you can contact us at{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"
-          className="text-navy font-semibold border-b border-yellow/60 no-underline hover:border-yellow"
+          className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
         >
           mrcgpexplained@outlook.com
         </a>
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
         To exercise any of these rights, email us at{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"
-          className="text-navy font-semibold border-b border-yellow/60 no-underline hover:border-yellow"
+          className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
         >
           mrcgpexplained@outlook.com
         </a>
@@ -166,7 +166,7 @@ export default function PrivacyPage() {
           href="https://ico.org.uk/make-a-complaint"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-navy font-semibold border-b border-yellow/60 no-underline hover:border-yellow"
+          className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
         >
           ico.org.uk/make-a-complaint
         </a>

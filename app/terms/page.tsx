@@ -24,7 +24,7 @@ export default function TermsPage() {
         preparing for the Simulated Consultation Assessment. Contact:{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"
-          className="text-navy font-semibold border-b border-yellow/60 no-underline hover:border-yellow"
+          className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
         >
           mrcgpexplained@outlook.com
         </a>
@@ -85,7 +85,7 @@ export default function TermsPage() {
           <strong>More than 48 hours before the session:</strong> contact us at{" "}
           <a
             href="mailto:mrcgpexplained@outlook.com"
-            className="text-navy font-semibold border-b border-yellow/60 no-underline hover:border-yellow"
+            className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
           >
             mrcgpexplained@outlook.com
           </a>{" "}
