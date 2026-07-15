@@ -84,7 +84,7 @@ export default function AboutPage() {
         </div>
         <div className="pt-1">
           <p className="font-display font-bold text-[17px] text-navy mb-1.5">
-            Dr Brandon Ten-Fah
+            The Instructor
           </p>
           <p className="text-[14.5px] leading-[1.75] text-navy/75">
             A GP with a passion for medical education, always thinking about
