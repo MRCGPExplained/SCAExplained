@@ -29,22 +29,16 @@ function WebinarIcon() {
 function CaseBankIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="2" width="12" height="18" rx="2" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M8 7h5M8 11h5M8 15h3" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M16 5h1.5A1.5 1.5 0 0 1 19 6.5v13A1.5 1.5 0 0 1 17.5 21H7" stroke={DARK} strokeWidth="1.4" strokeLinecap="round" opacity="0.4"/>
+      <rect x="4" y="2" width="16" height="20" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M8 8h8M8 12h8M8 16h5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
     </svg>
   );
 }
 
 function LiveIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="17" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M3 9h18" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M8 2v4M16 2v4" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
-      <circle cx="8" cy="15" r="1.4" fill={DARK}/>
-      <circle cx="12" cy="15" r="1.4" fill={DARK}/>
-      <circle cx="16" cy="15" r="1.4" fill={DARK}/>
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M2 3.5A1.5 1.5 0 013.5 2h13A1.5 1.5 0 0118 3.5v9A1.5 1.5 0 0116.5 14H7l-5 4V3.5z" stroke={DARK} strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
     </svg>
   );
 }
@@ -119,7 +113,7 @@ export default async function HomePage() {
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
           {/* FREE WEBINAR — primary, slightly larger */}
-          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: "1.5px solid rgba(246,212,75,0.7)" }}>
+          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: "1.5px solid rgba(246,212,75,0.7)" }}>
             <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-2">
                 <WebinarIcon />
@@ -162,7 +156,7 @@ export default async function HomePage() {
           </div>
 
           {/* CASE BANK */}
-          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
+          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: CARD_BORDER }}>
             <div className="flex items-center gap-2 mb-2">
               <CaseBankIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 246 stations</p>
@@ -205,7 +199,7 @@ export default async function HomePage() {
           </div>
 
           {/* LIVE PRACTICE SESSIONS */}
-          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
+          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: CARD_BORDER }}>
             <div className="flex items-center gap-2 mb-2">
               <LiveIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice · Every Second Saturday</p>
