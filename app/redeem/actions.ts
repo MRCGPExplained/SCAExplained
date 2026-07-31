@@ -54,13 +54,14 @@ export async function redeemCodeAction(
   );
   if (upsertErr) return { error: "Failed to grant access. Please try again." };
 
-  // Increment use count
-  await admin.rpc("increment_webinar_code_use", { code_id: codeRow.id }).catch(() => {
-    // Non-fatal — fall back to manual update
-    admin.from("webinar_codes")
+  // Increment use count (non-fatal)
+  try {
+    await admin.rpc("increment_webinar_code_use", { code_id: codeRow.id });
+  } catch {
+    await admin.from("webinar_codes")
       .update({ use_count: (codeRow as unknown as { use_count: number }).use_count + 1 })
       .eq("id", codeRow.id);
-  });
+  }
 
   return { success: true, expiresAt: expiresAt.toISOString() };
 }

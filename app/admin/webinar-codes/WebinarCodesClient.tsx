@@ -14,7 +14,7 @@ export type WebinarCode = {
 };
 
 export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) {
-  const [state, formAction, pending] = useActionState(createWebinarCodeAction, {});
+  const [state, formAction, pending] = useActionState(createWebinarCodeAction, { error: "" });
   const [isPending, startTransition] = useTransition();
 
   function handleToggle(id: string, active: boolean) {
