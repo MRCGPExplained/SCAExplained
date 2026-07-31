@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
+import { CaseBankMockup } from "./components/CaseBankMockup";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -208,29 +209,19 @@ export default async function HomePage() {
               and an example explanation — everything you need to practise purposefully.
             </p>
 
-            {/* Station title glimpse — mask fade works on any background colour */}
-            {stationTitles.length > 0 && (
-              <div
-                className="mb-6 overflow-hidden"
-                style={{
-                  maxHeight: 76,
-                  WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)",
-                  maskImage: "linear-gradient(to bottom, black 40%, transparent)",
-                }}
-              >
-                <div className="flex flex-wrap gap-1.5">
-                  {stationTitles.map((title) => (
-                    <span
-                      key={title}
-                      className="text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
-                      style={{ background: "rgba(51,51,51,0.06)", color: "rgba(51,51,51,0.55)" }}
-                    >
-                      {title}
-                    </span>
-                  ))}
-                </div>
+            {/* Case Bank mockup */}
+            <div
+              className="mb-6 overflow-hidden rounded-xl"
+              style={{
+                maxHeight: 220,
+                WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)",
+                maskImage: "linear-gradient(to bottom, black 55%, transparent)",
+              }}
+            >
+              <div style={{ transform: "scale(0.82)", transformOrigin: "top left", width: "122%" }}>
+                <CaseBankMockup />
               </div>
-            )}
+            </div>
 
             <Link
               href={user ? "/case-bank" : "/register"}
