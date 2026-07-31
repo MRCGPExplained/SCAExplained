@@ -112,15 +112,12 @@ export default async function HomePage() {
 
           {/* FREE WEBINAR — primary */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex items-center gap-2">
-                <WebinarIcon />
-                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
-              </div>
-              <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full" style={{ background: YELLOW, color: DARK }}>Free</span>
+            <div className="flex items-center gap-2 mb-2">
+              <WebinarIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Webinar</p>
             </div>
             <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
               How To Pass Your SCA — Free Monthly Webinar
@@ -158,7 +155,7 @@ export default async function HomePage() {
 
           {/* CASE BANK */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1px solid rgba(51,51,51,0.10)" }}
           >
             <div className="flex items-center gap-2 mb-2">
@@ -209,12 +206,12 @@ export default async function HomePage() {
 
           {/* LIVE PRACTICE SESSIONS */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1px solid rgba(51,51,51,0.10)" }}
           >
             <div className="flex items-center gap-2 mb-2">
               <LiveIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice · Every Second Saturday</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice</p>
             </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
               Monthly Live Practice Sessions
