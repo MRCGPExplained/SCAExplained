@@ -7,8 +7,6 @@ export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
-const CARD_BG = "#FFFBEA";
-const CARD_BORDER = "1px solid rgba(246,212,75,0.45)";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -38,7 +36,7 @@ function CaseBankIcon() {
 function LiveIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M2 3.5A1.5 1.5 0 013.5 2h13A1.5 1.5 0 0118 3.5v9A1.5 1.5 0 0116.5 14H7l-5 4V3.5z" stroke={DARK} strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+      <path d="M2 3.5A1.5 1.5 0 013.5 2h13A1.5 1.5 0 0118 3.5v9A1.5 1.5 0 0116.5 14H7l-5 4V3.5z" stroke={DARK} strokeWidth="1.5" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -112,8 +110,11 @@ export default async function HomePage() {
       <section className="px-10 pb-16 pt-6 max-md:px-6">
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
-          {/* FREE WEBINAR — primary, slightly larger */}
-          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: "1.5px solid rgba(246,212,75,0.7)" }}>
+          {/* FREE WEBINAR — primary */}
+          <div
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
+          >
             <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-2">
                 <WebinarIcon />
@@ -156,7 +157,10 @@ export default async function HomePage() {
           </div>
 
           {/* CASE BANK */}
-          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: CARD_BORDER }}>
+          <div
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            style={{ border: "1px solid rgba(51,51,51,0.10)" }}
+          >
             <div className="flex items-center gap-2 mb-2">
               <CaseBankIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 246 stations</p>
@@ -170,9 +174,16 @@ export default async function HomePage() {
               and an example explanation — everything you need to practise purposefully.
             </p>
 
-            {/* Station title glimpse */}
+            {/* Station title glimpse — mask fade works on any background colour */}
             {stationTitles.length > 0 && (
-              <div className="mb-6 relative overflow-hidden" style={{ maxHeight: 76 }}>
+              <div
+                className="mb-6 overflow-hidden"
+                style={{
+                  maxHeight: 76,
+                  WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)",
+                  maskImage: "linear-gradient(to bottom, black 40%, transparent)",
+                }}
+              >
                 <div className="flex flex-wrap gap-1.5">
                   {stationTitles.map((title) => (
                     <span
@@ -184,8 +195,6 @@ export default async function HomePage() {
                     </span>
                   ))}
                 </div>
-                {/* Fade out bottom */}
-                <div className="absolute inset-x-0 bottom-0 h-8 pointer-events-none" style={{ background: "linear-gradient(to bottom, transparent, #FFFBEA)" }} />
               </div>
             )}
 
@@ -194,12 +203,15 @@ export default async function HomePage() {
               className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
               style={{ background: DARK, color: "white" }}
             >
-              {user ? "Open Case Bank →" : "Create a free account →"}
+              {user ? "Open Case Bank →" : "Get Access Now →"}
             </Link>
           </div>
 
           {/* LIVE PRACTICE SESSIONS */}
-          <div className="rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-1" style={{ background: CARD_BG, border: CARD_BORDER }}>
+          <div
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1"
+            style={{ border: "1px solid rgba(51,51,51,0.10)" }}
+          >
             <div className="flex items-center gap-2 mb-2">
               <LiveIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice · Every Second Saturday</p>
