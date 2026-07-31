@@ -6,7 +6,7 @@ const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
 type Phase = "idle" | "recording" | "processing" | "playing";
-type Latency = { stt: number; llm: number; tts: number } | null;
+type Latency = { stt: number; llm: number } | null;
 
 export default function VoiceLoop() {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -17,8 +17,20 @@ export default function VoiceLoop() {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  const speak = useCallback((text: string) => {
+    if (!("speechSynthesis" in window)) {
+      setPhase("idle");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.95;
+    utt.pitch = 1.05;
+    utt.onend = () => setPhase("idle");
+    utt.onerror = () => setPhase("idle");
+    window.speechSynthesis.speak(utt);
+  }, []);
 
   const sendToExchange = useCallback(async (blob: Blob) => {
     try {
@@ -34,29 +46,15 @@ export default function VoiceLoop() {
 
       setTranscript(data.transcript);
       setResponse(data.response_text);
-      setLatency({ stt: data.stt_ms, llm: data.llm_ms, tts: data.tts_ms });
+      setLatency({ stt: data.stt_ms, llm: data.llm_ms });
 
       setPhase("playing");
-      const audioBytes = Uint8Array.from(atob(data.audio_b64), (c) => c.charCodeAt(0));
-
-      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-        audioCtxRef.current = new AudioContext();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") await ctx.resume();
-
-      const decoded = await ctx.decodeAudioData(audioBytes.buffer);
-      const source = ctx.createBufferSource();
-      source.buffer = decoded;
-      source.connect(ctx.destination);
-      source.onended = () => setPhase("idle");
-      sourceRef.current = source;
-      source.start();
+      speak(data.response_text);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setPhase("idle");
     }
-  }, []);
+  }, [speak]);
 
   const startRecording = useCallback(async () => {
     setError("");
@@ -92,12 +90,12 @@ export default function VoiceLoop() {
     if (phase === "idle") startRecording();
     else if (phase === "recording") stopRecording();
     else if (phase === "playing") {
-      sourceRef.current?.stop();
+      window.speechSynthesis?.cancel();
       setPhase("idle");
     }
   };
 
-  const total = latency ? latency.stt + latency.llm + latency.tts : 0;
+  const total = latency ? latency.stt + latency.llm : 0;
 
   const micLabel =
     phase === "idle" ? "Tap to speak" :
@@ -199,7 +197,6 @@ export default function VoiceLoop() {
             {[
               { label: "STT", value: latency.stt },
               { label: "LLM", value: latency.llm },
-              { label: "TTS", value: latency.tts },
               { label: "Total", value: total },
             ].map(({ label, value }) => (
               <div key={label} style={{ minWidth: 80 }}>
