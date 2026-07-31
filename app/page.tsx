@@ -123,7 +123,7 @@ export default async function HomePage() {
               How To Pass Your SCA — Free Monthly Webinar
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
-              A free 1-hour Zoom session on the first Saturday of every month. Learn what the RCGP
+              A free 1-hour Zoom session every month. Learn what the RCGP
               examiners are actually scoring, how high-performing candidates think through cases, and
               the consultation habits that separate a Clear Pass from a near miss. Attendees receive
               a code for 1 month of free Case Bank access.
@@ -217,7 +217,7 @@ export default async function HomePage() {
               Monthly Live Practice Sessions
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Small-group live sessions on the second Saturday of every month. Work through 6
+              Small-group live sessions every month. Work through 6
               exam-style cases with direct feedback — practice under realistic conditions and
               leave knowing exactly where your marks are going.
             </p>
