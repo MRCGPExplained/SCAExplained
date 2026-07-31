@@ -90,61 +90,11 @@ export default async function HomePage() {
             RCGP examiners score. That&apos;s exactly what we teach.
           </p>
 
-          {/* Stats row */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {[
-              "246 stations covering every RCGP domain",
-              "Free monthly webinar",
-              "Small-group live practice",
-            ].map((stat) => (
-              <div key={stat} className="flex items-center gap-2">
-                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: YELLOW }} />
-                <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.55)" }}>{stat}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="px-10 pt-2 pb-10 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
-          <div className="flex items-start gap-0 max-sm:flex-col">
-            {[
-              { n: "1", title: "Attend the free webinar", body: "Join the monthly Zoom session — no commitment, no payment." },
-              { n: "2", title: "Redeem your code",        body: "At the end you get a code. One page, one click, access granted." },
-              { n: "3", title: "Open the Case Bank",      body: "246 stations, study rooms, and notes — yours for 30 days." },
-            ].map((step, i) => (
-              <div key={step.n} className="flex items-start gap-0 flex-1 max-sm:w-full">
-                <div className="flex flex-col items-center max-sm:flex-row max-sm:items-start max-sm:gap-4 flex-1">
-                  <div className="flex items-center gap-3 max-sm:items-center">
-                    <span
-                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-extrabold font-display"
-                      style={{ background: YELLOW, color: DARK }}
-                    >
-                      {step.n}
-                    </span>
-                    <div className="max-sm:block hidden">
-                      <p className="font-display font-bold text-[14px]" style={{ color: DARK }}>{step.title}</p>
-                      <p className="text-[12px] leading-[1.55] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{step.body}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 max-sm:hidden">
-                    <p className="font-display font-bold text-[14px]" style={{ color: DARK }}>{step.title}</p>
-                    <p className="text-[12px] leading-[1.55] mt-1" style={{ color: "rgba(51,51,51,0.50)" }}>{step.body}</p>
-                  </div>
-                </div>
-                {i < 2 && (
-                  <div className="flex items-center justify-center pt-3.5 px-2 max-sm:hidden" style={{ color: "rgba(51,51,51,0.20)", fontSize: 18 }}>→</div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* CARDS */}
-      <section className="px-10 pb-16 pt-2 max-md:px-6">
+      <section className="px-10 pb-16 pt-6 max-md:px-6">
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
           {/* FREE WEBINAR — primary */}
