@@ -243,6 +243,71 @@ export async function sendVideoRequestEmail(args: {
   }
 }
 
+export async function sendAccessExpiryEmail(args: {
+  to: string;
+  firstName: string;
+  expiresAt: string;
+}): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const expiry = new Date(args.expiresAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(51,51,51,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:#333333;font-weight:700;margin:0 0 8px;">
+          Your access expires soon, ${escapeHtml(args.firstName)}.</p>
+        <p style="font-size:14px;line-height:1.6;color:#555555;margin:0;">
+          Your Case Bank access expires on <strong>${expiry}</strong>.
+          Renew now to keep access to all 246 stations, study rooms, and notes.
+        </p>
+      </td></tr>
+      <tr><td style="padding:20px 28px;">
+        <a href="https://www.scaexplained.com/register"
+           style="display:inline-block;background:${YELLOW};color:#333333;
+           font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;
+           font-size:15px;">
+          Renew access
+        </a>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <p style="font-size:12px;color:#9a9ab0;margin:0;">
+          Questions? Reply to this email or contact us at
+          <a href="mailto:mrcgpexplained@outlook.com" style="color:#9a9ab0;">mrcgpexplained@outlook.com</a>.
+        </p>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          For educational purposes only. © 2026 SCA Explained.</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `Your SCA Explained access expires on ${expiry}`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

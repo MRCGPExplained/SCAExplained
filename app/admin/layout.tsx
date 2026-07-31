@@ -18,7 +18,8 @@ export default function AdminLayout({
           </Link>
           <div className="flex gap-6">
             <Link href="/admin/homepage-videos" className="text-[13px] text-white/60 hover:text-white transition no-underline">Homepage Videos</Link>
-            <Link href="/admin/live-sessions" className="text-[13px] text-white/60 hover:text-white transition no-underline">Free Live Sessions</Link>
+            <Link href="/admin/live-sessions" className="text-[13px] text-white/60 hover:text-white transition no-underline">Live Sessions</Link>
+            <Link href="/admin/webinar-codes" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar Codes</Link>
             <Link href="/admin/video-course" className="text-[13px] text-white/60 hover:text-white transition no-underline">Skills Workshop</Link>
             <Link href="/admin/recorded-consultations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Recorded Consultations</Link>
             <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>

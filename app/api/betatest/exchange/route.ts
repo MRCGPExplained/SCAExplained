@@ -98,31 +98,6 @@ async function askClaude(transcript: string): Promise<string> {
   return (data.content?.[0]?.text ?? "").trim();
 }
 
-async function synthesise(text: string): Promise<ArrayBuffer> {
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM";
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY!,
-        "content-type": "application/json",
-        accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_flash_v2_5",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-    }
-  );
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`ElevenLabs TTS ${res.status}: ${body}`);
-  }
-  return res.arrayBuffer();
-}
-
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -148,14 +123,8 @@ export async function POST(request: Request) {
     const response_text = await askClaude(transcript);
     const llm_ms = Date.now() - t1;
 
-    // TTS
-    const t2 = Date.now();
-    const audioBuffer = await synthesise(response_text);
-    const tts_ms = Date.now() - t2;
-
-    const audio_b64 = Buffer.from(audioBuffer).toString("base64");
-
-    return Response.json({ transcript, response_text, audio_b64, stt_ms, llm_ms, tts_ms });
+    // TTS handled client-side via Web Speech API
+    return Response.json({ transcript, response_text, stt_ms, llm_ms });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Internal server error";
     console.error("[betatest/exchange]", msg);

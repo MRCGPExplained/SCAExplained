@@ -1,7 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
-import { HomepageVideos } from "./components/HomepageVideos";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -9,51 +8,37 @@ export const dynamic = "force-dynamic";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+  }).format(new Date(iso));
+}
+
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
 
   const supabaseAdmin = getSupabaseAdmin();
-  const { data: rawVideos } = supabaseAdmin
-    ? await supabaseAdmin
-        .from("homepage_videos")
-        .select("id, title, description, bunny_video_id")
-        .eq("published", true)
-        .order("display_order", { ascending: true })
-        .limit(3)
-    : { data: [] };
-
-  const libId = process.env.BUNNY_LIBRARY_ID;
-  const cdnHost = process.env.BUNNY_CDN_HOSTNAME;
-
-  const videos = (rawVideos ?? []).map((v) => ({
-    id: v.id,
-    title: v.title,
-    description: v.description ?? null,
-    embed_url: libId && v.bunny_video_id
-      ? `https://iframe.mediadelivery.net/embed/${libId}/${v.bunny_video_id}`
-      : "",
-    thumbnail_url: cdnHost && v.bunny_video_id
-      ? `https://${cdnHost}/${v.bunny_video_id}/thumbnail.jpg`
-      : null,
-  })).filter((v) => v.embed_url);
 
   const { data: rawSessions } = supabaseAdmin
     ? await supabaseAdmin
         .from("live_sessions")
-        .select("id, scheduled_at, zoom_url")
+        .select("id, scheduled_at, zoom_url, is_free")
         .gte("scheduled_at", new Date().toISOString())
         .order("scheduled_at", { ascending: true })
     : { data: [] };
 
-  const sessions = (rawSessions ?? []) as { id: string; scheduled_at: string; zoom_url: string }[];
+  const sessions = (rawSessions ?? []) as { id: string; scheduled_at: string; zoom_url: string; is_free: boolean }[];
+  const freeWebinars = sessions.filter((s) => s.is_free);
+  const paidSessions = sessions.filter((s) => !s.is_free);
 
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
-      <section className="px-10 pt-10 pb-20 max-md:px-6">
-        <div className="max-w-[860px] mx-auto">
-          <h1 className="font-display mb-[26px]" style={{ color: DARK }}>
+      <section className="px-10 pt-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
             <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
               Perform Your Best On SCA<span style={{ color: YELLOW }}>.</span>
             </span>
@@ -61,146 +46,92 @@ export default async function HomePage() {
               Know Exactly What <Swash>Scores Marks</Swash>
             </span>
           </h1>
-
-          <p className="text-[15.5px] leading-[1.7] mb-4" style={{ color: "rgba(51,51,51,0.68)" }}>
-            Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about
-            demonstrating a specific set of consultation skills, naturally under exam
-            conditions. Exploring a patient&apos;s ICE without it feeling like a checklist.
-            Sitting with diagnostic uncertainty and committing to a plan anyway. Handling
-            patient emotion without losing structure. These are the skills RCGP examiners
-            are scoring. That&apos;s exactly what we teach.
+          <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.68)" }}>
+            Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about demonstrating
+            a specific set of consultation skills naturally under exam conditions — ICE, shared
+            decision-making, sitting with uncertainty, handling patient emotion. These are the skills
+            RCGP examiners score. That&apos;s exactly what we teach.
           </p>
-
         </div>
       </section>
 
-      {/* CTA + VIDEOS */}
-      <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[1000px] mx-auto flex gap-8 items-start max-md:flex-col">
-
-          {/* CTA — left, anchored top */}
-          <div
-            className="flex-1 min-w-0 max-md:w-full rounded-2xl p-8"
-            style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.40)" }}
-          >
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>The Complete SCA Package</p>
-            <h2 className="font-display font-extrabold text-[26px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              Everything you need to get your Clear Pass.
+      {/* FREE WEBINAR */}
+      <section className="px-10 pb-10 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <div className="rounded-2xl p-8" style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.45)" }}>
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              How To Pass Your SCA — Free Monthly Webinar
             </h2>
-            <p className="text-[14.5px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.62)" }}>
-              The SCA isn&apos;t a knowledge test — it&apos;s a performance. Our package is built around one goal: helping you demonstrate the consultation skills RCGP examiners are actually scoring, confidently and consistently under exam conditions.
+            <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
+              A free 1-hour Zoom session on the first Saturday of every month. Learn what the RCGP
+              examiners are actually scoring, how high-performing candidates think through cases, and
+              the consultation habits that separate a Clear Pass from a near miss. Attendees receive
+              a code for 1 month of free Case Bank access.
             </p>
 
-            <div className="flex flex-col gap-4 mb-8">
-              {/* Skills Workshop */}
-              <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <rect x="1" y="3" width="14" height="14" rx="2.5" stroke="#333" strokeWidth="1.5"/>
-                    <path d="M15 8l4-3v10l-4-3V8z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
-                    <path d="M6 7.5l5 2.5-5 2.5V7.5z" fill="#333"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Skills Workshop</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Build the consultation skills that score marks in the SCA. Master ICE, shared decision-making, safety netting, managing uncertainty, and the communication techniques examiners are looking for.</p>
-                </div>
-              </div>
-
-              {/* Recorded Consultations */}
-              <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <rect x="1" y="3" width="14" height="14" rx="2.5" stroke="#333" strokeWidth="1.5"/>
-                    <path d="M15 8l4-3v10l-4-3V8z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
-                    <path d="M6 7.5l5 2.5-5 2.5V7.5z" fill="#333"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Recorded Consultations</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Watch complete, exam-style consultations from start to finish. Learn how high-scoring consultations flow by seeing realistic doctor–patient interactions with expert explanations.</p>
-                </div>
-              </div>
-
-              {/* Case Bank */}
-              <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(246,212,75,0.30)" }}>
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <rect x="3" y="2" width="14" height="16" rx="2" stroke="#333" strokeWidth="1.5"/>
-                    <path d="M7 7h6M7 10.5h6M7 14h4" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-display font-bold text-[14.5px]" style={{ color: DARK }}>Case Bank</p>
-                  <p className="text-[13.5px] leading-[1.6] mt-0.5" style={{ color: "rgba(51,51,51,0.58)" }}>Practise with a growing library of realistic SCA cases. Strengthen your clinical reasoning, consultation structure, and confidence through targeted exam-style scenarios.</p>
-                </div>
-              </div>
-
-              {/* AI Roleplay */}
-              <div className="flex gap-4 items-start">
-                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "rgba(51,51,51,0.07)" }}>
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <path d="M3 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7l-4 3V4z" stroke="#333" strokeWidth="1.5" strokeLinejoin="round"/>
-                    <circle cx="7" cy="8" r="1" fill="#333"/>
-                    <circle cx="10" cy="8" r="1" fill="#333"/>
-                    <circle cx="13" cy="8" r="1" fill="#333"/>
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-display font-bold text-[14.5px]" style={{ color: "rgba(51,51,51,0.40)" }}>AI Roleplay</p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(51,51,51,0.08)", color: "rgba(51,51,51,0.45)" }}>Coming Soon</span>
+            {freeWebinars.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {freeWebinars.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
+                    <p className="font-semibold text-[15px]" style={{ color: DARK }}>{formatDate(s.scheduled_at)}</p>
+                    <a
+                      href={s.zoom_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 font-bold text-[14px] px-6 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-85"
+                      style={{ background: YELLOW, color: DARK }}
+                    >
+                      Register free →
+                    </a>
                   </div>
-                  <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.38)" }}>Practise with an AI patient fine-tuned to reward the exact consultation behaviours and skills that score marks — giving you realistic, pressure-free repetitions whenever you need them.</p>
-                </div>
+                ))}
               </div>
-            </div>
-
-            <div className="flex items-center gap-5 flex-wrap">
-              <Link
-                href="/checkout"
-                className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                style={{ background: YELLOW, color: DARK }}
-              >
-                Get Access
-              </Link>
-              <p className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.45)" }}>£60 · 90 days access</p>
-            </div>
+            ) : (
+              <p className="text-[14px] font-semibold" style={{ color: "rgba(51,51,51,0.45)" }}>
+                Next date coming soon — check back shortly.
+              </p>
+            )}
           </div>
-
-          {/* VIDEOS — right */}
-          {videos.length > 0 && (
-            <div className="flex-1 min-w-0">
-              <div className="mb-6">
-                <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
-                  Learn About Our Programme
-                </h2>
-                <div className="h-[3px] rounded-full mt-2 w-[80px]" style={{ background: YELLOW }} />
-              </div>
-              <HomepageVideos videos={videos} />
-            </div>
-          )}
-
         </div>
       </section>
 
-      {/* LIVE EVENTS */}
-      <section className="px-10 py-16 max-md:px-6">
-        <div className="max-w-[1000px] mx-auto">
-          <div className="mb-8">
-            <h2 className="font-display font-extrabold text-[26px] inline-block" style={{ color: DARK }}>
-              Live Sessions
+      {/* CASE BANK */}
+      <section className="px-10 pb-10 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <div className="rounded-2xl p-8 bg-white" style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}>
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank</p>
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              246 Realistic SCA Stations
             </h2>
-            <div className="h-[3px] rounded-full mt-2 w-[56px]" style={{ background: YELLOW }} />
-          </div>
-
-          {sessions.length === 0 ? (
-            <p className="text-[14.5px]" style={{ color: "rgba(51,51,51,0.45)" }}>
-              No sessions scheduled right now — check back soon.
+            <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
+              A growing library of exam-style cases built around the domains RCGP examiners score.
+              Each station includes a full case sheet, data-gathering guidance, management points,
+              and an example explanation — everything you need to practise purposefully.
             </p>
-          ) : (
+            <Link
+              href={user ? "/case-bank" : "/register"}
+              className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+              style={{ background: DARK, color: "white" }}
+            >
+              {user ? "Open Case Bank →" : "Create a free account →"}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* PAID LIVE SESSIONS */}
+      {paidSessions.length > 0 && (
+        <section className="px-10 py-10 max-md:px-6">
+          <div className="max-w-[720px] mx-auto">
+            <div className="mb-6">
+              <h2 className="font-display font-extrabold text-[22px] inline-block" style={{ color: DARK }}>
+                Monthly Live Sessions
+              </h2>
+              <div className="h-[3px] rounded-full mt-2 w-[56px]" style={{ background: YELLOW }} />
+            </div>
             <div className="flex flex-col gap-3">
-              {sessions.map((s) => {
+              {paidSessions.map((s) => {
                 const date = new Date(s.scheduled_at);
                 const formatted = date.toLocaleDateString("en-GB", {
                   weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -212,32 +143,30 @@ export default async function HomePage() {
                 return (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 max-sm:flex-col max-sm:items-start"
-                    style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
+                    className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 bg-white max-sm:flex-col max-sm:items-start"
+                    style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
                   >
                     <div>
                       <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>{formatted}</p>
-                      <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT</p>
+                      <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT · £40 · 6 cases</p>
                     </div>
-                    <Link
-                      href={s.zoom_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <a
+                      href="mailto:mrcgpexplained@outlook.com"
                       className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
                       style={{ background: YELLOW, color: DARK }}
                     >
-                      Register
-                    </Link>
+                      Book via email
+                    </a>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* FOOTER */}
-      <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
+      <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6 mt-10" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
         <p className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>For educational purposes only. © 2026 SCA Explained.</p>
         <div className="flex gap-5">
           <Link href="/privacy" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Privacy</Link>

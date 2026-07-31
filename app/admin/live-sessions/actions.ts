@@ -6,16 +6,17 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export async function createLiveSessionAction(_prev: unknown, formData: FormData) {
   const zoom_url = String(formData.get("zoom_url") ?? "").trim();
   const scheduled_at = String(formData.get("scheduled_at") ?? "").trim();
+  const is_free = formData.get("is_free") === "true";
   if (!zoom_url || !scheduled_at) return { error: "Zoom URL and date/time are required." };
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Admin client unavailable." };
 
-  const { error } = await supabase.from("live_sessions").insert({ zoom_url, scheduled_at });
+  const { error } = await supabase.from("live_sessions").insert({ zoom_url, scheduled_at, is_free });
   if (error) return { error: error.message };
 
   revalidatePath("/admin/live-sessions");
-  revalidatePath("/live-session");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -28,5 +29,5 @@ export async function deleteLiveSessionAction(formData: FormData) {
 
   await supabase.from("live_sessions").delete().eq("id", id);
   revalidatePath("/admin/live-sessions");
-  revalidatePath("/live-session");
+  revalidatePath("/");
 }

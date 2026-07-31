@@ -13,14 +13,14 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: access }] = await Promise.all([
+    supabase.from("user_profiles").select("display_name").eq("id", user.id).single(),
+    supabase.from("user_access").select("has_programme, expires_at").eq("user_id", user.id).single(),
+  ]);
 
   const name = profile?.display_name ?? null;
   const firstName = name ? name.trim().split(" ")[0] : null;
+  const hasAccess = access?.has_programme && access.expires_at && new Date(access.expires_at) > new Date();
 
   const items = [
     {
@@ -67,6 +67,22 @@ export default async function DashboardPage() {
           </h1>
         </div>
 
+        {!hasAccess && (
+          <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap" style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.50)" }}>
+            <div>
+              <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>Have a webinar code?</p>
+              <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.55)" }}>Redeem it for 30 days of free Case Bank access.</p>
+            </div>
+            <Link
+              href="/redeem"
+              className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-xl no-underline"
+              style={{ background: YELLOW, color: DARK }}
+            >
+              Redeem code →
+            </Link>
+          </div>
+        )}
+
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <Link
@@ -75,9 +91,7 @@ export default async function DashboardPage() {
               className="bg-white rounded-2xl p-6 flex items-center gap-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
               style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
             >
-              <div className="shrink-0 flex items-center justify-center">
-                {item.icon}
-              </div>
+              <div className="shrink-0 flex items-center justify-center">{item.icon}</div>
               <div className="flex-1 min-w-0">
                 <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>{item.label}</p>
                 <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{item.description}</p>

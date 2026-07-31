@@ -17,7 +17,7 @@ export default async function AdminLiveSessionsPage() {
   const { data } = supabase
     ? await supabase
         .from("live_sessions")
-        .select("id, zoom_url, scheduled_at")
+        .select("id, zoom_url, scheduled_at, is_free")
         .order("scheduled_at", { ascending: true })
     : { data: [] };
 
