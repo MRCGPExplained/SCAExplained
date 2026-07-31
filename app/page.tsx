@@ -7,12 +7,46 @@ export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
+const CARD_BG = "#FFFBEA";
+const CARD_BORDER = "1px solid rgba(246,212,75,0.45)";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
   }).format(new Date(iso));
+}
+
+function WebinarIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="5" width="14" height="14" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M16 10l5.5-3.2v10.4L16 14" stroke={DARK} strokeWidth="1.6" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function CaseBankIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="2" width="12" height="18" rx="2" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M8 7h5M8 11h5M8 15h3" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M16 5h1.5A1.5 1.5 0 0 1 19 6.5v13A1.5 1.5 0 0 1 17.5 21H7" stroke={DARK} strokeWidth="1.4" strokeLinecap="round" opacity="0.4"/>
+    </svg>
+  );
+}
+
+function LiveIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="17" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M3 9h18" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M8 2v4M16 2v4" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+      <circle cx="8" cy="15" r="1.4" fill={DARK}/>
+      <circle cx="12" cy="15" r="1.4" fill={DARK}/>
+      <circle cx="16" cy="15" r="1.4" fill={DARK}/>
+    </svg>
+  );
 }
 
 export default async function HomePage() {
@@ -55,11 +89,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* FREE WEBINAR */}
-      <section className="px-10 pb-10 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
-          <div className="rounded-2xl p-8" style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.45)" }}>
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
+      {/* CARDS */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto flex flex-col gap-5">
+
+          {/* FREE WEBINAR */}
+          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
+            <div className="flex items-center gap-2 mb-2">
+              <WebinarIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
+            </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
               How To Pass Your SCA — Free Monthly Webinar
             </h2>
@@ -93,14 +132,13 @@ export default async function HomePage() {
               </p>
             )}
           </div>
-        </div>
-      </section>
 
-      {/* CASE BANK */}
-      <section className="px-10 pb-10 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
-          <div className="rounded-2xl p-8 bg-white" style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}>
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank</p>
+          {/* CASE BANK */}
+          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
+            <div className="flex items-center gap-2 mb-2">
+              <CaseBankIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank</p>
+            </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
               246 Realistic SCA Stations
             </h2>
@@ -117,56 +155,65 @@ export default async function HomePage() {
               {user ? "Open Case Bank →" : "Create a free account →"}
             </Link>
           </div>
+
+          {/* LIVE PRACTICE SESSIONS */}
+          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
+            <div className="flex items-center gap-2 mb-2">
+              <LiveIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice · Every Second Saturday</p>
+            </div>
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              Monthly Live Practice Sessions
+            </h2>
+            <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
+              Small-group live sessions on the second Saturday of every month. Work through 6
+              exam-style cases with direct feedback — practice under realistic conditions and
+              leave knowing exactly where your marks are going.
+            </p>
+
+            {paidSessions.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {paidSessions.map((s) => {
+                  const date = new Date(s.scheduled_at);
+                  const formatted = date.toLocaleDateString("en-GB", {
+                    weekday: "long", day: "numeric", month: "long", year: "numeric",
+                    timeZone: "Europe/London",
+                  });
+                  const time = date.toLocaleTimeString("en-GB", {
+                    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+                  });
+                  return (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start"
+                    >
+                      <div>
+                        <p className="font-semibold text-[15px]" style={{ color: DARK }}>{formatted}</p>
+                        <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT · £40 · 6 cases</p>
+                      </div>
+                      <a
+                        href="mailto:mrcgpexplained@outlook.com"
+                        className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
+                        style={{ background: YELLOW, color: DARK }}
+                      >
+                        Book via email
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[14px] font-semibold" style={{ color: "rgba(51,51,51,0.45)" }}>
+                Next date coming soon — check back shortly.
+              </p>
+            )}
+          </div>
+
         </div>
       </section>
 
-      {/* PAID LIVE SESSIONS */}
-      {paidSessions.length > 0 && (
-        <section className="px-10 py-10 max-md:px-6">
-          <div className="max-w-[720px] mx-auto">
-            <div className="mb-6">
-              <h2 className="font-display font-extrabold text-[22px] inline-block" style={{ color: DARK }}>
-                Monthly Live Sessions
-              </h2>
-              <div className="h-[3px] rounded-full mt-2 w-[56px]" style={{ background: YELLOW }} />
-            </div>
-            <div className="flex flex-col gap-3">
-              {paidSessions.map((s) => {
-                const date = new Date(s.scheduled_at);
-                const formatted = date.toLocaleDateString("en-GB", {
-                  weekday: "long", day: "numeric", month: "long", year: "numeric",
-                  timeZone: "Europe/London",
-                });
-                const time = date.toLocaleTimeString("en-GB", {
-                  hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
-                });
-                return (
-                  <div
-                    key={s.id}
-                    className="flex items-center justify-between gap-4 rounded-2xl px-6 py-4 bg-white max-sm:flex-col max-sm:items-start"
-                    style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 10px rgba(51,51,51,0.06)" }}
-                  >
-                    <div>
-                      <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>{formatted}</p>
-                      <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT · £40 · 6 cases</p>
-                    </div>
-                    <a
-                      href="mailto:mrcgpexplained@outlook.com"
-                      className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
-                      style={{ background: YELLOW, color: DARK }}
-                    >
-                      Book via email
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* FOOTER */}
-      <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6 mt-10" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
+      <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
         <p className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>For educational purposes only. © 2026 SCA Explained.</p>
         <div className="flex gap-5">
           <Link href="/privacy" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Privacy</Link>
