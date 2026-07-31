@@ -1,7 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
-import { CaseBankMockup } from "./components/CaseBankMockup";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -209,19 +208,6 @@ export default async function HomePage() {
               and an example explanation — everything you need to practise purposefully.
             </p>
 
-            {/* Case Bank mockup */}
-            <div
-              className="mb-6 overflow-hidden rounded-xl"
-              style={{
-                maxHeight: 220,
-                WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)",
-                maskImage: "linear-gradient(to bottom, black 55%, transparent)",
-              }}
-            >
-              <div style={{ transform: "scale(0.82)", transformOrigin: "top left", width: "122%" }}>
-                <CaseBankMockup />
-              </div>
-            </div>
 
             <Link
               href={user ? "/case-bank" : "/register"}
