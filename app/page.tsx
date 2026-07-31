@@ -55,22 +55,33 @@ export default async function HomePage() {
 
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: rawSessions } = supabaseAdmin
-    ? await supabaseAdmin
-        .from("live_sessions")
-        .select("id, scheduled_at, zoom_url, is_free")
-        .gte("scheduled_at", new Date().toISOString())
-        .order("scheduled_at", { ascending: true })
-    : { data: [] };
+  const [sessionsResult, stationsResult] = await Promise.all([
+    supabaseAdmin
+      ? supabaseAdmin
+          .from("live_sessions")
+          .select("id, scheduled_at, zoom_url, is_free")
+          .gte("scheduled_at", new Date().toISOString())
+          .order("scheduled_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    supabaseAdmin
+      ? supabaseAdmin
+          .from("stations")
+          .select("title")
+          .eq("published", true)
+          .order("number", { ascending: true })
+          .limit(32)
+      : Promise.resolve({ data: [] }),
+  ]);
 
-  const sessions = (rawSessions ?? []) as { id: string; scheduled_at: string; zoom_url: string; is_free: boolean }[];
+  const sessions = ((sessionsResult.data ?? []) as { id: string; scheduled_at: string; zoom_url: string; is_free: boolean }[]);
   const freeWebinars = sessions.filter((s) => s.is_free);
   const paidSessions = sessions.filter((s) => !s.is_free);
+  const stationTitles = ((stationsResult.data ?? []) as { title: string }[]).map((s) => s.title);
 
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
-      <section className="px-10 pt-10 pb-16 max-md:px-6">
+      <section className="px-10 pt-10 pb-10 max-md:px-6">
         <div className="max-w-[720px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
             <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
@@ -80,26 +91,43 @@ export default async function HomePage() {
               Know Exactly What <Swash>Scores Marks</Swash>
             </span>
           </h1>
-          <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.68)" }}>
+          <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.68)" }}>
             Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about demonstrating
             a specific set of consultation skills naturally under exam conditions — ICE, shared
             decision-making, sitting with uncertainty, handling patient emotion. These are the skills
             RCGP examiners score. That&apos;s exactly what we teach.
           </p>
+
+          {/* Stats row */}
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {[
+              "246 practice stations",
+              "Free monthly webinar",
+              "Small-group live sessions",
+            ].map((stat) => (
+              <div key={stat} className="flex items-center gap-2">
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: YELLOW }} />
+                <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.55)" }}>{stat}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* CARDS */}
-      <section className="px-10 pb-16 max-md:px-6">
+      <section className="px-10 pb-16 pt-6 max-md:px-6">
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
-          {/* FREE WEBINAR */}
-          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
-            <div className="flex items-center gap-2 mb-2">
-              <WebinarIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
+          {/* FREE WEBINAR — primary, slightly larger */}
+          <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: "1.5px solid rgba(246,212,75,0.7)" }}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <WebinarIcon />
+                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Free · Every First Saturday</p>
+              </div>
+              <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full" style={{ background: YELLOW, color: DARK }}>Free</span>
             </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
+            <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
               How To Pass Your SCA — Free Monthly Webinar
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
@@ -137,16 +165,36 @@ export default async function HomePage() {
           <div className="rounded-2xl p-8" style={{ background: CARD_BG, border: CARD_BORDER }}>
             <div className="flex items-center gap-2 mb-2">
               <CaseBankIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 246 stations</p>
             </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
               246 Realistic SCA Stations
             </h2>
-            <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
+            <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               A growing library of exam-style cases built around the domains RCGP examiners score.
               Each station includes a full case sheet, data-gathering guidance, management points,
               and an example explanation — everything you need to practise purposefully.
             </p>
+
+            {/* Station title glimpse */}
+            {stationTitles.length > 0 && (
+              <div className="mb-6 relative overflow-hidden" style={{ maxHeight: 76 }}>
+                <div className="flex flex-wrap gap-1.5">
+                  {stationTitles.map((title) => (
+                    <span
+                      key={title}
+                      className="text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
+                      style={{ background: "rgba(51,51,51,0.06)", color: "rgba(51,51,51,0.55)" }}
+                    >
+                      {title}
+                    </span>
+                  ))}
+                </div>
+                {/* Fade out bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-8 pointer-events-none" style={{ background: "linear-gradient(to bottom, transparent, #FFFBEA)" }} />
+              </div>
+            )}
+
             <Link
               href={user ? "/case-bank" : "/register"}
               className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
@@ -183,10 +231,7 @@ export default async function HomePage() {
                     hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
                   });
                   return (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start"
-                    >
+                    <div key={s.id} className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
                       <div>
                         <p className="font-semibold text-[15px]" style={{ color: DARK }}>{formatted}</p>
                         <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT · £40 · 6 cases</p>
