@@ -4,14 +4,14 @@ import { useState, useRef, useEffect, useActionState, useTransition } from "reac
 import Link from "next/link";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
 
-const NAVY = "#1A1B52";
-const LIGHT_BG = "#F3F2FB";
+const NAVY = "#333333";
+const LIGHT_BG = "#FAFAF8";
 
 type Grade = "CF" | "F" | "P" | "CP";
 const GRADES: Grade[] = ["CF", "F", "P", "CP"];
 
 const GRADE_STYLE: Record<Grade, { bg: string; color: string; label: string }> = {
-  CF: { bg: "rgba(239,68,68,0.1)", color: "#B91C1C", label: "Clear Fail" },
+  CF: { bg: "rgba(239,68,68,0.1)",  color: "#B91C1C", label: "Clear Fail" },
   F:  { bg: "rgba(245,158,11,0.1)", color: "#92400E", label: "Fail" },
   P:  { bg: "rgba(34,197,94,0.1)",  color: "#166534", label: "Pass" },
   CP: { bg: "rgba(59,130,246,0.1)", color: "#1D4ED8", label: "Clear Pass" },
@@ -29,6 +29,16 @@ function pts(grade: Grade | "", domain: string): number | null {
   return maps[domain]?.[grade] ?? null;
 }
 
+function GradeBadge({ grade }: { grade: string }) {
+  const s = GRADE_STYLE[grade as Grade];
+  if (!s) return null;
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: s.bg, color: s.color }}>
+      {grade}
+    </span>
+  );
+}
+
 function GradeSelector({ name, value, onChange }: { name: string; value: Grade | ""; onChange: (g: Grade) => void }) {
   return (
     <div className="flex gap-2 flex-wrap">
@@ -39,8 +49,8 @@ function GradeSelector({ name, value, onChange }: { name: string; value: Grade |
           onClick={() => onChange(g)}
           className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition"
           style={{
-            background: value === g ? GRADE_STYLE[g].bg : "rgba(26,27,82,0.05)",
-            color: value === g ? GRADE_STYLE[g].color : "rgba(26,27,82,0.4)",
+            background: value === g ? GRADE_STYLE[g].bg : "rgba(51,51,51,0.05)",
+            color: value === g ? GRADE_STYLE[g].color : "rgba(51,51,51,0.4)",
             border: value === g ? `1.5px solid ${GRADE_STYLE[g].color}30` : "1.5px solid transparent",
           }}
         >
@@ -49,6 +59,40 @@ function GradeSelector({ name, value, onChange }: { name: string; value: Grade |
         </button>
       ))}
       <input type="hidden" name={name} value={value} />
+    </div>
+  );
+}
+
+function Accordion({
+  title, badge, defaultOpen = true, children,
+}: {
+  title: string;
+  badge?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)", borderRadius: 16, overflow: "hidden" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4"
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          borderBottom: open ? "1px solid rgba(51,51,51,0.07)" : "none",
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-[13px] font-bold" style={{ color: NAVY }}>{title}</span>
+          {badge}
+        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.18s", flexShrink: 0 }}>
+          <path d="M4 6l4 4 4-4" stroke="rgba(51,51,51,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && <div className="px-5 pb-5 pt-4">{children}</div>}
     </div>
   );
 }
@@ -87,7 +131,6 @@ interface Props {
 export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl }: Props) {
   const isSent = !!rec.sent_to_candidate_at;
 
-  // Pre-fill with examiner grades if already reviewed, else AI grades
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
   const [cmGrade, setCmGrade] = useState<Grade | "">((rec.examiner_clinical_management ?? rec.ai_clinical_management ?? "") as Grade | "");
   const [roGrade, setRoGrade] = useState<Grade | "">((rec.examiner_relating_to_others ?? rec.ai_relating_to_others ?? "") as Grade | "");
@@ -99,12 +142,10 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [grammarPending, startGrammar] = useTransition();
   const [aiGenError, setAiGenError] = useState("");
 
-  // Voice note recording
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "recorded" | "uploading" | "done">("idle");
   const voiceRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
 
-  // Audio playback speed
   const [playbackRate, setPlaybackRate] = useState(1);
   const doctorAudioRef = useRef<HTMLAudioElement | null>(null);
   const patientAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -130,9 +171,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     }
   }
 
-  function stopVoiceNote() {
-    voiceRecorderRef.current?.stop();
-  }
+  function stopVoiceNote() { voiceRecorderRef.current?.stop(); }
 
   async function uploadVoiceNote() {
     setVoiceState("uploading");
@@ -162,21 +201,20 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     }
   }, [state]);
 
+  const hasAi = rec.ai_data_gathering || rec.ai_clinical_management || rec.ai_relating_to_others;
+
   return (
     <div className="min-h-screen" style={{ background: LIGHT_BG }}>
-      <div className="max-w-[900px] mx-auto px-4 py-10">
+      <div className="max-w-[760px] mx-auto px-4 py-10">
 
         <div className="mb-6">
-          <Link href="/examiner" className="text-[12px] font-semibold" style={{ color: "rgba(26,27,82,0.45)", textDecoration: "none" }}>
+          <Link href="/examiner" className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
             ← Review Queue
           </Link>
         </div>
 
-        {/* Header */}
-        <div
-          className="rounded-2xl p-6 mb-6"
-          style={{ background: NAVY, color: "white" }}
-        >
+        {/* Station header */}
+        <div className="rounded-2xl p-6 mb-5" style={{ background: NAVY, color: "white" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1 opacity-50">
             Station {rec.station_number}
           </div>
@@ -189,302 +227,275 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Station score — always visible, no accordion */}
+        {totalPts !== null && (
+          <div
+            className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between"
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+          >
+            <span className="text-[12px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Station Score
+            </span>
+            <span className="font-extrabold text-[22px]" style={{ color: NAVY }}>{totalPts} / 10.5 pts</span>
+          </div>
+        )}
 
-          {/* Left: transcript + audio */}
-          <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
 
-            {/* Audio players */}
-            {(doctorAudioUrl || patientAudioUrl) && (
-              <div
-                className="rounded-2xl p-5"
-                style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.4)" }}>
-                    Audio
-                  </div>
-                  <div className="flex gap-1">
-                    {[1, 1.5, 2].map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => applyPlaybackRate(r)}
-                        className="text-[11px] font-bold px-2 py-0.5 rounded"
-                        style={{
-                          background: playbackRate === r ? NAVY : "rgba(26,27,82,0.07)",
-                          color: playbackRate === r ? "white" : "rgba(26,27,82,0.5)",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {r}×
-                      </button>
-                    ))}
-                  </div>
+          {/* AI Pre-assessment */}
+          {hasAi ? (
+            <Accordion
+              title="AI Pre-Assessment"
+              badge={
+                <div className="flex gap-1.5">
+                  {rec.ai_data_gathering && <GradeBadge grade={rec.ai_data_gathering} />}
+                  {rec.ai_clinical_management && <GradeBadge grade={rec.ai_clinical_management} />}
+                  {rec.ai_relating_to_others && <GradeBadge grade={rec.ai_relating_to_others} />}
                 </div>
-
-                {doctorAudioUrl && (
-                  <div className="mb-3">
-                    <div className="text-[11px] mb-1" style={{ color: "rgba(26,27,82,0.45)" }}>Doctor</div>
-                    <audio
-                      ref={doctorAudioRef}
-                      src={doctorAudioUrl}
-                      controls
-                      className="w-full"
-                      style={{ height: 36 }}
-                      onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
-                    />
-                  </div>
-                )}
-                {patientAudioUrl && (
-                  <div>
-                    <div className="text-[11px] mb-1" style={{ color: "rgba(26,27,82,0.45)" }}>Patient</div>
-                    <audio
-                      ref={patientAudioRef}
-                      src={patientAudioUrl}
-                      controls
-                      className="w-full"
-                      style={{ height: 36 }}
-                      onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* AI pre-assessment */}
-            {(rec.ai_data_gathering || rec.ai_clinical_management || rec.ai_relating_to_others) ? (
-              <div
-                className="rounded-2xl p-5"
-                style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
-              >
-                <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(26,27,82,0.4)" }}>
-                  AI Pre-Assessment
-                </div>
-                <div className="flex flex-col gap-3">
-                  {([
-                    { key: "dg", label: "Data Gathering", grade: rec.ai_data_gathering, comment: rec.ai_comment_data_gathering },
-                    { key: "cm", label: "Clinical Management", grade: rec.ai_clinical_management, comment: rec.ai_comment_clinical_management },
-                    { key: "ro", label: "Relating to Others", grade: rec.ai_relating_to_others, comment: rec.ai_comment_relating_to_others },
-                  ] as const).map(({ key, label, grade, comment }) => (
-                    <div key={key}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[12px] font-semibold" style={{ color: NAVY }}>{label}</span>
-                        {grade && (
-                          <span
-                            className="text-[11px] font-bold px-2 py-0.5 rounded-md"
-                            style={{
-                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : grade === "P" ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)",
-                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : grade === "P" ? "#166534" : "#1D4ED8",
-                            }}
-                          >
-                            {grade}
-                          </span>
-                        )}
-                      </div>
-                      {comment && (
-                        <p className="text-[12px] leading-relaxed" style={{ color: "rgba(26,27,82,0.6)" }}>{comment}</p>
-                      )}
+              }
+            >
+              <div className="flex flex-col gap-4">
+                {([
+                  { label: "Data Gathering & Diagnosis", grade: rec.ai_data_gathering, comment: rec.ai_comment_data_gathering },
+                  { label: "Clinical Management",        grade: rec.ai_clinical_management, comment: rec.ai_comment_clinical_management },
+                  { label: "Relating to Others",         grade: rec.ai_relating_to_others, comment: rec.ai_comment_relating_to_others },
+                ] as const).map(({ label, grade, comment }) => (
+                  <div key={label}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[12px] font-semibold" style={{ color: NAVY }}>{label}</span>
+                      {grade && <GradeBadge grade={grade} />}
                     </div>
+                    {comment && (
+                      <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.65)" }}>{comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Accordion>
+          ) : (
+            <div className="rounded-xl px-4 py-3 text-[12px]" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", color: "#92400E" }}>
+              No AI assessment — marking pipeline may not have completed. Check Vercel logs.
+            </div>
+          )}
+
+          {/* Audio recording */}
+          {(doctorAudioUrl || patientAudioUrl) && (
+            <Accordion title="Audio Recording">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>Playback speed</span>
+                <div className="flex gap-1">
+                  {[1, 1.5, 2].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => applyPlaybackRate(r)}
+                      className="text-[11px] font-bold px-2 py-0.5 rounded"
+                      style={{
+                        background: playbackRate === r ? NAVY : "rgba(51,51,51,0.07)",
+                        color: playbackRate === r ? "white" : "rgba(51,51,51,0.5)",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {r}×
+                    </button>
                   ))}
                 </div>
               </div>
-            ) : (
-              <div
-                className="rounded-xl px-4 py-3 text-[12px]"
-                style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", color: "#92400E" }}
-              >
-                No AI assessment found — the marking pipeline may not have completed. Check Vercel function logs.
-              </div>
-            )}
-
-            {/* Transcript */}
-            {rec.transcript_formatted && (
-              <div
-                className="rounded-2xl p-5 flex-1"
-                style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)", maxHeight: 500, overflowY: "auto" }}
-              >
-                <div className="text-[11px] font-bold uppercase tracking-[0.06em] sticky top-0 py-2" style={{ color: "rgba(26,27,82,0.4)", background: "white", zIndex: 10, borderBottom: "1px solid rgba(26,27,82,0.06)", marginBottom: "10px" }}>
-                  Transcript
-                </div>
-                <TranscriptLines text={rec.transcript_formatted} />
-              </div>
-            )}
-          </div>
-
-          {/* Right: review form */}
-          <div>
-            <form action={formAction} className="flex flex-col gap-5">
-              <input type="hidden" name="recordingId" value={rec.id} />
-
-              {/* Score summary */}
-              {totalPts !== null && (
-                <div
-                  className="rounded-xl px-4 py-3 text-center"
-                  style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
-                >
-                  <span className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.4)" }}>Station total</span>
-                  <div className="font-extrabold text-[24px]" style={{ color: NAVY }}>{totalPts} / 10.5 pts</div>
-                </div>
-              )}
-
-              {/* Domain reviews */}
-              {([
-                { key: "dg", label: "Data Gathering & Diagnosis", max: "3 pts", grade: dgGrade, setGrade: setDgGrade, comment: dgComment, setComment: setDgComment, commentName: "dg_comment" },
-                { key: "cm", label: "Clinical Management", max: "4.5 pts", grade: cmGrade, setGrade: setCmGrade, comment: cmComment, setComment: setCmComment, commentName: "cm_comment" },
-                { key: "ro", label: "Relating to Others", max: "3 pts", grade: roGrade, setGrade: setRoGrade, comment: roComment, setComment: setRoComment, commentName: "ro_comment" },
-              ] as const).map(({ key, label, max, grade, setGrade, comment, setComment, commentName }) => (
-                <div
-                  key={key}
-                  className="rounded-2xl p-5"
-                  style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
-                >
-                  <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
-                    <div className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</div>
-                    <div className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>
-                      {grade ? `${pts(grade, key)} / ${DOMAIN_MAX[key]} pts` : `max ${max}`}
-                    </div>
-                  </div>
-                  <GradeSelector name={`${key}_grade`} value={grade} onChange={setGrade} />
-                  <AutoTextarea
-                    name={commentName}
-                    value={comment}
-                    onChange={setComment}
-                    placeholder="Add a comment…"
-                    disabled={isSent}
+              {doctorAudioUrl && (
+                <div className="mb-3">
+                  <div className="text-[11px] mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>Doctor</div>
+                  <audio
+                    ref={doctorAudioRef}
+                    src={doctorAudioUrl}
+                    controls
+                    className="w-full"
+                    style={{ height: 36 }}
+                    onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
                   />
                 </div>
-              ))}
-
-              {/* Overall comment */}
-              <div
-                className="rounded-2xl p-5"
-                style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
-              >
-                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                  <div className="text-[13px] font-bold" style={{ color: NAVY }}>Overall Comment</div>
-                  {!isSent && (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={aiGenPending || !dgGrade || !cmGrade || !roGrade}
-                        onClick={() => {
-                          setAiGenError("");
-                          startAiGen(async () => {
-                            const res = await generateOverallCommentAction({
-                              dgGrade, dgComment, cmGrade, cmComment, roGrade, roComment,
-                              stationTitle: rec.station_title,
-                            });
-                            if (res.text) setOverallComment(res.text);
-                            else setAiGenError(res.error ?? "Failed");
-                          });
-                        }}
-                        className="px-3 py-1 rounded-lg text-[11px] font-semibold"
-                        style={{ background: "rgba(26,27,82,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
-                      >
-                        {aiGenPending ? "Generating…" : "AI Generate"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={grammarPending || !overallComment.trim()}
-                        onClick={() => {
-                          setAiGenError("");
-                          startGrammar(async () => {
-                            const res = await grammarCheckAction({ text: overallComment });
-                            if (res.text) setOverallComment(res.text);
-                            else setAiGenError(res.error ?? "Failed");
-                          });
-                        }}
-                        className="px-3 py-1 rounded-lg text-[11px] font-semibold"
-                        style={{ background: "rgba(26,27,82,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: grammarPending || !overallComment.trim() ? 0.5 : 1 }}
-                      >
-                        {grammarPending ? "Checking…" : "Grammar / Spellcheck"}
-                      </button>
-                    </div>
-                  )}
+              )}
+              {patientAudioUrl && (
+                <div>
+                  <div className="text-[11px] mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>Patient</div>
+                  <audio
+                    ref={patientAudioRef}
+                    src={patientAudioUrl}
+                    controls
+                    className="w-full"
+                    style={{ height: 36 }}
+                    onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
+                  />
                 </div>
-                {aiGenError && <p className="text-[11px] text-red-600 mb-2">{aiGenError}</p>}
+              )}
+            </Accordion>
+          )}
+
+          {/* Transcript */}
+          {rec.transcript_formatted && (
+            <Accordion title="Transcript" defaultOpen={false}>
+              <TranscriptLines text={rec.transcript_formatted} />
+            </Accordion>
+          )}
+
+          {/* Examiner marking form */}
+          <form action={formAction} className="flex flex-col gap-3">
+            <input type="hidden" name="recordingId" value={rec.id} />
+
+            {/* Domain sections */}
+            {([
+              { key: "dg", label: "Data Gathering & Diagnosis", max: "3 pts",   grade: dgGrade, setGrade: setDgGrade, comment: dgComment, setComment: setDgComment, commentName: "dg_comment" as const },
+              { key: "cm", label: "Clinical Management",        max: "4.5 pts", grade: cmGrade, setGrade: setCmGrade, comment: cmComment, setComment: setCmComment, commentName: "cm_comment" as const },
+              { key: "ro", label: "Relating to Others",         max: "3 pts",   grade: roGrade, setGrade: setRoGrade, comment: roComment, setComment: setRoComment, commentName: "ro_comment" as const },
+            ]).map(({ key, label, max, grade, setGrade, comment, setComment, commentName }) => (
+              <Accordion
+                key={key}
+                title={label}
+                badge={
+                  grade ? (
+                    <div className="flex items-center gap-1.5">
+                      <GradeBadge grade={grade} />
+                      <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                        {pts(grade, key)} / {DOMAIN_MAX[key]} pts
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.3)" }}>max {max}</span>
+                  )
+                }
+              >
+                <GradeSelector name={`${key}_grade`} value={grade} onChange={setGrade} />
                 <AutoTextarea
-                  name="overall_comment"
-                  value={overallComment}
-                  onChange={setOverallComment}
-                  placeholder="Optional overall comment to the candidate…"
+                  name={commentName}
+                  value={comment}
+                  onChange={setComment}
+                  placeholder="Add a comment…"
                   disabled={isSent}
                 />
+              </Accordion>
+            ))}
 
-                {/* Voice note */}
-                {!isSent && (
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.45)" }}>Voice note:</span>
-                    {voiceState === "idle" && (
-                      <button type="button" onClick={startVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#B91C1C", border: "none", cursor: "pointer" }}>
-                        ⏺ Record
-                      </button>
-                    )}
-                    {voiceState === "recording" && (
-                      <button type="button" onClick={stopVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.2)", color: "#B91C1C", border: "none", cursor: "pointer" }}>
-                        ⏹ Stop
-                      </button>
-                    )}
-                    {voiceState === "recorded" && (
-                      <button type="button" onClick={uploadVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "none", cursor: "pointer" }}>
-                        ↑ Save voice note
-                      </button>
-                    )}
-                    {voiceState === "uploading" && <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>Uploading…</span>}
-                    {voiceState === "done" && <span className="text-[11px]" style={{ color: "#166534" }}>✓ Voice note saved</span>}
-                  </div>
-                )}
-              </div>
-
-              {/* Error / success */}
-              {"error" in state && state.error && (
-                <p className="text-[12px] text-red-600">{state.error as string}</p>
-              )}
-              {showSuccess && (
-                <p className="text-[12px]" style={{ color: "#166534" }}>✓ Saved successfully.</p>
-              )}
-
-              {/* Submit buttons */}
+            {/* Overall comment */}
+            <Accordion title="Overall Comment">
               {!isSent && (
-                <div className="flex gap-2.5 flex-wrap">
+                <div className="flex gap-2 mb-3 flex-wrap">
                   <button
-                    type="submit"
-                    name="send_now"
-                    value="0"
-                    disabled={pending || !dgGrade || !cmGrade || !roGrade}
-                    className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                    style={{ background: "rgba(26,27,82,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                    type="button"
+                    disabled={aiGenPending || !dgGrade || !cmGrade || !roGrade}
+                    onClick={() => {
+                      setAiGenError("");
+                      startAiGen(async () => {
+                        const res = await generateOverallCommentAction({
+                          dgGrade, dgComment, cmGrade, cmComment, roGrade, roComment,
+                          stationTitle: rec.station_title,
+                        });
+                        if (res.text) setOverallComment(res.text);
+                        else setAiGenError(res.error ?? "Failed");
+                      });
+                    }}
+                    className="px-3 py-1 rounded-lg text-[11px] font-semibold"
+                    style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
                   >
-                    Save Draft
+                    {aiGenPending ? "Generating…" : "AI Generate"}
                   </button>
-                  <a
-                    href={`/recordings/${rec.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 rounded-xl py-3 text-[13px] font-bold text-center"
-                    style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.1)", color: "rgba(26,27,82,0.55)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}
-                  >
-                    Preview Report
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.5 }}>
-                      <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </a>
                   <button
-                    type="submit"
-                    name="send_now"
-                    value="1"
-                    disabled={pending || !dgGrade || !cmGrade || !roGrade}
-                    className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                    style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                    type="button"
+                    disabled={grammarPending || !overallComment.trim()}
+                    onClick={() => {
+                      setAiGenError("");
+                      startGrammar(async () => {
+                        const res = await grammarCheckAction({ text: overallComment });
+                        if (res.text) setOverallComment(res.text);
+                        else setAiGenError(res.error ?? "Failed");
+                      });
+                    }}
+                    className="px-3 py-1 rounded-lg text-[11px] font-semibold"
+                    style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: grammarPending || !overallComment.trim() ? 0.5 : 1 }}
                   >
-                    {pending ? "Sending…" : "Send to Candidate"}
+                    {grammarPending ? "Checking…" : "Grammar / Spellcheck"}
                   </button>
                 </div>
               )}
-            </form>
-          </div>
+              {aiGenError && <p className="text-[11px] text-red-600 mb-2">{aiGenError}</p>}
+              <AutoTextarea
+                name="overall_comment"
+                value={overallComment}
+                onChange={setOverallComment}
+                placeholder="Optional overall comment to the candidate…"
+                disabled={isSent}
+              />
+
+              {/* Voice note */}
+              {!isSent && (
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.45)" }}>Voice note:</span>
+                  {voiceState === "idle" && (
+                    <button type="button" onClick={startVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#B91C1C", border: "none", cursor: "pointer" }}>
+                      ⏺ Record
+                    </button>
+                  )}
+                  {voiceState === "recording" && (
+                    <button type="button" onClick={stopVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.2)", color: "#B91C1C", border: "none", cursor: "pointer" }}>
+                      ⏹ Stop
+                    </button>
+                  )}
+                  {voiceState === "recorded" && (
+                    <button type="button" onClick={uploadVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "none", cursor: "pointer" }}>
+                      ↑ Save voice note
+                    </button>
+                  )}
+                  {voiceState === "uploading" && <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>Uploading…</span>}
+                  {voiceState === "done" && <span className="text-[11px]" style={{ color: "#166534" }}>✓ Voice note saved</span>}
+                </div>
+              )}
+            </Accordion>
+
+            {/* Error / success */}
+            {"error" in state && state.error && (
+              <p className="text-[12px] text-red-600">{state.error as string}</p>
+            )}
+            {showSuccess && (
+              <p className="text-[12px]" style={{ color: "#166534" }}>✓ Saved successfully.</p>
+            )}
+
+            {/* Action buttons */}
+            {!isSent && (
+              <div className="flex gap-2.5 flex-wrap pt-1">
+                <button
+                  type="submit"
+                  name="send_now"
+                  value="0"
+                  disabled={pending || !dgGrade || !cmGrade || !roGrade}
+                  className="flex-1 rounded-xl py-3 text-[13px] font-bold"
+                  style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                >
+                  Save Draft
+                </button>
+                <a
+                  href={`/recordings/${rec.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 rounded-xl py-3 text-[13px] font-bold text-center"
+                  style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.55)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+                >
+                  Preview Report
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5 }}>
+                    <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+                <button
+                  type="submit"
+                  name="send_now"
+                  value="1"
+                  disabled={pending || !dgGrade || !cmGrade || !roGrade}
+                  className="flex-1 rounded-xl py-3 text-[13px] font-bold"
+                  style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                >
+                  {pending ? "Sending…" : "Send to Candidate"}
+                </button>
+              </div>
+            )}
+          </form>
         </div>
       </div>
     </div>
@@ -516,7 +527,7 @@ function AutoTextarea({ name, value, onChange, placeholder, disabled }: {
       placeholder={placeholder}
       rows={3}
       className="w-full mt-3 rounded-lg px-3 py-2 text-[12.5px] resize-none overflow-hidden"
-      style={{ border: "1px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6, minHeight: "4.5rem" }}
+      style={{ border: "1px solid rgba(51,51,51,0.12)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6, minHeight: "4.5rem" }}
       disabled={disabled}
     />
   );
@@ -528,13 +539,13 @@ function TranscriptLines({ text }: { text: string }) {
     <div className="flex flex-col gap-2.5">
       {lines.map((line, i) => {
         const m = line.match(/^(\[\d+:\d+\])\s*(Doctor|Patient):\s*(.*)$/);
-        if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.6)" }}>{line}</p>;
+        if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.6)" }}>{line}</p>;
         const [, timestamp, speaker, speech] = m;
         return (
           <div key={i}>
-            <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(26,27,82,0.3)" }}>{timestamp}</span>
+            <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>{timestamp}</span>
             <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{speaker}:</span>
-            <span className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.75)" }}>{speech}</span>
+            <span className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.75)" }}>{speech}</span>
           </div>
         );
       })}
