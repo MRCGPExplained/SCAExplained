@@ -19,8 +19,6 @@ export default function DualTrackPlayer({
 }) {
   const doctorRef = useRef<HTMLAudioElement | null>(null);
   const patientRef = useRef<HTMLAudioElement | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const wiredRef = useRef(false);
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -28,26 +26,9 @@ export default function DualTrackPlayer({
   const [speed, setSpeed] = useState(1);
   const [ready, setReady] = useState(false);
 
-  function wireAudio() {
-    if (wiredRef.current) return;
-    wiredRef.current = true;
-    const ctx = new AudioContext();
-    ctxRef.current = ctx;
-
-    if (doctorRef.current) {
-      ctx.createMediaElementSource(doctorRef.current).connect(ctx.destination);
-    }
-    if (patientRef.current) {
-      ctx.createMediaElementSource(patientRef.current).connect(ctx.destination);
-    }
-  }
-
   async function togglePlay() {
     const doctor = doctorRef.current;
     if (!doctor) return;
-
-    wireAudio();
-    if (ctxRef.current?.state === "suspended") await ctxRef.current.resume();
 
     if (playing) {
       doctor.pause();

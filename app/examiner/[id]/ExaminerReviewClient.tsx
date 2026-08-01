@@ -163,13 +163,13 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     });
   }
 
-  const totalPts = (() => {
-    const d = pts(dgGrade, "dg");
-    const c = pts(cmGrade, "cm");
-    const r = pts(roGrade, "ro");
-    if (d === null || c === null || r === null) return null;
-    return d + c + r;
-  })();
+  const dgPts = pts(dgGrade, "dg");
+  const cmPts = pts(cmGrade, "cm");
+  const roPts = pts(roGrade, "ro");
+  const totalPts = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
+
+  const allCommentsSet = dgComment.trim().length > 0 && cmComment.trim().length > 0 && roComment.trim().length > 0;
+  const canSubmit = !!dgGrade && !!cmGrade && !!roGrade && allCommentsSet;
 
   const [state, formAction, pending] = useActionState(submitExaminerReviewAction, {});
   const [showSuccess, setShowSuccess] = useState(false);
@@ -207,18 +207,34 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           </div>
         </div>
 
-        {/* Station score — always visible */}
-        {totalPts !== null && (
-          <div
-            className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-          >
+        {/* Station score — sticky, live-updates as grades are selected */}
+        <div
+          className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between"
+          style={{
+            background: "white",
+            border: "1px solid rgba(51,51,51,0.08)",
+            position: "sticky",
+            top: 12,
+            zIndex: 20,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+          }}
+        >
+          <div className="flex items-center gap-4">
             <span className="text-[12px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
               Station Score
             </span>
-            <span className="font-extrabold text-[22px]" style={{ color: NAVY }}>{totalPts} / 10.5 pts</span>
+            <div className="flex items-center gap-2 text-[11px]" style={{ color: "rgba(51,51,51,0.35)" }}>
+              <span>DG: {dgPts !== null ? `${dgPts}/3` : "—"}</span>
+              <span>·</span>
+              <span>CM: {cmPts !== null ? `${cmPts}/4.5` : "—"}</span>
+              <span>·</span>
+              <span>RO: {roPts !== null ? `${roPts}/3` : "—"}</span>
+            </div>
           </div>
-        )}
+          <span className="font-extrabold text-[22px]" style={{ color: NAVY }}>
+            {totalPts !== null ? `${totalPts} / 10.5 pts` : "— / 10.5 pts"}
+          </span>
+        </div>
 
         <form action={formAction}>
           <input type="hidden" name="recordingId" value={rec.id} />
@@ -395,18 +411,18 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 type="submit"
                 name="send_now"
                 value="0"
-                disabled={pending || !dgGrade || !cmGrade || !roGrade}
+                disabled={pending || !canSubmit}
                 className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending || !canSubmit ? 0.5 : 1 }}
               >
                 Save Draft
               </button>
               <button
                 type="button"
                 onClick={handlePreview}
-                disabled={previewPending || !dgGrade || !cmGrade || !roGrade}
+                disabled={previewPending || !canSubmit}
                 className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.55)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, opacity: previewPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.55)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, opacity: previewPending || !canSubmit ? 0.5 : 1 }}
               >
                 {previewPending ? "Saving…" : "Preview Report"}
                 {!previewPending && (
@@ -419,9 +435,9 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 type="submit"
                 name="send_now"
                 value="1"
-                disabled={pending || !dgGrade || !cmGrade || !roGrade}
+                disabled={pending || !canSubmit}
                 className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !canSubmit ? 0.5 : 1 }}
               >
                 {pending ? "Sending…" : "Send to Candidate"}
               </button>
