@@ -11,6 +11,7 @@ import {
   claimHostAction,
   startRecordingAction,
   getRecordingCreditsAction,
+  getRecordingBypassAction,
 } from "../actions";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
@@ -85,6 +86,7 @@ export function StudyRoomPanel({
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedPatient, setSelectedPatient] = useState("");
   const [recordingCredits, setRecordingCredits] = useState(0);
+  const [recordingBypassed, setRecordingBypassed] = useState(false);
   const [recordingError, setRecordingError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -443,10 +445,11 @@ export function StudyRoomPanel({
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch credits when joining a room
+  // Fetch credits + bypass when joining a room
   useEffect(() => {
     if (!room) return;
     getRecordingCreditsAction().then(setRecordingCredits);
+    getRecordingBypassAction().then(setRecordingBypassed);
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
@@ -552,8 +555,9 @@ export function StudyRoomPanel({
       await startLocalRecording(recordingId, "patient");
     }
 
-    // Refresh credits
+    // Refresh credits + bypass
     getRecordingCreditsAction().then(setRecordingCredits);
+    getRecordingBypassAction().then(setRecordingBypassed);
   }
 
   function handleStopRecording() {
@@ -777,14 +781,20 @@ export function StudyRoomPanel({
                 setRecordingError("");
                 setShowRoleSelector(true);
               }}
-              title={recordingCredits === 0 ? "No recording credits" : `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""} left)`}
-              disabled={recordingCredits === 0}
+              title={
+                recordingBypassed
+                  ? "Record (free)"
+                  : recordingCredits === 0
+                  ? "No recording credits"
+                  : `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""} left)`
+              }
+              disabled={!recordingBypassed && recordingCredits === 0}
               className="text-[10px] px-2 py-1 rounded flex items-center gap-1"
               style={{
-                background: recordingCredits === 0 ? "rgba(255,255,255,0.08)" : "rgba(239,68,68,0.2)",
-                color: recordingCredits === 0 ? "rgba(255,255,255,0.3)" : "#FCA5A5",
+                background: !recordingBypassed && recordingCredits === 0 ? "rgba(255,255,255,0.08)" : "rgba(239,68,68,0.2)",
+                color: !recordingBypassed && recordingCredits === 0 ? "rgba(255,255,255,0.3)" : "#FCA5A5",
                 border: "none",
-                cursor: recordingCredits === 0 ? "not-allowed" : "pointer",
+                cursor: !recordingBypassed && recordingCredits === 0 ? "not-allowed" : "pointer",
               }}
             >
               ⏺ Record
