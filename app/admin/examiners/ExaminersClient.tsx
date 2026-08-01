@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
-  createAdminPasscodeAction, updateAdminPasscodeAction, deleteAdminPasscodeAction,
+  toggleExaminerIsAdminAction,
 } from "../actions";
 
 const NAVY = "#333333";
 
-type Tab = "examiners" | "ai_prompt" | "passcodes";
+type Tab = "examiners" | "ai_prompt";
 
-type Examiner = { id: string; name: string; email: string; passcode: string; created_at: string };
-type AdminPasscode = { id: string; name: string; passcode: string; created_at: string };
+type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
   id: string;
   station_number: number;
@@ -33,7 +32,6 @@ interface Props {
   bypassSettings: BypassSettings;
   aiPrompt: string;
   defaultPrompt: string;
-  adminPasscodes: AdminPasscode[];
 }
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -78,43 +76,8 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
   );
 }
 
-// ── Admin passcode form ───────────────────────────────────────────────────────
-function PasscodeForm({ passcode, onDone }: { passcode?: AdminPasscode; onDone: () => void }) {
-  const action = passcode ? updateAdminPasscodeAction : createAdminPasscodeAction;
-  const [state, formAction, pending] = useActionState(action, {});
-
-  useEffect(() => {
-    if (state.success) onDone();
-  }, [state.success]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      {passcode && <input type="hidden" name="id" value={passcode.id} />}
-      {state.error && <p className="text-[12px] text-red-600">{state.error}</p>}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Name / Label</label>
-          <input name="name" defaultValue={passcode?.name} required placeholder="e.g. Brandon (personal)" className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Passcode</label>
-          <input name="passcode" defaultValue={passcode?.passcode} required placeholder="e.g. admin2025" className={inputCls} />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="px-5 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: NAVY, border: "none", cursor: "pointer", opacity: pending ? 0.6 : 1 }}>
-          {pending ? "Saving…" : passcode ? "Save Changes" : "Add Passcode"}
-        </button>
-        <button type="button" onClick={onDone} className="px-5 py-2 rounded-lg text-[13px] text-navy/50" style={{ background: "none", border: "1px solid rgba(51,51,51,0.15)", cursor: "pointer" }}>
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, adminPasscodes }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("examiners");
   const [isPending, startTransition] = useTransition();
@@ -145,10 +108,6 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     }
   }, [promptState]);
 
-  // Admin passcodes state
-  const [showCreatePasscode, setShowCreatePasscode] = useState(false);
-  const [editPasscodeId, setEditPasscodeId] = useState<string | null>(null);
-
   const examinerMap = new Map(examiners.map((e) => [e.id, e]));
 
   function applyFilters() {
@@ -167,18 +126,9 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     });
   }
 
-  function handleDeletePasscode(id: string, name: string) {
-    if (!confirm(`Delete passcode for "${name}"?`)) return;
-    startTransition(async () => {
-      await deleteAdminPasscodeAction(id);
-      window.location.reload();
-    });
-  }
-
   const tabs: { id: Tab; label: string }[] = [
     { id: "examiners", label: "Examiners" },
     { id: "ai_prompt", label: "AI Prompt" },
-    { id: "passcodes", label: "Admin Passcodes" },
   ];
 
   return (
@@ -189,11 +139,6 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
         {tab === "examiners" && !showCreate && (
           <button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: NAVY, border: "none", cursor: "pointer" }}>
             + Add Examiner
-          </button>
-        )}
-        {tab === "passcodes" && !showCreatePasscode && (
-          <button onClick={() => setShowCreatePasscode(true)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: NAVY, border: "none", cursor: "pointer" }}>
-            + Add Passcode
           </button>
         )}
       </div>
@@ -264,11 +209,33 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                 ) : (
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
-                      <div className="font-semibold text-[14px] text-navy">{ex.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-[14px] text-navy">{ex.name}</div>
+                        {ex.is_admin && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em]" style={{ background: "rgba(99,102,241,0.1)", color: "#4338CA" }}>Admin</span>
+                        )}
+                      </div>
                       <div className="text-[12px] text-navy/50">{ex.email}</div>
                       <div className="text-[11px] mt-1 font-mono" style={{ color: "rgba(51,51,51,0.35)" }}>Passcode: {ex.passcode}</div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => startTransition(async () => {
+                          await toggleExaminerIsAdminAction(ex.id, !ex.is_admin);
+                          window.location.reload();
+                        })}
+                        className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition"
+                        style={{
+                          background: ex.is_admin ? "rgba(99,102,241,0.1)" : "rgba(51,51,51,0.07)",
+                          border: "none",
+                          color: ex.is_admin ? "#4338CA" : "rgba(51,51,51,0.45)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {ex.is_admin ? "Admin: ON" : "Admin: OFF"}
+                      </button>
                       <button onClick={() => setEditId(ex.id)} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer" }}>Edit</button>
                       <button onClick={() => handleDeleteExaminer(ex.id, ex.name)} disabled={isPending} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", border: "none", color: "#B91C1C", cursor: "pointer" }}>Remove</button>
                     </div>
@@ -408,50 +375,6 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
         </div>
       )}
 
-      {/* ── Admin Passcodes tab ───────────────────────────────────────────────── */}
-      {tab === "passcodes" && (
-        <>
-          <div className="bg-white rounded-xl border border-navy/10 px-5 py-3 mb-4 text-[12px] text-navy/50" style={{ lineHeight: 1.6 }}>
-            These passcodes grant full admin access at <code className="text-[11.5px] font-mono bg-navy/5 px-1 rounded">/admin/login</code>. Each one is tied to a name so you know who has access.
-          </div>
-
-          {showCreatePasscode && (
-            <div className="bg-white rounded-xl border border-navy/10 p-5 mb-5">
-              <h2 className="text-[14px] font-bold text-navy mb-4">New Admin Passcode</h2>
-              <PasscodeForm onDone={() => { setShowCreatePasscode(false); window.location.reload(); }} />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2">
-            {adminPasscodes.length === 0 && (
-              <div className="bg-white rounded-xl border border-navy/10 px-5 py-4 text-[13px] text-navy/40">No additional passcodes yet. The ADMIN_PASSWORD env var is always active.</div>
-            )}
-            {adminPasscodes.map((p) => (
-              <div key={p.id} className="bg-white rounded-xl border border-navy/10 p-5">
-                {editPasscodeId === p.id ? (
-                  <PasscodeForm passcode={p} onDone={() => { setEditPasscodeId(null); window.location.reload(); }} />
-                ) : (
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <div>
-                      <div className="font-semibold text-[14px] text-navy">{p.name}</div>
-                      <div className="text-[11px] mt-0.5 font-mono" style={{ color: "rgba(51,51,51,0.35)" }}>
-                        Passcode: {p.passcode}
-                      </div>
-                      <div className="text-[11px] mt-0.5 text-navy/35">
-                        Added {new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setEditPasscodeId(p.id)} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer" }}>Edit</button>
-                      <button onClick={() => handleDeletePasscode(p.id, p.name)} disabled={isPending} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", border: "none", color: "#B91C1C", cursor: "pointer" }}>Delete</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }

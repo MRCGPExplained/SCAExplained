@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const NAVY = "#1A1B52";
+const NAVY = "#333333";
 
 const GRADE_META: Record<string, { label: string; color: string; bg: string; pts: (d: string) => number }> = {
   CF: { label: "Clear Fail", color: "#B91C1C", bg: "rgba(239,68,68,0.09)", pts: () => 0 },
@@ -15,7 +15,7 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; pts
 };
 
 function GradeBadge({ grade, domain }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
-  if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(26,27,82,0.3)" }}>—</span>;
+  if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
   const meta = GRADE_META[grade];
   return (
     <span
@@ -101,11 +101,11 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const total = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
 
   return (
-    <div className="min-h-screen" style={{ background: "#F3F2FB" }}>
+    <div className="min-h-screen" style={{ background: "#FAFAF8" }}>
       <div className="max-w-[760px] mx-auto px-4 py-10">
 
         <div className="mb-6">
-          <Link href="/recordings" className="text-[12px] font-semibold" style={{ color: "rgba(26,27,82,0.45)", textDecoration: "none" }}>
+          <Link href="/recordings" className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
             ← My Recordings
           </Link>
         </div>
@@ -140,9 +140,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {total !== null && (
           <div
             className="rounded-2xl p-5 mb-5"
-            style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(26,27,82,0.4)" }}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
               {isFinal ? "Examiner Report" : "Provisional AI Grades"}
             </div>
 
@@ -156,12 +156,12 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                   <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                     <div>
                       <span className="text-[13px] font-semibold" style={{ color: NAVY }}>{label}</span>
-                      <span className="text-[11px] ml-2" style={{ color: "rgba(26,27,82,0.4)" }}>(max {max})</span>
+                      <span className="text-[11px] ml-2" style={{ color: "rgba(51,51,51,0.4)" }}>(max {max})</span>
                     </div>
                     <GradeBadge grade={grades[key]} domain={key} />
                   </div>
                   {comments[key] && (
-                    <p className="text-[13px] leading-relaxed mt-1 pl-1" style={{ color: "rgba(26,27,82,0.7)" }}>
+                    <p className="text-[13px] leading-relaxed mt-1 pl-1" style={{ color: "rgba(51,51,51,0.7)" }}>
                       {comments[key]}
                     </p>
                   )}
@@ -171,9 +171,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
             <div
               className="mt-5 pt-4 flex items-center justify-between"
-              style={{ borderTop: "1px solid rgba(26,27,82,0.07)" }}
+              style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}
             >
-              <span className="text-[13px] font-semibold" style={{ color: "rgba(26,27,82,0.5)" }}>Station total</span>
+              <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>Station total</span>
               <span className="font-bold text-[18px]" style={{ color: NAVY }}>{total} / 10.5 pts</span>
             </div>
           </div>
@@ -183,9 +183,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {isFinal && rec.examiner_overall_comment && (
           <div
             className="rounded-2xl p-5 mb-5"
-            style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(26,27,82,0.4)" }}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
               Overall Examiner Comment
             </div>
             <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
@@ -197,8 +197,8 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {/* Marked by */}
         {isFinal && rec.examiners?.[0]?.name && (
           <div className="flex items-center gap-2 mb-5 px-1">
-            <span className="text-[12px]" style={{ color: "rgba(26,27,82,0.35)" }}>Marked by</span>
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(26,27,82,0.6)" }}>{rec.examiners[0].name}</span>
+            <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}>Marked by</span>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>{rec.examiners[0].name}</span>
           </div>
         )}
 
@@ -206,21 +206,21 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {isDoctor && rec.transcript_formatted && (
           <div
             className="rounded-2xl p-5"
-            style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(26,27,82,0.4)" }}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
               Transcript
             </div>
             <div className="flex flex-col gap-2.5">
               {rec.transcript_formatted.split("\n").filter(Boolean).map((line, i) => {
                 const m = line.match(/^(\[\d+:\d+\])\s*(Doctor|Patient):\s*(.*)$/);
-                if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.6)" }}>{line}</p>;
+                if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.6)" }}>{line}</p>;
                 const [, timestamp, speaker, speech] = m;
                 return (
                   <div key={i}>
-                    <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(26,27,82,0.3)" }}>{timestamp}</span>
+                    <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>{timestamp}</span>
                     <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{speaker}:</span>
-                    <span className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.75)" }}>{speech}</span>
+                    <span className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.75)" }}>{speech}</span>
                   </div>
                 );
               })}
@@ -232,10 +232,10 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {!grades.dg && rec.status === "processing" && (
           <div
             className="rounded-2xl p-8 text-center"
-            style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
             <p className="text-[15px] font-semibold mb-1" style={{ color: NAVY }}>Processing your consultation…</p>
-            <p className="text-[13px]" style={{ color: "rgba(26,27,82,0.5)" }}>Usually takes 2–3 minutes. Refresh this page to check.</p>
+            <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>Usually takes 2–3 minutes. Refresh this page to check.</p>
           </div>
         )}
 

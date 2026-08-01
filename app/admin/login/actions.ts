@@ -31,12 +31,13 @@ export async function login(
     redirect("/admin");
   }
 
-  // Check additional DB admin passcodes
+  // Check examiners with is_admin = true
   const supabase = getSupabaseAdmin();
   if (supabase) {
     const { data: rows } = await supabase
-      .from("admin_passcodes")
-      .select("passcode");
+      .from("examiners")
+      .select("passcode")
+      .eq("is_admin", true);
     const match = (rows ?? []).find((r: { passcode: string }) => r.passcode === password);
     if (match) {
       const hash = createHash("sha256").update(password).digest("hex");

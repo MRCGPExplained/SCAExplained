@@ -58,13 +58,13 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    // Check additional DB admin passcodes (admin_passcodes table)
+    // Check examiners with is_admin = true
     if (session) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (supabaseUrl && serviceKey) {
         try {
-          const res = await fetch(`${supabaseUrl}/rest/v1/admin_passcodes?select=passcode`, {
+          const res = await fetch(`${supabaseUrl}/rest/v1/examiners?select=passcode&is_admin=eq.true`, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
             cache: "no-store",
           });

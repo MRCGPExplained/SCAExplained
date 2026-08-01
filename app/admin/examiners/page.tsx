@@ -3,11 +3,10 @@ import { DEFAULT_SYSTEM_PROMPT } from "@/lib/ai-defaults";
 import ExaminersClient from "./ExaminersClient";
 
 type BypassSettings = { enabled: boolean; emails: string };
-type AdminPasscode = { id: string; name: string; passcode: string; created_at: string };
 
 export const dynamic = "force-dynamic";
 
-type Examiner = { id: string; name: string; email: string; passcode: string; created_at: string };
+type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
   id: string;
   station_number: number;
@@ -28,9 +27,9 @@ export default async function ExaminersPage({
 
   const supabase = getSupabaseAdmin();
 
-  const [examinersResult, activityResult, bypassResult, passcodesResult] = await Promise.all([
+  const [examinersResult, activityResult, bypassResult] = await Promise.all([
     supabase
-      ? supabase.from("examiners").select("id, name, email, passcode, created_at").order("name")
+      ? supabase.from("examiners").select("id, name, email, passcode, is_admin, created_at").order("name")
       : Promise.resolve({ data: [] }),
     supabase
       ? (() => {
@@ -49,9 +48,6 @@ export default async function ExaminersPage({
     supabase
       ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt"])
       : Promise.resolve({ data: [] }),
-    supabase
-      ? supabase.from("admin_passcodes").select("id, name, passcode, created_at").order("created_at")
-      : Promise.resolve({ data: [] }),
   ]);
 
   const examiners = (examinersResult.data ?? []) as Examiner[];
@@ -66,7 +62,6 @@ export default async function ExaminersPage({
   };
 
   const aiPrompt = settingsMap.get("ai_grading_prompt") ?? "";
-  const adminPasscodes = (passcodesResult.data ?? []) as AdminPasscode[];
 
   return (
     <ExaminersClient
@@ -76,7 +71,6 @@ export default async function ExaminersPage({
       bypassSettings={bypassSettings}
       aiPrompt={aiPrompt}
       defaultPrompt={DEFAULT_SYSTEM_PROMPT}
-      adminPasscodes={adminPasscodes}
     />
   );
 }

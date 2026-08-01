@@ -740,6 +740,17 @@ export async function updateExaminerAction(
   return { success: true };
 }
 
+export async function toggleExaminerIsAdminAction(id: string, isAdmin: boolean): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("examiners").update({ is_admin: isAdmin }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return {};
+}
+
 export async function deleteExaminerAction(id: string): Promise<ActionResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
