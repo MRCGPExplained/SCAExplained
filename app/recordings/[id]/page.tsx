@@ -54,6 +54,7 @@ type RecordingDetail = {
   examiner_overall_comment: string | null;
   sent_to_candidate_at: string | null;
   doctor_user_id: string;
+  examiners: { name: string }[] | null;
 };
 
 interface PageProps {
@@ -72,7 +73,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
   const { data: rec } = await admin
     .from("station_recordings")
-    .select("*")
+    .select("*, examiners(name)")
     .eq("id", id)
     .or(`doctor_user_id.eq.${user.id},patient_user_id.eq.${user.id}`)
     .single<RecordingDetail>();
@@ -190,6 +191,14 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
               {rec.examiner_overall_comment}
             </p>
+          </div>
+        )}
+
+        {/* Marked by */}
+        {isFinal && rec.examiners?.[0]?.name && (
+          <div className="flex items-center gap-2 mb-5 px-1">
+            <span className="text-[12px]" style={{ color: "rgba(26,27,82,0.35)" }}>Marked by</span>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(26,27,82,0.6)" }}>{rec.examiners[0].name}</span>
           </div>
         )}
 

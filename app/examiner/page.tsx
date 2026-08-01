@@ -177,6 +177,11 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
           <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.5)" }}>
             Dr {rec.doctor_display_name} · {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
           </div>
+          {isReviewing && examinerName && (
+            <div className="text-[12px] font-semibold mt-1" style={{ color: "#4338CA" }}>
+              Reviewing: {examinerName}
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <span
