@@ -211,7 +211,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 
   // If Deepgram is disabled, skip pipeline and send straight to examiner queue
-  if (!deepgramEnabled && !isSpike) {
+  if (!deepgramEnabled) {
     await admin
       .from("station_recordings")
       .update({ status: "pending_examiner" })
