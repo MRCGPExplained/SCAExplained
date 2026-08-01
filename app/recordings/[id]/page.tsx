@@ -38,7 +38,7 @@ function ScoreBar({ pts, max }: { pts: number; max: number }) {
   const pct = Math.round((pts / max) * 100);
   return (
     <div style={{ background: "rgba(51,51,51,0.08)", borderRadius: 99, height: 7, overflow: "hidden" }}>
-      <div style={{ width: `${pct}%`, height: "100%", background: "#2563EB", borderRadius: 99 }} />
+      <div style={{ width: `${pct}%`, height: "100%", background: "#F6D44B", borderRadius: 99 }} />
     </div>
   );
 }
@@ -213,16 +213,16 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="flex items-end gap-4 mb-5">
                 <span className="font-extrabold leading-none" style={{ fontSize: 44, color: NAVY }}>
                   {total}
-                  <span className="text-[22px] font-bold opacity-40">/10.5</span>
+                  <span className="font-extrabold opacity-40">/10.5</span>
                 </span>
                 <span
-                  className="mb-1 px-4 py-1.5 rounded-xl text-[14px] font-extrabold tracking-wide uppercase"
+                  className="mb-1 px-4 py-1.5 rounded-xl text-[13px] font-extrabold tracking-wide uppercase"
                   style={{
-                    background: isPassing ? "#16A34A" : "#DC2626",
+                    background: isPassing ? "#16A34A" : "#EA580C",
                     color: "white",
                   }}
                 >
-                  {isPassing ? "Pass" : "Fail"}
+                  {isPassing ? "Pass" : "Required Improvement"}
                 </span>
               </div>
 
@@ -250,7 +250,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             {showExaminerGrades && (rec.examiner_overall_comment || voiceNoteUrl) ? (
               <div
                 className="rounded-2xl p-6"
-                style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.18)" }}
+                style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
               >
                 <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
                   Examiner&apos;s Overall Summary
@@ -261,7 +261,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                   </p>
                 )}
                 {voiceNoteUrl && (
-                  <div className={rec.examiner_overall_comment ? "mt-4 pt-4" : ""} style={rec.examiner_overall_comment ? { borderTop: "1px solid rgba(245,158,11,0.2)" } : {}}>
+                  <div className={rec.examiner_overall_comment ? "mt-4 pt-4" : ""} style={rec.examiner_overall_comment ? { borderTop: "1px solid rgba(51,51,51,0.07)" } : {}}>
                     <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>Voice note</div>
                     <audio src={voiceNoteUrl} controls className="w-full" style={{ height: 40 }} />
                   </div>
