@@ -74,7 +74,7 @@ export async function submitExaminerReviewAction(
     examiner_comment_relating_to_others: roComment || null,
     examiner_overall_comment: overallComment || null,
     examiner_reviewed_at: new Date().toISOString(),
-    status: sendNow ? "sent" : "reviewed",
+    status: sendNow ? "sent" : "reviewing",
   };
 
   if (sendNow) {

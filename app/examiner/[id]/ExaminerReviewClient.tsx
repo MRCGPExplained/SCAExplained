@@ -150,6 +150,14 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   })();
 
   const [state, formAction, pending] = useActionState(submitExaminerReviewAction, {});
+  const [showSuccess, setShowSuccess] = useState(false);
+  useEffect(() => {
+    if ("success" in state && state.success) {
+      setShowSuccess(true);
+      const t = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
 
   return (
     <div className="min-h-screen" style={{ background: LIGHT_BG }}>
@@ -294,7 +302,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 className="rounded-2xl p-5 flex-1"
                 style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)", maxHeight: 500, overflowY: "auto" }}
               >
-                <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3 sticky top-0 pb-2" style={{ color: "rgba(26,27,82,0.4)", background: "white" }}>
+                <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3 sticky top-0 pb-2" style={{ color: "rgba(26,27,82,0.4)", background: "white", zIndex: 1 }}>
                   Transcript
                 </div>
                 <TranscriptLines text={rec.transcript_formatted} />
@@ -389,7 +397,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               {"error" in state && state.error && (
                 <p className="text-[12px] text-red-600">{state.error as string}</p>
               )}
-              {"success" in state && state.success && (
+              {showSuccess && (
                 <p className="text-[12px]" style={{ color: "#166534" }}>✓ Saved successfully.</p>
               )}
 

@@ -18,6 +18,7 @@ type QueueRow = {
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
+  examiners: { name: string }[] | null;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -78,13 +79,13 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
     ? await Promise.all([
         admin
           .from("station_recordings")
-          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at")
-          .eq("status", "pending_examiner")
+          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, examiners(name)")
+          .in("status", ["pending_examiner", "reviewing"])
           .order("started_at", { ascending: false })
           .limit(100),
         admin
           .from("station_recordings")
-          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at")
+          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, examiners(name)")
           .in("status", ["reviewed", "sent"])
           .eq("examiner_id", examiner.id)
           .order("started_at", { ascending: false })
@@ -149,12 +150,23 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
 }
 
 function RecordingCard({ rec }: { rec: QueueRow }) {
+  const isReviewing = rec.status === "reviewing";
   const isPending = rec.status === "pending_examiner";
+  const examinerName = rec.examiners?.[0]?.name ?? null;
+
+  const statusChip = isPending
+    ? { label: "Needs review", bg: "rgba(245,158,11,0.12)", color: "#92400E" }
+    : isReviewing
+    ? { label: `Being reviewed${examinerName ? ` — ${examinerName}` : ""}`, bg: "rgba(99,102,241,0.1)", color: "#4338CA" }
+    : rec.sent_to_candidate_at
+    ? { label: "Sent", bg: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
+    : { label: "Reviewed", bg: "rgba(34,197,94,0.1)", color: "#166534" };
+
   return (
     <Link
       href={`/examiner/${rec.id}`}
       className="block rounded-2xl p-5 transition hover:shadow-md"
-      style={{ background: "white", border: `1px solid ${isPending ? "rgba(245,158,11,0.3)" : "rgba(26,27,82,0.08)"}`, textDecoration: "none" }}
+      style={{ background: "white", border: `1px solid ${isPending || isReviewing ? "rgba(245,158,11,0.3)" : "rgba(26,27,82,0.08)"}`, textDecoration: "none" }}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -169,13 +181,9 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
         <div className="flex flex-col items-end gap-2">
           <span
             className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.05em]"
-            style={
-              isPending ? { background: "rgba(245,158,11,0.12)", color: "#92400E" }
-              : rec.sent_to_candidate_at ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
-              : { background: "rgba(34,197,94,0.1)", color: "#166534" }
-            }
+            style={{ background: statusChip.bg, color: statusChip.color }}
           >
-            {isPending ? "Needs review" : rec.sent_to_candidate_at ? "Sent" : "Reviewed"}
+            {statusChip.label}
           </span>
           {rec.ai_data_gathering && (
             <div className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>
