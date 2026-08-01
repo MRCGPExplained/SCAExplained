@@ -480,6 +480,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         className="rounded-2xl border bg-white p-6 flex flex-col gap-5"
         style={{ borderColor: "rgba(51,51,51,0.1)" }}
       >
+        {/* Mic permission notice */}
+        <div
+          className="rounded-lg px-3.5 py-2.5 text-[12px]"
+          style={{ background: "rgba(51,51,51,0.04)", color: "rgba(51,51,51,0.5)", border: "1px solid rgba(51,51,51,0.07)" }}
+        >
+          🎙 Your browser may ask for microphone access — we&apos;re just prepping permissions in advance so recording starts instantly if you choose to record. Nothing is captured until the host clicks Start.
+        </div>
+
         {/* Room code + leave */}
         <div className="flex items-start gap-4">
           <div>
