@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useActionState } from "react";
+import { useState, useRef, useEffect, useActionState } from "react";
 import Link from "next/link";
 import { submitExaminerReviewAction } from "../actions";
 
@@ -336,14 +336,11 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                     </div>
                   </div>
                   <GradeSelector name={`${key}_grade`} value={grade} onChange={setGrade} />
-                  <textarea
+                  <AutoTextarea
                     name={commentName}
                     value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder={grade === "F" || grade === "CF" ? "Write developmental feedback (3 sentences recommended)…" : "Optional comment…"}
-                    rows={3}
-                    className="w-full mt-3 rounded-lg px-3 py-2 text-[12.5px] resize-none"
-                    style={{ border: "1px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6 }}
+                    onChange={setComment}
+                    placeholder="Add a comment…"
                     disabled={isSent}
                   />
                 </div>
@@ -355,14 +352,11 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
               >
                 <div className="text-[13px] font-bold mb-2" style={{ color: NAVY }}>Overall Comment</div>
-                <textarea
+                <AutoTextarea
                   name="overall_comment"
                   value={overallComment}
-                  onChange={(e) => setOverallComment(e.target.value)}
+                  onChange={setOverallComment}
                   placeholder="Optional overall comment to the candidate…"
-                  rows={3}
-                  className="w-full rounded-lg px-3 py-2 text-[12.5px] resize-none"
-                  style={{ border: "1px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6 }}
                   disabled={isSent}
                 />
 
@@ -429,6 +423,37 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
         </div>
       </div>
     </div>
+  );
+}
+
+function AutoTextarea({ name, value, onChange, placeholder, disabled }: {
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      name={name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={3}
+      className="w-full mt-3 rounded-lg px-3 py-2 text-[12.5px] resize-none overflow-hidden"
+      style={{ border: "1px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6, minHeight: "4.5rem" }}
+      disabled={disabled}
+    />
   );
 }
 
