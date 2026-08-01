@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { longDate, timeRange } from "./format";
+import { getSupabaseAdmin } from "./supabase";
 
 let cached: Resend | null = null;
 
@@ -12,6 +13,21 @@ function getResend(): Resend | null {
   }
   cached = new Resend(key);
   return cached;
+}
+
+async function isResendEnabled(): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return true;
+  const { data } = await admin
+    .from("site_settings")
+    .select("value")
+    .eq("key", "resend_enabled")
+    .single<{ value: string }>();
+  if (data?.value === "false") {
+    console.log("[email] resend_enabled=false — email skipped");
+    return false;
+  }
+  return true;
 }
 
 interface ConfirmationArgs {
@@ -38,6 +54,7 @@ const YELLOW = "#F6D44B";
 export async function sendConfirmationEmail(
   args: ConfirmationArgs
 ): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
@@ -127,6 +144,7 @@ export async function sendFeedbackEmail(args: {
   userName: string;
   message: string;
 }): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
@@ -187,6 +205,7 @@ export async function sendVideoRequestEmail(args: {
   userName: string;
   message: string;
 }): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
@@ -248,6 +267,7 @@ export async function sendAccessExpiryEmail(args: {
   firstName: string;
   expiresAt: string;
 }): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
@@ -315,6 +335,7 @@ export async function sendExaminerNotificationEmail(args: {
   stationNumber: number;
   stationTitle: string;
 }): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
@@ -387,6 +408,7 @@ export async function sendExaminerReportEmail(args: {
   roComment: string;
   overallComment: string;
 }): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
   const resend = getResend();
   if (!resend) return false;
 
