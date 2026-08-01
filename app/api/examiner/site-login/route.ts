@@ -30,28 +30,34 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL(`/case-bank/login?examiner_error=incorrect`, req.url), 303);
   }
 
-  // Get or create Supabase auth user for this email
-  const { data: existingUser } = await admin.auth.admin.getUserByEmail(email).catch(() => ({ data: null }));
-
+  // Get or create Supabase auth user for this email.
+  // The admin API has no getUserByEmail; try creating first and fall back to
+  // listUsers if the email is already registered.
   let userId: string;
 
-  if (existingUser?.user) {
-    userId = existingUser.user.id;
-  } else {
-    // Create a Supabase user for this examiner (email confirmed, no password needed)
-    const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { display_name: examiner.name },
-    });
+  const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { display_name: examiner.name },
+  });
 
-    if (createErr || !newUser?.user) {
+  if (createErr) {
+    // User probably already exists — find them by email via listUsers
+    const { data: usersPage } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const existing = (usersPage?.users ?? []).find(
+      (u: { email?: string; id: string }) => u.email?.toLowerCase() === email
+    );
+    if (!existing) {
       return NextResponse.redirect(new URL(`/case-bank/login?examiner_error=server`, req.url), 303);
     }
-
+    userId = existing.id;
+  } else {
+    if (!newUser?.user) {
+      return NextResponse.redirect(new URL(`/case-bank/login?examiner_error=server`, req.url), 303);
+    }
     userId = newUser.user.id;
 
-    // Create user profile
+    // Create user profile for newly created accounts
     const nameParts = examiner.name.trim().split(" ");
     const initials = nameParts.map((p: string) => p[0]).join("").toUpperCase().slice(0, 2);
     await admin.from("user_profiles").upsert({
