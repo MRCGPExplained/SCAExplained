@@ -653,6 +653,13 @@ export async function setRecordingCreditsAction(
 
 // ── Examiner management ───────────────────────────────────────────────────────
 
+async function findAuthUserByEmail(supabase: ReturnType<typeof getSupabaseAdmin>, email: string): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  const found = (data?.users ?? []).find((u: { email?: string; id: string }) => u.email?.toLowerCase() === email.toLowerCase());
+  return found?.id ?? null;
+}
+
 export async function createExaminerAction(
   _prev: ActionResult,
   formData: FormData
@@ -661,13 +668,36 @@ export async function createExaminerAction(
   if (!supabase) return { error: "Database not available." };
 
   const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const passcode = String(formData.get("passcode") ?? "").trim();
 
   if (!name || !email || !passcode) return { error: "Name, email and passcode are all required." };
 
-  const { error } = await supabase.from("examiners").insert({ name, email, passcode });
-  if (error) return { error: error.message };
+  // Insert examiner row
+  const { error: examErr } = await supabase.from("examiners").insert({ name, email, passcode });
+  if (examErr) return { error: examErr.message };
+
+  // Create Supabase auth user (passcode is their password)
+  const nameParts = name.trim().split(" ");
+  const initials = nameParts.map((p: string) => p[0]).join("").toUpperCase().slice(0, 2);
+
+  const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+    email,
+    password: passcode,
+    email_confirm: true,
+    user_metadata: { display_name: name },
+  });
+
+  if (!authErr && authData?.user) {
+    const userId = authData.user.id;
+    await supabase.from("user_profiles").upsert({ id: userId, display_name: name, initials, beta: false });
+    await supabase.from("user_access").upsert({
+      user_id: userId,
+      has_programme: true,
+      expires_at: "2099-12-31T23:59:59Z",
+      renewal_reminder_sent_at: null,
+    });
+  }
 
   revalidatePath("/admin/examiners");
   return { success: true };
@@ -682,13 +712,29 @@ export async function updateExaminerAction(
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const passcode = String(formData.get("passcode") ?? "").trim();
 
   if (!id || !name || !email || !passcode) return { error: "All fields required." };
 
+  // Fetch current email to find auth user
+  const { data: current } = await supabase
+    .from("examiners")
+    .select("email")
+    .eq("id", id)
+    .single<{ email: string }>();
+
   const { error } = await supabase.from("examiners").update({ name, email, passcode }).eq("id", id);
   if (error) return { error: error.message };
+
+  // Sync auth user
+  const lookupEmail = current?.email ?? email;
+  const authUserId = await findAuthUserByEmail(supabase, lookupEmail);
+  if (authUserId) {
+    const updates: Record<string, unknown> = { password: passcode, user_metadata: { display_name: name } };
+    if (email !== lookupEmail) updates.email = email;
+    await supabase.auth.admin.updateUserById(authUserId, updates);
+  }
 
   revalidatePath("/admin/examiners");
   return { success: true };
@@ -698,8 +744,21 @@ export async function deleteExaminerAction(id: string): Promise<ActionResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
+  // Fetch email before deleting so we can clean up auth
+  const { data: examiner } = await supabase
+    .from("examiners")
+    .select("email")
+    .eq("id", id)
+    .single<{ email: string }>();
+
   const { error } = await supabase.from("examiners").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  // Delete matching auth user
+  if (examiner?.email) {
+    const authUserId = await findAuthUserByEmail(supabase, examiner.email);
+    if (authUserId) await supabase.auth.admin.deleteUser(authUserId);
+  }
 
   revalidatePath("/admin/examiners");
   return {};
