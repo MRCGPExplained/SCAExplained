@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export interface ActionResult {
   error?: string;
+  success?: boolean;
 }
 
 // ── Station helpers ───────────────────────────────────────────────────────────
@@ -669,7 +670,7 @@ export async function createExaminerAction(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/examiners");
-  return {};
+  return { success: true };
 }
 
 export async function updateExaminerAction(
@@ -690,7 +691,7 @@ export async function updateExaminerAction(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/examiners");
-  return {};
+  return { success: true };
 }
 
 export async function deleteExaminerAction(id: string): Promise<ActionResult> {

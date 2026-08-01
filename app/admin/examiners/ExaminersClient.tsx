@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useActionState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createExaminerAction, updateExaminerAction, deleteExaminerAction, updateBypassSettingsAction } from "../actions";
 
@@ -36,14 +36,12 @@ function ExaminerForm({
   const action = examiner ? updateExaminerAction : createExaminerAction;
   const [state, formAction, pending] = useActionState(action, {});
 
+  useEffect(() => {
+    if (state.success) onDone();
+  }, [state.success]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <form
-      action={async (fd) => {
-        await formAction(fd);
-        if (!state.error) onDone();
-      }}
-      className="flex flex-col gap-3"
-    >
+    <form action={formAction} className="flex flex-col gap-3">
       {examiner && <input type="hidden" name="id" value={examiner.id} />}
 
       {state.error && (
