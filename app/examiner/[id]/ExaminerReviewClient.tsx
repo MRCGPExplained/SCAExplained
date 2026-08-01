@@ -262,8 +262,8 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl px-4 py-3 text-[12px]" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", color: "#92400E" }}>
-                  No AI assessment — marking pipeline may not have completed. Check Vercel logs.
+                <div className="rounded-xl px-4 py-3 text-[12px]" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
+                  No AI pre-assessment — transcription may be disabled or the pipeline did not complete.
                 </div>
               )}
             </div>
