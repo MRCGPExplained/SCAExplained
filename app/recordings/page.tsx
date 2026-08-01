@@ -171,14 +171,24 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         style={
                           isFinal
                             ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
-                            : rec.status === "pending_examiner"
-                            ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
+                            : rec.status === "reviewed"
+                            ? { background: "rgba(34,197,94,0.1)", color: "#166534" }
                             : rec.status === "processing"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
+                            : rec.status === "pending_examiner" || rec.status === "reviewing"
+                            ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
                       >
-                        {isFinal ? "Report sent" : rec.status === "pending_examiner" ? "Awaiting examiner" : rec.status === "processing" ? "Processing…" : rec.status}
+                        {isFinal
+                          ? "Report sent"
+                          : rec.status === "reviewed"
+                          ? "Reviewed"
+                          : rec.status === "processing"
+                          ? "Processing…"
+                          : rec.status === "pending_examiner" || rec.status === "reviewing"
+                          ? "Awaiting examiner"
+                          : rec.status}
                       </span>
 
                       {/* Grades */}
