@@ -457,13 +457,27 @@ function VoiceNoteSection({ recordingId, initialUrl, readOnly = false }: {
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const url = URL.createObjectURL(blob);
-        setBlobUrl(url);
-        setPhase("review");
-        if (timerRef.current) clearInterval(timerRef.current);
+        setPhase("uploading");
+        setErr("");
+        try {
+          const fd = new FormData();
+          fd.append("audio", blob);
+          fd.append("recordingId", recordingId);
+          const res = await fetch("/api/recordings/voice-note", { method: "POST", body: fd });
+          if (!res.ok) throw new Error("Upload failed");
+          setSavedUrl(url);
+          setBlobUrl(null);
+          setPhase("idle");
+        } catch {
+          setErr("Failed to save. Try again.");
+          setBlobUrl(url);
+          setPhase("review");
+        }
       };
       recorder.start();
       recRef.current = recorder;
@@ -481,26 +495,6 @@ function VoiceNoteSection({ recordingId, initialUrl, readOnly = false }: {
     if (blobUrl) URL.revokeObjectURL(blobUrl);
     setBlobUrl(null);
     setPhase("idle");
-  }
-
-  async function saveRecording() {
-    if (!blobUrl) return;
-    setPhase("uploading");
-    setErr("");
-    try {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const fd = new FormData();
-      fd.append("audio", blob);
-      fd.append("recordingId", recordingId);
-      const res = await fetch("/api/recordings/voice-note", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      setSavedUrl(blobUrl);
-      setBlobUrl(null);
-      setPhase("idle");
-    } catch {
-      setErr("Failed to save. Try again.");
-      setPhase("review");
-    }
   }
 
   async function deleteNote() {
