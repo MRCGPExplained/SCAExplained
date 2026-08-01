@@ -112,6 +112,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
       .from("consultation-recordings")
       .createSignedUrl(rec.examiner_voice_note_path, 3600);
     voiceNoteUrl = data?.signedUrl ?? null;
+  } else if (showExaminerGrades) {
+    // SPIKE — remove
+    voiceNoteUrl = "https://mdwijqzamirvdmccttya.supabase.co/storage/v1/object/sign/consultation-recordings/6fc19c8b-29f3-4408-84d9-18bfb0a2335e/doctor.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85Y2EzZmIwNi0xZTljLTRhOTUtYmI3My02OTBhMmRjOGFlZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb25zdWx0YXRpb24tcmVjb3JkaW5ncy82ZmMxOWM4Yi0yOWYzLTQ0MDgtODRkOS0xOGJmYjBhMjMzNWUvZG9jdG9yLndlYm0iLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1NTk3MzQyLCJleHAiOjE4MTcxMzMzNDJ9.33GTrLOTmnv0U-yR_1wvYxFcB-12v7ytrhClqMKwnUo";
   }
 
   const grades = {
