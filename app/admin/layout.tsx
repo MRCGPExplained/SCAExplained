@@ -17,7 +17,6 @@ export default function AdminLayout({
             SCA Admin
           </Link>
           <div className="flex gap-6">
-            <Link href="/admin/homepage-videos" className="text-[13px] text-white/60 hover:text-white transition no-underline">Homepage Videos</Link>
             <Link href="/admin/webinar-codes" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar Codes</Link>
             <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
