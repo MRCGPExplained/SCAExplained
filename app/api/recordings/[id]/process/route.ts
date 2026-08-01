@@ -211,8 +211,11 @@ export async function POST(req: Request, { params }: RouteParams) {
   const vercelPlan = settingsMap.get("vercel_plan") ?? "pro"; // default pro
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 
+  console.log(`[recordings/process] settings: deepgramEnabled=${deepgramEnabled} vercelPlan=${vercelPlan} settingsRows=${JSON.stringify(settingsRows)}`);
+
   // If Deepgram is disabled, skip pipeline and send straight to examiner queue
   if (!deepgramEnabled || vercelPlan === "hobby") {
+    console.log(`[recordings/process] early return: deepgramEnabled=${deepgramEnabled} vercelPlan=${vercelPlan}`);
     await admin
       .from("station_recordings")
       .update({ status: "pending_examiner" })
