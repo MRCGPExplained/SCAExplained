@@ -128,7 +128,9 @@ Respond ONLY with valid JSON — no markdown, no explanation:
   }
 
   const data = await res.json();
-  const text = (data.content?.[0]?.text ?? "").trim();
+  const raw = (data.content?.[0]?.text ?? "").trim();
+  // Strip markdown code fences Claude sometimes adds despite instructions
+  const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 
   try {
     return JSON.parse(text) as GradeResult;
