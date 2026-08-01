@@ -391,7 +391,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
 
           {/* Overall Comment */}
           <div className="mb-4">
-            <Accordion title="Overall Comment" defaultOpen={false}>
+            <Accordion title="Overall Comment">
               {!isSent && (
                 <div className="flex gap-2 mb-3 flex-wrap">
                   <button
