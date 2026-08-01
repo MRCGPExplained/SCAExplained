@@ -6,6 +6,71 @@ import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
 
+export async function generateOverallCommentAction(args: {
+  dgGrade: string; dgComment: string;
+  cmGrade: string; cmComment: string;
+  roGrade: string; roComment: string;
+  stationTitle: string;
+}): Promise<{ text?: string; error?: string }> {
+  const examiner = await getExaminerFromCookie();
+  if (!examiner) return { error: "Not authorised." };
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      system: "You are an RCGP examiner writing a brief overall comment to a GP registrar after their SCA consultation. Write in a supportive but honest tone. Use plain sentences, no bullet points, no em dashes. 3-5 sentences maximum.",
+      messages: [{
+        role: "user",
+        content: `Station: ${args.stationTitle}
+
+Data Gathering (${args.dgGrade}): ${args.dgComment}
+Clinical Management (${args.cmGrade}): ${args.cmComment}
+Relating to Others (${args.roGrade}): ${args.roComment}
+
+Write a brief overall comment that summarises performance and highlights the single most important thing to work on. No em dashes.`,
+      }],
+    }),
+  });
+
+  if (!res.ok) return { error: "AI request failed." };
+  const data = await res.json();
+  const text = (data.content?.[0]?.text ?? "").trim();
+  return { text };
+}
+
+export async function grammarCheckAction(args: { text: string }): Promise<{ text?: string; error?: string }> {
+  const examiner = await getExaminerFromCookie();
+  if (!examiner) return { error: "Not authorised." };
+  if (!args.text.trim()) return { error: "Nothing to check." };
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 400,
+      system: "You are a copy editor. Fix grammar and spelling only. Do not change the meaning, tone, structure, or word choice. Return ONLY the corrected text with no explanation.",
+      messages: [{ role: "user", content: args.text }],
+    }),
+  });
+
+  if (!res.ok) return { error: "AI request failed." };
+  const data = await res.json();
+  const text = (data.content?.[0]?.text ?? "").trim();
+  return { text };
+}
+
 export async function examinerLoginAction(formData: FormData): Promise<void> {
   const passcode = String(formData.get("passcode") ?? "").trim();
   if (!passcode) redirect("/examiner?error=required");

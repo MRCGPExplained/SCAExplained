@@ -13,7 +13,7 @@ For every domain, write exactly 3 sentences of feedback regardless of grade:
 - P: acknowledge what was done well and name one specific area to develop further.
 - CP: acknowledge the exceptional element and note one refinement that would make it even stronger.
 
-Always reference specific moments from the transcript. Never leave a comment empty.
+Always reference specific moments from the transcript. Never leave a comment empty. Never use em dashes (—); use a comma or rewrite the sentence instead.
 
 Respond ONLY with valid JSON — no markdown, no explanation:
 {

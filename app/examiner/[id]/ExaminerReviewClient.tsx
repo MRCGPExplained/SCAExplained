@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useActionState } from "react";
+import { useState, useRef, useEffect, useActionState, useTransition } from "react";
 import Link from "next/link";
-import { submitExaminerReviewAction } from "../actions";
+import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
 
 const NAVY = "#1A1B52";
 const LIGHT_BG = "#F3F2FB";
@@ -95,6 +95,9 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [cmComment, setCmComment] = useState(rec.examiner_comment_clinical_management ?? rec.ai_comment_clinical_management ?? "");
   const [roComment, setRoComment] = useState(rec.examiner_comment_relating_to_others ?? rec.ai_comment_relating_to_others ?? "");
   const [overallComment, setOverallComment] = useState(rec.examiner_overall_comment ?? "");
+  const [aiGenPending, startAiGen] = useTransition();
+  const [grammarPending, startGrammar] = useTransition();
+  const [aiGenError, setAiGenError] = useState("");
 
   // Voice note recording
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "recorded" | "uploading" | "done">("idle");
@@ -359,7 +362,49 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 className="rounded-2xl p-5"
                 style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
               >
-                <div className="text-[13px] font-bold mb-2" style={{ color: NAVY }}>Overall Comment</div>
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <div className="text-[13px] font-bold" style={{ color: NAVY }}>Overall Comment</div>
+                  {!isSent && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={aiGenPending || !dgGrade || !cmGrade || !roGrade}
+                        onClick={() => {
+                          setAiGenError("");
+                          startAiGen(async () => {
+                            const res = await generateOverallCommentAction({
+                              dgGrade, dgComment, cmGrade, cmComment, roGrade, roComment,
+                              stationTitle: rec.station_title,
+                            });
+                            if (res.text) setOverallComment(res.text);
+                            else setAiGenError(res.error ?? "Failed");
+                          });
+                        }}
+                        className="px-3 py-1 rounded-lg text-[11px] font-semibold"
+                        style={{ background: "rgba(26,27,82,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                      >
+                        {aiGenPending ? "Generating…" : "AI Generate"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={grammarPending || !overallComment.trim()}
+                        onClick={() => {
+                          setAiGenError("");
+                          startGrammar(async () => {
+                            const res = await grammarCheckAction({ text: overallComment });
+                            if (res.text) setOverallComment(res.text);
+                            else setAiGenError(res.error ?? "Failed");
+                          });
+                        }}
+                        className="px-3 py-1 rounded-lg text-[11px] font-semibold"
+                        style={{ background: "rgba(26,27,82,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: grammarPending || !overallComment.trim() ? 0.5 : 1 }}
+                      >
+                        {grammarPending ? "Checking…" : "Grammar / Spellcheck"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {aiGenError && <p className="text-[11px] text-red-600 mb-2">{aiGenError}</p>}
                 <AutoTextarea
                   name="overall_comment"
                   value={overallComment}
