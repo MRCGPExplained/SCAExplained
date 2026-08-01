@@ -359,21 +359,16 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   placeholder="Optional overall comment to the candidate…"
                   disabled={isSent}
                 />
+                <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+                  <VoiceNoteSection
+                    recordingId={rec.id}
+                    initialUrl={voiceNoteUrl}
+                    readOnly={isSent}
+                  />
+                </div>
               </Accordion>
             </div>
           </div>
-
-          {/* Voice note — full width below columns */}
-          {!isSent && (
-            <div className="mb-4">
-              <VoiceNoteSection recordingId={rec.id} initialUrl={voiceNoteUrl} />
-            </div>
-          )}
-          {isSent && voiceNoteUrl && (
-            <div className="mb-4">
-              <VoiceNoteSection recordingId={rec.id} initialUrl={voiceNoteUrl} readOnly />
-            </div>
-          )}
 
           {/* Audio — full width below columns */}
           {(doctorAudioUrl || patientAudioUrl) && (

@@ -225,31 +225,26 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Overall examiner comment */}
-        {showExaminerGrades && rec.examiner_overall_comment && (
+        {/* Overall examiner comment + voice note — one cohesive card */}
+        {showExaminerGrades && (rec.examiner_overall_comment || voiceNoteUrl) && (
           <div
             className="rounded-2xl p-5 mb-5"
             style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Overall Examiner Comment
+              Overall Examiner Feedback
             </div>
-            <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
-              {rec.examiner_overall_comment}
-            </p>
-          </div>
-        )}
-
-        {/* Voice note */}
-        {voiceNoteUrl && (
-          <div
-            className="rounded-2xl p-5 mb-5"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-          >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Examiner Voice Note
-            </div>
-            <audio src={voiceNoteUrl} controls className="w-full" style={{ height: 40 }} />
+            {rec.examiner_overall_comment && (
+              <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
+                {rec.examiner_overall_comment}
+              </p>
+            )}
+            {voiceNoteUrl && (
+              <div className={rec.examiner_overall_comment ? "mt-4 pt-4" : ""} style={rec.examiner_overall_comment ? { borderTop: "1px solid rgba(51,51,51,0.07)" } : {}}>
+                <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>Voice note</div>
+                <audio src={voiceNoteUrl} controls className="w-full" style={{ height: 40 }} />
+              </div>
+            )}
           </div>
         )}
 
