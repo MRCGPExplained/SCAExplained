@@ -93,8 +93,8 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
       ])
     : [{ data: [] }, { data: [] }];
 
-  const pending = (pendingResult.data ?? []) as QueueRow[];
-  const done = (doneResult.data ?? []) as QueueRow[];
+  const pending = (pendingResult.data ?? []) as unknown as QueueRow[];
+  const done = (doneResult.data ?? []) as unknown as QueueRow[];
 
   return (
     <div className="min-h-screen" style={{ background: "#FAFAF8" }}>
