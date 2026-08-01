@@ -54,7 +54,7 @@ type RecordingDetail = {
   examiner_overall_comment: string | null;
   sent_to_candidate_at: string | null;
   doctor_user_id: string;
-  examiners: { name: string }[] | null;
+  examiners: { name: string } | null;
 };
 
 interface PageProps {
@@ -195,10 +195,10 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         )}
 
         {/* Marked by */}
-        {isFinal && rec.examiners?.[0]?.name && (
+        {isFinal && rec.examiners?.name && (
           <div className="flex items-center gap-2 mb-5 px-1">
             <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}>Marked by</span>
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>{rec.examiners[0].name}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>{rec.examiners.name}</span>
           </div>
         )}
 

@@ -18,7 +18,7 @@ type QueueRow = {
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
-  examiners: { name: string }[] | null;
+  examiners: { name: string } | null;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -152,7 +152,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
 function RecordingCard({ rec }: { rec: QueueRow }) {
   const isReviewing = rec.status === "reviewing";
   const isPending = rec.status === "pending_examiner";
-  const examinerName = rec.examiners?.[0]?.name ?? null;
+  const examinerName = rec.examiners?.name ?? null;
 
   const statusChip = isPending
     ? { label: "Needs review", bg: "rgba(245,158,11,0.12)", color: "#92400E" }
