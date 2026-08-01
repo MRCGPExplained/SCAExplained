@@ -140,7 +140,25 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [overallComment, setOverallComment] = useState(rec.examiner_overall_comment ?? "");
   const [aiGenPending, startAiGen] = useTransition();
   const [grammarPending, startGrammar] = useTransition();
+  const [previewPending, startPreview] = useTransition();
   const [aiGenError, setAiGenError] = useState("");
+
+  function handlePreview() {
+    startPreview(async () => {
+      const fd = new FormData();
+      fd.set("recordingId", rec.id);
+      fd.set("dg_grade", dgGrade);
+      fd.set("cm_grade", cmGrade);
+      fd.set("ro_grade", roGrade);
+      fd.set("dg_comment", dgComment);
+      fd.set("cm_comment", cmComment);
+      fd.set("ro_comment", roComment);
+      fd.set("overall_comment", overallComment);
+      fd.set("send_now", "0");
+      await submitExaminerReviewAction({}, fd);
+      window.open(`/recordings/${rec.id}`, "_blank");
+    });
+  }
 
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "recorded" | "uploading" | "done">("idle");
   const voiceRecorderRef = useRef<MediaRecorder | null>(null);
@@ -477,18 +495,20 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               >
                 Save Draft
               </button>
-              <a
-                href={`/recordings/${rec.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 rounded-xl py-3 text-[13px] font-bold text-center"
-                style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.55)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+              <button
+                type="button"
+                onClick={handlePreview}
+                disabled={previewPending || !dgGrade || !cmGrade || !roGrade}
+                className="flex-1 rounded-xl py-3 text-[13px] font-bold"
+                style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.55)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, opacity: previewPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
               >
-                Preview Report
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5 }}>
-                  <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </a>
+                {previewPending ? "Saving…" : "Preview Report"}
+                {!previewPending && (
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5 }}>
+                    <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
               <button
                 type="submit"
                 name="send_now"

@@ -235,7 +235,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {rec.examiners?.name && (
           <div className="flex items-center gap-2 mb-5 px-1">
             <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}>Marked by</span>
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>{rec.examiners.name}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>Dr {rec.examiners.name}</span>
           </div>
         )}
 
