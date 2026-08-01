@@ -198,6 +198,49 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Recording not in processing state" }, { status: 409 });
   }
 
+  // Fetch runtime settings once
+  const { data: settingsRows } = await admin
+    .from("site_settings")
+    .select("key, value")
+    .in("key", ["deepgram_enabled", "ai_grading_prompt"]);
+
+  const settingsMap = new Map(
+    ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
+  );
+  const deepgramEnabled = settingsMap.get("deepgram_enabled") !== "false"; // default on
+  const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
+
+  // If Deepgram is disabled, skip pipeline and send straight to examiner queue
+  if (!deepgramEnabled && !isSpike) {
+    await admin
+      .from("station_recordings")
+      .update({ status: "pending_examiner" })
+      .eq("id", recordingId);
+
+    const { data: recRow } = await admin
+      .from("station_recordings")
+      .select("station_number, station_title, doctor_display_name")
+      .eq("id", recordingId)
+      .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
+
+    if (recRow) {
+      const { data: examiners } = await admin.from("examiners").select("name, email");
+      await Promise.all(
+        (examiners ?? []).map((ex: { name: string; email: string }) =>
+          sendExaminerNotificationEmail({
+            to: ex.email,
+            examinerName: ex.name,
+            candidateName: recRow.doctor_display_name,
+            stationNumber: recRow.station_number,
+            stationTitle: recRow.station_title,
+          })
+        )
+      );
+    }
+
+    return NextResponse.json({ ok: true, skipped: "deepgram_disabled" });
+  }
+
   const { data: station } = await admin
     .from("stations")
     .select(
@@ -277,14 +320,6 @@ export async function POST(req: Request, { params }: RouteParams) {
     ]
       .filter(Boolean)
       .join("\n");
-
-    // Read custom AI prompt from site_settings (if set)
-    const { data: promptRow } = await admin
-      .from("site_settings")
-      .select("value")
-      .eq("key", "ai_grading_prompt")
-      .maybeSingle<{ value: string }>();
-    const customPrompt = promptRow?.value ?? undefined;
 
     const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
 
