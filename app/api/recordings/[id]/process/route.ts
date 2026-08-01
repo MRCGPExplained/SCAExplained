@@ -40,7 +40,7 @@ interface DeepgramResponse {
 // Deepgram transcription for a single audio file
 async function transcribeAudio(audioBuffer: Buffer): Promise<DeepgramUtterance[]> {
   const res = await fetch(
-    "https://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&utterances=true",
+    "https://api.deepgram.com/v1/listen?model=nova-2-medical&punctuate=true&utterances=true",
     {
       method: "POST",
       headers: {
