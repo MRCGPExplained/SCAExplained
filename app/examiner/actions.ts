@@ -7,9 +7,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
 
 export async function examinerLoginAction(formData: FormData): Promise<void> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!email || !passcode) redirect("/examiner?error=required");
+  if (!passcode) redirect("/examiner?error=required");
 
   const admin = getSupabaseAdmin();
   if (!admin) redirect("/examiner?error=server");
@@ -17,7 +16,6 @@ export async function examinerLoginAction(formData: FormData): Promise<void> {
   const { data: examiner } = await admin
     .from("examiners")
     .select("id")
-    .eq("email", email)
     .eq("passcode", passcode)
     .single<{ id: string }>();
 
