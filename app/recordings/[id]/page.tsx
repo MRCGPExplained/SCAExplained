@@ -29,7 +29,7 @@ function GradePill({ grade, domain }: { grade: string | null; domain: "dg" | "cm
       className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-lg"
       style={{ background: meta.bg, color: meta.color }}
     >
-      {grade} · {pts}/{max}
+      {meta.label} · {pts}/{max}
     </span>
   );
 }
