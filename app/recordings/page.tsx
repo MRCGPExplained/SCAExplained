@@ -75,15 +75,15 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
   const recordings = (recordingsResult.data ?? []) as RecordingRow[];
   const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
 
-  const NAVY = "#1A1B52";
+  const NAVY = "#333333";
 
   return (
-    <div className="min-h-screen" style={{ background: "#F3F2FB" }}>
+    <div className="min-h-screen" style={{ background: "#FAFAF8" }}>
       <div className="max-w-[860px] mx-auto px-4 py-10">
 
         {/* Back to dashboard */}
         <div className="mb-5">
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold no-underline" style={{ color: "rgba(26,27,82,0.45)" }}>
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold no-underline" style={{ color: "rgba(51,51,51,0.45)" }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Dashboard
           </Link>
@@ -95,17 +95,17 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             <h1 className="font-display font-extrabold text-[26px]" style={{ color: NAVY }}>
               My Recordings
             </h1>
-            <p className="text-[13.5px] mt-1" style={{ color: "rgba(26,27,82,0.55)" }}>
+            <p className="text-[13.5px] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
               AI-graded consultations reviewed by an RCGP examiner.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <div
               className="rounded-xl px-4 py-2 text-[13px]"
-              style={{ background: "white", border: "1px solid rgba(26,27,82,0.1)", color: NAVY }}
+              style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)", color: NAVY }}
             >
               <span className="font-bold text-[17px]">{credits}</span>{" "}
-              <span style={{ color: "rgba(26,27,82,0.5)" }}>credit{credits !== 1 ? "s" : ""} remaining</span>
+              <span style={{ color: "rgba(51,51,51,0.5)" }}>credit{credits !== 1 ? "s" : ""} remaining</span>
             </div>
             <form action="/api/recordings/checkout" method="POST">
               <button
@@ -128,10 +128,10 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
         {recordings.length === 0 ? (
           <div
             className="rounded-2xl p-10 text-center"
-            style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
             <p className="text-[15px] font-semibold mb-2" style={{ color: NAVY }}>No recordings yet</p>
-            <p className="text-[13px]" style={{ color: "rgba(26,27,82,0.5)" }}>
+            <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>
               Open a station, start a study room, and press <strong>Record</strong> when you&apos;re ready.
             </p>
           </div>
@@ -151,15 +151,15 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                   key={rec.id}
                   href={`/recordings/${rec.id}`}
                   className="block rounded-2xl p-5 transition hover:shadow-md"
-                  style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)", textDecoration: "none" }}
+                  style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)", textDecoration: "none" }}
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.4)" }}>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
                         Station {rec.station_number}
                       </div>
                       <div className="font-bold text-[15px]" style={{ color: NAVY }}>{rec.station_title}</div>
-                      <div className="text-[12px] mt-1" style={{ color: "rgba(26,27,82,0.45)" }}>
+                      <div className="text-[12px] mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
                         {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </div>
                     </div>
@@ -175,7 +175,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
                             : rec.status === "processing"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
-                            : { background: "rgba(26,27,82,0.07)", color: "rgba(26,27,82,0.4)" }
+                            : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
                       >
                         {isFinal ? "Report sent" : rec.status === "pending_examiner" ? "Awaiting examiner" : rec.status === "processing" ? "Processing…" : rec.status}

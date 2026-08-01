@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-const NAVY = "#1A1B52";
+const NAVY = "#333333";
 
 type QueueRow = {
   id: string;
@@ -34,15 +34,15 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
   // ── Not logged in: show passcode form ────────────────────────────────────
   if (!examiner) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F3F2FB" }}>
-        <div className="w-full max-w-[360px] rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(26,27,82,0.1)" }}>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "rgba(26,27,82,0.4)" }}>
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#FAFAF8" }}>
+        <div className="w-full max-w-[360px] rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)" }}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
             SCA Explained
           </div>
           <h1 className="font-display font-extrabold text-[22px] mb-1" style={{ color: NAVY }}>
             Examiner Portal
           </h1>
-          <p className="text-[13px] mb-7" style={{ color: "rgba(26,27,82,0.5)" }}>
+          <p className="text-[13px] mb-7" style={{ color: "rgba(51,51,51,0.5)" }}>
             Enter your passcode to continue.
           </p>
           <form action={examinerLoginAction} className="flex flex-col gap-4">
@@ -53,7 +53,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
               autoComplete="current-password"
               required
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
-              style={{ border: `1.5px solid ${error ? "rgba(220,38,38,0.4)" : "rgba(26,27,82,0.15)"}`, background: "#F3F2FB", color: NAVY, fontFamily: "inherit" }}
+              style={{ border: `1.5px solid ${error ? "rgba(220,38,38,0.4)" : "rgba(51,51,51,0.15)"}`, background: "#FAFAF8", color: NAVY, fontFamily: "inherit" }}
             />
             {error && (
               <p className="text-[12px]" style={{ color: "#B91C1C", marginTop: -8 }}>
@@ -97,35 +97,35 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
   const done = (doneResult.data ?? []) as QueueRow[];
 
   return (
-    <div className="min-h-screen" style={{ background: "#F3F2FB" }}>
+    <div className="min-h-screen" style={{ background: "#FAFAF8" }}>
       <div className="max-w-[860px] mx-auto px-4 py-10">
 
         <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "rgba(26,27,82,0.45)" }}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>
               Examiner Portal
             </div>
             <h1 className="font-display font-extrabold text-[26px]" style={{ color: NAVY }}>
               Review Queue
             </h1>
-            <p className="text-[13px] mt-1" style={{ color: "rgba(26,27,82,0.5)" }}>
+            <p className="text-[13px] mt-1" style={{ color: "rgba(51,51,51,0.5)" }}>
               Welcome, {examiner.name}.
             </p>
           </div>
           <form action={examinerLogoutAction}>
-            <button type="submit" className="text-[12px]" style={{ background: "none", border: "none", color: "rgba(26,27,82,0.4)", cursor: "pointer" }}>
+            <button type="submit" className="text-[12px]" style={{ background: "none", border: "none", color: "rgba(51,51,51,0.4)", cursor: "pointer" }}>
               Sign out
             </button>
           </form>
         </div>
 
         <div className="mb-8">
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(26,27,82,0.45)" }}>
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
             Awaiting Review ({pending.length})
           </h2>
           {pending.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}>
-              <p className="text-[14px]" style={{ color: "rgba(26,27,82,0.4)" }}>Queue is clear.</p>
+            <div className="rounded-2xl p-8 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
+              <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.4)" }}>Queue is clear.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -136,7 +136,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
 
         {done.length > 0 && (
           <div>
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(26,27,82,0.45)" }}>
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
               Completed ({done.length})
             </h2>
             <div className="flex flex-col gap-2.5">
@@ -166,15 +166,15 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
     <Link
       href={`/examiner/${rec.id}`}
       className="block rounded-2xl p-5 transition hover:shadow-md"
-      style={{ background: "white", border: `1px solid ${isPending || isReviewing ? "rgba(245,158,11,0.3)" : "rgba(26,27,82,0.08)"}`, textDecoration: "none" }}
+      style={{ background: "white", border: `1px solid ${isPending || isReviewing ? "rgba(245,158,11,0.3)" : "rgba(51,51,51,0.08)"}`, textDecoration: "none" }}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.4)" }}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
             Station {rec.station_number}
           </div>
           <div className="font-bold text-[15px] mb-1" style={{ color: NAVY }}>{rec.station_title}</div>
-          <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.5)" }}>
+          <div className="text-[12px]" style={{ color: "rgba(51,51,51,0.5)" }}>
             Dr {rec.doctor_display_name} · {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
           </div>
           {isReviewing && examinerName && (
@@ -191,7 +191,7 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
             {statusChip.label}
           </span>
           {rec.ai_data_gathering && (
-            <div className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>
+            <div className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>
               AI: {rec.ai_data_gathering} / {rec.ai_clinical_management} / {rec.ai_relating_to_others}
             </div>
           )}

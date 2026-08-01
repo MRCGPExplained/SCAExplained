@@ -305,7 +305,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 className="rounded-2xl p-5 flex-1"
                 style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)", maxHeight: 500, overflowY: "auto" }}
               >
-                <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3 sticky top-0 pb-2" style={{ color: "rgba(26,27,82,0.4)", background: "white", zIndex: 1 }}>
+                <div className="text-[11px] font-bold uppercase tracking-[0.06em] sticky top-0 py-2" style={{ color: "rgba(26,27,82,0.4)", background: "white", zIndex: 10, borderBottom: "1px solid rgba(26,27,82,0.06)", marginBottom: "10px" }}>
                   Transcript
                 </div>
                 <TranscriptLines text={rec.transcript_formatted} />
