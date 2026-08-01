@@ -271,7 +271,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 className="rounded-2xl p-6"
                 style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
               >
-                <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+                <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "#111111" }}>
                   Examiner&apos;s Overall Summary
                 </div>
                 {rec.examiner_overall_comment && (
