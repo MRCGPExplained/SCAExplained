@@ -164,8 +164,16 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
       return;
     }
 
-    setPhase({ kind: "processing", recordingId: result.recordingId });
-    poll(result.recordingId);
+    const { recordingId } = result;
+    setPhase({ kind: "processing", recordingId });
+
+    // Fire the process call from the browser — server-side fire-and-forget is
+    // unreliable on Vercel (function may be killed before the outbound fetch runs).
+    fetch(`/api/recordings/${recordingId}/process?spike=1`, { method: "POST" }).catch(
+      () => {/* process route errors are visible via the status poll */}
+    );
+
+    poll(recordingId);
   }
 
   const fmtTime = (s: number) =>

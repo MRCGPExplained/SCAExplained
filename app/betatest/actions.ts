@@ -65,12 +65,8 @@ export async function runMarkingSpikeAction(args: {
 
   if (insertErr || !recording) return { error: "Could not create recording." };
 
-  // Fire-and-forget — process route will run in its own request
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  fetch(`${origin}/api/recordings/${recording.id}/process?spike=1`, {
-    method: "POST",
-    headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
-  }).catch((e) => console.error("[runMarkingSpikeAction] failed to trigger:", e));
-
+  // Return the ID only — the client fires the process call directly from the browser.
+  // (Server-side fire-and-forget is unreliable on Vercel: the function may be
+  // terminated before the outbound fetch completes.)
   return { recordingId: recording.id };
 }
