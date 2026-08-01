@@ -6,12 +6,12 @@ import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
 
-export async function examinerLoginAction(formData: FormData) {
+export async function examinerLoginAction(formData: FormData): Promise<void> {
   const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!passcode) return { error: "Passcode required." };
+  if (!passcode) redirect("/examiner?error=required");
 
   const admin = getSupabaseAdmin();
-  if (!admin) return { error: "Server error." };
+  if (!admin) redirect("/examiner?error=server");
 
   const { data: examiner } = await admin
     .from("examiners")
@@ -19,7 +19,7 @@ export async function examinerLoginAction(formData: FormData) {
     .eq("passcode", passcode)
     .single<{ id: string }>();
 
-  if (!examiner) return { error: "Incorrect passcode." };
+  if (!examiner) redirect("/examiner?error=incorrect");
 
   const cookieStore = await cookies();
   cookieStore.set("examiner_session", examiner.id, {
