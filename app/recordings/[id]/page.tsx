@@ -19,17 +19,15 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; pts
 
 const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
 
-function GradePill({ grade, domain }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
+function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
   const meta = GRADE_META[grade];
-  const pts = meta.pts(domain);
-  const max = DOMAIN_MAX[domain];
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-lg"
+      className="text-[11px] font-bold px-2.5 py-0.5 rounded-md"
       style={{ background: meta.bg, color: meta.color }}
     >
-      {meta.label} · {pts}/{max}
+      {meta.label}
     </span>
   );
 }
