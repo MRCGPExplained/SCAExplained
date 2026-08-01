@@ -29,30 +29,6 @@ export default async function DashboardPage() {
 
   const items = [
     {
-      href: "/video-course",
-      label: "Skills Workshop",
-      description: "System-by-system teaching — every consultation skill examiners score",
-      badge: null,
-      icon: (
-        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
-          <path d="M9 7.5l6 3.5-6 3.5V7.5z" fill={DARK}/>
-        </svg>
-      ),
-    },
-    {
-      href: "/recorded-consultations",
-      label: "Recorded Consultations",
-      description: "Watch complete exam-style consultations from start to finish",
-      badge: null,
-      icon: (
-        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
-          <path d="M9 7.5l6 3.5-6 3.5V7.5z" fill={DARK}/>
-        </svg>
-      ),
-    },
-    {
       href: "/case-bank",
       label: "Case Bank",
       description: "246 practice stations · study rooms · notes",
@@ -71,9 +47,10 @@ export default async function DashboardPage() {
       badge: `${credits} credit${credits !== 1 ? "s" : ""}`,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="9" r="5.5" stroke={DARK} strokeWidth="1.5"/>
-          <circle cx="11" cy="9" r="2" fill={DARK}/>
-          <path d="M5 18.5c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
+          <rect x="8" y="2" width="6" height="10" rx="3" stroke={DARK} strokeWidth="1.5"/>
+          <path d="M4.5 10.5a6.5 6.5 0 0 0 13 0" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="8" y1="20" x2="14" y2="20" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
     },
