@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
-  toggleExaminerIsAdminAction, toggleDeepgramAction, setVercelPlanAction,
+  toggleExaminerIsAdminAction, toggleDeepgramAction, setVercelPlanAction, toggleResendAction,
 } from "../actions";
 
 const NAVY = "#333333";
 
-type Tab = "examiners" | "ai_prompt" | "transcription";
+type Tab = "examiners" | "ai_prompt" | "transcription" | "resend";
 
 type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
@@ -34,6 +34,7 @@ interface Props {
   defaultPrompt: string;
   deepgramEnabled: boolean;
   vercelPlan: "hobby" | "pro";
+  resendEnabled: boolean;
 }
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -79,7 +80,7 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan, resendEnabled: initialResend }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("examiners");
   const [isPending, startTransition] = useTransition();
@@ -112,6 +113,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   const [vercelPlan, setVercelPlan] = useState<"hobby" | "pro">(initialVercelPlan);
   const [vercelPlanPending, startVercelPlanTransition] = useTransition();
 
+  // Resend toggle
+  const [resendOn, setResendOn] = useState(initialResend);
+  const [resendPending, startResendTransition] = useTransition();
+  const [resendErr, setResendErr] = useState("");
+
   useEffect(() => {
     if ("success" in promptState && promptState.success) {
       setShowPromptSaved(true);
@@ -142,6 +148,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     { id: "examiners", label: "Examiners" },
     { id: "ai_prompt", label: "AI Prompt" },
     { id: "transcription", label: "Transcription" },
+    { id: "resend", label: "Resend" },
   ];
 
   return (
@@ -392,6 +399,44 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Resend tab ───────────────────────────────────────────────────────── */}
+      {tab === "resend" && (
+        <div className="bg-white rounded-xl border border-navy/10 p-6">
+          <h2 className="text-[15px] font-bold text-navy mb-1">Resend Emails</h2>
+          <p className="text-[12px] text-navy/45 mb-6">
+            When disabled, all outbound emails are silently skipped. Useful during testing to avoid burning Resend quota.
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              disabled={resendPending}
+              onClick={() => {
+                const next = !resendOn;
+                setResendOn(next);
+                setResendErr("");
+                startResendTransition(async () => {
+                  const res = await toggleResendAction(next);
+                  if (res.error) { setResendOn(!next); setResendErr(res.error); }
+                });
+              }}
+              className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+              style={{
+                background: resendOn ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
+                border: `1.5px solid ${resendOn ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
+                color: resendOn ? "#166534" : "rgba(51,51,51,0.45)",
+                cursor: "pointer",
+              }}
+            >
+              {resendPending ? "Saving…" : resendOn ? "Resend: ON" : "Resend: OFF"}
+            </button>
+            <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+              {resendOn ? "Emails are being sent normally." : "All emails are disabled — nothing will be sent."}
+            </span>
+            {resendErr && <span className="text-[12px] text-red-600">{resendErr}</span>}
           </div>
         </div>
       )}
