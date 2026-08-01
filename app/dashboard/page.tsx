@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -13,20 +14,25 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: access }] = await Promise.all([
+  const [{ data: profile }, { data: access }, creditsResult] = await Promise.all([
     supabase.from("user_profiles").select("display_name").eq("id", user.id).single(),
     supabase.from("user_access").select("has_programme, expires_at").eq("user_id", user.id).single(),
+    getSupabaseAdmin()
+      ? getSupabaseAdmin()!.from("recording_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
+      : Promise.resolve({ data: null }),
   ]);
 
   const name = profile?.display_name ?? null;
   const firstName = name ? name.trim().split(" ")[0] : null;
   const hasAccess = access?.has_programme && access.expires_at && new Date(access.expires_at) > new Date();
+  const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
 
   const items = [
     {
       href: "/video-course",
       label: "Skills Workshop",
       description: "System-by-system teaching — every consultation skill examiners score",
+      badge: null,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
@@ -38,6 +44,7 @@ export default async function DashboardPage() {
       href: "/recorded-consultations",
       label: "Recorded Consultations",
       description: "Watch complete exam-style consultations from start to finish",
+      badge: null,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <circle cx="11" cy="11" r="9" stroke={DARK} strokeWidth="1.5"/>
@@ -49,10 +56,24 @@ export default async function DashboardPage() {
       href: "/case-bank",
       label: "Case Bank",
       description: "246 practice stations · study rooms · notes",
+      badge: null,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <rect x="3" y="2" width="14" height="18" rx="2" stroke={DARK} strokeWidth="1.5"/>
           <path d="M7 7.5h8M7 11h8M7 14.5h5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      ),
+    },
+    {
+      href: "/recordings",
+      label: "My Recordings",
+      description: "AI-graded consultations with RCGP examiner review",
+      badge: `${credits} credit${credits !== 1 ? "s" : ""}`,
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="9" r="5.5" stroke={DARK} strokeWidth="1.5"/>
+          <circle cx="11" cy="9" r="2" fill={DARK}/>
+          <path d="M5 18.5c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
     },
@@ -96,7 +117,14 @@ export default async function DashboardPage() {
                 <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>{item.label}</p>
                 <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{item.description}</p>
               </div>
-              <span className="shrink-0 font-bold text-[14px] px-4 py-2 rounded-lg" style={{ background: DARK, color: "white" }}>Open →</span>
+              <div className="shrink-0 flex flex-col items-end gap-1.5">
+                {item.badge && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md" style={{ background: "rgba(26,27,82,0.07)", color: "rgba(26,27,82,0.5)" }}>
+                    {item.badge}
+                  </span>
+                )}
+                <span className="font-bold text-[14px] px-4 py-2 rounded-lg" style={{ background: DARK, color: "white" }}>Open →</span>
+              </div>
             </Link>
           ))}
         </div>

@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { examinerLogoutAction } from "./login/actions";
+import { examinerLoginAction, examinerLogoutAction } from "./actions";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,32 +12,76 @@ type QueueRow = {
   station_number: number;
   station_title: string;
   doctor_display_name: string;
-  patient_display_name: string;
   started_at: string;
   status: string;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
-  examiner_reviewed_at: string | null;
   sent_to_candidate_at: string | null;
 };
 
 export default async function ExaminerPage() {
   const examiner = await getExaminerFromCookie();
-  if (!examiner) redirect("/examiner/login");
 
+  // ── Not logged in: show passcode form ────────────────────────────────────
+  if (!examiner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F3F2FB" }}>
+        <div className="w-full max-w-[360px] rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(26,27,82,0.1)" }}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "rgba(26,27,82,0.4)" }}>
+            SCA Explained
+          </div>
+          <h1 className="font-display font-extrabold text-[22px] mb-1" style={{ color: NAVY }}>
+            Examiner Portal
+          </h1>
+          <p className="text-[13px] mb-7" style={{ color: "rgba(26,27,82,0.5)" }}>
+            Enter your passcode to continue.
+          </p>
+          <form action={examinerLoginAction} className="flex flex-col gap-4">
+            <input
+              name="passcode"
+              type="password"
+              placeholder="Passcode"
+              autoComplete="current-password"
+              required
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
+              style={{ border: "1.5px solid rgba(26,27,82,0.15)", background: "#F3F2FB", color: NAVY, fontFamily: "inherit" }}
+            />
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl text-[14px] font-bold"
+              style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+            >
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Logged in: show review queue ─────────────────────────────────────────
   const admin = getSupabaseAdmin();
-  const { data: queue } = admin
-    ? await admin
-        .from("station_recordings")
-        .select("id, station_number, station_title, doctor_display_name, patient_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_reviewed_at, sent_to_candidate_at")
-        .in("status", ["pending_examiner", "reviewed", "sent"])
-        .order("started_at", { ascending: false })
-        .limit(100)
-    : { data: [] };
+  const [pendingResult, doneResult] = admin
+    ? await Promise.all([
+        admin
+          .from("station_recordings")
+          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at")
+          .eq("status", "pending_examiner")
+          .order("started_at", { ascending: false })
+          .limit(100),
+        admin
+          .from("station_recordings")
+          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at")
+          .in("status", ["reviewed", "sent"])
+          .eq("examiner_id", examiner.id)
+          .order("started_at", { ascending: false })
+          .limit(100),
+      ])
+    : [{ data: [] }, { data: [] }];
 
-  const pending = ((queue ?? []) as QueueRow[]).filter((r) => r.status === "pending_examiner");
-  const done = ((queue ?? []) as QueueRow[]).filter((r) => r.status !== "pending_examiner");
+  const pending = (pendingResult.data ?? []) as QueueRow[];
+  const done = (doneResult.data ?? []) as QueueRow[];
 
   return (
     <div className="min-h-screen" style={{ background: "#F3F2FB" }}>
@@ -63,14 +106,13 @@ export default async function ExaminerPage() {
           </form>
         </div>
 
-        {/* Pending */}
         <div className="mb-8">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(26,27,82,0.45)" }}>
             Awaiting Review ({pending.length})
           </h2>
           {pending.length === 0 ? (
             <div className="rounded-2xl p-8 text-center" style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}>
-              <p className="text-[14px]" style={{ color: "rgba(26,27,82,0.4)" }}>Queue is clear — nothing to review right now.</p>
+              <p className="text-[14px]" style={{ color: "rgba(26,27,82,0.4)" }}>Queue is clear.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -116,14 +158,12 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
           <span
             className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.05em]"
             style={
-              isPending
-                ? { background: "rgba(245,158,11,0.12)", color: "#92400E" }
-                : rec.status === "sent"
-                ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
-                : { background: "rgba(34,197,94,0.1)", color: "#166534" }
+              isPending ? { background: "rgba(245,158,11,0.12)", color: "#92400E" }
+              : rec.sent_to_candidate_at ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
+              : { background: "rgba(34,197,94,0.1)", color: "#166534" }
             }
           >
-            {isPending ? "Needs review" : rec.status === "sent" ? "Sent to candidate" : "Reviewed"}
+            {isPending ? "Needs review" : rec.sent_to_candidate_at ? "Sent" : "Reviewed"}
           </span>
           {rec.ai_data_gathering && (
             <div className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>

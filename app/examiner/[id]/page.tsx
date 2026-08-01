@@ -41,7 +41,7 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
   const { id } = await params;
 
   const examiner = await getExaminerFromCookie();
-  if (!examiner) redirect("/examiner/login");
+  if (!examiner) redirect("/examiner");
 
   const admin = getSupabaseAdmin();
   if (!admin) notFound();

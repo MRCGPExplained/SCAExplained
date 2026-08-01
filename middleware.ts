@@ -94,11 +94,12 @@ export async function middleware(req: NextRequest) {
 
   // ── Examiner ──────────────────────────────────────────────────────────────
   if (pathname === "/examiner" || pathname.startsWith("/examiner/")) {
-    if (pathname === "/examiner/login") return NextResponse.next();
+    // /examiner itself handles both login form and queue based on cookie presence
+    if (pathname === "/examiner") return NextResponse.next();
     const examinerId = req.cookies.get("examiner_session")?.value ?? "";
     if (!examinerId) {
       const url = req.nextUrl.clone();
-      url.pathname = "/examiner/login";
+      url.pathname = "/examiner";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -119,6 +120,5 @@ export const config = {
     "/recordings/:path*",
     "/examiner",
     "/examiner/:path*",
-    "/examiner/login",
   ],
 };
