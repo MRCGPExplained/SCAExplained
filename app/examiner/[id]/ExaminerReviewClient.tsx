@@ -411,9 +411,9 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 type="submit"
                 name="send_now"
                 value="0"
-                disabled={pending || !canSubmit}
+                disabled={pending}
                 className="flex-1 rounded-xl py-3 text-[13px] font-bold"
-                style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending || !canSubmit ? 0.5 : 1 }}
+                style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending ? 0.5 : 1 }}
               >
                 Save Draft
               </button>
