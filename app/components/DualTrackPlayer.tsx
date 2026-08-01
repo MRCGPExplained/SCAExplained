@@ -35,16 +35,10 @@ export default function DualTrackPlayer({
     ctxRef.current = ctx;
 
     if (doctorRef.current) {
-      const src = ctx.createMediaElementSource(doctorRef.current);
-      const panner = ctx.createStereoPanner();
-      panner.pan.value = -1;
-      src.connect(panner).connect(ctx.destination);
+      ctx.createMediaElementSource(doctorRef.current).connect(ctx.destination);
     }
     if (patientRef.current) {
-      const src = ctx.createMediaElementSource(patientRef.current);
-      const panner = ctx.createStereoPanner();
-      panner.pan.value = 1;
-      src.connect(panner).connect(ctx.destination);
+      ctx.createMediaElementSource(patientRef.current).connect(ctx.destination);
     }
   }
 
@@ -105,8 +99,6 @@ export default function DualTrackPlayer({
 
   if (!doctorUrl && !patientUrl) return null;
 
-  const hasBoth = !!(doctorUrl && patientUrl);
-
   return (
     <div>
       {doctorUrl && <audio ref={doctorRef} src={doctorUrl} preload="metadata" />}
@@ -118,16 +110,8 @@ export default function DualTrackPlayer({
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-4 text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>
-            {doctorUrl && (
-              <span className="flex items-center gap-1">
-                <span style={{ fontSize: 9 }}>◀</span> Doctor {hasBoth ? "(L)" : ""}
-              </span>
-            )}
-            {patientUrl && (
-              <span className="flex items-center gap-1">
-                Patient {hasBoth ? "(R)" : ""} <span style={{ fontSize: 9 }}>▶</span>
-              </span>
-            )}
+            {doctorUrl && <span>Doctor</span>}
+            {patientUrl && <span>Patient</span>}
             {doctorUrl && !patientUrl && (
               <span className="italic" style={{ color: "rgba(51,51,51,0.25)" }}>patient track unavailable</span>
             )}
@@ -210,11 +194,6 @@ export default function DualTrackPlayer({
           </span>
         </div>
 
-        {hasBoth && (
-          <p className="text-[10.5px] mt-2.5" style={{ color: "rgba(51,51,51,0.3)" }}>
-            Use headphones — doctor in left ear, patient in right.
-          </p>
-        )}
       </div>
     </div>
   );
