@@ -212,7 +212,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 
   // If Deepgram is disabled, skip pipeline and send straight to examiner queue
-  if (!deepgramEnabled) {
+  if (!deepgramEnabled || vercelPlan === "hobby") {
     await admin
       .from("station_recordings")
       .update({ status: "pending_examiner" })
@@ -266,7 +266,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     let transcriptFormatted: string;
     let transcriptRaw: unknown;
 
-    if (isSpike || vercelPlan === "hobby") {
+    if (isSpike) {
       // Skip Deepgram — use sample consultation transcript
       transcriptFormatted = SPIKE_TRANSCRIPT;
       transcriptRaw = { spike: true };
