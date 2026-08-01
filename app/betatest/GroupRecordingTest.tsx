@@ -75,6 +75,17 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     return () => clearInterval(id);
   }, [phase]);
 
+  // Pre-warm mic permission for everyone as soon as they enter the lobby.
+  // Stops the tracks immediately — we only need the browser to cache the grant
+  // so that launchMediaRecorder can call getUserMedia outside a user gesture.
+  useEffect(() => {
+    if (phase !== "lobby") return;
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => stream.getTracks().forEach((t) => t.stop()))
+      .catch(() => {});
+  }, [phase]);
+
   // Load current user once
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
