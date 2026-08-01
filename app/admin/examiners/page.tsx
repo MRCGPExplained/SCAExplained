@@ -46,7 +46,7 @@ export default async function ExaminersPage({
         })()
       : Promise.resolve({ data: [] }),
     supabase
-      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt"])
+      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt", "deepgram_enabled"])
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -62,6 +62,7 @@ export default async function ExaminersPage({
   };
 
   const aiPrompt = settingsMap.get("ai_grading_prompt") ?? "";
+  const deepgramEnabled = settingsMap.get("deepgram_enabled") !== "false"; // default on
 
   return (
     <ExaminersClient
@@ -71,6 +72,7 @@ export default async function ExaminersPage({
       bypassSettings={bypassSettings}
       aiPrompt={aiPrompt}
       defaultPrompt={DEFAULT_SYSTEM_PROMPT}
+      deepgramEnabled={deepgramEnabled}
     />
   );
 }

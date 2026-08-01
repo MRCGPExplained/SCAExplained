@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
-  toggleExaminerIsAdminAction,
+  toggleExaminerIsAdminAction, toggleDeepgramAction,
 } from "../actions";
 
 const NAVY = "#333333";
 
-type Tab = "examiners" | "ai_prompt";
+type Tab = "examiners" | "ai_prompt" | "transcription";
 
 type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
@@ -32,6 +32,7 @@ interface Props {
   bypassSettings: BypassSettings;
   aiPrompt: string;
   defaultPrompt: string;
+  deepgramEnabled: boolean;
 }
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("examiners");
   const [isPending, startTransition] = useTransition();
@@ -100,6 +101,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   const [promptState, promptAction, promptPending] = useActionState(saveAiPromptAction, {});
   const [showPromptSaved, setShowPromptSaved] = useState(false);
   const [clearPending, startClearTransition] = useTransition();
+
+  // Deepgram toggle
+  const [deepgramOn, setDeepgramOn] = useState(initialDeepgram);
+  const [deepgramPending, startDeepgramTransition] = useTransition();
+
   useEffect(() => {
     if ("success" in promptState && promptState.success) {
       setShowPromptSaved(true);
@@ -129,6 +135,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   const tabs: { id: Tab; label: string }[] = [
     { id: "examiners", label: "Examiners" },
     { id: "ai_prompt", label: "AI Prompt" },
+    { id: "transcription", label: "Transcription" },
   ];
 
   return (
@@ -304,6 +311,46 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
             )}
           </div>
         </>
+      )}
+
+      {/* ── Transcription tab ────────────────────────────────────────────────── */}
+      {tab === "transcription" && (
+        <div className="bg-white rounded-xl border border-navy/10 p-6">
+          <h2 className="text-[15px] font-bold text-navy mb-1">Deepgram Transcription</h2>
+          <p className="text-[12px] text-navy/45 mb-6">
+            When enabled, consultation audio is transcribed by Deepgram and graded by AI before reaching the examiner queue.
+            When disabled, recordings skip transcription and go straight to the examiner queue with audio only.
+          </p>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              disabled={deepgramPending}
+              onClick={() => {
+                const next = !deepgramOn;
+                setDeepgramOn(next);
+                startDeepgramTransition(async () => {
+                  await toggleDeepgramAction(next);
+                });
+              }}
+              className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+              style={{
+                background: deepgramOn ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
+                border: `1.5px solid ${deepgramOn ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
+                color: deepgramOn ? "#166534" : "rgba(51,51,51,0.45)",
+                cursor: "pointer",
+              }}
+            >
+              {deepgramPending ? "Saving…" : deepgramOn ? "Deepgram: ON" : "Deepgram: OFF"}
+            </button>
+
+            <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+              {deepgramOn
+                ? "Recordings will be transcribed and AI-graded."
+                : "Recordings skip transcription — examiner gets audio only."}
+            </span>
+          </div>
+        </div>
       )}
 
       {/* ── AI Prompt tab ─────────────────────────────────────────────────────── */}
