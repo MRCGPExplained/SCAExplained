@@ -308,6 +308,71 @@ export async function sendAccessExpiryEmail(args: {
   }
 }
 
+export async function sendExaminerNotificationEmail(args: {
+  to: string;
+  examinerName: string;
+  candidateName: string;
+  stationNumber: number;
+  stationTitle: string;
+}): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
+          New recording ready for review</p>
+        <p style="font-size:14px;line-height:1.6;color:#3a3b66;margin:0;">
+          Hi ${escapeHtml(args.examinerName)}, a new consultation has been submitted and is ready for your review.</p>
+      </td></tr>
+      <tr><td style="padding:16px 28px;">
+        <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
+          <tr><td style="padding:14px 16px;">
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+            <p style="margin:6px 0 0;font-size:12px;color:#6b6c85;">Candidate: ${escapeHtml(args.candidateName)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:8px 28px 28px;">
+        <a href="${origin}/examiner"
+           style="display:inline-block;background:${NAVY};color:#ffffff;
+           font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">
+          Go to Examiner Portal
+        </a>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          For educational purposes only. © 2026 SCA Explained.</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `New recording to review: Station #${args.stationNumber} — ${args.stationTitle}`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
 export async function sendExaminerReportEmail(args: {
   to: string;
   candidateName: string;

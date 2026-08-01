@@ -7,8 +7,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
 
 export async function examinerLoginAction(formData: FormData): Promise<void> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!passcode) redirect("/examiner?error=required");
+  if (!email || !passcode) redirect("/examiner?error=required");
 
   const admin = getSupabaseAdmin();
   if (!admin) redirect("/examiner?error=server");
@@ -16,6 +17,7 @@ export async function examinerLoginAction(formData: FormData): Promise<void> {
   const { data: examiner } = await admin
     .from("examiners")
     .select("id")
+    .eq("email", email)
     .eq("passcode", passcode)
     .single<{ id: string }>();
 
@@ -88,41 +90,39 @@ export async function submitExaminerReviewAction(
 
   if (updateErr) return { error: updateErr.message };
 
-  if (sendNow) {
-    const { data: rec } = await admin
-      .from("station_recordings")
-      .select("candidate_email, station_number, station_title, doctor_display_name")
-      .eq("id", recordingId)
-      .single<{
-        candidate_email: string | null;
-        station_number: number;
-        station_title: string;
-        doctor_display_name: string;
-      }>();
+  const { data: rec } = await admin
+    .from("station_recordings")
+    .select("candidate_email, station_number, station_title, doctor_display_name")
+    .eq("id", recordingId)
+    .single<{
+      candidate_email: string | null;
+      station_number: number;
+      station_title: string;
+      doctor_display_name: string;
+    }>();
 
-    if (rec?.candidate_email) {
-      const gradePts: Record<string, Record<string, number>> = {
-        dg: { CF: 0, F: 1, P: 2, CP: 3 },
-        cm: { CF: 0, F: 1.5, P: 3, CP: 4.5 },
-        ro: { CF: 0, F: 1, P: 2, CP: 3 },
-      };
-      const total = (gradePts.dg[dgGrade] ?? 0) + (gradePts.cm[cmGrade] ?? 0) + (gradePts.ro[roGrade] ?? 0);
+  if (rec?.candidate_email) {
+    const gradePts: Record<string, Record<string, number>> = {
+      dg: { CF: 0, F: 1, P: 2, CP: 3 },
+      cm: { CF: 0, F: 1.5, P: 3, CP: 4.5 },
+      ro: { CF: 0, F: 1, P: 2, CP: 3 },
+    };
+    const total = (gradePts.dg[dgGrade] ?? 0) + (gradePts.cm[cmGrade] ?? 0) + (gradePts.ro[roGrade] ?? 0);
 
-      await sendExaminerReportEmail({
-        to: rec.candidate_email,
-        candidateName: rec.doctor_display_name,
-        stationNumber: rec.station_number,
-        stationTitle: rec.station_title,
-        dgGrade,
-        cmGrade,
-        roGrade,
-        totalPts: total,
-        dgComment,
-        cmComment,
-        roComment,
-        overallComment,
-      });
-    }
+    await sendExaminerReportEmail({
+      to: rec.candidate_email,
+      candidateName: rec.doctor_display_name,
+      stationNumber: rec.station_number,
+      stationTitle: rec.station_title,
+      dgGrade,
+      cmGrade,
+      roGrade,
+      totalPts: total,
+      dgComment,
+      cmComment,
+      roComment,
+      overallComment,
+    });
   }
 
   return { success: true };

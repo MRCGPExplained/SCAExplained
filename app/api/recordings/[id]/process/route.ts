@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendExaminerNotificationEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -252,6 +253,31 @@ export async function POST(req: Request, { params }: RouteParams) {
       ai_graded_at: new Date().toISOString(),
       status: "pending_examiner",
     }).eq("id", recordingId);
+
+    // Notify all examiners
+    const { data: recRow } = await admin
+      .from("station_recordings")
+      .select("station_number, station_title, doctor_display_name")
+      .eq("id", recordingId)
+      .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
+
+    if (recRow) {
+      const { data: examiners } = await admin
+        .from("examiners")
+        .select("name, email");
+
+      await Promise.all(
+        (examiners ?? []).map((ex: { name: string; email: string }) =>
+          sendExaminerNotificationEmail({
+            to: ex.email,
+            examinerName: ex.name,
+            candidateName: recRow.doctor_display_name,
+            stationNumber: recRow.station_number,
+            stationTitle: recRow.station_title,
+          })
+        )
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

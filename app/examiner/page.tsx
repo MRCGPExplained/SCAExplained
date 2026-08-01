@@ -21,8 +21,8 @@ type QueueRow = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  required: "Passcode required.",
-  incorrect: "Incorrect passcode.",
+  required: "Email and passcode are required.",
+  incorrect: "Incorrect email or passcode.",
   server: "Server error — please try again.",
 };
 
@@ -46,6 +46,15 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
           </p>
           <form action={examinerLoginAction} className="flex flex-col gap-4">
             <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              autoComplete="email"
+              required
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
+              style={{ border: `1.5px solid ${error ? "rgba(220,38,38,0.4)" : "rgba(26,27,82,0.15)"}`, background: "#F3F2FB", color: NAVY, fontFamily: "inherit" }}
+            />
+            <input
               name="passcode"
               type="password"
               placeholder="Passcode"
@@ -56,7 +65,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
             />
             {error && (
               <p className="text-[12px]" style={{ color: "#B91C1C", marginTop: -8 }}>
-                {ERROR_MESSAGES[error] ?? "Incorrect passcode."}
+                {ERROR_MESSAGES[error] ?? "Incorrect email or passcode."}
               </p>
             )}
             <button
