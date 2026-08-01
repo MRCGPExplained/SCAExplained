@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useActionState, useTransition } from "react";
 import Link from "next/link";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
+import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 
 const NAVY = "#333333";
 const LIGHT_BG = "#FAFAF8";
@@ -160,16 +161,6 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
       await submitExaminerReviewAction({}, fd);
       window.open(`/recordings/${rec.id}`, "_blank");
     });
-  }
-
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const doctorAudioRef = useRef<HTMLAudioElement | null>(null);
-  const patientAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  function applyPlaybackRate(rate: number) {
-    setPlaybackRate(rate);
-    if (doctorAudioRef.current) doctorAudioRef.current.playbackRate = rate;
-    if (patientAudioRef.current) patientAudioRef.current.playbackRate = rate;
   }
 
   const totalPts = (() => {
@@ -375,54 +366,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           {(doctorAudioUrl || patientAudioUrl) && (
             <div className="mb-4">
               <Accordion title="Consultation Audio">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>Playback speed</span>
-                  <div className="flex gap-1">
-                    {[1, 1.5, 2].map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => applyPlaybackRate(r)}
-                        className="text-[11px] font-bold px-2 py-0.5 rounded"
-                        style={{
-                          background: playbackRate === r ? NAVY : "rgba(51,51,51,0.07)",
-                          color: playbackRate === r ? "white" : "rgba(51,51,51,0.5)",
-                          border: "none", cursor: "pointer",
-                        }}
-                      >
-                        {r}×
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {doctorAudioUrl && (
-                    <div>
-                      <div className="text-[11px] mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>Doctor</div>
-                      <audio
-                        ref={doctorAudioRef}
-                        src={doctorAudioUrl}
-                        controls
-                        className="w-full"
-                        style={{ height: 36 }}
-                        onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
-                      />
-                    </div>
-                  )}
-                  {patientAudioUrl && (
-                    <div>
-                      <div className="text-[11px] mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>Patient</div>
-                      <audio
-                        ref={patientAudioRef}
-                        src={patientAudioUrl}
-                        controls
-                        className="w-full"
-                        style={{ height: 36 }}
-                        onLoadedMetadata={(e) => { (e.target as HTMLAudioElement).playbackRate = playbackRate; }}
-                      />
-                    </div>
-                  )}
-                </div>
+                <DualTrackPlayer doctorUrl={doctorAudioUrl} patientUrl={patientAudioUrl} />
               </Accordion>
             </div>
           )}
