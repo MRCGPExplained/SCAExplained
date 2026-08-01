@@ -256,6 +256,24 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           </div>
         )}
 
+        {/* Consultation Audio — SPIKE, remove after review */}
+        {isDoctor && (
+          <div
+            className="rounded-2xl p-5 mb-5"
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+          >
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Consultation Audio
+            </div>
+            <audio
+              src="https://mdwijqzamirvdmccttya.supabase.co/storage/v1/object/sign/consultation-recordings/6fc19c8b-29f3-4408-84d9-18bfb0a2335e/doctor.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85Y2EzZmIwNi0xZTljLTRhOTUtYmI3My02OTBhMmRjOGFlZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb25zdWx0YXRpb24tcmVjb3JkaW5ncy82ZmMxOWM4Yi0yOWYzLTQ0MDgtODRkOS0xOGJmYjBhMjMzNWUvZG9jdG9yLndlYm0iLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1NTk3MzQyLCJleHAiOjE4MTcxMzMzNDJ9.33GTrLOTmnv0U-yR_1wvYxFcB-12v7ytrhClqMKwnUo"
+              controls
+              className="w-full"
+              style={{ height: 40 }}
+            />
+          </div>
+        )}
+
         {/* Transcript */}
         {isDoctor && rec.transcript_formatted && (
           <div
@@ -279,24 +297,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* Consultation recording — SPIKE, remove after review */}
-        {isDoctor && (
-          <div
-            className="rounded-2xl p-5 mt-5"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-          >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Consultation Recording
-            </div>
-            <audio
-              src="https://mdwijqzamirvdmccttya.supabase.co/storage/v1/object/sign/consultation-recordings/6fc19c8b-29f3-4408-84d9-18bfb0a2335e/doctor.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85Y2EzZmIwNi0xZTljLTRhOTUtYmI3My02OTBhMmRjOGFlZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb25zdWx0YXRpb24tcmVjb3JkaW5ncy82ZmMxOWM4Yi0yOWYzLTQ0MDgtODRkOS0xOGJmYjBhMjMzNWUvZG9jdG9yLndlYm0iLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1NTk3MzQyLCJleHAiOjE4MTcxMzMzNDJ9.33GTrLOTmnv0U-yR_1wvYxFcB-12v7ytrhClqMKwnUo"
-              controls
-              className="w-full"
-              style={{ height: 40 }}
-            />
           </div>
         )}
 

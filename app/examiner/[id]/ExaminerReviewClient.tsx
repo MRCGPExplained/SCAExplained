@@ -64,16 +64,17 @@ function GradeSelector({ name, value, onChange }: { name: string; value: Grade |
 }
 
 function Accordion({
-  title, badge, defaultOpen = true, children,
+  title, badge, defaultOpen = true, bg, children,
 }: {
   title: string;
   badge?: React.ReactNode;
   defaultOpen?: boolean;
+  bg?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)", borderRadius: 16, overflow: "hidden" }}>
+    <div style={{ background: bg ?? "white", border: `1px solid ${bg ? "rgba(245,158,11,0.18)" : "rgba(51,51,51,0.08)"}`, borderRadius: 16, overflow: "hidden" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -311,7 +312,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               ))}
 
               {/* Overall comment */}
-              <Accordion title="Overall Comment">
+              <Accordion title="Overall Comment" bg="rgba(245,158,11,0.05)">
                 {!isSent && (
                   <div className="flex gap-2 mb-3 flex-wrap">
                     <button
@@ -373,7 +374,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           {/* Audio — full width below columns */}
           {(doctorAudioUrl || patientAudioUrl) && (
             <div className="mb-4">
-              <Accordion title="Audio Recording">
+              <Accordion title="Consultation Audio">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>Playback speed</span>
                   <div className="flex gap-1">
