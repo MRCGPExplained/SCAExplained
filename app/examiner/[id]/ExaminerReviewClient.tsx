@@ -460,7 +460,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                     Save Draft
                   </button>
                   <a
-                    href={`/recordings/${recording.id}`}
+                    href={`/recordings/${rec.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 rounded-xl py-3 text-[13px] font-bold text-center"
