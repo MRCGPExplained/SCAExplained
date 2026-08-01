@@ -493,6 +493,45 @@ export async function getRecordingBypassAction(): Promise<boolean> {
   return checkRecordingBypass(user?.email);
 }
 
+export async function startSoloRecordingAction(args: {
+  stationNumber: number;
+  stationTitle: string;
+}): Promise<{ error?: string; recordingId?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single<{ display_name: string }>();
+
+  const displayName = profile?.display_name ?? user.email ?? "Tester";
+
+  const { data: recording, error: insertErr } = await admin
+    .from("station_recordings")
+    .insert({
+      room_id: null,
+      station_number: args.stationNumber,
+      station_title: args.stationTitle,
+      doctor_user_id: user.id,
+      patient_user_id: user.id,
+      doctor_display_name: displayName,
+      patient_display_name: "Solo test",
+      candidate_email: user.email ?? null,
+      status: "uploading",
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (insertErr || !recording) return { error: "Could not create recording." };
+  return { recordingId: recording.id };
+}
+
 export async function startRecordingAction(args: {
   roomId: string;
   stationNumber: number;
