@@ -26,6 +26,9 @@ export type Station = {
   example_explanation: string;
   key_takeaways: string[];
   editor_video_url: string | null;
+  marking_notes_data_gathering: string | null;
+  marking_notes_clinical_management: string | null;
+  marking_notes_relating_to_others: string | null;
   created_at: string;
   updated_at: string;
 };

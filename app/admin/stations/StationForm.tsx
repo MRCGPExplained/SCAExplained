@@ -277,6 +277,37 @@ export function StationForm({ station }: { station?: Station }) {
         </div>
       </section>
 
+      {/* ── AI Marking Context ── */}
+      <section className="bg-white rounded-xl border border-navy/10 p-6 mb-4">
+        <h2 className="font-display font-bold text-[15px] text-navy mb-1">AI Marking Context</h2>
+        <p className="text-[12px] text-navy/45 mb-4">
+          Optional per-domain notes fed to the AI grader. Use these to clarify station-specific expectations that differ from the general RCGP criteria — e.g. a specific red flag that must be excluded, or a management step unique to this condition.
+        </p>
+        <div className="flex flex-col gap-4">
+          <TextareaField
+            label="Data Gathering & Diagnosis — AI notes"
+            name="marking_notes_data_gathering"
+            defaultValue={station?.marking_notes_data_gathering ?? ""}
+            rows={3}
+            hint="What must the candidate cover to pass data gathering for this specific station?"
+          />
+          <TextareaField
+            label="Clinical Management — AI notes"
+            name="marking_notes_clinical_management"
+            defaultValue={station?.marking_notes_clinical_management ?? ""}
+            rows={3}
+            hint="Key management steps / safety-netting specific to this station."
+          />
+          <TextareaField
+            label="Relating to Others — AI notes"
+            name="marking_notes_relating_to_others"
+            defaultValue={station?.marking_notes_relating_to_others ?? ""}
+            rows={3}
+            hint="Any communication-specific expectations for this scenario."
+          />
+        </div>
+      </section>
+
       {/* ── Post-consult ── */}
       <section className="bg-white rounded-xl border border-navy/10 p-6 mb-6">
         <h2 className="font-display font-bold text-[15px] text-navy mb-4">Post-Consultation</h2>

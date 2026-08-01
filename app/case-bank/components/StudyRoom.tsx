@@ -9,6 +9,8 @@ import {
   leaveStudyRoomAction,
   transferHostAction,
   claimHostAction,
+  startRecordingAction,
+  getRecordingCreditsAction,
 } from "../actions";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
@@ -30,6 +32,7 @@ interface Participant {
 interface StudyRoomProps {
   stationId: string;
   stationNumber: number;
+  stationTitle?: string;
   userId: string;
   displayName: string;
   initials: string;
@@ -40,11 +43,13 @@ interface StudyRoomProps {
   broadcastTimerRef?: MutableRefObject<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>;
   /** Read-only ref the panel reads to re-announce timer state to late-joining guests */
   timerStateRef?: MutableRefObject<{ phase: TimerPhase; timeLeft: number; running: boolean }>;
+  onTimerReset?: () => void;
 }
 
 export function StudyRoomPanel({
   stationId,
   stationNumber,
+  stationTitle,
   userId,
   displayName,
   initials,
@@ -53,6 +58,7 @@ export function StudyRoomPanel({
   onRoomStatusChange,
   broadcastTimerRef,
   timerStateRef,
+  onTimerReset,
 }: StudyRoomProps) {
   const [room, setRoom] = useState<StudyRoom | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -67,9 +73,21 @@ export function StudyRoomPanel({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; userId: string; displayName: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  // Always-current host user ID so stale channel callbacks read the right value
   const currentHostIdRef = useRef<string | null>(null);
   const supabase = createSupabaseBrowserClient();
+
+  // ── Recording state ──────────────────────────────────────────────────────────
+  type RecordingState = "idle" | "starting" | "recording" | "uploading" | "done" | "error";
+  const [recordingState, setRecordingState] = useState<RecordingState>("idle");
+  const [activeRecordingId, setActiveRecordingId] = useState<string | null>(null);
+  const [myRecordingRole, setMyRecordingRole] = useState<"doctor" | "patient" | null>(null);
+  const [showRoleSelector, setShowRoleSelector] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState("");
+  const [recordingCredits, setRecordingCredits] = useState(0);
+  const [recordingError, setRecordingError] = useState("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const iAmHost = room ? room.host_user_id === userId : false;
 
@@ -274,6 +292,33 @@ export function StudyRoomPanel({
       refreshParticipants(room.id);
     });
 
+    // Recording: all participants receive start signal
+    channel.on("broadcast", { event: "recording-start" }, ({ payload }) => {
+      const { recordingId, doctorUserId, patientUserId } = payload as {
+        recordingId: string;
+        doctorUserId: string;
+        patientUserId: string;
+      };
+      setActiveRecordingId(recordingId);
+      setRecordingState("recording");
+      // Non-host participants start their own mic if they're doctor or patient
+      if (!iAmHost) {
+        if (userId === doctorUserId) {
+          setMyRecordingRole("doctor");
+          startLocalRecording(recordingId, "doctor");
+        } else if (userId === patientUserId) {
+          setMyRecordingRole("patient");
+          startLocalRecording(recordingId, "patient");
+        }
+      }
+    });
+
+    // Recording: stop signal
+    channel.on("broadcast", { event: "recording-stop" }, () => {
+      stopLocalRecording();
+      if (myRecordingRole === null) setRecordingState("done");
+    });
+
     // Guest listens for host station changes
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
       const { stationNumber: target } = payload as { stationNumber: number };
@@ -397,6 +442,132 @@ export function StudyRoomPanel({
         if (data) setRoom(data);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch credits when joining a room
+  useEffect(() => {
+    if (!room) return;
+    getRecordingCreditsAction().then(setRecordingCredits);
+  }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        uploadRecording(recordingId, role);
+      };
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+    } catch {
+      setRecordingState("error");
+      setRecordingError("Microphone access denied. Please allow microphone access and try again.");
+    }
+  }
+
+  function stopLocalRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  }
+
+  async function uploadRecording(recordingId: string, role: "doctor" | "patient") {
+    setRecordingState("uploading");
+    try {
+      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      const fd = new FormData();
+      fd.append("audio", blob, `${role}.webm`);
+      const res = await fetch(`/api/recordings/${recordingId}/upload?role=${role}`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      setRecordingState("done");
+    } catch {
+      setRecordingState("error");
+      setRecordingError("Upload failed. Please contact support.");
+    }
+  }
+
+  async function handleConfirmRecord() {
+    if (!room || !iAmHost || !selectedDoctor || !selectedPatient) return;
+    if (selectedDoctor === selectedPatient) {
+      setRecordingError("Doctor and patient must be different participants.");
+      return;
+    }
+    setShowRoleSelector(false);
+    setRecordingState("starting");
+    setRecordingError("");
+
+    const doctorPart = participants.find((p) => p.userId === selectedDoctor);
+    const patientPart = participants.find((p) => p.userId === selectedPatient);
+
+    const result = await startRecordingAction({
+      roomId: room.id,
+      stationNumber,
+      stationTitle: stationTitle ?? `Station ${stationNumber}`,
+      doctorUserId: selectedDoctor,
+      patientUserId: selectedPatient,
+      doctorDisplayName: doctorPart?.displayName ?? "Doctor",
+      patientDisplayName: patientPart?.displayName ?? "Patient",
+    });
+
+    if (result.error) {
+      setRecordingState("error");
+      setRecordingError(result.error);
+      return;
+    }
+
+    const recordingId = result.recordingId!;
+    setActiveRecordingId(recordingId);
+    setRecordingState("recording");
+
+    // Notify all participants via broadcast
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "recording-start",
+      payload: {
+        recordingId,
+        doctorUserId: selectedDoctor,
+        patientUserId: selectedPatient,
+      },
+    });
+
+    // Reset the timer to start of consultation
+    onTimerReset?.();
+
+    // Start this user's own microphone if they're doctor or patient
+    if (userId === selectedDoctor) {
+      setMyRecordingRole("doctor");
+      await startLocalRecording(recordingId, "doctor");
+    } else if (userId === selectedPatient) {
+      setMyRecordingRole("patient");
+      await startLocalRecording(recordingId, "patient");
+    }
+
+    // Refresh credits
+    getRecordingCreditsAction().then(setRecordingCredits);
+  }
+
+  function handleStopRecording() {
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "recording-stop",
+      payload: {},
+    });
+    stopLocalRecording();
+    if (myRecordingRole === null) {
+      // Host is observer — nothing to upload, just update state
+      setRecordingState("done");
+    }
+  }
 
   async function handleCreate() {
     setLoading(true);
@@ -597,6 +768,51 @@ export function StudyRoomPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Recording controls */}
+          {recordingState === "idle" && iAmHost && (
+            <button
+              onClick={() => {
+                setSelectedDoctor(userId);
+                setSelectedPatient(participants.find((p) => !p.isSelf)?.userId ?? "");
+                setRecordingError("");
+                setShowRoleSelector(true);
+              }}
+              title={recordingCredits === 0 ? "No recording credits" : `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""} left)`}
+              disabled={recordingCredits === 0}
+              className="text-[10px] px-2 py-1 rounded flex items-center gap-1"
+              style={{
+                background: recordingCredits === 0 ? "rgba(255,255,255,0.08)" : "rgba(239,68,68,0.2)",
+                color: recordingCredits === 0 ? "rgba(255,255,255,0.3)" : "#FCA5A5",
+                border: "none",
+                cursor: recordingCredits === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              ⏺ Record
+            </button>
+          )}
+          {(recordingState === "recording" || recordingState === "starting") && (
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
+                <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
+                REC
+              </span>
+              {iAmHost && (
+                <button
+                  onClick={handleStopRecording}
+                  className="text-[10px] px-2 py-1 rounded"
+                  style={{ background: "rgba(239,68,68,0.25)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
+                >
+                  Stop
+                </button>
+              )}
+            </div>
+          )}
+          {recordingState === "uploading" && (
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>Uploading…</span>
+          )}
+          {recordingState === "done" && (
+            <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.8)" }}>✓ Sent for review</span>
+          )}
           <button
             onClick={handleLeave}
             className="text-[10px] px-2 py-1 rounded"
@@ -606,6 +822,11 @@ export function StudyRoomPanel({
           </button>
         </div>
       </div>
+      {recordingError && (
+        <div className="px-3.5 py-2 text-[11px]" style={{ background: "rgba(239,68,68,0.12)", color: "#FCA5A5" }}>
+          {recordingError}
+        </div>
+      )}
 
       {/* Participants */}
       <div className="py-1.5 px-1.5" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
@@ -704,6 +925,82 @@ export function StudyRoomPanel({
       </div>
 
     </div>
+
+    {/* Role selector modal — host assigns doctor/patient before recording */}
+    {showRoleSelector && (
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50 px-6"
+        style={{ background: "rgba(26,27,82,0.55)" }}
+        onClick={(e) => e.target === e.currentTarget && setShowRoleSelector(false)}
+      >
+        <div
+          className="w-full max-w-[400px] rounded-2xl p-6"
+          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+        >
+          <h2 className="font-display font-bold text-[15px] mb-1" style={{ color: NAVY }}>
+            Start Recording
+          </h2>
+          <p className="text-[12.5px] mb-5 leading-snug" style={{ color: "rgba(26,27,82,0.55)" }}>
+            Assign roles. The consultation timer will reset. 1 credit will be deducted.
+          </p>
+
+          <div className="flex flex-col gap-3 mb-5">
+            {(["doctor", "patient"] as const).map((role) => (
+              <div key={role} className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.5)" }}>
+                  {role === "doctor" ? "Doctor (candidate)" : "Patient (role-player)"}
+                </label>
+                <select
+                  value={role === "doctor" ? selectedDoctor : selectedPatient}
+                  onChange={(e) =>
+                    role === "doctor"
+                      ? setSelectedDoctor(e.target.value)
+                      : setSelectedPatient(e.target.value)
+                  }
+                  className="rounded-lg px-3 py-2 text-[13px]"
+                  style={{ border: "1.5px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit" }}
+                >
+                  <option value="">— Select —</option>
+                  {participants.map((p) => (
+                    <option key={p.userId} value={p.userId}>
+                      {p.isSelf ? `You (${p.displayName})` : p.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          {recordingError && (
+            <p className="text-[12px] text-red-600 mb-3">{recordingError}</p>
+          )}
+
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setShowRoleSelector(false)}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmRecord}
+              disabled={!selectedDoctor || !selectedPatient}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+              style={{
+                background: NAVY,
+                border: "none",
+                color: "white",
+                cursor: !selectedDoctor || !selectedPatient ? "not-allowed" : "pointer",
+                opacity: !selectedDoctor || !selectedPatient ? 0.5 : 1,
+              }}
+            >
+              Start Recording
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Claim Host — guests only, sits below the room panel */}
     {!iAmHost && (

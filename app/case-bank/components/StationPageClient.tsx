@@ -538,6 +538,21 @@ export function StationPageClient({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/recordings"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold no-underline"
+            style={{
+              background: "transparent",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.6)",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            Recordings
+          </Link>
+
           <button
             onClick={() => setShowRoom((v) => !v)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
@@ -729,6 +744,7 @@ export function StationPageClient({
               <StudyRoomPanel
                 stationId={station.id}
                 stationNumber={station.number}
+                stationTitle={station.title}
                 userId={userId}
                 displayName={userDisplayName}
                 initials={userInitials}
@@ -737,6 +753,7 @@ export function StationPageClient({
                 onRoomStatusChange={handleRoomStatusChange}
                 broadcastTimerRef={broadcastTimerRef}
                 timerStateRef={timerStateRef}
+                onTimerReset={handleTimerReset}
               />
             </div>
           </div>

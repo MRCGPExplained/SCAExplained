@@ -54,6 +54,12 @@ function stationFromForm(formData: FormData) {
     key_takeaways: parseLines(String(formData.get("key_takeaways") ?? "")),
     editor_video_url:
       String(formData.get("editor_video_url") ?? "").trim() || null,
+    marking_notes_data_gathering:
+      String(formData.get("marking_notes_data_gathering") ?? "").trim() || null,
+    marking_notes_clinical_management:
+      String(formData.get("marking_notes_clinical_management") ?? "").trim() || null,
+    marking_notes_relating_to_others:
+      String(formData.get("marking_notes_relating_to_others") ?? "").trim() || null,
   };
 }
 
@@ -594,6 +600,107 @@ export async function reorderRecordedConsultationsAction(
   }
 
   revalidatePath("/admin/recorded-consultations");
+  return {};
+}
+
+// ── Recording credits management ──────────────────────────────────────────────
+
+export async function setRecordingCreditsAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult & { ok?: boolean }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const mode = String(formData.get("mode") ?? "set"); // "set" | "add" | "subtract"
+  const amount = parseInt(String(formData.get("amount") ?? "0"), 10);
+
+  if (!userId || isNaN(amount) || amount < 0) return { error: "Invalid input." };
+
+  if (mode === "set") {
+    const { error } = await supabase.from("recording_credits").upsert({
+      user_id: userId,
+      balance: amount,
+      total_purchased: amount,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (error) return { error: error.message };
+  } else {
+    const { data: existing } = await supabase
+      .from("recording_credits")
+      .select("balance, total_purchased")
+      .eq("user_id", userId)
+      .single<{ balance: number; total_purchased: number }>();
+
+    const current = existing?.balance ?? 0;
+    const newBalance = mode === "add" ? current + amount : Math.max(0, current - amount);
+    const newTotal = mode === "add" ? (existing?.total_purchased ?? 0) + amount : (existing?.total_purchased ?? 0);
+
+    const { error } = await supabase.from("recording_credits").upsert({
+      user_id: userId,
+      balance: newBalance,
+      total_purchased: newTotal,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/examiners");
+  return { ok: true };
+}
+
+// ── Examiner management ───────────────────────────────────────────────────────
+
+export async function createExaminerAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const passcode = String(formData.get("passcode") ?? "").trim();
+
+  if (!name || !email || !passcode) return { error: "Name, email and passcode are all required." };
+
+  const { error } = await supabase.from("examiners").insert({ name, email, passcode });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return {};
+}
+
+export async function updateExaminerAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const passcode = String(formData.get("passcode") ?? "").trim();
+
+  if (!id || !name || !email || !passcode) return { error: "All fields required." };
+
+  const { error } = await supabase.from("examiners").update({ name, email, passcode }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return {};
+}
+
+export async function deleteExaminerAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("examiners").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
   return {};
 }
 

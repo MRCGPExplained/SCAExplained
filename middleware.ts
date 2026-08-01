@@ -87,6 +87,23 @@ export async function middleware(req: NextRequest) {
     return supabaseAuthCheck(req, "/login");
   }
 
+  // ── Recordings ────────────────────────────────────────────────────────────
+  if (pathname === "/recordings" || pathname.startsWith("/recordings/")) {
+    return supabaseAuthCheck(req, "/login");
+  }
+
+  // ── Examiner ──────────────────────────────────────────────────────────────
+  if (pathname === "/examiner" || pathname.startsWith("/examiner/")) {
+    if (pathname === "/examiner/login") return NextResponse.next();
+    const examinerId = req.cookies.get("examiner_session")?.value ?? "";
+    if (!examinerId) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/examiner/login";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
@@ -98,5 +115,10 @@ export const config = {
     "/bundle/:path*",
     "/dashboard",
     "/dashboard/:path*",
+    "/recordings",
+    "/recordings/:path*",
+    "/examiner",
+    "/examiner/:path*",
+    "/examiner/login",
   ],
 };

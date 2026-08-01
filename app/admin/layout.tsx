@@ -24,6 +24,7 @@ export default function AdminLayout({
             <Link href="/admin/recorded-consultations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Recorded Consultations</Link>
             <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
+            <Link href="/admin/examiners" className="text-[13px] text-white/60 hover:text-white transition no-underline">Examiners</Link>
             <Link href="/admin/promo-codes" className="text-[13px] text-white/60 hover:text-white transition no-underline">Promo Codes</Link>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction } from "../actions";
+import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction, setRecordingCreditsAction } from "../actions";
 
 type UserAccess = { has_programme: boolean; expires_at: string; renewal_reminder_sent_at: string | null } | null;
 
@@ -11,6 +11,7 @@ export type CaseBankUser = {
   created_at: string;
   profile: { id: string; display_name: string; initials: string; beta: boolean } | null;
   access: UserAccess;
+  credits: number;
 };
 
 function defaultExpiry() {
@@ -24,6 +25,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
   const [createError, setCreateError] = useState("");
   const [createLoading, startCreate] = useTransition();
   const [openGrant, setOpenGrant] = useState<string | null>(null);
+  const [openCredits, setOpenCredits] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleToggleBeta(userId: string, currentBeta: boolean) {
@@ -114,14 +116,16 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Programme</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Expires</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Beta</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Credits</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user, i) => {
                 const isGrantOpen = openGrant === user.id;
+                const isCreditsOpen = openCredits === user.id;
                 const isLast = i === users.length - 1;
-                const rowBorder = !isLast || isGrantOpen ? "border-b border-navy/[0.06]" : "";
+                const rowBorder = !isLast || isGrantOpen || isCreditsOpen ? "border-b border-navy/[0.06]" : "";
                 const active = user.access?.has_programme && user.access.expires_at > now;
 
                 return (
@@ -157,6 +161,14 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                         ) : <span className="text-navy/30 text-[12px]">—</span>}
                       </td>
                       <td className="px-5 py-3">
+                        <button
+                          onClick={() => setOpenCredits(isCreditsOpen ? null : user.id)}
+                          className="text-[12px] font-semibold text-navy/60 hover:text-navy transition"
+                        >
+                          {user.credits} cr
+                        </button>
+                      </td>
+                      <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <button onClick={() => setOpenGrant(isGrantOpen ? null : user.id)} className="text-[12px] font-semibold text-navy/60 hover:text-navy transition">Grant Access</button>
                           {user.access && <button onClick={() => handleRevoke(user.id)} disabled={isPending} className="text-[12px] font-semibold text-orange-600/70 hover:text-orange-600 transition disabled:opacity-40">Revoke</button>}
@@ -165,8 +177,8 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                       </td>
                     </tr>
                     {isGrantOpen && (
-                      <tr className={!isLast ? "border-b border-navy/[0.06]" : ""}>
-                        <td colSpan={7} className="px-5 py-3 bg-[#F6D44B]/[0.06]">
+                      <tr className="border-b border-navy/[0.06]">
+                        <td colSpan={8} className="px-5 py-3 bg-[#F6D44B]/[0.06]">
                           <form onSubmit={handleGrant} className="flex items-end gap-3 flex-wrap">
                             <input type="hidden" name="user_id" value={user.id} />
                             <div>
@@ -176,6 +188,53 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                             <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-50">Grant Programme Access</button>
                             <button type="button" onClick={() => setOpenGrant(null)} className="text-[12px] text-navy/40 hover:text-navy/70 transition">Cancel</button>
                           </form>
+                        </td>
+                      </tr>
+                    )}
+                    {isCreditsOpen && (
+                      <tr className={!isLast ? "border-b border-navy/[0.06]" : ""}>
+                        <td colSpan={8} className="px-5 py-3 bg-blue-50/40">
+                          <div className="flex items-end gap-4 flex-wrap">
+                            <span className="text-[13px] font-semibold text-navy">Recording Credits — current balance: <strong>{user.credits}</strong></span>
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.currentTarget);
+                                startTransition(async () => {
+                                  await setRecordingCreditsAction({}, fd);
+                                  setOpenCredits(null);
+                                  window.location.reload();
+                                });
+                              }}
+                              className="flex items-end gap-2 flex-wrap"
+                            >
+                              <input type="hidden" name="user_id" value={user.id} />
+                              <input type="hidden" name="mode" value="set" />
+                              <div>
+                                <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Set to</label>
+                                <input name="amount" type="number" min="0" defaultValue={user.credits} required className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] w-24 outline-none focus:border-navy/50" />
+                              </div>
+                              <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50">Set</button>
+                            </form>
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.currentTarget);
+                                startTransition(async () => {
+                                  await setRecordingCreditsAction({}, fd);
+                                  setOpenCredits(null);
+                                  window.location.reload();
+                                });
+                              }}
+                              className="flex items-end gap-2"
+                            >
+                              <input type="hidden" name="user_id" value={user.id} />
+                              <input type="hidden" name="mode" value="add" />
+                              <input type="hidden" name="amount" value="5" />
+                              <button type="submit" disabled={isPending} className="bg-green-700 text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50">+ 5 credits</button>
+                            </form>
+                            <button type="button" onClick={() => setOpenCredits(null)} className="text-[12px] text-navy/40 hover:text-navy/70 transition">Cancel</button>
+                          </div>
                         </td>
                       </tr>
                     )}

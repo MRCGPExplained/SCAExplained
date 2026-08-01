@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail } from "@/lib/email";
 
 export interface ActionResult {
@@ -441,4 +442,89 @@ export async function respondFriendRequestAction(
     .eq("receiver_id", user.id);
 
   return { success: true };
+}
+
+// ── Recording ─────────────────────────────────────────────────────────────────
+
+export async function getRecordingCreditsAction(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { data } = await supabase
+    .from("recording_credits")
+    .select("balance")
+    .eq("user_id", user.id)
+    .single<{ balance: number }>();
+  return data?.balance ?? 0;
+}
+
+export async function startRecordingAction(args: {
+  roomId: string;
+  stationNumber: number;
+  stationTitle: string;
+  doctorUserId: string;
+  patientUserId: string;
+  doctorDisplayName: string;
+  patientDisplayName: string;
+}): Promise<{ error?: string; recordingId?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  // Check and decrement credits atomically using a transaction-like approach
+  const { data: credits } = await admin
+    .from("recording_credits")
+    .select("balance")
+    .eq("user_id", user.id)
+    .single<{ balance: number }>();
+
+  if (!credits || credits.balance < 1) {
+    return { error: "No recording credits remaining. Purchase more to continue." };
+  }
+
+  // Decrement balance
+  const { error: deductErr } = await admin
+    .from("recording_credits")
+    .update({
+      balance: credits.balance - 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .eq("balance", credits.balance); // optimistic lock
+
+  if (deductErr) return { error: "Could not deduct credit. Please try again." };
+
+  // Fetch candidate email for the report
+  const { data: authUser } = await admin.auth.admin.getUserById(args.doctorUserId);
+
+  // Create the recording row
+  const { data: recording, error: insertErr } = await admin
+    .from("station_recordings")
+    .insert({
+      room_id: args.roomId,
+      station_number: args.stationNumber,
+      station_title: args.stationTitle,
+      doctor_user_id: args.doctorUserId,
+      patient_user_id: args.patientUserId,
+      doctor_display_name: args.doctorDisplayName,
+      patient_display_name: args.patientDisplayName,
+      candidate_email: authUser?.user?.email ?? null,
+      status: "uploading",
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (insertErr || !recording) {
+    // Refund the credit on failure
+    await admin
+      .from("recording_credits")
+      .update({ balance: credits.balance, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    return { error: "Could not create recording. Credit refunded." };
+  }
+
+  return { recordingId: recording.id };
 }

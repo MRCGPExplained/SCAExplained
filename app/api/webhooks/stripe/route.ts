@@ -32,10 +32,49 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.metadata?.type === "programme") {
       await confirmProgrammePurchase(session);
+    } else if (session.metadata?.type === "recording_credits") {
+      await confirmRecordingCreditsPurchase(session);
     }
   }
 
   return NextResponse.json({ received: true });
+}
+
+// ── Recording credits purchase ────────────────────────────────────────────────
+
+async function confirmRecordingCreditsPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.user_id;
+  const credits = parseInt(session.metadata?.credits ?? "5", 10);
+
+  if (!userId) {
+    console.error("[webhook] recording_credits checkout without user_id");
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  // Upsert: add purchased credits to existing balance
+  const { error } = await supabase.rpc("add_recording_credits", {
+    p_user_id: userId,
+    p_credits: credits,
+  });
+
+  if (error) {
+    // Fallback: manual upsert if RPC doesn't exist yet
+    const { data: existing } = await supabase
+      .from("recording_credits")
+      .select("balance, total_purchased")
+      .eq("user_id", userId)
+      .single<{ balance: number; total_purchased: number }>();
+
+    await supabase.from("recording_credits").upsert({
+      user_id: userId,
+      balance: (existing?.balance ?? 0) + credits,
+      total_purchased: (existing?.total_purchased ?? 0) + credits,
+      updated_at: new Date().toISOString(),
+    });
+  }
 }
 
 // ── Programme purchase ────────────────────────────────────────────────────────

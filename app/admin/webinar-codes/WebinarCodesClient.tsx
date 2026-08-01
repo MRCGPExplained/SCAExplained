@@ -97,7 +97,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Access Days</label>
-              <input name="access_days" type="number" defaultValue="30" min="1" max="365" className="field" />
+              <input name="access_days" type="number" defaultValue="90" min="1" max="365" className="field" />
             </div>
             <div className="flex flex-col gap-1.5 col-span-2 max-sm:col-span-1">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Custom Code <span className="font-normal normal-case">(optional — leave blank to auto-generate)</span></label>

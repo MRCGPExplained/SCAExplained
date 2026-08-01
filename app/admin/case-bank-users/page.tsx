@@ -7,18 +7,21 @@ async function getData() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { users: [] };
 
-  const [authResult, profilesResult, accessResult] = await Promise.all([
+  const [authResult, profilesResult, accessResult, creditsResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("user_profiles").select("id, display_name, initials, beta"),
     supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at"),
+    supabase.from("recording_credits").select("user_id, balance"),
   ]);
 
   const authUsers = (authResult.data as { users?: { id: string; email?: string; created_at: string }[] })?.users ?? [];
   const profiles = profilesResult.data ?? [];
   const access = accessResult.data ?? [];
+  const credits = (creditsResult.data ?? []) as { user_id: string; balance: number }[];
 
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
   const accessMap = new Map(access.map((a) => [a.user_id, a]));
+  const creditsMap = new Map(credits.map((c) => [c.user_id, c.balance]));
 
   const users = authUsers.map((u) => ({
     id: u.id,
@@ -26,6 +29,7 @@ async function getData() {
     created_at: u.created_at,
     profile: profileMap.get(u.id) ? { ...profileMap.get(u.id)!, beta: profileMap.get(u.id)?.beta ?? false } : null,
     access: accessMap.get(u.id) ?? null,
+    credits: creditsMap.get(u.id) ?? 0,
   }));
 
   const now = new Date();
