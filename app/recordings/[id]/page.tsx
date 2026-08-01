@@ -210,7 +210,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 return (
                   <div key={i}>
                     <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(26,27,82,0.3)" }}>{timestamp}</span>
-                    <span className="text-[12.5px] font-bold mr-1" style={{ color: speaker === "Doctor" ? NAVY : "rgba(26,27,82,0.55)" }}>{speaker}:</span>
+                    <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{speaker}:</span>
                     <span className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.75)" }}>{speech}</span>
                   </div>
                 );
