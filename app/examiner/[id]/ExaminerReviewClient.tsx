@@ -242,6 +242,52 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               </div>
             )}
 
+            {/* AI pre-assessment */}
+            {(rec.ai_data_gathering || rec.ai_clinical_management || rec.ai_relating_to_others) ? (
+              <div
+                className="rounded-2xl p-5"
+                style={{ background: "white", border: "1px solid rgba(26,27,82,0.08)" }}
+              >
+                <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(26,27,82,0.4)" }}>
+                  AI Pre-Assessment
+                </div>
+                <div className="flex flex-col gap-3">
+                  {([
+                    { key: "dg", label: "Data Gathering", grade: rec.ai_data_gathering, comment: rec.ai_comment_data_gathering },
+                    { key: "cm", label: "Clinical Management", grade: rec.ai_clinical_management, comment: rec.ai_comment_clinical_management },
+                    { key: "ro", label: "Relating to Others", grade: rec.ai_relating_to_others, comment: rec.ai_comment_relating_to_others },
+                  ] as const).map(({ key, label, grade, comment }) => (
+                    <div key={key}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[12px] font-semibold" style={{ color: NAVY }}>{label}</span>
+                        {grade && (
+                          <span
+                            className="text-[11px] font-bold px-2 py-0.5 rounded-md"
+                            style={{
+                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : grade === "P" ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)",
+                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : grade === "P" ? "#166534" : "#1D4ED8",
+                            }}
+                          >
+                            {grade}
+                          </span>
+                        )}
+                      </div>
+                      {comment && (
+                        <p className="text-[12px] leading-relaxed" style={{ color: "rgba(26,27,82,0.6)" }}>{comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                className="rounded-xl px-4 py-3 text-[12px]"
+                style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", color: "#92400E" }}
+              >
+                No AI assessment found — the marking pipeline may not have completed. Check Vercel function logs.
+              </div>
+            )}
+
             {/* Transcript */}
             {rec.transcript_formatted && (
               <div
