@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import SoloRecordingTest from "./SoloRecordingTest";
+import GroupRecordingTest from "./GroupRecordingTest";
 import VoiceLoop from "./VoiceLoop";
 
 type Station = { id: string; number: number; title: string; subject: string };
 
 const TABS = [
-  { id: "recording", label: "Recording Test" },
+  { id: "solo", label: "Recording Test (Solo)" },
+  { id: "group", label: "Recording Test (Group)" },
   { id: "roleplay", label: "AI Patient Roleplay" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 export default function BetatestTabs({ stations }: { stations: Station[] }) {
-  const [active, setActive] = useState<TabId>("recording");
+  const [active, setActive] = useState<TabId>("solo");
 
   return (
     <div>
@@ -39,7 +41,8 @@ export default function BetatestTabs({ stations }: { stations: Station[] }) {
       </div>
 
       {/* Tab content */}
-      {active === "recording" && <SoloRecordingTest stations={stations} />}
+      {active === "solo" && <SoloRecordingTest stations={stations} />}
+      {active === "group" && <GroupRecordingTest stations={stations} />}
       {active === "roleplay" && <VoiceLoop />}
     </div>
   );
