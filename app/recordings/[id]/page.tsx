@@ -244,7 +244,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {showExaminerGrades && (rec.examiner_overall_comment || voiceNoteUrl) && (
           <div
             className="rounded-2xl p-5 mb-5"
-            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+            style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.18)" }}
           >
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
               Overall Examiner Feedback
@@ -286,14 +286,22 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
         {/* Transcript */}
         {isDoctor && rec.transcript_formatted && (
-          <div
-            className="rounded-2xl p-5"
+          <details
+            className="rounded-2xl overflow-hidden"
             style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Transcript
-            </div>
-            <div className="flex flex-col gap-2.5">
+            <summary
+              className="px-5 py-4 cursor-pointer select-none flex items-center justify-between"
+              style={{ listStyle: "none" }}
+            >
+              <span className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Transcript
+              </span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="details-chevron" style={{ flexShrink: 0 }}>
+                <path d="M4 6l4 4 4-4" stroke="rgba(51,51,51,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </summary>
+            <div className="px-5 pb-5 pt-1 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
               {rec.transcript_formatted.split("\n").filter(Boolean).map((line, i) => {
                 const m = line.match(/^(\[\d+:\d+\])\s*(Doctor|Patient):\s*(.*)$/);
                 if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.6)" }}>{line}</p>;
@@ -307,7 +315,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 );
               })}
             </div>
-          </div>
+          </details>
         )}
 
         {/* Still processing */}
