@@ -53,6 +53,7 @@ type RecordingDetail = {
   examiner_comment_clinical_management: string | null;
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
+  examiner_voice_note_path: string | null;
   sent_to_candidate_at: string | null;
   doctor_user_id: string;
   examiners: { name: string } | null;
@@ -104,6 +105,14 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const isFinal = !!rec.sent_to_candidate_at;
   // Examiners see their draft grades; candidates only see grades after send
   const showExaminerGrades = isFinal || !!examiner;
+
+  let voiceNoteUrl: string | null = null;
+  if (showExaminerGrades && rec.examiner_voice_note_path) {
+    const { data } = await admin.storage
+      .from("consultation-recordings")
+      .createSignedUrl(rec.examiner_voice_note_path, 3600);
+    voiceNoteUrl = data?.signedUrl ?? null;
+  }
 
   const grades = {
     dg: showExaminerGrades ? rec.examiner_data_gathering : rec.ai_data_gathering,
@@ -228,6 +237,19 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
               {rec.examiner_overall_comment}
             </p>
+          </div>
+        )}
+
+        {/* Voice note */}
+        {voiceNoteUrl && (
+          <div
+            className="rounded-2xl p-5 mb-5"
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+          >
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Examiner Voice Note
+            </div>
+            <audio src={voiceNoteUrl} controls className="w-full" style={{ height: 40 }} />
           </div>
         )}
 

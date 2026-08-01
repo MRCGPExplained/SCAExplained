@@ -35,3 +35,21 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ path });
 }
+
+export async function DELETE(req: NextRequest) {
+  const examiner = await getExaminerFromCookie();
+  if (!examiner) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return NextResponse.json({ error: "Server error" }, { status: 500 });
+
+  const { searchParams } = new URL(req.url);
+  const recordingId = searchParams.get("recordingId") ?? "";
+  if (!recordingId) return NextResponse.json({ error: "Missing recordingId" }, { status: 400 });
+
+  const path = `${recordingId}/examiner-voice-note.webm`;
+  await admin.storage.from("consultation-recordings").remove([path]);
+  await admin.from("station_recordings").update({ examiner_voice_note_path: null }).eq("id", recordingId);
+
+  return NextResponse.json({ ok: true });
+}

@@ -126,9 +126,10 @@ interface Props {
   recording: RecordingFull;
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
+  voiceNoteUrl: string | null;
 }
 
-export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl }: Props) {
+export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl }: Props) {
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -160,10 +161,6 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     });
   }
 
-  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "recorded" | "uploading" | "done">("idle");
-  const voiceRecorderRef = useRef<MediaRecorder | null>(null);
-  const voiceChunksRef = useRef<Blob[]>([]);
-
   const [playbackRate, setPlaybackRate] = useState(1);
   const doctorAudioRef = useRef<HTMLAudioElement | null>(null);
   const patientAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -172,33 +169,6 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     setPlaybackRate(rate);
     if (doctorAudioRef.current) doctorAudioRef.current.playbackRate = rate;
     if (patientAudioRef.current) patientAudioRef.current.playbackRate = rate;
-  }
-
-  async function startVoiceNote() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      voiceChunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) voiceChunksRef.current.push(e.data); };
-      recorder.onstop = () => { stream.getTracks().forEach((t) => t.stop()); setVoiceState("recorded"); };
-      recorder.start();
-      voiceRecorderRef.current = recorder;
-      setVoiceState("recording");
-    } catch {
-      alert("Microphone access denied.");
-    }
-  }
-
-  function stopVoiceNote() { voiceRecorderRef.current?.stop(); }
-
-  async function uploadVoiceNote() {
-    setVoiceState("uploading");
-    const blob = new Blob(voiceChunksRef.current, { type: "audio/webm" });
-    const fd = new FormData();
-    fd.append("audio", blob);
-    fd.append("recordingId", rec.id);
-    await fetch("/api/recordings/voice-note", { method: "POST", body: fd });
-    setVoiceState("done");
   }
 
   const totalPts = (() => {
@@ -389,25 +359,21 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   placeholder="Optional overall comment to the candidate…"
                   disabled={isSent}
                 />
-                {!isSent && (
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.45)" }}>Voice note:</span>
-                    {voiceState === "idle" && (
-                      <button type="button" onClick={startVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#B91C1C", border: "none", cursor: "pointer" }}>⏺ Record</button>
-                    )}
-                    {voiceState === "recording" && (
-                      <button type="button" onClick={stopVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.2)", color: "#B91C1C", border: "none", cursor: "pointer" }}>⏹ Stop</button>
-                    )}
-                    {voiceState === "recorded" && (
-                      <button type="button" onClick={uploadVoiceNote} className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "none", cursor: "pointer" }}>↑ Save voice note</button>
-                    )}
-                    {voiceState === "uploading" && <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>Uploading…</span>}
-                    {voiceState === "done" && <span className="text-[11px]" style={{ color: "#166534" }}>✓ Voice note saved</span>}
-                  </div>
-                )}
               </Accordion>
             </div>
           </div>
+
+          {/* Voice note — full width below columns */}
+          {!isSent && (
+            <div className="mb-4">
+              <VoiceNoteSection recordingId={rec.id} initialUrl={voiceNoteUrl} />
+            </div>
+          )}
+          {isSent && voiceNoteUrl && (
+            <div className="mb-4">
+              <VoiceNoteSection recordingId={rec.id} initialUrl={voiceNoteUrl} readOnly />
+            </div>
+          )}
 
           {/* Audio — full width below columns */}
           {(doctorAudioUrl || patientAudioUrl) && (
@@ -525,6 +491,200 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
 
       </div>
     </div>
+  );
+}
+
+function VoiceNoteSection({ recordingId, initialUrl, readOnly = false }: {
+  recordingId: string;
+  initialUrl: string | null;
+  readOnly?: boolean;
+}) {
+  const [savedUrl, setSavedUrl] = useState<string | null>(initialUrl);
+  const [phase, setPhase] = useState<"idle" | "recording" | "review" | "uploading" | "deleting">("idle");
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [err, setErr] = useState("");
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  async function startRecording() {
+    setErr("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setPhase("review");
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+      recorder.start();
+      recRef.current = recorder;
+      setSeconds(0);
+      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      setPhase("recording");
+    } catch {
+      setErr("Microphone access denied.");
+    }
+  }
+
+  function stopRecording() { recRef.current?.stop(); }
+
+  function discardRecording() {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    setBlobUrl(null);
+    setPhase("idle");
+  }
+
+  async function saveRecording() {
+    if (!blobUrl) return;
+    setPhase("uploading");
+    setErr("");
+    try {
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const fd = new FormData();
+      fd.append("audio", blob);
+      fd.append("recordingId", recordingId);
+      const res = await fetch("/api/recordings/voice-note", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      setSavedUrl(blobUrl);
+      setBlobUrl(null);
+      setPhase("idle");
+    } catch {
+      setErr("Failed to save. Try again.");
+      setPhase("review");
+    }
+  }
+
+  async function deleteNote() {
+    if (!confirm("Delete this voice note?")) return;
+    setPhase("deleting");
+    setErr("");
+    try {
+      await fetch(`/api/recordings/voice-note?recordingId=${recordingId}`, { method: "DELETE" });
+      if (savedUrl?.startsWith("blob:")) URL.revokeObjectURL(savedUrl);
+      setSavedUrl(null);
+    } catch {
+      setErr("Failed to delete.");
+    }
+    setPhase("idle");
+  }
+
+  const hasSaved = !!savedUrl;
+  const badge = hasSaved ? (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(34,197,94,0.1)", color: "#166534" }}>Recorded</span>
+  ) : undefined;
+
+  return (
+    <Accordion title="Voice Note" badge={badge} defaultOpen={hasSaved}>
+      {err && <p className="text-[12px] text-red-600 mb-3">{err}</p>}
+
+      {/* Saved note player */}
+      {hasSaved && phase !== "recording" && phase !== "review" && (
+        <div className="mb-4">
+          <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>Your voice note</div>
+          <audio src={savedUrl!} controls className="w-full" style={{ height: 36 }} />
+          {!readOnly && (
+            <div className="flex gap-2 mt-3">
+              <button
+                type="button"
+                onClick={startRecording}
+                disabled={phase === "deleting"}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer" }}
+              >
+                Re-record
+              </button>
+              <button
+                type="button"
+                onClick={deleteNote}
+                disabled={phase === "deleting"}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                style={{ background: "rgba(239,68,68,0.08)", border: "none", color: "#B91C1C", cursor: "pointer", opacity: phase === "deleting" ? 0.5 : 1 }}
+              >
+                {phase === "deleting" ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No saved note yet */}
+      {!hasSaved && phase === "idle" && !readOnly && (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.5)" }}>
+            Record an optional voice message for the candidate — useful for nuanced feedback that&apos;s hard to write.
+          </p>
+          <button
+            type="button"
+            onClick={startRecording}
+            className="mt-1 flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold"
+            style={{ background: "rgba(239,68,68,0.1)", border: "none", color: "#B91C1C", cursor: "pointer" }}
+          >
+            <span style={{ fontSize: 15 }}>⏺</span> Start Recording
+          </button>
+        </div>
+      )}
+
+      {/* Recording in progress */}
+      {phase === "recording" && (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#EF4444", display: "inline-block", animation: "pulse 1s infinite" }} />
+            <span className="text-[13px] font-mono font-bold" style={{ color: "#B91C1C" }}>{fmtTime(seconds)}</span>
+            <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.45)" }}>Recording…</span>
+          </div>
+          <button
+            type="button"
+            onClick={stopRecording}
+            className="px-4 py-2 rounded-xl text-[13px] font-semibold"
+            style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
+      {/* Review before saving */}
+      {phase === "review" && blobUrl && (
+        <div>
+          <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>Listen back before saving</div>
+          <audio src={blobUrl} controls className="w-full mb-3" style={{ height: 36 }} />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={saveRecording}
+              className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white"
+              style={{ background: NAVY, border: "none", cursor: "pointer" }}
+            >
+              Save Voice Note
+            </button>
+            <button
+              type="button"
+              onClick={discardRecording}
+              className="px-4 py-2 rounded-xl text-[13px]"
+              style={{ background: "none", border: "1px solid rgba(51,51,51,0.15)", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Uploading */}
+      {phase === "uploading" && (
+        <p className="text-[12px]" style={{ color: "rgba(51,51,51,0.5)" }}>Saving voice note…</p>
+      )}
+
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+    </Accordion>
   );
 }
 

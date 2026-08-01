@@ -56,25 +56,30 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
 
   let doctorAudioUrl: string | null = null;
   let patientAudioUrl: string | null = null;
+  let voiceNoteUrl: string | null = null;
 
-  if (rec.doctor_audio_path) {
-    const { data } = await admin.storage
-      .from("consultation-recordings")
-      .createSignedUrl(rec.doctor_audio_path, 3600);
-    doctorAudioUrl = data?.signedUrl ?? null;
-  }
-  if (rec.patient_audio_path) {
-    const { data } = await admin.storage
-      .from("consultation-recordings")
-      .createSignedUrl(rec.patient_audio_path, 3600);
-    patientAudioUrl = data?.signedUrl ?? null;
-  }
+  const [doctorResult, patientResult, voiceResult] = await Promise.all([
+    rec.doctor_audio_path
+      ? admin.storage.from("consultation-recordings").createSignedUrl(rec.doctor_audio_path, 3600)
+      : Promise.resolve({ data: null }),
+    rec.patient_audio_path
+      ? admin.storage.from("consultation-recordings").createSignedUrl(rec.patient_audio_path, 3600)
+      : Promise.resolve({ data: null }),
+    rec.examiner_voice_note_path
+      ? admin.storage.from("consultation-recordings").createSignedUrl(rec.examiner_voice_note_path, 3600)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  doctorAudioUrl = doctorResult.data?.signedUrl ?? null;
+  patientAudioUrl = patientResult.data?.signedUrl ?? null;
+  voiceNoteUrl = voiceResult.data?.signedUrl ?? null;
 
   return (
     <ExaminerReviewClient
       recording={rec}
       doctorAudioUrl={doctorAudioUrl}
       patientAudioUrl={patientAudioUrl}
+      voiceNoteUrl={voiceNoteUrl}
     />
   );
 }
