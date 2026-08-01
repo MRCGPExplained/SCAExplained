@@ -2,7 +2,7 @@
 
 import { useState, useActionState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createExaminerAction, updateExaminerAction, deleteExaminerAction, updateBypassSettingsAction } from "../actions";
+import { createExaminerAction, updateExaminerAction, deleteExaminerAction, updateBypassSettingsAction, saveAiPromptAction } from "../actions";
 
 const NAVY = "#333333";
 
@@ -24,6 +24,7 @@ interface Props {
   activity: ActivityRow[];
   filters: { from: string; to: string; examiner: string };
   bypassSettings: BypassSettings;
+  aiPrompt: string;
 }
 
 function ExaminerForm({
@@ -104,7 +105,7 @@ function ExaminerForm({
   );
 }
 
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt }: Props) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -113,6 +114,18 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   // Bypass settings state
   const [bypassEnabled, setBypassEnabled] = useState(bypassSettings.enabled);
   const [bypassState, bypassAction, bypassPending] = useActionState(updateBypassSettingsAction, {});
+
+  // AI prompt editor
+  const [promptText, setPromptText] = useState(aiPrompt);
+  const [promptState, promptAction, promptPending] = useActionState(saveAiPromptAction, {});
+  const [showPromptSaved, setShowPromptSaved] = useState(false);
+  useEffect(() => {
+    if ("success" in promptState && promptState.success) {
+      setShowPromptSaved(true);
+      const t = setTimeout(() => setShowPromptSaved(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [promptState]);
 
   const [from, setFrom] = useState(filters.from);
   const [to, setTo] = useState(filters.to);
@@ -178,6 +191,51 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
         >
           {bypassEnabled ? "ON" : "OFF"}
         </button>
+      </div>
+
+      {/* AI grading prompt */}
+      <div className="bg-white rounded-xl border border-navy/10 p-5 mb-6">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div>
+            <div className="text-[13px] font-bold text-navy">AI Marking Instructions</div>
+            <div className="text-[11px] text-navy/45 mt-0.5">Sent to Claude as the grading system prompt. Leave blank to use the built-in default.</div>
+          </div>
+          {showPromptSaved && <span className="text-[11px] font-semibold" style={{ color: "#166534" }}>✓ Saved</span>}
+        </div>
+        <form action={promptAction} className="flex flex-col gap-3">
+          <textarea
+            name="ai_prompt"
+            value={promptText}
+            onChange={(e) => setPromptText(e.target.value)}
+            rows={10}
+            className="w-full px-3 py-2.5 rounded-lg border border-navy/15 text-[12.5px] font-mono resize-y"
+            style={{ color: NAVY, background: "#F9F9FC", outline: "none", lineHeight: 1.6 }}
+            placeholder="Leave blank to use the built-in default prompt…"
+          />
+          {"error" in promptState && promptState.error && (
+            <p className="text-[12px] text-red-600">{String(promptState.error)}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={promptPending}
+              className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white"
+              style={{ background: NAVY, border: "none", cursor: "pointer", opacity: promptPending ? 0.6 : 1 }}
+            >
+              {promptPending ? "Saving…" : "Save Prompt"}
+            </button>
+            {promptText && (
+              <button
+                type="button"
+                onClick={() => setPromptText("")}
+                className="px-4 py-2 rounded-lg text-[13px]"
+                style={{ background: "none", border: "1px solid rgba(51,51,51,0.15)", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
+              >
+                Clear (use default)
+              </button>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* Create form */}

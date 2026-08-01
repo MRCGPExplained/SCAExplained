@@ -14,7 +14,7 @@ const GRADE_STYLE: Record<Grade, { bg: string; color: string; label: string }> =
   CF: { bg: "rgba(239,68,68,0.1)", color: "#B91C1C", label: "Clear Fail" },
   F:  { bg: "rgba(245,158,11,0.1)", color: "#92400E", label: "Fail" },
   P:  { bg: "rgba(34,197,94,0.1)",  color: "#166534", label: "Pass" },
-  CP: { bg: "rgba(59,130,246,0.1)", color: "#1D4ED8", label: "Clear Pass" },
+  CP: { bg: "rgba(34,197,94,0.1)", color: "#166534", label: "Clear Pass" },
 };
 
 const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
@@ -272,8 +272,8 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                           <span
                             className="text-[11px] font-bold px-2 py-0.5 rounded-md"
                             style={{
-                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : grade === "P" ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)",
-                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : grade === "P" ? "#166534" : "#1D4ED8",
+                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : "rgba(34,197,94,0.1)",
+                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : "#166534",
                             }}
                           >
                             {grade}

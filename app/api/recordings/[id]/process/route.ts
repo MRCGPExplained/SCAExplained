@@ -78,12 +78,7 @@ function buildTranscript(
     .join("\n");
 }
 
-// Grade the consultation with Claude
-async function gradeWithClaude(
-  stationContext: string,
-  transcript: string
-): Promise<GradeResult> {
-  const systemPrompt = `You are an experienced RCGP examiner assessing a GP registrar's SCA consultation.
+const DEFAULT_SYSTEM_PROMPT = `You are an experienced RCGP examiner assessing a GP registrar's SCA consultation.
 
 Grade each domain using the official RCGP scale:
 - CF (Clear Fail): Major safety concern or significant gaps. Patient potentially harmed.
@@ -109,6 +104,14 @@ Respond ONLY with valid JSON — no markdown, no explanation:
   "comment_clinical_management": "Three sentence comment here.",
   "comment_relating_to_others": "Three sentence comment here."
 }`;
+
+// Grade the consultation with Claude
+async function gradeWithClaude(
+  stationContext: string,
+  transcript: string,
+  customPrompt?: string
+): Promise<GradeResult> {
+  const systemPrompt = customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
 
   const userMessage = `STATION CONTEXT:\n${stationContext}\n\nCONSULTATION TRANSCRIPT:\n${transcript}\n\nPlease grade this consultation.`;
 
@@ -300,7 +303,15 @@ export async function POST(req: Request, { params }: RouteParams) {
       .filter(Boolean)
       .join("\n");
 
-    const grades = await gradeWithClaude(stationContext, transcriptFormatted);
+    // Read custom AI prompt from site_settings (if set)
+    const { data: promptRow } = await admin
+      .from("site_settings")
+      .select("value")
+      .eq("key", "ai_grading_prompt")
+      .maybeSingle<{ value: string }>();
+    const customPrompt = promptRow?.value ?? undefined;
+
+    const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
 
     // Save transcript + grades to DB
     await admin.from("station_recordings").update({
