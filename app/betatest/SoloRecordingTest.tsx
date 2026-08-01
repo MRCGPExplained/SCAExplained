@@ -253,7 +253,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
           <div className="flex items-center gap-3">
             <Spinner />
             <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.65)" }}>
-              {phase.kind === "uploading" ? "Uploading audio…" : "Processing (Deepgram + AI)…"}
+              {phase.kind === "uploading" ? "Uploading audio…" : "Processing…"}
             </span>
           </div>
         )}
@@ -327,7 +327,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
             [
               { id: "idle", label: "Record" },
               { id: "uploading", label: "Upload" },
-              { id: "processing", label: "AI marking" },
+              { id: "processing", label: "Processing" },
               { id: "done", label: "Done" },
             ] as const
           ).map((step, i, arr) => {
