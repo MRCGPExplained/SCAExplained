@@ -787,6 +787,25 @@ export async function updateBypassSettingsAction(
   return {};
 }
 
+export async function saveAiPromptAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const prompt = String(formData.get("ai_prompt") ?? "").trim();
+  if (!prompt) return { error: "Prompt cannot be empty." };
+
+  const { error } = await supabase.from("site_settings").upsert([
+    { key: "ai_grading_prompt", value: prompt },
+  ]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
 // ── Beta flag ─────────────────────────────────────────────────────────────────
 
 export async function toggleBetaAction(userId: string, beta: boolean): Promise<ActionResult> {

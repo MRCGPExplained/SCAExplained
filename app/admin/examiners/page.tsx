@@ -45,7 +45,7 @@ export default async function ExaminersPage({
         })()
       : Promise.resolve({ data: [] }),
     supabase
-      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails"])
+      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt"])
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -60,12 +60,15 @@ export default async function ExaminersPage({
     emails: settingsMap.get("recording_bypass_emails") ?? "",
   };
 
+  const aiPrompt = settingsMap.get("ai_grading_prompt") ?? "";
+
   return (
     <ExaminersClient
       examiners={examiners}
       activity={activity}
       filters={{ from: from ?? "", to: to ?? "", examiner: examinerFilter ?? "" }}
       bypassSettings={bypassSettings}
+      aiPrompt={aiPrompt}
     />
   );
 }
