@@ -9,7 +9,7 @@ export default async function WebinarCodesPage() {
   const { data } = supabase
     ? await supabase
         .from("webinar_codes")
-        .select("id, code, label, active, access_days, use_count, created_at")
+        .select("id, code, label, active, access_days, use_count, expires_at, created_at")
         .order("created_at", { ascending: false })
     : { data: [] };
 

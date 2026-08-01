@@ -10,6 +10,7 @@ export type WebinarCode = {
   active: boolean;
   access_days: number;
   use_count: number;
+  expires_at: string | null;
   created_at: string;
 };
 
@@ -47,6 +48,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Code</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Label</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Access</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Expires</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Uses</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Actions</th>
@@ -60,6 +62,19 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                   </td>
                   <td className="px-5 py-3 text-navy/70">{c.label}</td>
                   <td className="px-5 py-3 text-navy/60">{c.access_days} days</td>
+                  <td className="px-5 py-3 text-navy/60 text-[12px]">
+                    {c.expires_at
+                      ? (() => {
+                          const expired = new Date(c.expires_at) < new Date();
+                          return (
+                            <span style={expired ? { color: "#B91C1C" } : undefined}>
+                              {new Date(c.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              {expired ? " (expired)" : ""}
+                            </span>
+                          );
+                        })()
+                      : <span className="text-navy/30">Never</span>}
+                  </td>
                   <td className="px-5 py-3 text-navy/60 font-mono">{c.use_count}</td>
                   <td className="px-5 py-3">
                     <button
@@ -98,6 +113,10 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Access Days</label>
               <input name="access_days" type="number" defaultValue="90" min="1" max="365" className="field" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Expiry Date <span className="font-normal normal-case">(optional — leave blank for no expiry)</span></label>
+              <input name="expires_at" type="date" className="field" />
             </div>
             <div className="flex flex-col gap-1.5 col-span-2 max-sm:col-span-1">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Custom Code <span className="font-normal normal-case">(optional — leave blank to auto-generate)</span></label>

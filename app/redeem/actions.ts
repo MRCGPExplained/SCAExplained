@@ -52,12 +52,13 @@ export async function redeemWithSignupAction(
   // Validate code before creating the account
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, access_days")
+    .select("id, active, access_days, expires_at")
     .eq("code", raw)
-    .single<{ id: string; active: boolean; access_days: number }>();
+    .single<{ id: string; active: boolean; access_days: number; expires_at: string | null }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
+  if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
 
   const displayName = lastName ? `${firstName} ${lastName}` : firstName;
   const initials    = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "?";
@@ -117,12 +118,13 @@ async function redeemForUser(
 
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, access_days, use_count")
+    .select("id, active, access_days, use_count, expires_at")
     .eq("code", code)
-    .single<{ id: string; active: boolean; access_days: number; use_count: number }>();
+    .single<{ id: string; active: boolean; access_days: number; use_count: number; expires_at: string | null }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
+  if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
 
   const { data: existing } = await admin
     .from("user_access")
