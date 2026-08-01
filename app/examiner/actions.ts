@@ -71,6 +71,39 @@ export async function grammarCheckAction(args: { text: string }): Promise<{ text
   return { text };
 }
 
+export async function retryAiPipelineAction(recordingId: string): Promise<{ error?: string }> {
+  const examiner = await getExaminerFromCookie();
+  if (!examiner) return { error: "Not authorised." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const { error } = await admin
+    .from("station_recordings")
+    .update({ status: "processing" })
+    .eq("id", recordingId)
+    .in("status", ["pending_examiner", "reviewing", "sent", "failed"]);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function checkRetryStatusAction(recordingId: string): Promise<{ status?: string; error?: string }> {
+  const examiner = await getExaminerFromCookie();
+  if (!examiner) return { error: "Not authorised." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const { data } = await admin
+    .from("station_recordings")
+    .select("status")
+    .eq("id", recordingId)
+    .single<{ status: string }>();
+
+  return { status: data?.status };
+}
+
 export async function examinerLoginAction(formData: FormData): Promise<void> {
   const passcode = String(formData.get("passcode") ?? "").trim();
   if (!passcode) redirect("/examiner?error=required");

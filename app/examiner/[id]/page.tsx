@@ -46,13 +46,19 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
   const admin = getSupabaseAdmin();
   if (!admin) notFound();
 
-  const { data: rec } = await admin
-    .from("station_recordings")
-    .select("*")
-    .eq("id", id)
-    .single<RecordingFull>();
+  const [{ data: rec }, { data: settingsRows }] = await Promise.all([
+    admin.from("station_recordings").select("*").eq("id", id).single<RecordingFull>(),
+    admin.from("site_settings").select("key, value").in("key", ["deepgram_enabled", "vercel_plan"]),
+  ]);
 
   if (!rec) notFound();
+
+  const settingsMap = new Map(
+    ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
+  );
+  const deepgramEnabled = settingsMap.get("deepgram_enabled") === "true";
+  const vercelPlanIsPro = (settingsMap.get("vercel_plan") ?? "pro") === "pro";
+  const canRetryPipeline = deepgramEnabled && vercelPlanIsPro && !!rec.doctor_audio_path;
 
   let doctorAudioUrl: string | null = null;
   let patientAudioUrl: string | null = null;
@@ -80,6 +86,7 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
       doctorAudioUrl={doctorAudioUrl}
       patientAudioUrl={patientAudioUrl}
       voiceNoteUrl={voiceNoteUrl}
+      canRetryPipeline={canRetryPipeline}
     />
   );
 }

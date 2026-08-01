@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useActionState, useTransition } from "react";
 import Link from "next/link";
-import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
+import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction, retryAiPipelineAction, checkRetryStatusAction } from "../actions";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 
 const NAVY = "#333333";
@@ -129,9 +129,10 @@ interface Props {
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
   voiceNoteUrl: string | null;
+  canRetryPipeline: boolean;
 }
 
-export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl }: Props) {
+export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, canRetryPipeline }: Props) {
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -141,6 +142,29 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [cmComment, setCmComment] = useState(rec.examiner_comment_clinical_management ?? rec.ai_comment_clinical_management ?? "");
   const [roComment, setRoComment] = useState(rec.examiner_comment_relating_to_others ?? rec.ai_comment_relating_to_others ?? "");
   const [overallComment, setOverallComment] = useState(rec.examiner_overall_comment ?? "");
+  const [retryPhase, setRetryPhase] = useState<"idle" | "retrying" | "error">("idle");
+  const [retryError, setRetryError] = useState("");
+
+  async function handleRetry() {
+    setRetryPhase("retrying");
+    setRetryError("");
+    const result = await retryAiPipelineAction(rec.id);
+    if (result.error) { setRetryPhase("error"); setRetryError(result.error); return; }
+    fetch(`/api/recordings/${rec.id}/process`, { method: "POST" }).catch(() => {});
+    const deadline = Date.now() + 300_000; // 5 min
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 4000));
+      const { status } = await checkRetryStatusAction(rec.id);
+      if (status === "pending_examiner" || status === "reviewing" || status === "sent") {
+        window.location.reload();
+        return;
+      }
+      if (status === "failed") { setRetryPhase("error"); setRetryError("Pipeline failed — check Vercel logs."); return; }
+    }
+    setRetryPhase("error");
+    setRetryError("Timed out. Try refreshing the page.");
+  }
+
   const [aiGenPending, startAiGen] = useTransition();
   const [grammarPending, startGrammar] = useTransition();
   const [previewPending, startPreview] = useTransition();
@@ -278,8 +302,30 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl px-4 py-3 text-[12px]" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
-                  No AI pre-assessment — transcription may be disabled or the pipeline did not complete.
+                <div className="rounded-xl px-4 py-3 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
+                  <span>No AI pre-assessment — transcription was disabled or the pipeline did not complete.</span>
+                  {canRetryPipeline && retryPhase === "idle" && (
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="self-start px-3 py-1.5 rounded-lg text-[11px] font-bold"
+                      style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+                    >
+                      Run Pipeline Now
+                    </button>
+                  )}
+                  {retryPhase === "retrying" && (
+                    <div className="flex items-center gap-2 text-[11px]" style={{ color: NAVY }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite", flexShrink: 0 }}>
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+                      </svg>
+                      Transcribing and grading… this may take a few minutes.
+                      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                    </div>
+                  )}
+                  {retryPhase === "error" && (
+                    <span className="text-[11px]" style={{ color: "#B91C1C" }}>{retryError}</span>
+                  )}
                 </div>
               )}
             </div>
