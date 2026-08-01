@@ -177,15 +177,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Examiner draft preview banner */}
-        {examiner && !isFinal && (
-          <div
-            className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
-            style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", color: "#4338CA" }}
-          >
-            <strong>Draft preview</strong> — this is how the report will look when sent. Grades and comments reflect your latest saved draft.
-          </div>
-        )}
 
         {/* Provisional banner */}
         {!isFinal && !examiner && (
