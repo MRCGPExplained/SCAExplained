@@ -241,16 +241,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="flex items-end gap-4 mb-5">
                 <span className="font-extrabold leading-none" style={{ fontSize: 44, color: NAVY }}>
                   {total}
-                  <span className="font-extrabold opacity-40">/10.5</span>
-                </span>
-                <span
-                  className="mb-1 px-4 py-1.5 rounded-xl text-[13px] font-extrabold tracking-wide uppercase"
-                  style={{
-                    background: isPassing ? "#16A34A" : "#EA580C",
-                    color: "white",
-                  }}
-                >
-                  {isPassing ? "Pass" : "Required Improvement"}
+                  <span className="font-extrabold">/10.5</span>
                 </span>
               </div>
 
@@ -284,7 +275,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                   Examiner&apos;s Overall Summary
                 </div>
                 {rec.examiner_overall_comment && (
-                  <p className="text-[13.5px] leading-relaxed" style={{ color: NAVY }}>
+                  <p className="text-[13.5px] leading-relaxed" style={{ color: "#111111" }}>
                     {rec.examiner_overall_comment}
                   </p>
                 )}
