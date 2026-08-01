@@ -589,16 +589,33 @@ function VoiceNoteSection({ recordingId, initialUrl, readOnly = false }: {
       {/* Review before saving */}
       {phase === "review" && blobUrl && (
         <div>
-          <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>Listen back before saving</div>
+          <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>Upload failed — listen back or discard</div>
           <audio src={blobUrl} controls className="w-full mb-3" style={{ height: 36 }} />
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={saveRecording}
+              onClick={async () => {
+                setPhase("uploading");
+                setErr("");
+                try {
+                  const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+                  const fd = new FormData();
+                  fd.append("audio", blob);
+                  fd.append("recordingId", recordingId);
+                  const res = await fetch("/api/recordings/voice-note", { method: "POST", body: fd });
+                  if (!res.ok) throw new Error("Upload failed");
+                  setSavedUrl(blobUrl!);
+                  setBlobUrl(null);
+                  setPhase("idle");
+                } catch {
+                  setErr("Failed to save. Try again.");
+                  setPhase("review");
+                }
+              }}
               className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white"
               style={{ background: NAVY, border: "none", cursor: "pointer" }}
             >
-              Save Voice Note
+              Retry Save
             </button>
             <button
               type="button"

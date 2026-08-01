@@ -207,7 +207,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
   );
-  const deepgramEnabled = settingsMap.get("deepgram_enabled") !== "false"; // default on
+  const deepgramEnabled = settingsMap.get("deepgram_enabled") === "true"; // must be explicitly on
   const vercelPlan = settingsMap.get("vercel_plan") ?? "pro"; // default pro
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 

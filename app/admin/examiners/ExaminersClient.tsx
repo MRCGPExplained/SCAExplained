@@ -106,6 +106,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   // Deepgram toggle
   const [deepgramOn, setDeepgramOn] = useState(initialDeepgram);
   const [deepgramPending, startDeepgramTransition] = useTransition();
+  const [deepgramErr, setDeepgramErr] = useState("");
 
   // Vercel plan
   const [vercelPlan, setVercelPlan] = useState<"hobby" | "pro">(initialVercelPlan);
@@ -336,7 +337,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                 onClick={() => {
                   const next = !deepgramOn;
                   setDeepgramOn(next);
-                  startDeepgramTransition(async () => { await toggleDeepgramAction(next); });
+                  setDeepgramErr("");
+                  startDeepgramTransition(async () => {
+                    const res = await toggleDeepgramAction(next);
+                    if (res.error) { setDeepgramOn(!next); setDeepgramErr(res.error); }
+                  });
                 }}
                 className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
                 style={{
@@ -353,6 +358,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                   ? "Recordings will be transcribed and AI-graded."
                   : "Recordings skip transcription — examiner gets audio only."}
               </span>
+              {deepgramErr && <span className="text-[12px] text-red-600">{deepgramErr}</span>}
             </div>
 
             {/* Vercel plan */}
