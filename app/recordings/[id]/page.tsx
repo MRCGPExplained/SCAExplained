@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getExaminerFromCookie } from "@/lib/examiner-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -64,35 +65,55 @@ interface PageProps {
 export default async function RecordingDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
   const admin = getSupabaseAdmin();
   if (!admin) notFound();
 
-  const { data: rec } = await admin
-    .from("station_recordings")
-    .select("*, examiners(name)")
-    .eq("id", id)
-    .or(`doctor_user_id.eq.${user.id},patient_user_id.eq.${user.id}`)
-    .single<RecordingDetail>();
+  // Allow access via examiner cookie (no Supabase session needed)
+  const examiner = await getExaminerFromCookie();
+
+  let rec: RecordingDetail | null = null;
+  let isDoctor = false;
+
+  if (examiner) {
+    // Examiners can preview any recording
+    const { data } = await admin
+      .from("station_recordings")
+      .select("*, examiners(name)")
+      .eq("id", id)
+      .single<RecordingDetail>();
+    rec = data;
+    isDoctor = true; // show transcript to examiner too
+  } else {
+    // Candidates must be authenticated and own the recording
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+
+    const { data } = await admin
+      .from("station_recordings")
+      .select("*, examiners(name)")
+      .eq("id", id)
+      .or(`doctor_user_id.eq.${user.id},patient_user_id.eq.${user.id}`)
+      .single<RecordingDetail>();
+    rec = data;
+    if (rec) isDoctor = rec.doctor_user_id === user.id;
+  }
 
   if (!rec) notFound();
 
   const isFinal = !!rec.sent_to_candidate_at;
-  const isDoctor = rec.doctor_user_id === user.id;
+  // Examiners see their draft grades; candidates only see grades after send
+  const showExaminerGrades = isFinal || !!examiner;
 
-  // Use examiner grades if sent, otherwise AI provisional
   const grades = {
-    dg: isFinal ? rec.examiner_data_gathering : rec.ai_data_gathering,
-    cm: isFinal ? rec.examiner_clinical_management : rec.ai_clinical_management,
-    ro: isFinal ? rec.examiner_relating_to_others : rec.ai_relating_to_others,
+    dg: showExaminerGrades ? rec.examiner_data_gathering : rec.ai_data_gathering,
+    cm: showExaminerGrades ? rec.examiner_clinical_management : rec.ai_clinical_management,
+    ro: showExaminerGrades ? rec.examiner_relating_to_others : rec.ai_relating_to_others,
   };
   const comments = {
-    dg: isFinal ? rec.examiner_comment_data_gathering : rec.ai_comment_data_gathering,
-    cm: isFinal ? rec.examiner_comment_clinical_management : rec.ai_comment_clinical_management,
-    ro: isFinal ? rec.examiner_comment_relating_to_others : rec.ai_comment_relating_to_others,
+    dg: showExaminerGrades ? rec.examiner_comment_data_gathering : rec.ai_comment_data_gathering,
+    cm: showExaminerGrades ? rec.examiner_comment_clinical_management : rec.ai_comment_clinical_management,
+    ro: showExaminerGrades ? rec.examiner_comment_relating_to_others : rec.ai_comment_relating_to_others,
   };
 
   const dgPts = grades.dg ? GRADE_META[grades.dg]?.pts("dg") ?? null : null;
@@ -105,9 +126,15 @@ export default async function RecordingDetailPage({ params }: PageProps) {
       <div className="max-w-[760px] mx-auto px-4 py-10">
 
         <div className="mb-6">
-          <Link href="/recordings" className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
-            ← My Recordings
-          </Link>
+          {examiner ? (
+            <Link href={`/examiner/${rec.id}`} className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
+              ← Back to Review
+            </Link>
+          ) : (
+            <Link href="/recordings" className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
+              ← My Recordings
+            </Link>
+          )}
         </div>
 
         {/* Station header */}
@@ -126,8 +153,18 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Examiner draft preview banner */}
+        {examiner && !isFinal && (
+          <div
+            className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
+            style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", color: "#4338CA" }}
+          >
+            <strong>Draft preview</strong> — this is how the report will look when sent. Grades and comments reflect your latest saved draft.
+          </div>
+        )}
+
         {/* Provisional banner */}
-        {!isFinal && (
+        {!isFinal && !examiner && (
           <div
             className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
             style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#92400E" }}
@@ -180,7 +217,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         )}
 
         {/* Overall examiner comment */}
-        {isFinal && rec.examiner_overall_comment && (
+        {showExaminerGrades && rec.examiner_overall_comment && (
           <div
             className="rounded-2xl p-5 mb-5"
             style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
