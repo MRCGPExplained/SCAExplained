@@ -115,6 +115,9 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     }
 
     setPhase({ kind: "processing", recordingId });
+    // Fire from the browser — server-side fire-and-forget in the upload route is
+    // unreliable on Vercel Hobby (function may be killed before the outbound fetch starts).
+    fetch(`/api/recordings/${recordingId}/process`, { method: "POST" }).catch(() => {});
     poll(recordingId);
   }
 
