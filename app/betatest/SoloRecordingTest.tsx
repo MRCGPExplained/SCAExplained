@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { startSoloRecordingAction } from "@/app/case-bank/actions";
+import { runMarkingSpikeAction } from "@/app/betatest/actions";
 
 type Station = { id: string; number: number; title: string; subject: string };
 
@@ -149,6 +150,24 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     setElapsed(0);
   }
 
+  async function runSpikeMarking() {
+    if (!selected) return;
+    setPhase({ kind: "processing", recordingId: "pending" });
+
+    const result = await runMarkingSpikeAction({
+      stationNumber: selected.number,
+      stationTitle: selected.title,
+    });
+
+    if (result.error || !result.recordingId) {
+      setPhase({ kind: "error", message: result.error ?? "Failed to start spike." });
+      return;
+    }
+
+    setPhase({ kind: "processing", recordingId: result.recordingId });
+    poll(result.recordingId);
+  }
+
   const fmtTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
@@ -187,14 +206,23 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
       {/* Control row */}
       <div className="flex items-center gap-4 flex-wrap">
         {phase.kind === "idle" && (
-          <button
-            onClick={startRecording}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
-            style={{ background: "rgba(239,68,68,0.12)", color: "#B91C1C", border: "1px solid rgba(239,68,68,0.2)" }}
-          >
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444" }} />
-            Start Recording
-          </button>
+          <>
+            <button
+              onClick={startRecording}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
+              style={{ background: "rgba(239,68,68,0.12)", color: "#B91C1C", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444" }} />
+              Start Recording
+            </button>
+            <button
+              onClick={runSpikeMarking}
+              className="px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
+              style={{ background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.6)", border: "1px solid rgba(51,51,51,0.1)" }}
+            >
+              Test AI marking only →
+            </button>
+          </>
         )}
 
         {phase.kind === "recording" && (

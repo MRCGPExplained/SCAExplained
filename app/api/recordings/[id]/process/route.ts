@@ -137,8 +137,53 @@ Respond ONLY with valid JSON — no markdown, no explanation:
   }
 }
 
+// Sample transcript injected when ?spike=1 — skips Deepgram entirely
+const SPIKE_TRANSCRIPT = `[0:00] Doctor: Good morning, please come in and take a seat. So how can I help you today?
+[0:08] Patient: Morning. I've been getting this chest pain on and off for about three weeks now. It's been worrying me.
+[0:16] Doctor: I'm sorry to hear that. Can you tell me more about the pain? Where exactly is it?
+[0:22] Patient: It's sort of here, in the centre of my chest. Sometimes it goes up into my throat a bit.
+[0:30] Doctor: And when does it tend to come on?
+[0:34] Patient: Mainly after eating. Especially if I eat a big meal or something spicy. It's worse when I lie down at night.
+[0:42] Doctor: How long does each episode last?
+[0:45] Patient: Maybe twenty, thirty minutes. Then it settles on its own.
+[0:50] Doctor: Have you noticed anything that makes it better or worse?
+[0:54] Patient: Sitting up helps. And I had some Gaviscon left over from before — that seemed to help a bit.
+[1:02] Doctor: That's useful to know. Have you had anything like this before?
+[1:06] Patient: I had a bit of heartburn when I was pregnant, about five years ago. But nothing like this since then.
+[1:13] Doctor: Any difficulty swallowing, or feeling like food is sticking?
+[1:17] Patient: No, nothing like that.
+[1:19] Doctor: Any nausea, vomiting, or have you noticed any blood in your vomit or stools?
+[1:24] Patient: No, none of that. My stools have been normal.
+[1:28] Doctor: Any weight loss recently?
+[1:30] Patient: I've actually put on a bit of weight over the last year. Desk job.
+[1:35] Doctor: I see. Any shortness of breath or palpitations with the chest pain?
+[1:40] Patient: No, my breathing's fine. The pain doesn't come on with exercise either — only with food and lying down.
+[1:48] Doctor: That's helpful. Any significant medical history — anything you see your GP for regularly?
+[1:54] Patient: I'm on the pill and that's about it. I had my blood pressure checked a few months ago and it was normal.
+[2:02] Doctor: Any family history of heart problems?
+[2:06] Patient: My dad had a heart attack at sixty-two. That's partly why I'm here, to be honest.
+[2:12] Doctor: That's completely understandable. Do you smoke or drink?
+[2:16] Patient: I gave up smoking three years ago. I drink maybe a glass of wine most evenings.
+[2:22] Doctor: Okay. And tell me — what were you worried this might be?
+[2:27] Patient: Obviously I was worried it might be my heart. But actually the more I read online, the more it sounded like it could be acid reflux or something like that.
+[2:37] Doctor: That's a very reasonable thought. The pattern you're describing — coming on after food, relieved by sitting up, responding to Gaviscon — does sound much more in keeping with acid reflux, or gastro-oesophageal reflux disease as we call it, rather than a cardiac cause. The fact that it doesn't come on with exertion is also reassuring.
+[2:58] Patient: That is reassuring. So you don't think I need any heart tests?
+[3:03] Doctor: Given the typical reflux pattern and your age and that it's consistently food-related, I'm not concerned about your heart. But I do want to examine you today and take your blood pressure, and I'll arrange some routine bloods including a check of your haemoglobin to make sure there's no anaemia.
+[3:20] Patient: Okay, that sounds fine.
+[3:23] Doctor: In terms of treatment, I'd like to start you on a medication called a proton pump inhibitor — omeprazole 20mg once a day before breakfast. We'd try that for four to eight weeks and see how you get on.
+[3:35] Patient: Is that safe to take long-term?
+[3:38] Doctor: It's very well-tolerated short-term. If you need it longer term we'd review that together, but for now a trial course is the right approach. There are also some lifestyle measures that can help — avoiding large meals, not eating for two to three hours before bed, raising the head of your bed slightly, and perhaps cutting back on the wine a little as alcohol can relax the valve that keeps acid down.
+[4:02] Patient: I'll try the wine thing. Not sure about the bed head!
+[4:06] Doctor: Fair enough. I'd also want to see you back in four to six weeks to see how you're getting on. If the omeprazole hasn't helped by then, or if you develop any new symptoms — difficulty swallowing, vomiting blood, significant weight loss — come in sooner. Those would be things I'd want to investigate further.
+[4:24] Patient: Right, that makes sense. Should I stop the Gaviscon?
+[4:27] Doctor: You can continue to use it as a top-up if you need it, especially before bed. It works differently to omeprazole so they complement each other.
+[4:35] Patient: Great, that's really helpful. Thanks.
+[4:38] Doctor: Not at all. I'll examine you now and then we'll get those bloods organised.`;
+
 export async function POST(req: Request, { params }: RouteParams) {
   const { id: recordingId } = await params;
+  const url = new URL(req.url);
+  const isSpike = url.searchParams.get("spike") === "1";
 
   // Validate internal caller
   const internalKey = req.headers.get("x-internal-key") ?? "";
@@ -158,8 +203,8 @@ export async function POST(req: Request, { params }: RouteParams) {
     .single<{
       id: string;
       station_number: number;
-      doctor_audio_path: string;
-      patient_audio_path: string;
+      doctor_audio_path: string | null;
+      patient_audio_path: string | null;
       status: string;
     }>();
 
@@ -189,26 +234,36 @@ export async function POST(req: Request, { params }: RouteParams) {
     }>();
 
   try {
-    // Download both audio files from storage
-    const [{ data: doctorBlob }, { data: patientBlob }] = await Promise.all([
-      admin.storage.from("consultation-recordings").download(recording.doctor_audio_path),
-      admin.storage.from("consultation-recordings").download(recording.patient_audio_path),
-    ]);
+    let transcriptFormatted: string;
+    let transcriptRaw: unknown;
 
-    if (!doctorBlob || !patientBlob) throw new Error("Could not download audio files");
+    if (isSpike) {
+      // Skip Deepgram — use sample consultation transcript
+      transcriptFormatted = SPIKE_TRANSCRIPT;
+      transcriptRaw = { spike: true };
+    } else {
+      // Download both audio files from storage
+      const [{ data: doctorBlob }, { data: patientBlob }] = await Promise.all([
+        admin.storage.from("consultation-recordings").download(recording.doctor_audio_path!),
+        admin.storage.from("consultation-recordings").download(recording.patient_audio_path!),
+      ]);
 
-    const [doctorBuf, patientBuf] = await Promise.all([
-      doctorBlob.arrayBuffer().then(Buffer.from),
-      patientBlob.arrayBuffer().then(Buffer.from),
-    ]);
+      if (!doctorBlob || !patientBlob) throw new Error("Could not download audio files");
 
-    // Transcribe both tracks in parallel
-    const [doctorUtterances, patientUtterances] = await Promise.all([
-      transcribeAudio(doctorBuf),
-      transcribeAudio(patientBuf),
-    ]);
+      const [doctorBuf, patientBuf] = await Promise.all([
+        doctorBlob.arrayBuffer().then(Buffer.from),
+        patientBlob.arrayBuffer().then(Buffer.from),
+      ]);
 
-    const transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
+      // Transcribe both tracks in parallel
+      const [doctorUtterances, patientUtterances] = await Promise.all([
+        transcribeAudio(doctorBuf),
+        transcribeAudio(patientBuf),
+      ]);
+
+      transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
+      transcriptRaw = { doctor: doctorUtterances, patient: patientUtterances };
+    }
 
     // Build station context for the grading prompt
     const stationContext = [
@@ -243,7 +298,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     // Save transcript + grades to DB
     await admin.from("station_recordings").update({
       transcript_formatted: transcriptFormatted,
-      transcript_raw: { doctor: doctorUtterances, patient: patientUtterances },
+      transcript_raw: transcriptRaw,
       ai_data_gathering: grades.data_gathering,
       ai_clinical_management: grades.clinical_management,
       ai_relating_to_others: grades.relating_to_others,
