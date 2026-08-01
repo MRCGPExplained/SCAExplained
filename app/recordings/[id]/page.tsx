@@ -202,12 +202,20 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-4" style={{ color: "rgba(26,27,82,0.4)" }}>
               Transcript
             </div>
-            <pre
-              className="text-[12.5px] leading-relaxed whitespace-pre-wrap"
-              style={{ color: "rgba(26,27,82,0.75)", fontFamily: "inherit" }}
-            >
-              {rec.transcript_formatted}
-            </pre>
+            <div className="flex flex-col gap-2.5">
+              {rec.transcript_formatted.split("\n").filter(Boolean).map((line, i) => {
+                const m = line.match(/^(\[\d+:\d+\])\s*(Doctor|Patient):\s*(.*)$/);
+                if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.6)" }}>{line}</p>;
+                const [, timestamp, speaker, speech] = m;
+                return (
+                  <div key={i}>
+                    <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(26,27,82,0.3)" }}>{timestamp}</span>
+                    <span className="text-[12.5px] font-bold mr-1" style={{ color: speaker === "Doctor" ? NAVY : "rgba(26,27,82,0.55)" }}>{speaker}:</span>
+                    <span className="text-[12.5px]" style={{ color: "rgba(26,27,82,0.75)" }}>{speech}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
