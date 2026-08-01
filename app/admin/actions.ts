@@ -839,6 +839,19 @@ export async function toggleDeepgramAction(enabled: boolean): Promise<ActionResu
   return { success: true };
 }
 
+export async function setVercelPlanAction(plan: "hobby" | "pro"): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "vercel_plan", value: plan }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
 // ── Admin passcodes ───────────────────────────────────────────────────────────
 
 export async function createAdminPasscodeAction(

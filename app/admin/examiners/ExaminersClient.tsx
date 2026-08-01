@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
-  toggleExaminerIsAdminAction, toggleDeepgramAction,
+  toggleExaminerIsAdminAction, toggleDeepgramAction, setVercelPlanAction,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -33,6 +33,7 @@ interface Props {
   aiPrompt: string;
   defaultPrompt: string;
   deepgramEnabled: boolean;
+  vercelPlan: "hobby" | "pro";
 }
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("examiners");
   const [isPending, startTransition] = useTransition();
@@ -105,6 +106,10 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   // Deepgram toggle
   const [deepgramOn, setDeepgramOn] = useState(initialDeepgram);
   const [deepgramPending, startDeepgramTransition] = useTransition();
+
+  // Vercel plan
+  const [vercelPlan, setVercelPlan] = useState<"hobby" | "pro">(initialVercelPlan);
+  const [vercelPlanPending, startVercelPlanTransition] = useTransition();
 
   useEffect(() => {
     if ("success" in promptState && promptState.success) {
@@ -322,33 +327,65 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
             When disabled, recordings skip transcription and go straight to the examiner queue with audio only.
           </p>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              disabled={deepgramPending}
-              onClick={() => {
-                const next = !deepgramOn;
-                setDeepgramOn(next);
-                startDeepgramTransition(async () => {
-                  await toggleDeepgramAction(next);
-                });
-              }}
-              className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
-              style={{
-                background: deepgramOn ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
-                border: `1.5px solid ${deepgramOn ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
-                color: deepgramOn ? "#166534" : "rgba(51,51,51,0.45)",
-                cursor: "pointer",
-              }}
-            >
-              {deepgramPending ? "Saving…" : deepgramOn ? "Deepgram: ON" : "Deepgram: OFF"}
-            </button>
+          <div className="flex flex-col gap-5">
+            {/* Deepgram on/off */}
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                disabled={deepgramPending}
+                onClick={() => {
+                  const next = !deepgramOn;
+                  setDeepgramOn(next);
+                  startDeepgramTransition(async () => { await toggleDeepgramAction(next); });
+                }}
+                className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+                style={{
+                  background: deepgramOn ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
+                  border: `1.5px solid ${deepgramOn ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
+                  color: deepgramOn ? "#166534" : "rgba(51,51,51,0.45)",
+                  cursor: "pointer",
+                }}
+              >
+                {deepgramPending ? "Saving…" : deepgramOn ? "Deepgram: ON" : "Deepgram: OFF"}
+              </button>
+              <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                {deepgramOn
+                  ? "Recordings will be transcribed and AI-graded."
+                  : "Recordings skip transcription — examiner gets audio only."}
+              </span>
+            </div>
 
-            <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
-              {deepgramOn
-                ? "Recordings will be transcribed and AI-graded."
-                : "Recordings skip transcription — examiner gets audio only."}
-            </span>
+            {/* Vercel plan */}
+            {deepgramOn && (
+              <div style={{ paddingTop: 16, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+                <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>Vercel Plan</div>
+                <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
+                  Hobby has a 60s function limit — real Deepgram transcription will time out. Set to Hobby to use a hardcoded transcript instead (AI grading still runs).
+                </p>
+                <div className="flex gap-2">
+                  {(["pro", "hobby"] as const).map((plan) => (
+                    <button
+                      key={plan}
+                      type="button"
+                      disabled={vercelPlanPending}
+                      onClick={() => {
+                        setVercelPlan(plan);
+                        startVercelPlanTransition(async () => { await setVercelPlanAction(plan); });
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50 capitalize"
+                      style={{
+                        background: vercelPlan === plan ? NAVY : "rgba(51,51,51,0.07)",
+                        border: "1.5px solid transparent",
+                        color: vercelPlan === plan ? "white" : "rgba(51,51,51,0.45)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {plan === "pro" ? "Pro / Enterprise" : "Hobby"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

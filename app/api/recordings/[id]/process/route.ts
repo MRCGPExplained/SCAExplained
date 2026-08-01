@@ -202,12 +202,13 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { data: settingsRows } = await admin
     .from("site_settings")
     .select("key, value")
-    .in("key", ["deepgram_enabled", "ai_grading_prompt"]);
+    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan"]);
 
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
   );
   const deepgramEnabled = settingsMap.get("deepgram_enabled") !== "false"; // default on
+  const vercelPlan = settingsMap.get("vercel_plan") ?? "pro"; // default pro
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 
   // If Deepgram is disabled, skip pipeline and send straight to examiner queue
@@ -265,7 +266,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     let transcriptFormatted: string;
     let transcriptRaw: unknown;
 
-    if (isSpike) {
+    if (isSpike || vercelPlan === "hobby") {
       // Skip Deepgram — use sample consultation transcript
       transcriptFormatted = SPIKE_TRANSCRIPT;
       transcriptRaw = { spike: true };
