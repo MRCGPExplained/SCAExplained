@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
-import VoiceLoop from "./VoiceLoop";
 import PasswordForm from "./PasswordForm";
-import SoloRecordingTest from "./SoloRecordingTest";
+import BetatestTabs from "./BetatestTabs";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 
 export const dynamic = "force-dynamic";
@@ -40,18 +39,13 @@ export default async function BetatestPage() {
           <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: YELLOW, color: DARK }}>
             Beta
           </span>
+
         </div>
       </div>
 
       <div className="max-w-[680px] mx-auto px-6 pt-8">
         {unlocked ? (
-          <div className="flex flex-col gap-12">
-            <SoloRecordingTest stations={stations} />
-            <div style={{ borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: "2rem" }}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.06em] mb-6" style={{ color: "rgba(51,51,51,0.35)" }}>AI Roleplay (voice loop)</p>
-              <VoiceLoop />
-            </div>
-          </div>
+          <BetatestTabs stations={stations} />
         ) : (
           <PasswordForm />
         )}

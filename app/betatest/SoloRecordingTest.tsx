@@ -10,11 +10,16 @@ type Phase =
   | { kind: "recording" }
   | { kind: "uploading"; recordingId: string }
   | { kind: "processing"; recordingId: string }
+  | { kind: "timedout"; recordingId: string }
   | { kind: "done"; recordingId: string }
   | { kind: "error"; message: string };
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
+
+// Hobby plan kills at 60s; give it 90s then declare timeout
+const POLL_TIMEOUT_MS = 90_000;
+const POLL_INTERVAL_MS = 4_000;
 
 export default function SoloRecordingTest({ stations }: { stations: Station[] }) {
   const [selectedId, setSelectedId] = useState<string>(stations[0]?.id ?? "");
@@ -57,7 +62,6 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     mr.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       if (timerRef.current) clearInterval(timerRef.current);
-
       const blob = new Blob(chunksRef.current, { type: mimeType });
       await uploadAndSubmit(blob);
     };
@@ -65,9 +69,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     mr.start(1000);
     setPhase({ kind: "recording" });
 
-    timerRef.current = setInterval(() => {
-      setElapsed((n) => n + 1);
-    }, 1000);
+    timerRef.current = setInterval(() => setElapsed((n) => n + 1), 1000);
   }
 
   function stopRecording() {
@@ -90,7 +92,6 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     const { recordingId } = result;
     setPhase({ kind: "uploading", recordingId });
 
-    // Upload same blob as both roles
     const uploadRole = async (role: "doctor" | "patient") => {
       const fd = new FormData();
       fd.append("audio", blob, `${role}.webm`);
@@ -99,13 +100,12 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
         body: fd,
       });
       if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(error ?? "Upload failed");
+        const body = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(body.error ?? "Upload failed");
       }
     };
 
     try {
-      // Upload doctor first, then patient (second upload triggers processing)
       await uploadRole("doctor");
       await uploadRole("patient");
     } catch (e: unknown) {
@@ -114,15 +114,13 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     }
 
     setPhase({ kind: "processing", recordingId });
-
-    // Poll for completion (hobby plan: 60s max, Pro: 5 min)
     poll(recordingId);
   }
 
   async function poll(recordingId: string) {
-    const deadline = Date.now() + 5 * 60 * 1000; // 5 min max
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      await sleep(4000);
+      await sleep(POLL_INTERVAL_MS);
       try {
         const res = await fetch(`/api/recordings/${recordingId}/status`);
         if (res.ok) {
@@ -132,16 +130,16 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
             return;
           }
           if (status === "failed") {
-            setPhase({ kind: "error", message: "Pipeline failed — check logs." });
+            setPhase({ kind: "error", message: "Pipeline failed — check Vercel logs." });
             return;
           }
         }
       } catch {
-        // transient — keep polling
+        // transient network error — keep polling
       }
     }
-    // Timed out polling, but recording may still finish
-    setPhase({ kind: "done", recordingId });
+    // 90s elapsed and still processing — almost certainly hit the 60s hobby limit
+    setPhase({ kind: "timedout", recordingId });
   }
 
   function reset() {
@@ -165,92 +163,77 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
   }
 
   return (
-    <div>
-      <div className="mb-5">
-        <h2 className="font-display font-extrabold text-[20px] mb-1" style={{ color: DARK }}>
-          Recording Pipeline Test
-        </h2>
-        <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>
-          Solo test — your audio is uploaded as both doctor and patient, then processed through Deepgram + AI marking.{" "}
-          <span style={{ color: "rgba(51,51,51,0.38)" }}>Note: Vercel hobby plan has a 60s processing limit.</span>
-        </p>
+    <div className="rounded-2xl border bg-white p-6 flex flex-col gap-5" style={{ borderColor: "rgba(51,51,51,0.1)" }}>
+      {/* Station picker */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.45)" }}>
+          Station
+        </label>
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          disabled={phase.kind !== "idle"}
+          className="field"
+          style={{ maxWidth: 420 }}
+        >
+          {stations.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.number}. {s.title} — {s.subject}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6 flex flex-col gap-5" style={{ borderColor: "rgba(51,51,51,0.1)" }}>
-        {/* Station picker */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.45)" }}>
-            Station
-          </label>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            disabled={phase.kind !== "idle"}
-            className="field"
-            style={{ maxWidth: 420 }}
+      {/* Control row */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {phase.kind === "idle" && (
+          <button
+            onClick={startRecording}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
+            style={{ background: "rgba(239,68,68,0.12)", color: "#B91C1C", border: "1px solid rgba(239,68,68,0.2)" }}
           >
-            {stations.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.number}. {s.title} — {s.subject}
-              </option>
-            ))}
-          </select>
-        </div>
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444" }} />
+            Start Recording
+          </button>
+        )}
 
-        {/* Control row */}
-        <div className="flex items-center gap-4 flex-wrap">
-          {phase.kind === "idle" && (
+        {phase.kind === "recording" && (
+          <>
             <button
-              onClick={startRecording}
+              onClick={stopRecording}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
-              style={{ background: "rgba(239,68,68,0.12)", color: "#B91C1C", border: "1px solid rgba(239,68,68,0.2)" }}
+              style={{ background: "rgba(239,68,68,0.18)", color: "#991B1B", border: "1px solid rgba(239,68,68,0.3)" }}
             >
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444" }} />
-              Start Recording
+              <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: "#EF4444" }} />
+              Stop Recording
             </button>
-          )}
+            <span className="font-mono text-[15px] font-bold" style={{ color: "#EF4444" }}>
+              {fmtTime(elapsed)}
+            </span>
+          </>
+        )}
 
-          {phase.kind === "recording" && (
-            <>
-              <button
-                onClick={stopRecording}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition"
-                style={{ background: "rgba(239,68,68,0.18)", color: "#991B1B", border: "1px solid rgba(239,68,68,0.3)" }}
-              >
-                <span
-                  style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: "#EF4444" }}
-                />
-                Stop Recording
-              </button>
-              <span className="font-mono text-[15px] font-bold" style={{ color: "#EF4444" }}>
-                {fmtTime(elapsed)}
-              </span>
-              <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
-                Speak as both doctor and patient
-              </span>
-            </>
-          )}
+        {(phase.kind === "uploading" || phase.kind === "processing") && (
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.65)" }}>
+              {phase.kind === "uploading" ? "Uploading audio…" : "Processing (Deepgram + AI)…"}
+            </span>
+          </div>
+        )}
 
-          {(phase.kind === "uploading" || phase.kind === "processing") && (
-            <div className="flex items-center gap-3">
-              <Spinner />
-              <span className="text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.65)" }}>
-                {phase.kind === "uploading" ? "Uploading audio…" : "Processing (Deepgram + AI)…"}
-              </span>
+        {phase.kind === "timedout" && (
+          <div className="flex flex-col gap-2 w-full">
+            <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", color: "#92400e" }}>
+              <strong>Processing timed out.</strong> The Vercel hobby plan cuts functions at 60 s — your recording was submitted but the AI marking didn&apos;t finish. Upgrade to Vercel Pro to fix this.
             </div>
-          )}
-
-          {phase.kind === "done" && (
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-[13px] font-semibold" style={{ color: "#15803d" }}>
-                Pipeline complete.
-              </span>
+            <div className="flex items-center gap-3 flex-wrap">
               <a
-                href={`/recordings/${phase.recordingId}`}
+                href="/recordings"
                 className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline transition"
-                style={{ background: YELLOW, color: DARK }}
+                style={{ background: "rgba(51,51,51,0.08)", color: DARK }}
               >
-                View Report →
+                View all recordings
               </a>
               <button
                 onClick={reset}
@@ -260,26 +243,50 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
                 Test again
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {phase.kind === "error" && (
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-[13px] font-semibold" style={{ color: "#B91C1C" }}>
-                Error: {phase.message}
-              </span>
-              <button
-                onClick={reset}
-                className="text-[12px] font-semibold"
-                style={{ color: "rgba(51,51,51,0.5)", background: "none", border: "none", cursor: "pointer" }}
-              >
-                Try again
-              </button>
-            </div>
-          )}
-        </div>
+        {phase.kind === "done" && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-[13px] font-semibold" style={{ color: "#15803d" }}>
+              Pipeline complete.
+            </span>
+            <a
+              href={`/recordings/${phase.recordingId}`}
+              className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline transition"
+              style={{ background: YELLOW, color: DARK }}
+            >
+              View Report →
+            </a>
+            <button
+              onClick={reset}
+              className="text-[12px] font-semibold"
+              style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              Test again
+            </button>
+          </div>
+        )}
 
-        {/* Progress steps */}
-        <div className="flex items-center gap-3 flex-wrap pt-1">
+        {phase.kind === "error" && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-[13px] font-semibold" style={{ color: "#B91C1C" }}>
+              {phase.message}
+            </span>
+            <button
+              onClick={reset}
+              className="text-[12px] font-semibold"
+              style={{ color: "rgba(51,51,51,0.5)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Progress steps */}
+      {phase.kind !== "timedout" && (
+        <div className="flex items-center gap-3 flex-wrap">
           {(
             [
               { id: "idle", label: "Record" },
@@ -292,12 +299,10 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
               step.id === "idle"
                 ? phase.kind === "idle" || phase.kind === "recording"
                 : step.id === "done"
-                ? phase.kind === "done" || phase.kind === "error"
+                ? phase.kind === "done"
                 : phase.kind === step.id;
             const past =
-              step.id === "idle"
-                ? false
-                : step.id === "uploading"
+              step.id === "uploading"
                 ? phase.kind === "processing" || phase.kind === "done"
                 : step.id === "processing"
                 ? phase.kind === "done"
@@ -313,11 +318,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
                       : active
                       ? "rgba(246,212,75,0.25)"
                       : "rgba(51,51,51,0.06)",
-                    color: past
-                      ? "#15803d"
-                      : active
-                      ? "#92400e"
-                      : "rgba(51,51,51,0.35)",
+                    color: past ? "#15803d" : active ? "#92400e" : "rgba(51,51,51,0.35)",
                   }}
                 >
                   {step.label}
@@ -329,7 +330,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
             );
           })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
