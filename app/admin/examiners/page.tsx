@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import ExaminersClient from "./ExaminersClient";
 
+type BypassSettings = { enabled: boolean; emails: string };
+
 export const dynamic = "force-dynamic";
 
 type Examiner = { id: string; name: string; email: string; passcode: string; created_at: string };
@@ -24,7 +26,7 @@ export default async function ExaminersPage({
 
   const supabase = getSupabaseAdmin();
 
-  const [examinersResult, activityResult] = await Promise.all([
+  const [examinersResult, activityResult, bypassResult] = await Promise.all([
     supabase
       ? supabase.from("examiners").select("id, name, email, passcode, created_at").order("name")
       : Promise.resolve({ data: [] }),
@@ -42,16 +44,28 @@ export default async function ExaminersPage({
           return q;
         })()
       : Promise.resolve({ data: [] }),
+    supabase
+      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails"])
+      : Promise.resolve({ data: [] }),
   ]);
 
   const examiners = (examinersResult.data ?? []) as Examiner[];
   const activity = (activityResult.data ?? []) as ActivityRow[];
+
+  const settingsMap = new Map(
+    ((bypassResult.data ?? []) as { key: string; value: string }[]).map((s) => [s.key, s.value])
+  );
+  const bypassSettings: BypassSettings = {
+    enabled: settingsMap.get("recording_bypass_enabled") === "true",
+    emails: settingsMap.get("recording_bypass_emails") ?? "",
+  };
 
   return (
     <ExaminersClient
       examiners={examiners}
       activity={activity}
       filters={{ from: from ?? "", to: to ?? "", examiner: examinerFilter ?? "" }}
+      bypassSettings={bypassSettings}
     />
   );
 }

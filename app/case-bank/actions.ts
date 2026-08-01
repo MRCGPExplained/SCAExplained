@@ -458,6 +458,41 @@ export async function getRecordingCreditsAction(): Promise<number> {
   return data?.balance ?? 0;
 }
 
+async function checkRecordingBypass(email: string | undefined): Promise<boolean> {
+  if (!email) return false;
+  const admin = getSupabaseAdmin();
+  if (!admin) return false;
+
+  const { data: settings } = await admin
+    .from("site_settings")
+    .select("key, value")
+    .in("key", ["recording_bypass_enabled", "recording_bypass_emails"]);
+
+  const map = new Map((settings ?? []).map((s: { key: string; value: string }) => [s.key, s.value]));
+  if (map.get("recording_bypass_enabled") !== "true") return false;
+
+  const normalEmail = email.toLowerCase();
+
+  const { data: examiner } = await admin
+    .from("examiners")
+    .select("id")
+    .eq("email", normalEmail)
+    .maybeSingle();
+  if (examiner) return true;
+
+  const bypassList = (map.get("recording_bypass_emails") ?? "")
+    .split(",")
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return bypassList.includes(normalEmail);
+}
+
+export async function getRecordingBypassAction(): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return checkRecordingBypass(user?.email);
+}
+
 export async function startRecordingAction(args: {
   roomId: string;
   stationNumber: number;
@@ -474,28 +509,34 @@ export async function startRecordingAction(args: {
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
-  // Check and decrement credits atomically using a transaction-like approach
-  const { data: credits } = await admin
-    .from("recording_credits")
-    .select("balance")
-    .eq("user_id", user.id)
-    .single<{ balance: number }>();
+  const bypassed = await checkRecordingBypass(user.email);
 
-  if (!credits || credits.balance < 1) {
-    return { error: "No recording credits remaining. Purchase more to continue." };
+  let credits: { balance: number } | null = null;
+
+  if (!bypassed) {
+    // Check and decrement credits
+    const { data: creditsData } = await admin
+      .from("recording_credits")
+      .select("balance")
+      .eq("user_id", user.id)
+      .single<{ balance: number }>();
+
+    if (!creditsData || creditsData.balance < 1) {
+      return { error: "No recording credits remaining. Purchase more to continue." };
+    }
+
+    const { error: deductErr } = await admin
+      .from("recording_credits")
+      .update({
+        balance: creditsData.balance - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+      .eq("balance", creditsData.balance);
+
+    if (deductErr) return { error: "Could not deduct credit. Please try again." };
+    credits = creditsData;
   }
-
-  // Decrement balance
-  const { error: deductErr } = await admin
-    .from("recording_credits")
-    .update({
-      balance: credits.balance - 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", user.id)
-    .eq("balance", credits.balance); // optimistic lock
-
-  if (deductErr) return { error: "Could not deduct credit. Please try again." };
 
   // Fetch candidate email for the report
   const { data: authUser } = await admin.auth.admin.getUserById(args.doctorUserId);
@@ -518,12 +559,14 @@ export async function startRecordingAction(args: {
     .single<{ id: string }>();
 
   if (insertErr || !recording) {
-    // Refund the credit on failure
-    await admin
-      .from("recording_credits")
-      .update({ balance: credits.balance, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
-    return { error: "Could not create recording. Credit refunded." };
+    if (!bypassed && credits) {
+      // Refund the credit on failure
+      await admin
+        .from("recording_credits")
+        .update({ balance: credits.balance, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+    return { error: "Could not create recording." + (!bypassed ? " Credit refunded." : "") };
   }
 
   return { recordingId: recording.id };

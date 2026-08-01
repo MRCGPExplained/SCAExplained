@@ -10,7 +10,7 @@ import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { FeedbackModal } from "./ReportModal";
 import { VideoRequestModal } from "./VideoRequestModal";
-import { toggleStarAction, updateLastStationAction, getRecordingCreditsAction } from "../actions";
+import { toggleStarAction, updateLastStationAction, getRecordingCreditsAction, getRecordingBypassAction } from "../actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -294,11 +294,13 @@ export function StationPageClient({
     running: false,
   });
 
-  // Recording credits
+  // Recording credits + bypass
   const [recordingCredits, setRecordingCredits] = useState<number | null>(null);
+  const [recordingBypassed, setRecordingBypassed] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   useEffect(() => {
     getRecordingCreditsAction().then(setRecordingCredits);
+    getRecordingBypassAction().then(setRecordingBypassed);
   }, []);
 
   // Station jump
@@ -547,7 +549,7 @@ export function StationPageClient({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
-              if (recordingCredits === 0) { setShowBuyModal(true); }
+              if (!recordingBypassed && recordingCredits === 0) { setShowBuyModal(true); }
               else { setShowRoom(true); }
             }}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
@@ -558,14 +560,17 @@ export function StationPageClient({
               cursor: "pointer",
             }}
           >
-            {/* Microphone icon */}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="9" y="2" width="6" height="11" rx="3"/>
               <path d="M5 10a7 7 0 0 0 14 0"/>
               <line x1="12" y1="17" x2="12" y2="21"/>
               <line x1="9" y1="21" x2="15" y2="21"/>
             </svg>
-            Record{recordingCredits !== null ? ` (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""})` : ""}
+            {recordingBypassed
+              ? "Record (free)"
+              : recordingCredits !== null
+                ? `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""})`
+                : "Record"}
           </button>
 
           <button
@@ -811,7 +816,7 @@ export function StationPageClient({
               </h2>
             </div>
             <p className="text-[13px] leading-relaxed mb-6" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Each recorded consultation uses 1 credit. Credits are reviewed by an RCGP examiner who grades your performance across all three marking domains.
+              Each recorded consultation uses 1 credit. Credits are reviewed by a GP examiner who grades your performance across all three marking domains.
             </p>
             <div
               className="rounded-xl p-4 mb-6 flex items-center justify-between"

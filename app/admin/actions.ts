@@ -704,6 +704,29 @@ export async function deleteExaminerAction(id: string): Promise<ActionResult> {
   return {};
 }
 
+// ── Recording bypass settings ─────────────────────────────────────────────────
+
+export async function updateBypassSettingsAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const enabled = formData.get("bypass_enabled") === "true";
+  const emails = String(formData.get("bypass_emails") ?? "").trim();
+
+  const { error } = await supabase.from("site_settings").upsert([
+    { key: "recording_bypass_enabled", value: enabled ? "true" : "false" },
+    { key: "recording_bypass_emails", value: emails },
+  ]);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return {};
+}
+
 // ── Beta flag ─────────────────────────────────────────────────────────────────
 
 export async function toggleBetaAction(userId: string, beta: boolean): Promise<ActionResult> {
