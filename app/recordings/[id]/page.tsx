@@ -11,7 +11,7 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; pts
   CF: { label: "Clear Fail", color: "#B91C1C", bg: "rgba(239,68,68,0.09)", pts: () => 0 },
   F:  { label: "Fail",       color: "#92400E", bg: "rgba(245,158,11,0.09)", pts: (d) => d === "cm" ? 1.5 : 1 },
   P:  { label: "Pass",       color: "#166534", bg: "rgba(34,197,94,0.09)",  pts: (d) => d === "cm" ? 3 : 2 },
-  CP: { label: "Clear Pass", color: "#166534", bg: "rgba(34,197,94,0.09)", pts: (d) => d === "cm" ? 4.5 : 3 },
+  CP: { label: "Clear Pass", color: "#1D4ED8", bg: "rgba(59,130,246,0.09)", pts: (d) => d === "cm" ? 4.5 : 3 },
 };
 
 function GradeBadge({ grade, domain }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {

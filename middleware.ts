@@ -48,6 +48,8 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") return NextResponse.next();
     const session = req.cookies.get("admin_session")?.value ?? "";
+
+    // Check primary ADMIN_PASSWORD env var
     const pw = process.env.ADMIN_PASSWORD ?? "";
     if (pw) {
       const expected = await sha256hex(pw);
@@ -55,6 +57,29 @@ export async function middleware(req: NextRequest) {
     } else if (process.env.NODE_ENV !== "production") {
       return NextResponse.next();
     }
+
+    // Check additional DB admin passcodes (admin_passcodes table)
+    if (session) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceKey) {
+        try {
+          const res = await fetch(`${supabaseUrl}/rest/v1/admin_passcodes?select=passcode`, {
+            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const rows = (await res.json()) as { passcode: string }[];
+            for (const row of rows) {
+              if (session === await sha256hex(row.passcode)) return NextResponse.next();
+            }
+          }
+        } catch {
+          // Fail closed — fall through to redirect
+        }
+      }
+    }
+
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);

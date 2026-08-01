@@ -806,6 +806,65 @@ export async function saveAiPromptAction(
   return { success: true };
 }
 
+export async function clearAiPromptAction(): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  await supabase.from("site_settings").delete().eq("key", "ai_grading_prompt");
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
+// ── Admin passcodes ───────────────────────────────────────────────────────────
+
+export async function createAdminPasscodeAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  const passcode = String(formData.get("passcode") ?? "").trim();
+  if (!name || !passcode) return { error: "Name and passcode are required." };
+
+  const { error } = await supabase.from("admin_passcodes").insert({ name, passcode });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
+export async function updateAdminPasscodeAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const passcode = String(formData.get("passcode") ?? "").trim();
+  if (!id || !name || !passcode) return { error: "All fields required." };
+
+  const { error } = await supabase.from("admin_passcodes").update({ name, passcode }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
+export async function deleteAdminPasscodeAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("admin_passcodes").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return {};
+}
+
 // ── Beta flag ─────────────────────────────────────────────────────────────────
 
 export async function toggleBetaAction(userId: string, beta: boolean): Promise<ActionResult> {

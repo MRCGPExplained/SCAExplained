@@ -14,7 +14,7 @@ const GRADE_STYLE: Record<Grade, { bg: string; color: string; label: string }> =
   CF: { bg: "rgba(239,68,68,0.1)", color: "#B91C1C", label: "Clear Fail" },
   F:  { bg: "rgba(245,158,11,0.1)", color: "#92400E", label: "Fail" },
   P:  { bg: "rgba(34,197,94,0.1)",  color: "#166534", label: "Pass" },
-  CP: { bg: "rgba(34,197,94,0.1)", color: "#166534", label: "Clear Pass" },
+  CP: { bg: "rgba(59,130,246,0.1)", color: "#1D4ED8", label: "Clear Pass" },
 };
 
 const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
@@ -272,8 +272,8 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                           <span
                             className="text-[11px] font-bold px-2 py-0.5 rounded-md"
                             style={{
-                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : "rgba(34,197,94,0.1)",
-                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : "#166534",
+                              background: grade === "CF" ? "rgba(239,68,68,0.1)" : grade === "F" ? "rgba(245,158,11,0.1)" : grade === "P" ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)",
+                              color: grade === "CF" ? "#B91C1C" : grade === "F" ? "#92400E" : grade === "P" ? "#166534" : "#1D4ED8",
                             }}
                           >
                             {grade}
@@ -403,7 +403,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
 
               {/* Submit buttons */}
               {!isSent && (
-                <div className="flex gap-2.5">
+                <div className="flex gap-2.5 flex-wrap">
                   <button
                     type="submit"
                     name="send_now"
@@ -414,6 +414,18 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   >
                     Save Draft
                   </button>
+                  <a
+                    href={`/recordings/${recording.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 rounded-xl py-3 text-[13px] font-bold text-center"
+                    style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.1)", color: "rgba(26,27,82,0.55)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}
+                  >
+                    Preview Report
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.5 }}>
+                      <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
                   <button
                     type="submit"
                     name="send_now"

@@ -99,7 +99,7 @@ export async function submitExaminerReviewAction(
       doctor_display_name: string;
     }>();
 
-  if (rec?.candidate_email) {
+  if (sendNow && rec?.candidate_email) {
     const gradePts: Record<string, Record<string, number>> = {
       dg: { CF: 0, F: 1, P: 2, CP: 3 },
       cm: { CF: 0, F: 1.5, P: 3, CP: 4.5 },
