@@ -81,6 +81,14 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
     <div className="min-h-screen" style={{ background: "#F3F2FB" }}>
       <div className="max-w-[860px] mx-auto px-4 py-10">
 
+        {/* Back to dashboard */}
+        <div className="mb-5">
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold no-underline" style={{ color: "rgba(26,27,82,0.45)" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Dashboard
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
           <div>

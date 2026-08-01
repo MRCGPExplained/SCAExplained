@@ -157,65 +157,41 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
         )}
       </div>
 
-      {/* Recording bypass settings */}
-      <div className="bg-white rounded-xl border border-navy/10 p-5 mb-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-          <div>
-            <h2 className="font-bold text-[14px] text-navy">Recording Credit Bypass</h2>
-            <p className="text-[12px] text-navy/50 mt-0.5">
-              When enabled, users whose email is in the examiner list or the bypass list below can record without spending credits.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              const fd = new FormData();
-              fd.set("bypass_enabled", (!bypassEnabled).toString());
-              fd.set("bypass_emails", bypassEmails);
-              setBypassEnabled((v) => !v);
-              startTransition(() => { bypassAction(fd); });
-            }}
-            disabled={bypassPending}
-            className="shrink-0 px-4 py-1.5 rounded-lg text-[13px] font-bold transition disabled:opacity-50"
-            style={{
-              background: bypassEnabled ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.08)",
-              color: bypassEnabled ? "#166534" : "rgba(51,51,51,0.5)",
-              border: `1.5px solid ${bypassEnabled ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
-              cursor: "pointer",
-            }}
-          >
-            {bypassEnabled ? "Bypass: ON" : "Bypass: OFF"}
-          </button>
-        </div>
-
-        <form
-          action={async (fd) => {
-            fd.set("bypass_enabled", bypassEnabled.toString());
-            await bypassAction(fd);
+      {/* Recording bypass — compact single row */}
+      <div className="bg-white rounded-xl border border-navy/10 px-4 py-3 mb-6 flex items-center gap-3 flex-wrap">
+        <span className="text-[12px] font-semibold text-navy/60 shrink-0">Credit bypass</span>
+        <button
+          onClick={() => {
+            const fd = new FormData();
+            fd.set("bypass_enabled", (!bypassEnabled).toString());
+            fd.set("bypass_emails", bypassEmails);
+            setBypassEnabled((v) => !v);
+            startTransition(() => { bypassAction(fd); });
           }}
-          className="flex flex-col gap-2"
+          disabled={bypassPending}
+          className="shrink-0 px-3 py-1 rounded-md text-[11px] font-bold transition disabled:opacity-50"
+          style={{
+            background: bypassEnabled ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
+            color: bypassEnabled ? "#166534" : "rgba(51,51,51,0.4)",
+            border: `1px solid ${bypassEnabled ? "rgba(34,197,94,0.25)" : "rgba(51,51,51,0.1)"}`,
+            cursor: "pointer",
+          }}
         >
-          <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/40">
-            Additional bypass emails (comma-separated)
-          </label>
-          <div className="flex gap-2">
-            <input
-              name="bypass_emails"
-              type="text"
-              value={bypassEmails}
-              onChange={(e) => setBypassEmails(e.target.value)}
-              placeholder="e.g. brandon@example.com, test@example.com"
-              className="flex-1 px-3 py-2 rounded-lg border border-navy/15 text-[13px] bg-[#F3F2FB] outline-none"
-            />
-            <button
-              type="submit"
-              disabled={bypassPending}
-              className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white disabled:opacity-50"
-              style={{ background: NAVY, border: "none", cursor: "pointer" }}
-            >
-              Save
-            </button>
-          </div>
-          {bypassState?.error && <p className="text-[12px] text-red-600">{bypassState.error}</p>}
+          {bypassEnabled ? "ON" : "OFF"}
+        </button>
+        <form
+          action={async (fd) => { fd.set("bypass_enabled", bypassEnabled.toString()); await bypassAction(fd); }}
+          className="flex items-center gap-2 flex-1 min-w-0"
+        >
+          <input
+            name="bypass_emails"
+            type="text"
+            value={bypassEmails}
+            onChange={(e) => setBypassEmails(e.target.value)}
+            placeholder="Extra bypass emails (comma-separated)"
+            className="flex-1 min-w-0 px-3 py-1.5 rounded-md border border-navy/12 text-[12px] bg-[#F3F2FB] outline-none"
+          />
+          <button type="submit" disabled={bypassPending} className="shrink-0 px-3 py-1.5 rounded-md text-[12px] font-semibold text-white disabled:opacity-40" style={{ background: NAVY, border: "none", cursor: "pointer" }}>Save</button>
         </form>
       </div>
 

@@ -95,6 +95,14 @@ export function StationListClient({
     <main style={{ minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
 
+        {/* Back to dashboard */}
+        <div className="mb-5">
+          <a href="/dashboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold no-underline" style={{ color: "rgba(51,51,51,0.45)" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Dashboard
+          </a>
+        </div>
+
         {/* Page header */}
         <div className="mb-7">
           <h1
