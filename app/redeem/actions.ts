@@ -51,13 +51,14 @@ export async function redeemWithSignupAction(
   // Validate code before creating the account
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, expires_at")
+    .select("id, active, expires_at, use_count, max_uses")
     .eq("code", raw)
-    .single<{ id: string; active: boolean; expires_at: string | null }>();
+    .single<{ id: string; active: boolean; expires_at: string | null; use_count: number; max_uses: number }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
   if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
+  if (codeRow.use_count >= codeRow.max_uses) return { error: "This code has reached its maximum number of uses." };
 
   const displayName = lastName ? `${firstName} ${lastName}` : firstName;
   const initials    = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "?";
@@ -117,13 +118,24 @@ async function redeemForUser(
 
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, use_count, expires_at, recording_credits")
+    .select("id, active, use_count, max_uses, expires_at, recording_credits")
     .eq("code", code)
-    .single<{ id: string; active: boolean; use_count: number; expires_at: string | null; recording_credits: number }>();
+    .single<{ id: string; active: boolean; use_count: number; max_uses: number; expires_at: string | null; recording_credits: number }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
   if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
+  if (codeRow.use_count >= (codeRow.max_uses ?? 10)) return { error: "This code has reached its maximum number of uses." };
+
+  // Prevent same account from redeeming the same code twice
+  const { data: alreadyRedeemed } = await admin
+    .from("webinar_code_redemptions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("code_id", codeRow.id)
+    .maybeSingle();
+
+  if (alreadyRedeemed) return { error: "You have already redeemed this code." };
 
   const credits = codeRow.recording_credits ?? 3;
 
@@ -144,14 +156,9 @@ async function redeemForUser(
   );
   if (upsertErr) return { error: "Failed to add credits. Please try again." };
 
-  try {
-    await admin.rpc("increment_webinar_code_use", { code_id: codeRow.id });
-  } catch {
-    await admin
-      .from("webinar_codes")
-      .update({ use_count: codeRow.use_count + 1 })
-      .eq("id", codeRow.id);
-  }
+  // Record this redemption (prevents reuse + updates use_count)
+  await admin.from("webinar_code_redemptions").insert({ user_id: userId, code_id: codeRow.id });
+  await admin.from("webinar_codes").update({ use_count: codeRow.use_count + 1 }).eq("id", codeRow.id);
 
   return { success: true };
 }

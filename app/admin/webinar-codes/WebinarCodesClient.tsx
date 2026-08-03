@@ -9,6 +9,7 @@ export type WebinarCode = {
   label: string;
   active: boolean;
   recording_credits: number;
+  max_uses: number;
   use_count: number;
   expires_at: string | null;
   created_at: string;
@@ -49,7 +50,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Label</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Credits</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Expires</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Uses</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Uses / Max</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Actions</th>
               </tr>
@@ -75,7 +76,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                         })()
                       : <span className="text-navy/30">Never</span>}
                   </td>
-                  <td className="px-5 py-3 text-navy/60 font-mono">{c.use_count}</td>
+                  <td className="px-5 py-3 text-navy/60 font-mono">{c.use_count} / {c.max_uses ?? 10}</td>
                   <td className="px-5 py-3">
                     <button
                       onClick={() => handleToggle(c.id, c.active)}
@@ -113,6 +114,10 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Recording Credits</label>
               <input name="recording_credits" type="number" defaultValue="3" min="1" max="50" className="field" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Max Uses</label>
+              <input name="max_uses" type="number" defaultValue="10" min="1" max="500" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Expiry Date <span className="font-normal normal-case">(optional — leave blank for no expiry)</span></label>

@@ -18,7 +18,7 @@ export function RedeemLoggedIn() {
               <path d="M5 13l4 4L19 7" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>3 recording credits added!</h1>
+          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>Recording credits added!</h1>
           <p className="text-[14px] mb-6" style={{ color: "rgba(51,51,51,0.60)" }}>
             Use them to record consultations and get feedback from a GP examiner.
           </p>
@@ -51,7 +51,6 @@ export function RedeemLoggedIn() {
                 type="text"
                 required
                 autoFocus
-                placeholder="e.g. JULY2026"
                 className="w-full rounded-lg px-4 py-2.5 text-[15px] font-mono tracking-widest uppercase"
                 style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}
               />

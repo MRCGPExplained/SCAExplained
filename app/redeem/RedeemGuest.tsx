@@ -16,7 +16,7 @@ export function RedeemGuest() {
         Get your recording credits
       </h1>
       <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.50)" }}>
-        Enter your details and the code from the webinar — your account and 3 free recordings are set up in one step.
+        Enter your details and the code from the webinar — your account and free recording credits are set up in one step.
       </p>
 
       {state.error && (
@@ -84,7 +84,6 @@ export function RedeemGuest() {
             name="code"
             type="text"
             required
-            placeholder="e.g. JULY2026"
             className="w-full rounded-lg px-4 py-2.5 text-[15px] font-mono tracking-widest uppercase"
             style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: DARK, background: "#F3F2F0", outline: "none" }}
           />
@@ -96,7 +95,7 @@ export function RedeemGuest() {
           className="w-full rounded-lg py-3 font-display font-bold text-[14px] mt-1"
           style={{ background: DARK, color: "white", opacity: pending ? 0.6 : 1, cursor: pending ? "not-allowed" : "pointer" }}
         >
-          {pending ? "Setting up your account…" : "Create account & get 3 free recordings →"}
+          {pending ? "Setting up your account…" : "Create account & redeem recordings →"}
         </button>
       </form>
 

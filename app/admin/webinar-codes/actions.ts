@@ -11,11 +11,13 @@ function randomCode(len = 8) {
 export async function createWebinarCodeAction(_prev: unknown, formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
   const recording_credits = parseInt(String(formData.get("recording_credits") ?? "3"), 10);
+  const max_uses = parseInt(String(formData.get("max_uses") ?? "10"), 10);
   const customCode = String(formData.get("code") ?? "").trim().toUpperCase();
   const expiresAtRaw = String(formData.get("expires_at") ?? "").trim();
 
   if (!label) return { error: "Label is required." };
   if (isNaN(recording_credits) || recording_credits < 1) return { error: "Recording credits must be at least 1." };
+  if (isNaN(max_uses) || max_uses < 1) return { error: "Max uses must be at least 1." };
 
   const code = customCode || randomCode();
   const expires_at = expiresAtRaw ? new Date(expiresAtRaw + "T23:59:59Z").toISOString() : null;
@@ -23,7 +25,7 @@ export async function createWebinarCodeAction(_prev: unknown, formData: FormData
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Admin client unavailable." };
 
-  const { error } = await supabase.from("webinar_codes").insert({ code, label, recording_credits, expires_at });
+  const { error } = await supabase.from("webinar_codes").insert({ code, label, recording_credits, max_uses, expires_at });
   if (error) {
     if (error.code === "23505") return { error: `Code "${code}" already exists — try a different one.` };
     return { error: error.message };
