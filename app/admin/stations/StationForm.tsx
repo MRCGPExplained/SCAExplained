@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useActionState, useState, useRef } from "react";
+import { useActionState, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import type { Station } from "@/lib/case-bank-types";
 import {
@@ -224,21 +224,25 @@ export function StationForm({ station }: { station?: Station }) {
     if (file) uploadImage(file);
   }
 
-  function handleImagePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === "file" && item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          e.preventDefault();
-          uploadImage(file);
+  useEffect(() => {
+    function handleDocumentPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            uploadImage(file);
+          }
+          break;
         }
-        break;
       }
     }
-  }
+    document.addEventListener("paste", handleDocumentPaste);
+    return () => document.removeEventListener("paste", handleDocumentPaste);
+  }, [imageRecords]);
 
   async function handleImageDelete(supabaseUrl: string) {
     if (!station?.id) return;
@@ -569,7 +573,6 @@ export function StationForm({ station }: { station?: Station }) {
           )}
 
           <div
-            onPaste={handleImagePaste}
             className="mb-4 p-4 rounded-lg border-2 border-dashed transition-colors"
             style={{
               borderColor: "rgba(26,27,82,0.15)",
@@ -577,7 +580,6 @@ export function StationForm({ station }: { station?: Station }) {
               cursor: "pointer",
               outline: "none",
             }}
-            tabIndex={0}
           >
             <p className="text-[12px] text-navy/50 text-center m-0">
               Click or paste an image here
