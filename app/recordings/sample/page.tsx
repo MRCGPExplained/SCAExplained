@@ -104,11 +104,11 @@ export default function SampleReportPage() {
         <div className="flex items-center gap-4 text-[11px] mb-5 px-1 flex-wrap" style={{ color: "rgba(51,51,51,0.4)" }}>
           <span>1 August 2026</span>
           <span>·</span>
-          <span>Doctor: Dr S. Mehta</span>
+          <span>Doctor: Dr S. Whitfield</span>
           <span>·</span>
           <span>Patient: James Morrison</span>
           <span>·</span>
-          <span>Marked by Dr R. Kapoor</span>
+          <span>Marked by Dr P. Hargreaves</span>
         </div>
 
         {/* Top row: score + overall */}
