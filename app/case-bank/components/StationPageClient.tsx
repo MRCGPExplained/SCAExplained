@@ -9,7 +9,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { FeedbackModal } from "./ReportModal";
-import { VideoRequestModal } from "./VideoRequestModal";
 import { toggleStarAction, updateLastStationAction, getRecordingCreditsAction, getRecordingBypassAction } from "../actions";
 
 const NAVY = "#1F2937";
@@ -18,7 +17,7 @@ const LIGHT_BG = "#F3F2FB";
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "video";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "audio";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief", label: "Doctor's Brief" },
@@ -27,7 +26,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "management", label: "Management" },
   { key: "explanation", label: "Example Explanation" },
   { key: "takeaways", label: "Key Takeaways" },
-  { key: "video", label: "Video Lesson" },
+  { key: "audio", label: "Audio Lesson" },
 ];
 
 // ── Content helpers ────────────────────────────────────────────────────────────
@@ -322,13 +321,6 @@ function PatientStoryContent({ station }: { station: Station }) {
   );
 }
 
-function getYouTubeEmbedUrl(url: string): string | null {
-  const watchMatch = url.match(/youtube\.com\/watch\?v=([\w-]+)/);
-  const shortMatch = url.match(/youtu\.be\/([\w-]+)/);
-  const id = watchMatch?.[1] ?? shortMatch?.[1];
-  return id ? `https://www.youtube.com/embed/${id}` : null;
-}
-
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function StationPageClient({
@@ -362,9 +354,9 @@ export function StationPageClient({
     if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
   }, []);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [showVideoRequest, setShowVideoRequest] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
+  const visibleTabs = TABS.filter((t) => t.key !== "audio" || !!station.audio_url);
 
   // Room state (exposed from StudyRoomPanel)
   const [inRoom, setInRoom] = useState(false);
@@ -554,10 +546,6 @@ export function StationPageClient({
     [router]
   );
 
-  const embedUrl = station.editor_video_url
-    ? getYouTubeEmbedUrl(station.editor_video_url)
-    : null;
-
   return (
     <main style={{ fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh" }}>
 
@@ -735,7 +723,7 @@ export function StationPageClient({
       {/* Tab strip */}
       <div style={{ background: "white", borderBottom: "1px solid rgba(31,41,55,0.10)" }}>
         <div className="max-w-[1300px] mx-auto px-6 flex items-end">
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const active = activeTab === tab.key;
             return (
               <button
@@ -777,40 +765,20 @@ export function StationPageClient({
               </p>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} />}
-            {activeTab === "video" && (
-              embedUrl ? (
-                <div className="flex flex-col gap-5">
-                  <div className="relative rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%", height: 0, background: NAVY }}>
-                    <iframe
-                      src={embedUrl}
-                      title="Video Lesson"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  </div>
-                  <p className="text-[16px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
-                    This walkthrough covers the key clinical points for this station — guidelines, red flags, and how to structure your consultation.
+            {activeTab === "audio" && station.audio_url && (
+              <div className="flex flex-col gap-5">
+                <audio
+                  controls
+                  src={station.audio_url}
+                  className="w-full"
+                  style={{ borderRadius: "8px", outline: "none" }}
+                />
+                {station.audio_notes && (
+                  <p className="text-[16px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)", whiteSpace: "pre-line" }}>
+                    {station.audio_notes}
                   </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-start gap-5 py-2">
-                  <p className="text-[16px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
-                    I am always in the process of creating videos to help explain clinical guidelines and situations for topics candidates need additional support with. If you are having a hard time with this station or topic, please use the button below and send me your thoughts on what you would like to know more about. Give as much detail as you can as this will guide me as to what you want to hear about.
-                  </p>
-                  <button
-                    onClick={() => setShowVideoRequest(true)}
-                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[16px] font-semibold"
-                    style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                    </svg>
-                    Request Video Lesson
-                  </button>
-                </div>
-              )
+                )}
+              </div>
             )}
           </div>
 
@@ -929,14 +897,6 @@ export function StationPageClient({
         </div>
       )}
 
-      {showVideoRequest && (
-        <VideoRequestModal
-          stationNumber={station.number}
-          stationTitle={station.title}
-          stationSubject={station.subject}
-          onClose={() => setShowVideoRequest(false)}
-        />
-      )}
     </main>
   );
 }

@@ -55,6 +55,8 @@ function stationFromForm(formData: FormData) {
     key_takeaways: parseLines(String(formData.get("key_takeaways") ?? "")),
     editor_video_url:
       String(formData.get("editor_video_url") ?? "").trim() || null,
+    audio_notes:
+      String(formData.get("audio_notes") ?? "").trim() || null,
     marking_notes_data_gathering:
       String(formData.get("marking_notes_data_gathering") ?? "").trim() || null,
     marking_notes_clinical_management:
@@ -146,6 +148,86 @@ export async function deleteStationAction(id: string): Promise<ActionResult> {
   revalidatePath("/admin/stations");
   revalidatePath("/case-bank");
   return {};
+}
+
+// ── Audio Lesson Management ───────────────────────────────────────────────────
+
+export async function getAudioUploadUrlAction(
+  stationId: string,
+  filename: string
+): Promise<{ signedUrl: string; path: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "mp3";
+  const path = `${stationId}/lesson.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from("audio-lessons")
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { error: error?.message ?? "Failed to create upload URL." };
+  return { signedUrl: data.signedUrl, path: data.path };
+}
+
+export async function confirmAudioUploadAction(
+  stationId: string,
+  path: string
+): Promise<{ audioUrl: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("audio-lessons")
+    .getPublicUrl(path);
+
+  const { data: station, error: fetchErr } = await supabase
+    .from("stations")
+    .select("number")
+    .eq("id", stationId)
+    .single<{ number: number }>();
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ audio_url: publicUrl })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/case-bank/${station.number}`);
+  return { audioUrl: publicUrl };
+}
+
+export async function deleteAudioAction(stationId: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: station } = await supabase
+    .from("stations")
+    .select("audio_url, number")
+    .eq("id", stationId)
+    .single<{ audio_url: string | null; number: number }>();
+
+  if (station?.audio_url) {
+    const marker = "/object/public/audio-lessons/";
+    const idx = station.audio_url.indexOf(marker);
+    if (idx !== -1) {
+      const storagePath = station.audio_url.slice(idx + marker.length);
+      await supabase.storage.from("audio-lessons").remove([storagePath]);
+    }
+  }
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ audio_url: null })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  if (station?.number) revalidatePath(`/case-bank/${station.number}`);
+  return { success: true };
 }
 
 // ── Video Course Management ────────────────────────────────────────────────────

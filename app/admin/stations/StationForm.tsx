@@ -1,9 +1,15 @@
 ﻿"use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
 import type { Station } from "@/lib/case-bank-types";
-import { createStationAction, updateStationAction } from "../actions";
+import {
+  createStationAction,
+  updateStationAction,
+  getAudioUploadUrlAction,
+  confirmAudioUploadAction,
+  deleteAudioAction,
+} from "../actions";
 
 const SUBJECTS = [
   "Cardiovascular",
@@ -113,6 +119,42 @@ function ArrayField({
 export function StationForm({ station }: { station?: Station }) {
   const action = station ? updateStationAction : createStationAction;
   const [state, formAction, pending] = useActionState(action, {} as { error?: string });
+
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(station?.audio_url ?? null);
+  const [audioUploading, setAudioUploading] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const audioFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !station?.id) return;
+    setAudioUploading(true);
+    setAudioError(null);
+    try {
+      const urlResult = await getAudioUploadUrlAction(station.id, file.name);
+      if ("error" in urlResult) { setAudioError(urlResult.error); return; }
+      const uploadRes = await fetch(urlResult.signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "audio/mpeg" },
+      });
+      if (!uploadRes.ok) { setAudioError("Upload failed — try again."); return; }
+      const confirmResult = await confirmAudioUploadAction(station.id, urlResult.path);
+      if ("error" in confirmResult) { setAudioError(confirmResult.error); return; }
+      setCurrentAudioUrl(confirmResult.audioUrl);
+    } finally {
+      setAudioUploading(false);
+      if (audioFileRef.current) audioFileRef.current.value = "";
+    }
+  }
+
+  async function handleAudioDelete() {
+    if (!station?.id) return;
+    setAudioUploading(true);
+    const result = await deleteAudioAction(station.id);
+    if (result.error) { setAudioError(result.error); } else { setCurrentAudioUrl(null); }
+    setAudioUploading(false);
+  }
 
   return (
     <form action={formAction}>
@@ -327,6 +369,80 @@ export function StationForm({ station }: { station?: Station }) {
           />
         </div>
       </section>
+
+      {/* ── Audio Lesson ── */}
+      {station && (
+        <section className="bg-white rounded-xl border border-navy/10 p-6 mb-4">
+          <h2 className="font-display font-bold text-[15px] text-navy mb-4">Audio Lesson</h2>
+
+          {audioError && (
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+              {audioError}
+            </div>
+          )}
+
+          {currentAudioUrl ? (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+              <span className="text-[13px] text-navy/70 flex-1 truncate">
+                {currentAudioUrl.split("/").pop()}
+              </span>
+              <a
+                href={currentAudioUrl}
+                download
+                className="text-[12px] font-medium no-underline text-navy/50 hover:text-navy transition"
+              >
+                Download
+              </a>
+              <button
+                type="button"
+                onClick={handleAudioDelete}
+                disabled={audioUploading}
+                className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
+                style={{ background: "none", border: "none", cursor: audioUploading ? "not-allowed" : "pointer" }}
+              >
+                Delete
+              </button>
+            </div>
+          ) : (
+            <p className="text-[12px] text-navy/40 mb-4">No audio uploaded yet.</p>
+          )}
+
+          <div className="flex items-center gap-3 mb-5">
+            <input
+              type="file"
+              accept="audio/*"
+              ref={audioFileRef}
+              style={{ display: "none" }}
+              onChange={handleAudioUpload}
+            />
+            <button
+              type="button"
+              onClick={() => audioFileRef.current?.click()}
+              disabled={audioUploading}
+              className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-opacity"
+              style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: audioUploading ? "not-allowed" : "pointer", opacity: audioUploading ? 0.6 : 1 }}
+            >
+              {audioUploading ? "Uploading…" : currentAudioUrl ? "Replace audio" : "Upload audio"}
+            </button>
+            {audioUploading && (
+              <span className="text-[12px] text-navy/40">Uploading directly to storage…</span>
+            )}
+          </div>
+
+          <TextareaField
+            label="Audio Notes (optional)"
+            name="audio_notes"
+            defaultValue={station?.audio_notes ?? ""}
+            rows={4}
+            hint="Text shown below the audio player. Pipe-delimited rows (A | B | C) render as tables, same as Recent Notes."
+          />
+        </section>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-4">
