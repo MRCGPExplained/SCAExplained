@@ -33,6 +33,17 @@ function CaseBankIcon() {
   );
 }
 
+function MicIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="8" y="2" width="8" height="13" rx="4" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M5 11a7 7 0 0 0 14 0" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="12" y1="18" x2="12" y2="22" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="9" y1="22" x2="15" y2="22" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function LiveIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -165,6 +176,54 @@ export default async function HomePage() {
               style={{ background: DARK, color: "white" }}
             >
               {user ? "Open Case Bank →" : "Get Access Now →"}
+            </Link>
+          </div>
+
+          {/* EXAMINER MARKING */}
+          <div
+            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            style={{ border: "1px solid rgba(51,51,51,0.10)" }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <MicIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Examiner Marking</p>
+            </div>
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              Real Feedback From a Qualified GP Examiner
+            </h2>
+            <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
+              Record a consultation with a partner and get it marked the same way RCGP examiners
+              mark in the real exam — graded across Data Gathering, Clinical Management, and Relating
+              to Others, with written feedback and voice notes from a qualified GP. Read back
+              the full transcript, listen to the recording, and track your performance across
+              every station you attempt.
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-6">
+              {(
+                [
+                  { label: "3 consultations", price: "£30" },
+                  { label: "10 consultations", price: "£60" },
+                  { label: "Unlimited",        price: "£250" },
+                ] as const
+              ).map(({ label, price }) => (
+                <div
+                  key={label}
+                  className="rounded-lg px-3 py-1.5 text-[13px]"
+                  style={{ background: "rgba(51,51,51,0.05)", color: DARK, border: "1px solid rgba(51,51,51,0.08)" }}
+                >
+                  <span className="font-bold">{price}</span>
+                  <span style={{ color: "rgba(51,51,51,0.5)" }}> · {label}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href={user ? "/recordings" : "/register"}
+              className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+              style={{ background: DARK, color: "white" }}
+            >
+              {user ? "View My Recordings →" : "Get Started →"}
             </Link>
           </div>
 
