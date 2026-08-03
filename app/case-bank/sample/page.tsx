@@ -294,7 +294,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
 
         <div className="flex items-center gap-2 flex-wrap">
           <NavBtn
-            message="Recording credits start from £10 for 3 consultations. Create a free account to get started."
+            message="Recording credits start from £24 for 3 consultations. Create a free account to get started."
             icon={
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="2" width="6" height="11" rx="3"/>
@@ -306,7 +306,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
           >Record</NavBtn>
 
           <NavBtn
-            message="Create a free account to access study rooms and practise cases with a partner."
+            message="Create a free account to access study rooms and sync your case with a partner to record together."
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
