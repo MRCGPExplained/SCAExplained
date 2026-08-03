@@ -52,7 +52,7 @@ function BulletList({ items }: { items: string[] }) {
             className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
             style={{ background: "rgba(31,41,55,0.25)" }}
           />
-          <span className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          <span className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {item}
           </span>
         </li>
@@ -96,14 +96,14 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.recent_notes && (
         <div>
           <Label>Recent Notes</Label>
-          <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {station.recent_notes}
           </p>
         </div>
       )}
       <div>
         <Label>Reason for Consultation</Label>
-        <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.reason_for_consultation}
         </p>
       </div>
@@ -119,7 +119,7 @@ function PatientStoryContent({ station }: { station: Station }) {
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
           Opening Statement
         </div>
-        <p className="text-[15px] leading-[1.65] italic" style={{ color: NAVY }}>
+        <p className="text-[16px] leading-[1.65] italic" style={{ color: NAVY }}>
           &ldquo;{station.opening_statement}&rdquo;
         </p>
       </div>
@@ -127,7 +127,7 @@ function PatientStoryContent({ station }: { station: Station }) {
       {/* If asked further */}
       <div>
         <Label>If Asked to Explain Further</Label>
-        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.if_asked_further}
         </p>
       </div>
@@ -166,7 +166,7 @@ function PatientStoryContent({ station }: { station: Station }) {
       {/* Social history */}
       <div>
         <Label>Social History</Label>
-        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.social_history}
         </p>
       </div>
@@ -696,7 +696,7 @@ export function StationPageClient({
             {activeTab === "data" && <BulletList items={station.data_gathering} />}
             {activeTab === "management" && <BulletList items={station.management} />}
             {activeTab === "explanation" && (
-              <p className="text-[15px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
+              <p className="text-[16px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
                 {station.example_explanation}
               </p>
             )}
@@ -714,7 +714,7 @@ export function StationPageClient({
                       className="absolute inset-0 w-full h-full"
                     />
                   </div>
-                  <p className="text-[15px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
+                  <p className="text-[16px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
                     This walkthrough covers the key clinical points for this station — guidelines, red flags, and how to structure your consultation.
                   </p>
                 </div>
@@ -834,7 +834,7 @@ export function StationPageClient({
                     style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)", cursor: "pointer" }}
                   >
                     <div>
-                      <div className="font-bold text-[15px]" style={{ color: "#1A1B52" }}>{credits}</div>
+                      <div className="font-bold text-[16px]" style={{ color: "#1A1B52" }}>{credits}</div>
                       <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.45)" }}>{sub}</div>
                     </div>
                     <div className="font-bold text-[18px]" style={{ color: "#1A1B52" }}>{price}</div>
