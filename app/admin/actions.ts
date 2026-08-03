@@ -19,6 +19,12 @@ function parseLines(raw: string): string[] {
 }
 
 function stationFromForm(formData: FormData) {
+  const imageUrlsRaw = String(formData.get("image_urls_manual") ?? "").trim();
+  const imageUrls = imageUrlsRaw
+    .split("\n")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
   return {
     number: parseInt(String(formData.get("number") ?? "0"), 10),
     title: String(formData.get("title") ?? "").trim(),
@@ -57,6 +63,7 @@ function stationFromForm(formData: FormData) {
       String(formData.get("editor_video_url") ?? "").trim() || null,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,
+    image_urls: imageUrls.length > 0 ? imageUrls : null,
     marking_notes_data_gathering:
       String(formData.get("marking_notes_data_gathering") ?? "").trim() || null,
     marking_notes_clinical_management:

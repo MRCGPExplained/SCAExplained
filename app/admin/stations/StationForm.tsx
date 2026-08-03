@@ -298,12 +298,6 @@ export function StationForm({ station }: { station?: Station }) {
             </select>
           </div>
         </div>
-        <Field
-          label="Editor Video URL (optional)"
-          name="editor_video_url"
-          defaultValue={station?.editor_video_url ?? ""}
-          hint="YouTube unlisted URL. Leave blank to hide the 'Message from Me' section."
-        />
       </section>
 
       {/* ── Doctor's Brief ── */}
@@ -590,6 +584,22 @@ export function StationForm({ station }: { station?: Station }) {
           <p className="text-[11px] text-navy/40 m-0">
             You can drag files here, paste from clipboard (Ctrl+V), or click Browse. Uploaded directly to storage.
           </p>
+
+          <div className="mt-5 pt-5" style={{ borderTop: "1px solid rgba(26,27,82,0.10)" }}>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
+              Manual Image URLs (for record keeping)
+            </label>
+            <p className="text-[11px] text-navy/40 mb-3">
+              One URL per line. Useful for referencing external images or sources.
+            </p>
+            <textarea
+              name="image_urls_manual"
+              defaultValue={(station?.image_urls ?? []).join("\n")}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition resize-y"
+              placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
+            />
+          </div>
         </section>
       )}
 
