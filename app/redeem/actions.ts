@@ -117,13 +117,15 @@ async function redeemForUser(
 
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, use_count, expires_at")
+    .select("id, active, use_count, expires_at, recording_credits")
     .eq("code", code)
-    .single<{ id: string; active: boolean; use_count: number; expires_at: string | null }>();
+    .single<{ id: string; active: boolean; use_count: number; expires_at: string | null; recording_credits: number }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
   if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
+
+  const credits = codeRow.recording_credits ?? 3;
 
   const { data: existing } = await admin
     .from("recording_credits")
@@ -134,8 +136,8 @@ async function redeemForUser(
   const { error: upsertErr } = await admin.from("recording_credits").upsert(
     {
       user_id: userId,
-      balance: (existing?.balance ?? 0) + 3,
-      total_purchased: (existing?.total_purchased ?? 0) + 3,
+      balance: (existing?.balance ?? 0) + credits,
+      total_purchased: (existing?.total_purchased ?? 0) + credits,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }

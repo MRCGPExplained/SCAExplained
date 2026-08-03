@@ -9,7 +9,7 @@ export default async function WebinarCodesPage() {
   const { data } = supabase
     ? await supabase
         .from("webinar_codes")
-        .select("id, code, label, active, access_days, use_count, expires_at, created_at")
+        .select("id, code, label, active, recording_credits, use_count, expires_at, created_at")
         .order("created_at", { ascending: false })
     : { data: [] };
 
@@ -18,7 +18,7 @@ export default async function WebinarCodesPage() {
       <div className="mb-8">
         <h1 className="font-display font-extrabold text-[26px] text-navy">Webinar Codes</h1>
         <p className="text-[13px] text-navy/50 mt-0.5">
-          Share one code per webinar at the end of the session. Attendees redeem it at scaexplained.com/redeem for free Case Bank access.
+          Share one code per webinar. Attendees redeem it at scaexplained.com/redeem for free recording credits.
         </p>
       </div>
       <WebinarCodesClient codes={(data ?? []) as WebinarCode[]} />

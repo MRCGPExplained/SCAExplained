@@ -8,7 +8,7 @@ export type WebinarCode = {
   code: string;
   label: string;
   active: boolean;
-  access_days: number;
+  recording_credits: number;
   use_count: number;
   expires_at: string | null;
   created_at: string;
@@ -47,7 +47,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
               <tr className="border-b border-navy/10 bg-navy/[0.03]">
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Code</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Label</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Access</th>
+                <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Credits</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Expires</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Uses</th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-[0.06em] text-navy/50">Status</th>
@@ -61,7 +61,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                     <span className="font-mono font-bold text-[14px] text-navy tracking-widest">{c.code}</span>
                   </td>
                   <td className="px-5 py-3 text-navy/70">{c.label}</td>
-                  <td className="px-5 py-3 text-navy/60">{c.access_days} days</td>
+                  <td className="px-5 py-3 text-navy/60">{c.recording_credits ?? 3} credits</td>
                   <td className="px-5 py-3 text-navy/60 text-[12px]">
                     {c.expires_at
                       ? (() => {
@@ -111,8 +111,8 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
               <input name="label" type="text" required placeholder="e.g. July 2026 Webinar" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Access Days</label>
-              <input name="access_days" type="number" defaultValue="90" min="1" max="365" className="field" />
+              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Recording Credits</label>
+              <input name="recording_credits" type="number" defaultValue="3" min="1" max="50" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Expiry Date <span className="font-normal normal-case">(optional — leave blank for no expiry)</span></label>
