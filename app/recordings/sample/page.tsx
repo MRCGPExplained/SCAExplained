@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AudioPlaceholder } from "./AudioPlaceholder";
 
 const NAVY = "#333333";
 const YELLOW = "#F6D44B";
@@ -168,6 +169,10 @@ export default function SampleReportPage() {
               specificity around immediate actions. Addressing the patient's ICE more fully would have transformed
               the Relating to Others score.
             </p>
+            <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+              <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>Voice note</div>
+              <AudioPlaceholder />
+            </div>
           </div>
         </div>
 
@@ -223,7 +228,13 @@ export default function SampleReportPage() {
           </summary>
 
           <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
-            <div className="px-5 pt-5 pb-5 flex flex-col gap-2.5">
+            <div className="px-5 pt-5 pb-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Consultation Audio
+              </div>
+              <AudioPlaceholder />
+            </div>
+            <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
               <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Transcript
               </div>
