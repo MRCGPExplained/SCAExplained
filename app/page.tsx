@@ -8,13 +8,6 @@ export const dynamic = "force-dynamic";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
-  }).format(new Date(iso));
-}
-
 function WebinarIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -44,13 +37,6 @@ function MicIcon() {
   );
 }
 
-function LiveIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M2 3.5A1.5 1.5 0 013.5 2h13A1.5 1.5 0 0118 3.5v9A1.5 1.5 0 0116.5 14H7l-5 4V3.5z" stroke={DARK} strokeWidth="1.5" strokeLinejoin="round"/>
-    </svg>
-  );
-}
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
@@ -78,7 +64,6 @@ export default async function HomePage() {
 
   const sessions = ((sessionsResult.data ?? []) as { id: string; scheduled_at: string; zoom_url: string; is_free: boolean }[]);
   const freeWebinars = sessions.filter((s) => s.is_free);
-  const paidSessions = sessions.filter((s) => !s.is_free);
   const stationTitles = ((stationsResult.data ?? []) as { title: string }[]).map((s) => s.title);
 
   return (
@@ -131,7 +116,9 @@ export default async function HomePage() {
               <div className="flex flex-col gap-3">
                 {freeWebinars.map((s) => (
                   <div key={s.id} className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
-                    <p className="font-semibold text-[15px]" style={{ color: DARK }}>{formatDate(s.scheduled_at)}</p>
+                    <p className="font-semibold text-[15px]" style={{ color: DARK }}>
+                      {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
+                    </p>
                     <a
                       href={s.zoom_url}
                       target="_blank"
@@ -225,59 +212,6 @@ export default async function HomePage() {
             >
               {user ? "View My Recordings →" : "Get Started →"}
             </Link>
-          </div>
-
-          {/* LIVE PRACTICE SESSIONS */}
-          <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-            style={{ border: "1px solid rgba(51,51,51,0.10)" }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <LiveIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Live Practice</p>
-            </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              Monthly Live Practice Sessions
-            </h2>
-            <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Small-group live sessions every month. Work through 6
-              exam-style cases with direct feedback — practice under realistic conditions and
-              leave knowing exactly where your marks are going.
-            </p>
-
-            {paidSessions.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {paidSessions.map((s) => {
-                  const date = new Date(s.scheduled_at);
-                  const formatted = date.toLocaleDateString("en-GB", {
-                    weekday: "long", day: "numeric", month: "long", year: "numeric",
-                    timeZone: "Europe/London",
-                  });
-                  const time = date.toLocaleTimeString("en-GB", {
-                    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
-                  });
-                  return (
-                    <div key={s.id} className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
-                      <div>
-                        <p className="font-semibold text-[15px]" style={{ color: DARK }}>{formatted}</p>
-                        <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{time} GMT · £40 · 6 cases</p>
-                      </div>
-                      <a
-                        href="mailto:mrcgpexplained@outlook.com"
-                        className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-lg no-underline transition-opacity hover:opacity-90"
-                        style={{ background: YELLOW, color: DARK }}
-                      >
-                        Book via email
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-[14px] font-semibold" style={{ color: "rgba(51,51,51,0.45)" }}>
-                Next date coming soon — check back shortly.
-              </p>
-            )}
           </div>
 
         </div>

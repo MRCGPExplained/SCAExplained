@@ -841,7 +841,6 @@ export function StationPageClient({
                   </button>
                 </form>
               ))}
-              <p className="text-[11px]" style={{ color: "rgba(26,27,82,0.35)" }}>* Fair use cap of 300 consultations applies</p>
             </div>
             <button
               onClick={() => setShowBuyModal(false)}
