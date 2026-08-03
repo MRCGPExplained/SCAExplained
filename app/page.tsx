@@ -221,15 +221,24 @@ export default async function HomePage() {
               ))}
             </div>
 
-            {user && (
+            <div className="flex items-center gap-3 flex-wrap">
               <Link
-                href="/recordings"
-                className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                style={{ background: DARK, color: "white" }}
+                href="/recordings/sample"
+                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-85"
+                style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
               >
-                View My Recordings →
+                Show Sample →
               </Link>
-            )}
+              {user && (
+                <Link
+                  href="/recordings"
+                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                  style={{ background: DARK, color: "white" }}
+                >
+                  View My Recordings →
+                </Link>
+              )}
+            </div>
           </div>
 
         </div>
