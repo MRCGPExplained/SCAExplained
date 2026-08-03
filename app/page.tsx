@@ -216,9 +216,9 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-2 mb-6">
               {(
                 [
-                  { tier: "Entry",     label: "3 recordings",  price: "£30"  },
-                  { tier: "Standard",  label: "15 recordings", price: "£120" },
-                  { tier: "Intensive", label: "50 recordings", price: "£349" },
+                  { tier: "Entry",     label: "3 recordings",  price: "£24"  },
+                  { tier: "Standard",  label: "15 recordings", price: "£99"  },
+                  { tier: "Intensive", label: "50 recordings", price: "£279" },
                 ] as const
               ).map(({ tier, label, price }) => (
                 <div

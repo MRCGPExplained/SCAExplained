@@ -821,9 +821,9 @@ export function StationPageClient({
             <div className="flex flex-col gap-2 mb-6">
               {(
                 [
-                  { tier: "entry",     credits: "3 credits",        price: "£30",  sub: "£10 per consultation" },
-                  { tier: "standard",  credits: "15 credits",       price: "£120", sub: "£8 per consultation" },
-                  { tier: "intensive", credits: "50 credits",       price: "£349", sub: "£7 per consultation" },
+                  { tier: "entry",     credits: "3 credits",        price: "£24",  sub: "£8 per consultation" },
+                  { tier: "standard",  credits: "15 credits",       price: "£99",  sub: "£6.60 per consultation" },
+                  { tier: "intensive", credits: "50 credits",       price: "£279", sub: "£5.58 per consultation" },
                 ] as const
               ).map(({ tier, credits, price, sub }) => (
                 <form key={tier} action="/api/recordings/checkout" method="POST">
