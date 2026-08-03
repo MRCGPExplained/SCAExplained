@@ -159,6 +159,33 @@ export async function deleteStationAction(id: string): Promise<ActionResult> {
 
 // ── Image Management ──────────────────────────────────────────────────────────
 
+export async function uploadImageAction(
+  stationId: string,
+  filename: string,
+  fileBuffer: ArrayBuffer
+): Promise<{ imageUrl: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+  const timestamp = Date.now();
+  const path = `${stationId}/${timestamp}.${ext}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from("station-images")
+    .upload(path, Buffer.from(fileBuffer), {
+      contentType: `image/${ext === "jpg" ? "jpeg" : ext === "png" ? "png" : "webp"}`,
+    });
+
+  if (uploadErr) return { error: uploadErr.message };
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("station-images")
+    .getPublicUrl(path);
+
+  return { imageUrl: publicUrl };
+}
+
 export async function deleteImageAction(
   stationId: string,
   imageUrl: string

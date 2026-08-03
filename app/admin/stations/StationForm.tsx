@@ -3,13 +3,13 @@
 import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
 import type { Station } from "@/lib/case-bank-types";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import {
   createStationAction,
   updateStationAction,
   getAudioUploadUrlAction,
   confirmAudioUploadAction,
   deleteAudioAction,
+  uploadImageAction,
   deleteImageAction,
 } from "../actions";
 
@@ -169,22 +169,10 @@ export function StationForm({ station }: { station?: Station }) {
     setImageUploading(true);
     setImageError(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const timestamp = Date.now();
-      const path = `${station.id}/${timestamp}.${ext}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from("station-images")
-        .upload(path, file);
-
-      if (uploadErr) { setImageError(uploadErr.message); return; }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("station-images")
-        .getPublicUrl(path);
-
-      setImageUrls([...imageUrls, publicUrl]);
+      const buffer = await file.arrayBuffer();
+      const result = await uploadImageAction(station.id, file.name, buffer);
+      if ("error" in result) { setImageError(result.error); return; }
+      setImageUrls([...imageUrls, result.imageUrl]);
     } catch (err) {
       setImageError(`Error: ${err instanceof Error ? err.message : "unknown error"}`);
     } finally {
