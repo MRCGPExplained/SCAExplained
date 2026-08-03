@@ -67,16 +67,16 @@ function DoctorBriefContent({ station }: { station: Station }) {
       <div className="grid grid-cols-2 gap-2.5">
         <div>
           <Label>Patient</Label>
-          <div className="text-[14px] font-bold" style={{ color: NAVY }}>
+          <div className="text-[16px] font-bold" style={{ color: NAVY }}>
             {station.patient_name}
           </div>
-          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.65)" }}>
+          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.65)" }}>
             {station.patient_age}
           </div>
         </div>
         <div>
           <Label>Type</Label>
-          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.75)" }}>
+          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.75)" }}>
             {station.consultation_type}
           </div>
         </div>
@@ -154,7 +154,7 @@ function PatientStoryContent({ station }: { station: Station }) {
                   className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40"
                   style={{ background: NAVY }}
                 />
-                <span className="text-[14px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>
+                <span className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>
                   {item}
                 </span>
               </li>
@@ -182,7 +182,7 @@ function PatientStoryContent({ station }: { station: Station }) {
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
               {label}
             </div>
-            <p className="text-[13px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>
+            <p className="text-[16px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>
               {value}
             </p>
           </div>
@@ -202,7 +202,7 @@ function PatientStoryContent({ station }: { station: Station }) {
                 >
                   {i + 1}.
                 </span>
-                <span className="text-[14px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+                <span className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
                   {s}
                 </span>
               </li>
@@ -217,7 +217,7 @@ function PatientStoryContent({ station }: { station: Station }) {
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
             Question for the Doctor
           </div>
-          <p className="text-[14px] leading-[1.6]" style={{ color: NAVY }}>
+          <p className="text-[16px] leading-[1.6]" style={{ color: NAVY }}>
             {station.question_for_doctor}
           </p>
         </div>
@@ -229,7 +229,7 @@ function PatientStoryContent({ station }: { station: Station }) {
           className="pt-3 border-t"
           style={{ borderColor: "rgba(26,27,82,0.08)" }}
         >
-          <p className="text-[13px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
+          <p className="text-[16px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
             {station.role_player_instruction}
           </p>
         </div>
@@ -720,12 +720,12 @@ export function StationPageClient({
                 </div>
               ) : (
                 <div className="flex flex-col items-start gap-5 py-2">
-                  <p className="text-[14px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
+                  <p className="text-[16px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)" }}>
                     I am always in the process of creating videos to help explain clinical guidelines and situations for topics candidates need additional support with. If you are having a hard time with this station or topic, please use the button below and send me your thoughts on what you would like to know more about. Give as much detail as you can as this will guide me as to what you want to hear about.
                   </p>
                   <button
                     onClick={() => setShowVideoRequest(true)}
-                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-semibold"
+                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-[16px] font-semibold"
                     style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -815,7 +815,7 @@ export function StationPageClient({
                 No recording credits
               </h2>
             </div>
-            <p className="text-[13px] leading-relaxed mb-6" style={{ color: "rgba(26,27,82,0.55)" }}>
+            <p className="text-[16px] leading-relaxed mb-6" style={{ color: "rgba(26,27,82,0.55)" }}>
               Each recorded consultation uses 1 credit. Credits are reviewed by a GP examiner who grades your performance across all three marking domains.
             </p>
             <div className="flex flex-col gap-2 mb-6">
@@ -844,7 +844,7 @@ export function StationPageClient({
             </div>
             <button
               onClick={() => setShowBuyModal(false)}
-              className="w-full rounded-xl py-2.5 text-[13px] font-semibold"
+              className="w-full rounded-xl py-2.5 text-[16px] font-semibold"
               style={{ background: "none", border: "1.5px solid rgba(26,27,82,0.12)", color: "rgba(26,27,82,0.5)", cursor: "pointer" }}
             >
               Cancel
