@@ -173,7 +173,7 @@ export async function uploadImageAction(
 
   const { error: uploadErr } = await supabase.storage
     .from("station-images")
-    .upload(path, Buffer.from(fileBuffer), {
+    .upload(path, new Uint8Array(fileBuffer), {
       contentType: `image/${ext === "jpg" ? "jpeg" : ext === "png" ? "png" : "webp"}`,
     });
 
