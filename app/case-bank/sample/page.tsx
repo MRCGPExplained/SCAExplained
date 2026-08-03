@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { Timer } from "../components/Timer";
+import type { TimerPhase } from "@/lib/case-bank-types";
+import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -187,68 +190,23 @@ function StoryTab() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-// Pre-read 2 min, then consultation 10 min
-const PHASES: { label: string; secs: number }[] = [
-  { label: "Pre-Read", secs: 120 },
-  { label: "Consultation", secs: 600 },
-];
-
 export default function SampleCasePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
   const [modal, setModal] = useState<string | null>(null);
 
-  const [phaseIdx, setPhaseIdx] = useState(0);
-  const [remaining, setRemaining] = useState(PHASES[0].secs);
-  const [running, setRunning] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
+  const [timeLeft, setTimeLeft] = useState(PHASE_DURATIONS.PREREAD);
+  const [timerRunning, setTimerRunning] = useState(false);
 
-  useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setRemaining((r) => {
-          if (r <= 1) {
-            const next = phaseIdx + 1;
-            if (next < PHASES.length) {
-              setPhaseIdx(next);
-              setRemaining(PHASES[next].secs);
-            } else {
-              setRunning(false);
-              clearInterval(intervalRef.current!);
-              return 0;
-            }
-            return PHASES[next]?.secs ?? 0;
-          }
-          return r - 1;
-        });
-      }, 1000);
+  const handleTick = useCallback((t: number) => setTimeLeft(t), []);
+  const handlePhaseComplete = useCallback(() => {
+    if (timerPhase === "PREREAD") {
+      setTimerPhase("CONSULT");
+      setTimeLeft(PHASE_DURATIONS.CONSULT);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      setTimerRunning(false);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running, phaseIdx]);
-
-  const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
-  const secs = String(remaining % 60).padStart(2, "0");
-
-  function handleStart() {
-    if (remaining === 0) {
-      setPhaseIdx(0);
-      setRemaining(PHASES[0].secs);
-    }
-    setRunning(true);
-  }
-
-  function handleSkip() {
-    const next = phaseIdx + 1;
-    if (next < PHASES.length) {
-      setPhaseIdx(next);
-      setRemaining(PHASES[next].secs);
-      setRunning(true);
-    } else {
-      setRunning(false);
-      setRemaining(0);
-    }
-  }
+  }, [timerPhase]);
 
   const dataGathering = [
     "Onset, character, severity and radiation of the chest pain. Specifically ask about left arm, jaw and back.",
@@ -405,62 +363,28 @@ I can see this is worrying, especially given what happened with your dad. It's a
             {activeTab === "takeaways"   && <BulletList items={takeaways} />}
           </div>
 
-          {/* Right column: live timer */}
+          {/* Right column: timer (same as real case bank) */}
           <div className="sticky top-4">
-            <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: "white", border: "1px solid rgba(31,41,55,0.10)" }}>
-              <div className="text-center">
-                <div className="text-[10px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "rgba(31,41,55,0.4)" }}>
-                  {PHASES[phaseIdx].label}
-                </div>
-                <div
-                  className="font-mono font-bold text-[38px] leading-none tabular-nums"
-                  style={{ color: remaining <= 30 && running ? "#DC2626" : NAVY }}
-                >
-                  {mins}:{secs}
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {!running ? (
-                  <button
-                    onClick={handleStart}
-                    className="flex-1 rounded-lg py-2 text-[12px] font-bold"
-                    style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
-                  >
-                    {remaining === PHASES[phaseIdx].secs ? "Start" : "Resume"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setRunning(false)}
-                    className="flex-1 rounded-lg py-2 text-[12px] font-bold"
-                    style={{ background: "rgba(31,41,55,0.08)", border: "none", color: NAVY, cursor: "pointer" }}
-                  >
-                    Pause
-                  </button>
-                )}
-                {phaseIdx < PHASES.length - 1 && (
-                  <button
-                    onClick={handleSkip}
-                    className="rounded-lg py-2 px-3 text-[12px] font-semibold"
-                    style={{ background: "rgba(31,41,55,0.06)", border: "1px solid rgba(31,41,55,0.10)", color: "rgba(31,41,55,0.55)", cursor: "pointer" }}
-                  >
-                    Skip
-                  </button>
-                )}
-              </div>
-
-              {PHASES.length > 1 && (
-                <div className="flex gap-1.5">
-                  {PHASES.map((p, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 h-1 rounded-full"
-                      style={{ background: i < phaseIdx ? YELLOW : i === phaseIdx ? NAVY : "rgba(31,41,55,0.12)" }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <Timer
+              phase={timerPhase}
+              timeLeft={timeLeft}
+              running={timerRunning}
+              isHost={true}
+              onStart={() => setTimerRunning(true)}
+              onPause={() => setTimerRunning(false)}
+              onSkipPreread={() => {
+                setTimerPhase("CONSULT");
+                setTimeLeft(PHASE_DURATIONS.CONSULT);
+                setTimerRunning(true);
+              }}
+              onReset={() => {
+                setTimerPhase("PREREAD");
+                setTimeLeft(PHASE_DURATIONS.PREREAD);
+                setTimerRunning(false);
+              }}
+              onTick={handleTick}
+              onPhaseComplete={handlePhaseComplete}
+            />
           </div>
 
         </div>
