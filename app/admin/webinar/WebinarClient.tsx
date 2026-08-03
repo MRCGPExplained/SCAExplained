@@ -20,15 +20,15 @@ export function WebinarClient({ sessions, codes }: { sessions: Session[]; codes:
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-1 mb-8 p-1 rounded-xl w-fit" style={{ background: "rgba(51,51,51,0.07)" }}>
+      <div className="flex gap-1 mb-8 bg-white rounded-xl border border-navy/10 p-1.5" style={{ width: "fit-content" }}>
         {(["dates", "codes"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-5 py-2 rounded-lg text-[13px] font-semibold transition-all"
+            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold transition"
             style={{
               background: tab === t ? NAVY : "transparent",
-              color: tab === t ? YELLOW : "rgba(51,51,51,0.5)",
+              color: tab === t ? "white" : "rgba(51,51,51,0.45)",
               border: "none",
               cursor: "pointer",
               fontFamily: "inherit",
