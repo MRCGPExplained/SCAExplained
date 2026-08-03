@@ -7,7 +7,7 @@ async function sha256hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/register", "/case-bank/purchase"];
+const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/register", "/case-bank/purchase", "/case-bank/sample"];
 const VIDEO_COURSE_PUBLIC = ["/video-course/purchase"];
 const BUNDLE_PUBLIC = ["/bundle/purchase"];
 

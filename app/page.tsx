@@ -173,13 +173,24 @@ export default async function HomePage() {
             </p>
 
 
-            <Link
-              href={user ? "/case-bank" : "/register"}
-              className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: DARK, color: "white" }}
-            >
-              {user ? "Open Case Bank →" : "Get Access Now →"}
-            </Link>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Link
+                href="/case-bank/sample"
+                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                style={{ background: DARK, color: "white" }}
+              >
+                Show Sample Cases →
+              </Link>
+              {user && (
+                <Link
+                  href="/case-bank"
+                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                  style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
+                >
+                  Open Case Bank →
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* EXAMINER MARKING */}
@@ -227,7 +238,7 @@ export default async function HomePage() {
                 className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
                 style={{ background: DARK, color: "white" }}
               >
-                Show Sample →
+                Show Sample Report →
               </Link>
               {user && (
                 <Link
