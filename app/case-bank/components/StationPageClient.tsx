@@ -575,59 +575,82 @@ export function StationPageClient({
             ← Case Bank
           </Link>
           <span style={{ color: "rgba(255,255,255,0.2)" }}>|</span>
-          {inRoom && !iAmHost ? (
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>
-              Station {station.number} / {totalStations}
-            </span>
-          ) : jumpOpen ? (
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={jumpValue}
-                onChange={(e) => setJumpValue(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleStationJump();
-                  if (e.key === "Escape") { setJumpOpen(false); setJumpValue(""); }
-                }}
-                autoFocus
-                placeholder={String(station.number)}
-                className="rounded-md px-2 py-1 text-[12px] text-center w-[52px]"
-                style={{
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  color: "white",
-                  outline: "none",
-                  fontFamily: "inherit",
-                }}
-              />
-              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.45)" }}>
-                / {totalStations}
-              </span>
+          <div className="flex items-center gap-1">
+            {(!inRoom || iAmHost) && prevStationNumber && (
               <button
-                onClick={() => { setJumpOpen(false); setJumpValue(""); }}
-                className="text-[12px]"
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}
+                onClick={() => router.push(`/case-bank/${prevStationNumber}`)}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", cursor: "pointer", padding: "2px 6px", fontSize: "14px", lineHeight: 1 }}
               >
-                ✕
+                ←
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setJumpOpen(true)}
-              className="text-[12px] font-semibold rounded-md"
-              style={{
-                background: "none",
-                border: "1.5px solid rgba(255,255,255,0.25)",
-                color: "rgba(255,255,255,0.65)",
-                cursor: "pointer",
-                padding: "3px 10px",
-              }}
-            >
-              Station {station.number} / {totalStations}
-            </button>
-          )}
+            )}
+            {inRoom && !iAmHost ? (
+              <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>
+                Station {station.number} / {totalStations}
+              </span>
+            ) : jumpOpen ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={jumpValue}
+                  onChange={(e) => setJumpValue(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleStationJump();
+                    if (e.key === "Escape") { setJumpOpen(false); setJumpValue(""); }
+                  }}
+                  autoFocus
+                  placeholder={String(station.number)}
+                  className="rounded-md px-2 py-1 text-[12px] text-center w-[52px]"
+                  style={{
+                    background: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    color: "white",
+                    outline: "none",
+                    fontFamily: "inherit",
+                  }}
+                />
+                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                  / {totalStations}
+                </span>
+                <button
+                  onClick={() => { setJumpOpen(false); setJumpValue(""); }}
+                  className="text-[12px]"
+                  style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setJumpOpen(true)}
+                className="text-[12px] font-semibold rounded-md"
+                style={{
+                  background: "none",
+                  border: "1.5px solid rgba(255,255,255,0.25)",
+                  color: "rgba(255,255,255,0.65)",
+                  cursor: "pointer",
+                  padding: "3px 10px",
+                }}
+              >
+                Station {station.number} / {totalStations}
+              </button>
+            )}
+            {(!inRoom || iAmHost) && nextStationNumber && (
+              <button
+                onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", cursor: "pointer", padding: "2px 6px", fontSize: "14px", lineHeight: 1 }}
+              >
+                →
+              </button>
+            )}
+            {inRoom && !iAmHost && (
+              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>
+                {roomHostName ?? "Host"} is navigating
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -706,37 +729,6 @@ export function StationPageClient({
             Feedback
           </button>
 
-          {inRoom && !iAmHost ? (
-            <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {roomHostName ?? "Host"} is navigating
-            </span>
-          ) : (
-            <>
-              {prevStationNumber && (
-                <button
-                  onClick={() => router.push(`/case-bank/${prevStationNumber}`)}
-                  className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "none",
-                    color: "rgba(255,255,255,0.6)",
-                    cursor: "pointer",
-                  }}
-                >
-                  ← Prev
-                </button>
-              )}
-              {nextStationNumber && (
-                <button
-                  onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
-                  className="rounded-md px-3 py-1.5 text-[12px] font-semibold"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}
-                >
-                  Next →
-                </button>
-              )}
-            </>
-          )}
         </div>
       </div>
 
