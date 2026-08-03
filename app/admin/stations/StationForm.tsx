@@ -569,8 +569,6 @@ export function StationForm({ station }: { station?: Station }) {
           )}
 
           <div
-            ref={imagePasteRef}
-            onPaste={handleImagePaste}
             className="mb-4 p-4 rounded-lg border-2 border-dashed transition-colors"
             style={{
               borderColor: "rgba(26,27,82,0.15)",
@@ -578,7 +576,6 @@ export function StationForm({ station }: { station?: Station }) {
               cursor: "pointer",
               outline: "none",
             }}
-            tabIndex={0}
           >
             <p className="text-[12px] text-navy/50 text-center m-0">
               Click or paste an image here
