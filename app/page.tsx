@@ -208,9 +208,7 @@ export default async function HomePage() {
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Record a consultation with a partner and get it marked the same way RCGP examiners
               mark in the real exam, graded across Data Gathering, Clinical Management, and Relating
-              to Others, with written feedback and voice notes from a qualified GP. Read back
-              the full transcript, listen to the recording, and track your performance across
-              every station you attempt.
+              to Others, with written feedback and voice notes from a qualified GP.
             </p>
 
             <div className="flex flex-wrap gap-2 mb-6">
