@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const TIERS = {
   starter:   { amount: 3000,  credits: 3,   name: "SCA Explained — 3 Recording Credits",         description: "Record 3 SCA consultations with AI grading and examiner feedback." },
   standard:  { amount: 6000,  credits: 10,  name: "SCA Explained — 10 Recording Credits",        description: "Record 10 SCA consultations with AI grading and examiner feedback." },
-  unlimited: { amount: 25000, credits: 300, name: "SCA Explained — Unlimited Recording Credits", description: "Up to 300 SCA consultations with AI grading and examiner feedback." },
+  unlimited: { amount: 25000, credits: 300, name: "SCA Explained — Max Recording Credits",      description: "Up to 300 SCA consultations — more than enough to attempt every station and retry the ones that matter." },
 } as const;
 
 type Tier = keyof typeof TIERS;

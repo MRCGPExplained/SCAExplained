@@ -823,7 +823,7 @@ export function StationPageClient({
                 [
                   { tier: "starter",   credits: "3 credits",        price: "£30",  sub: "£10 per consultation" },
                   { tier: "standard",  credits: "10 credits",       price: "£60",  sub: "£6 per consultation" },
-                  { tier: "unlimited", credits: "Unlimited*",       price: "£250", sub: "Up to 300 consultations" },
+                  { tier: "unlimited", credits: "Max",              price: "£250", sub: "Enough to do every station + retries" },
                 ] as const
               ).map(({ tier, credits, price, sub }) => (
                 <form key={tier} action="/api/recordings/checkout" method="POST">

@@ -191,7 +191,7 @@ export default async function HomePage() {
                 [
                   { label: "3 consultations", price: "£30" },
                   { label: "10 consultations", price: "£60" },
-                  { label: "Unlimited",        price: "£250" },
+                  { label: "Max",              price: "£250" },
                 ] as const
               ).map(({ label, price }) => (
                 <div
