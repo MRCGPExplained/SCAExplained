@@ -13,17 +13,6 @@ export default async function CaseBankPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/case-bank/login");
 
-  // Check active access
-  const { data: access } = await supabase
-    .from("user_access")
-    .select("expires_at")
-    .eq("user_id", user.id)
-    .eq("has_programme", true)
-    .gt("expires_at", new Date().toISOString())
-    .single<{ expires_at: string }>();
-
-  if (!access) redirect("/programme");
-
   // Fetch all published stations
   const { data: stations } = await supabase
     .from("stations")

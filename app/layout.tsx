@@ -14,7 +14,6 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let isLoggedIn = false;
-  let hasProgramme = false;
   let displayName: string | null = null;
 
   try {
@@ -22,13 +21,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       isLoggedIn = true;
-      const [profileResult, accessResult] = await Promise.all([
-        supabase.from("user_profiles").select("display_name").eq("id", user.id).single(),
-        supabase.from("user_access").select("has_programme, expires_at").eq("user_id", user.id).maybeSingle(),
-      ]);
-      displayName = profileResult.data?.display_name ?? null;
-      const access = accessResult.data;
-      hasProgramme = !!(access?.has_programme && access.expires_at && new Date(access.expires_at) > new Date());
+      const { data: profile } = await supabase.from("user_profiles").select("display_name").eq("id", user.id).single();
+      displayName = profile?.display_name ?? null;
     }
   } catch {
     // unauthenticated or no session — navbar renders logged-out state
@@ -37,7 +31,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-cream text-navy">
-        <NavbarWrapper isLoggedIn={isLoggedIn} hasProgramme={hasProgramme} displayName={displayName} />
+        <NavbarWrapper isLoggedIn={isLoggedIn} displayName={displayName} />
         {children}
       </body>
     </html>

@@ -13,10 +13,10 @@ export function RedeemGuest() {
   return (
     <div className="rounded-2xl p-8 bg-white" style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}>
       <h1 className="font-display font-bold text-[20px] mb-1" style={{ color: DARK }}>
-        Get your Case Bank access
+        Get your recording credits
       </h1>
       <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.50)" }}>
-        Enter your details and the code from the webinar — your account and access are set up in one step.
+        Enter your details and the code from the webinar — your account and 3 free recordings are set up in one step.
       </p>
 
       {state.error && (
@@ -96,7 +96,7 @@ export function RedeemGuest() {
           className="w-full rounded-lg py-3 font-display font-bold text-[14px] mt-1"
           style={{ background: DARK, color: "white", opacity: pending ? 0.6 : 1, cursor: pending ? "not-allowed" : "pointer" }}
         >
-          {pending ? "Setting up your access…" : "Create account & unlock access →"}
+          {pending ? "Setting up your account…" : "Create account & get 3 free recordings →"}
         </button>
       </form>
 

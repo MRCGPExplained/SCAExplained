@@ -5,16 +5,9 @@ import Link from "next/link";
 import { redeemCodeAction } from "./actions";
 
 const DARK = "#333333";
-const YELLOW = "#F6D44B";
 
 export function RedeemLoggedIn() {
   const [state, formAction, pending] = useActionState(redeemCodeAction, {});
-
-  const expiresFormatted = state.expiresAt
-    ? new Date(state.expiresAt).toLocaleDateString("en-GB", {
-        day: "numeric", month: "long", year: "numeric",
-      })
-    : null;
 
   return (
     <div className="rounded-2xl p-8 bg-white" style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}>
@@ -25,16 +18,16 @@ export function RedeemLoggedIn() {
               <path d="M5 13l4 4L19 7" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>Access granted!</h1>
+          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>3 recording credits added!</h1>
           <p className="text-[14px] mb-6" style={{ color: "rgba(51,51,51,0.60)" }}>
-            Your Case Bank access runs until <strong>{expiresFormatted}</strong>.
+            Use them to record consultations and get feedback from a GP examiner.
           </p>
           <Link
-            href="/case-bank"
+            href="/recordings"
             className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
             style={{ background: DARK, color: "white" }}
           >
-            Open Case Bank →
+            View My Recordings →
           </Link>
         </div>
       ) : (

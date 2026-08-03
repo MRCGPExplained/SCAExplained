@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 export interface RedeemResult {
   error?: string;
   success?: boolean;
-  expiresAt?: string;
 }
 
 // Used when already logged in — returns success state for in-page UI
@@ -52,9 +51,9 @@ export async function redeemWithSignupAction(
   // Validate code before creating the account
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, access_days, expires_at")
+    .select("id, active, expires_at")
     .eq("code", raw)
-    .single<{ id: string; active: boolean; access_days: number; expires_at: string | null }>();
+    .single<{ id: string; active: boolean; expires_at: string | null }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
@@ -118,32 +117,30 @@ async function redeemForUser(
 
   const { data: codeRow } = await admin
     .from("webinar_codes")
-    .select("id, active, access_days, use_count, expires_at")
+    .select("id, active, use_count, expires_at")
     .eq("code", code)
-    .single<{ id: string; active: boolean; access_days: number; use_count: number; expires_at: string | null }>();
+    .single<{ id: string; active: boolean; use_count: number; expires_at: string | null }>();
 
   if (!codeRow)        return { error: "Invalid code. Please check and try again." };
   if (!codeRow.active) return { error: "This code is no longer active." };
   if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) return { error: "This code has expired." };
 
   const { data: existing } = await admin
-    .from("user_access")
-    .select("expires_at")
+    .from("recording_credits")
+    .select("balance, total_purchased")
     .eq("user_id", userId)
-    .single<{ expires_at: string }>();
+    .single<{ balance: number; total_purchased: number }>();
 
-  const baseline = existing?.expires_at && new Date(existing.expires_at) > new Date()
-    ? new Date(existing.expires_at)
-    : new Date();
-
-  const expiresAt = new Date(baseline);
-  expiresAt.setDate(expiresAt.getDate() + codeRow.access_days);
-
-  const { error: upsertErr } = await admin.from("user_access").upsert(
-    { user_id: userId, has_programme: true, expires_at: expiresAt.toISOString() },
+  const { error: upsertErr } = await admin.from("recording_credits").upsert(
+    {
+      user_id: userId,
+      balance: (existing?.balance ?? 0) + 3,
+      total_purchased: (existing?.total_purchased ?? 0) + 3,
+      updated_at: new Date().toISOString(),
+    },
     { onConflict: "user_id" }
   );
-  if (upsertErr) return { error: "Failed to grant access. Please try again." };
+  if (upsertErr) return { error: "Failed to add credits. Please try again." };
 
   try {
     await admin.rpc("increment_webinar_code_use", { code_id: codeRow.id });
@@ -154,5 +151,5 @@ async function redeemForUser(
       .eq("id", codeRow.id);
   }
 
-  return { success: true, expiresAt: expiresAt.toISOString() };
+  return { success: true };
 }
