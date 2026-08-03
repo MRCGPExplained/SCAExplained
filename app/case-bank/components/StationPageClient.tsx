@@ -61,6 +61,92 @@ function BulletList({ items }: { items: string[] }) {
   );
 }
 
+function RecentNotesRenderer({ text }: { text: string }) {
+  type Segment = { type: "text"; lines: string[] } | { type: "table"; rows: string[][] };
+  const segments: Segment[] = [];
+  let currentType: "text" | "table" | null = null;
+  let currentLines: string[] = [];
+
+  for (const line of text.split("\n")) {
+    const isTableRow = line.includes(" | ");
+    if (isTableRow) {
+      if (currentType !== "table") {
+        if (currentType !== null) segments.push({ type: currentType, lines: currentLines });
+        currentLines = [];
+        currentType = "table";
+      }
+      currentLines.push(line);
+    } else {
+      if (currentType !== "text") {
+        if (currentType !== null) segments.push({ type: currentType as "table", rows: currentLines.map(l => l.split(" | ").map(c => c.trim())) });
+        currentLines = [];
+        currentType = "text";
+      }
+      currentLines.push(line);
+    }
+  }
+  if (currentType === "table") segments.push({ type: "table", rows: currentLines.map(l => l.split(" | ").map(c => c.trim())) });
+  if (currentType === "text") segments.push({ type: "text", lines: currentLines });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {segments.map((seg, i) => {
+        if (seg.type === "table") {
+          const [header, ...body] = seg.rows;
+          return (
+            <div key={i} className="overflow-x-auto rounded-lg" style={{ border: "1px solid rgba(26,27,82,0.08)" }}>
+              <table className="w-full" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "rgba(26,27,82,0.04)" }}>
+                    {header.map((cell, j) => (
+                      <th key={j} className="text-left py-2 px-3 font-bold" style={{ color: "rgba(26,27,82,0.45)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid rgba(26,27,82,0.10)" }}>
+                        {cell}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {body.map((row, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? "transparent" : "rgba(26,27,82,0.015)" }}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} className="py-2 px-3" style={{ color: "rgba(26,27,82,0.8)", fontSize: "13.5px", borderBottom: ri < body.length - 1 ? "1px solid rgba(26,27,82,0.06)" : "none" }}>
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
+        // Text segment — split on blank lines into paragraphs
+        const paragraphs: string[] = [];
+        let current: string[] = [];
+        for (const line of seg.lines) {
+          if (line.trim() === "") {
+            if (current.length > 0) { paragraphs.push(current.join("\n")); current = []; }
+          } else {
+            current.push(line);
+          }
+        }
+        if (current.length > 0) paragraphs.push(current.join("\n"));
+
+        return (
+          <div key={i} className="flex flex-col gap-2">
+            {paragraphs.map((para, pi) => (
+              <p key={pi} className="m-0 text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
+                {para}
+              </p>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DoctorBriefContent({ station }: { station: Station }) {
   return (
     <div className="flex flex-col gap-3.5">
@@ -96,9 +182,7 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.recent_notes && (
         <div>
           <Label>Recent Notes</Label>
-          <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
-            {station.recent_notes}
-          </p>
+          <RecentNotesRenderer text={station.recent_notes} />
         </div>
       )}
       <div>

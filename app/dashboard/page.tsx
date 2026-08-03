@@ -6,7 +6,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
-const YELLOW = "#F6D44B";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -63,20 +62,6 @@ export default async function DashboardPage() {
           </h1>
         </div>
 
-        <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap" style={{ background: "#FFFBEA", border: "1px solid rgba(246,212,75,0.50)" }}>
-          <div>
-            <p className="font-display font-bold text-[15px]" style={{ color: DARK }}>Have a webinar code?</p>
-            <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.55)" }}>Redeem it for 3 free recording credits.</p>
-          </div>
-          <Link
-            href="/redeem"
-            className="shrink-0 font-bold text-[13px] px-5 py-2.5 rounded-xl no-underline"
-            style={{ background: YELLOW, color: DARK }}
-          >
-            Redeem code →
-          </Link>
-        </div>
-
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <Link
@@ -100,6 +85,16 @@ export default async function DashboardPage() {
               </div>
             </Link>
           ))}
+          {credits === 0 && (
+            <Link
+              href="/redeem"
+              className="block text-center no-underline px-4 py-3 rounded-xl transition-opacity duration-200 hover:opacity-70"
+              style={{ border: "1px dashed rgba(51,51,51,0.18)", color: "rgba(51,51,51,0.40)", fontSize: "12.5px" }}
+            >
+              Have a webinar code? Redeem it for 3 free recording credits.{" "}
+              <span style={{ fontWeight: 600 }}>Redeem code →</span>
+            </Link>
+          )}
         </div>
       </div>
     </div>

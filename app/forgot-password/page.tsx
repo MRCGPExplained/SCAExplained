@@ -8,7 +8,7 @@ const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
 export default function ForgotPasswordPage() {
-  const [state, formAction, pending] = useActionState(requestPasswordResetAction, {});
+  const [state, formAction, pending] = useActionState(requestPasswordResetAction, { error: "" });
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#FAFAF8" }}>
