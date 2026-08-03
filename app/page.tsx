@@ -119,7 +119,7 @@ export default async function HomePage() {
               A free 1-hour Zoom session every month. Learn what the RCGP
               examiners are actually scoring, how high-performing candidates think through cases, and
               the consultation habits that separate a Clear Pass from a near miss. Attendees receive
-              a code for 3 free recording credits.
+              a code for 2 free recording credits.
             </p>
 
             {freeWebinars.length > 0 ? (

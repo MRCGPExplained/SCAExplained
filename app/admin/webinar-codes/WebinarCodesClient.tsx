@@ -113,7 +113,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Recording Credits</label>
-              <input name="recording_credits" type="number" defaultValue="3" min="1" max="50" className="field" />
+              <input name="recording_credits" type="number" defaultValue="2" min="1" max="50" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Max Uses</label>

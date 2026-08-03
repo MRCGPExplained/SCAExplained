@@ -10,7 +10,7 @@ function randomCode(len = 8) {
 
 export async function createWebinarCodeAction(_prev: unknown, formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
-  const recording_credits = parseInt(String(formData.get("recording_credits") ?? "3"), 10);
+  const recording_credits = parseInt(String(formData.get("recording_credits") ?? "2"), 10);
   const max_uses = parseInt(String(formData.get("max_uses") ?? "10"), 10);
   const customCode = String(formData.get("code") ?? "").trim().toUpperCase();
   const expiresAtRaw = String(formData.get("expires_at") ?? "").trim();
