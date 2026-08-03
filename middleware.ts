@@ -114,6 +114,7 @@ export async function middleware(req: NextRequest) {
 
   // ── Recordings ────────────────────────────────────────────────────────────
   if (pathname === "/recordings" || pathname.startsWith("/recordings/")) {
+    if (pathname === "/recordings/sample") return NextResponse.next();
     return supabaseAuthCheck(req, "/login");
   }
 
