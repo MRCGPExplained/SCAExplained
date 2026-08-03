@@ -64,7 +64,7 @@ export default function TermsPage() {
         Audio recordings submitted through the platform are stored for up to
         3 months from the date of submission, after which they are permanently
         deleted from our systems. Transcripts and examiner feedback are retained
-        for as long as your account remains active.
+        for up to 2 years from the date of submission.
       </P>
       <P>
         This does not affect your statutory rights in respect of defective or
