@@ -96,18 +96,15 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     rec = data;
     isDoctor = true;
   } else {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
-
     const { data } = await admin
       .from("station_recordings")
       .select("*, examiners(name)")
       .eq("id", id)
-      .or(`doctor_user_id.eq.${user.id},patient_user_id.eq.${user.id}`)
       .single<RecordingDetail>();
     rec = data;
-    if (rec) isDoctor = rec.doctor_user_id === user.id;
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    if (rec && user) isDoctor = rec.doctor_user_id === user.id;
   }
 
   if (!rec) notFound();
@@ -200,6 +197,13 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             Go to Station
           </Link>
         </div>
+
+        {/* Public note */}
+        {!examiner && (
+          <p className="text-center text-[11px] mb-3" style={{ color: "rgba(51,51,51,0.35)" }}>
+            Anyone with this link can view this report.
+          </p>
+        )}
 
         {/* Metadata row */}
         <div className="flex items-center gap-4 text-[11px] mb-5 px-1 flex-wrap" style={{ color: "rgba(51,51,51,0.4)" }}>

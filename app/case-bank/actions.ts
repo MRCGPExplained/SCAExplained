@@ -446,6 +446,23 @@ export async function respondFriendRequestAction(
 
 // ── Recording ─────────────────────────────────────────────────────────────────
 
+export async function getMostRecentRecordingForStation(stationNumber: number): Promise<string | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("station_recordings")
+    .select("id")
+    .eq("doctor_user_id", user.id)
+    .eq("station_number", stationNumber)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  return data?.id ?? null;
+}
+
 export async function getRecordingCreditsAction(): Promise<number> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();

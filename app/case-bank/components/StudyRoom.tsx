@@ -12,6 +12,7 @@ import {
   startRecordingAction,
   getRecordingCreditsAction,
   getRecordingBypassAction,
+  getMostRecentRecordingForStation,
 } from "../actions";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
@@ -92,6 +93,12 @@ export function StudyRoomPanel({
   const audioChunksRef = useRef<Blob[]>([]);
 
   const iAmHost = room ? room.host_user_id === userId : false;
+  const [recentReportId, setRecentReportId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!room) return;
+    getMostRecentRecordingForStation(stationNumber).then(setRecentReportId);
+  }, [room?.id, stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ref so channel callbacks always read the latest stationNumber without
   // needing the channel effect to re-run (App Router updates props in place)
@@ -573,6 +580,27 @@ export function StudyRoomPanel({
     }
   }
 
+  async function handleShareReport() {
+    if (!room || !recentReportId) return;
+    const url = `${window.location.origin}/recordings/${recentReportId}`;
+    window.open(url, "_blank");
+    const text = `${displayName} shared their report for Station ${stationNumber} → ${url}`;
+    const { data } = await supabase
+      .from("room_messages")
+      .insert({ room_id: room.id, user_id: userId, display_name: displayName, message: text })
+      .select("id, created_at")
+      .single();
+    if (data) {
+      setMessages((prev) => [...prev, {
+        id: data.id,
+        from: displayName,
+        fromSelf: true,
+        text,
+        time: new Date(data.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+      }]);
+    }
+  }
+
   async function handleCreate() {
     setLoading(true);
     const result = await createStudyRoomAction();
@@ -891,12 +919,14 @@ export function StudyRoomPanel({
                   · {msg.time}
                 </div>
                 <div className="text-[12px] leading-snug break-words" style={{ color: "rgba(26,27,82,0.8)" }}>
-                  {msg.text.startsWith("http") ? (
-                    <a href={msg.text} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#2563EB", wordBreak: "break-all" }}>
-                      {msg.text}
-                    </a>
-                  ) : (
-                    msg.text
+                  {msg.text.split(/(https?:\/\/\S+)/g).map((part, i) =>
+                    /^https?:\/\//.test(part) ? (
+                      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#2563EB", wordBreak: "break-all" }}>
+                        {part}
+                      </a>
+                    ) : (
+                      <span key={i}>{part}</span>
+                    )
                   )}
                 </div>
               </div>
@@ -1031,6 +1061,29 @@ export function StudyRoomPanel({
           }}
         >
           Claim Host
+        </button>
+      </div>
+    )}
+
+    {/* Share Most Recent Report */}
+    {recentReportId && (
+      <div className="flex justify-center pt-1">
+        <button
+          onClick={handleShareReport}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 10,
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            color: "rgba(26,27,82,0.28)",
+            fontFamily: "inherit",
+            fontWeight: 600,
+            padding: 0,
+          }}
+        >
+          Share Most Recent Report
         </button>
       </div>
     )}
