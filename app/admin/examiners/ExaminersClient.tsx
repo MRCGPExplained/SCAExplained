@@ -203,121 +203,146 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
     const html = `<!DOCTYPE html><html><head><title>SCA Explained — Examiner Invoice</title>
+<meta charset="utf-8">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #FAFAF8; color: #333; }
-  .page { max-width: 780px; margin: auto; padding: 56px 48px; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #222; }
 
-  /* Header */
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #F6D44B; }
-  .brand { display: flex; flex-direction: column; gap: 2px; }
-  .brand-name { font-size: 20px; font-weight: 800; color: #333; letter-spacing: -0.02em; }
-  .brand-name span { color: #F6D44B; }
-  .brand-sub { font-size: 11px; color: #999; letter-spacing: 0.04em; text-transform: uppercase; }
-  .invoice-label { text-align: right; }
-  .invoice-label .word { font-size: 28px; font-weight: 800; color: #333; letter-spacing: -0.02em; }
-  .invoice-label .num { font-size: 13px; color: #999; margin-top: 2px; }
+  /* Yellow header band */
+  .top-band { background: #F6D44B; padding: 28px 48px; display: flex; align-items: center; justify-content: space-between; }
 
-  /* Meta block */
-  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 36px; }
-  .meta-block .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #bbb; margin-bottom: 4px; }
-  .meta-block .value { font-size: 13px; color: #333; line-height: 1.6; }
-  .meta-block .value strong { font-weight: 700; }
+  /* Logo mark */
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-badge { background: #333; border-radius: 8px; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo-badge span { font-size: 15px; font-weight: 900; color: #F6D44B; letter-spacing: 0.04em; }
+  .logo-text { display: flex; flex-direction: column; gap: 1px; }
+  .logo-text .name { font-size: 22px; font-weight: 800; color: #333; letter-spacing: -0.02em; line-height: 1; }
+  .logo-text .name em { font-style: normal; color: #333; opacity: 0.45; }
+  .logo-text .tagline { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: rgba(51,51,51,0.55); }
+
+  /* Invoice title in band */
+  .invoice-title { text-align: right; }
+  .invoice-title .word { font-size: 36px; font-weight: 900; color: #333; letter-spacing: -0.03em; line-height: 1; }
+  .invoice-title .date { font-size: 12px; font-weight: 600; color: rgba(51,51,51,0.55); margin-top: 4px; letter-spacing: 0.02em; }
+
+  /* Body */
+  .body { padding: 40px 48px 52px; }
+
+  /* Billing grid */
+  .billing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; margin-bottom: 40px; border: 1px solid #eee; border-radius: 10px; overflow: hidden; }
+  .billing-cell { padding: 18px 20px; border-right: 1px solid #eee; }
+  .billing-cell:last-child { border-right: none; }
+  .billing-cell .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; margin-bottom: 5px; }
+  .billing-cell .val { font-size: 13.5px; color: #333; font-weight: 600; line-height: 1.5; }
+  .billing-cell .val.light { font-weight: 400; color: #555; }
 
   /* Table */
+  .table-wrap { border: 1px solid #eee; border-radius: 10px; overflow: hidden; margin-bottom: 0; }
   table { width: 100%; border-collapse: collapse; }
   thead tr { background: #333; }
-  thead th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.7); padding: 10px 14px; }
+  thead th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.65); padding: 11px 16px; }
   thead th:last-child { text-align: right; }
-  tbody tr:nth-child(even) { background: rgba(0,0,0,0.025); }
-  tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.06); vertical-align: top; color: #444; }
-  tbody td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  .station-num { color: #bbb; margin-right: 4px; }
+  tbody tr { border-bottom: 1px solid #f2f2f2; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: #fafaf8; }
+  tbody td { padding: 10px 16px; font-size: 12.5px; vertical-align: top; color: #444; }
+  tbody td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: #333; font-weight: 600; }
+  .dim { color: #bbb; }
 
-  /* Total */
-  .total-section { margin-top: 0; display: flex; justify-content: flex-end; }
-  .total-box { background: #333; color: white; border-radius: 10px; padding: 16px 24px; min-width: 240px; margin-top: 20px; }
-  .total-box .row { display: flex; justify-content: space-between; align-items: center; gap: 32px; }
-  .total-box .row + .row { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.12); }
-  .total-box .lbl { font-size: 12px; color: rgba(255,255,255,0.55); }
-  .total-box .val { font-size: 13px; font-variant-numeric: tabular-nums; }
-  .total-box .grand-lbl { font-size: 13px; font-weight: 600; color: white; }
-  .total-box .grand-val { font-size: 20px; font-weight: 800; color: #F6D44B; font-variant-numeric: tabular-nums; }
+  /* Total strip */
+  .total-strip { background: #333; margin: 0 -1px -1px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 9px 9px; }
+  .total-strip .tl { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+  .total-strip .tr { font-size: 22px; font-weight: 900; color: #F6D44B; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .total-strip .sub { font-size: 11px; color: rgba(255,255,255,0.38); font-weight: 400; margin-top: 1px; }
 
   /* Footer */
-  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e8e8e8; font-size: 11px; color: #bbb; display: flex; justify-content: space-between; }
+  .footer { margin-top: 36px; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  .footer-left { display: flex; align-items: center; gap: 10px; }
+  .footer-badge { background: #F6D44B; border-radius: 5px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .footer-badge span { font-size: 8px; font-weight: 900; color: #333; letter-spacing: 0.04em; }
+  .footer-text { font-size: 11px; font-weight: 600; color: #333; }
+  .footer-right { font-size: 11px; color: #bbb; text-align: right; line-height: 1.6; }
 
   /* Print button */
-  .print-btn { display: block; margin-top: 28px; padding: 11px 26px; background: #333; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em; }
+  .print-btn { display: flex; align-items: center; gap-8px; margin-top: 28px; padding: 11px 26px; background: #333; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
   .print-btn:hover { background: #111; }
 
   @media print {
+    .print-btn { display: none !important; }
     body { background: white; }
-    .print-btn { display: none; }
-    .page { padding: 0; }
+    .body { padding: 32px 40px 40px; }
+    .top-band { padding: 22px 40px; }
   }
 </style>
 </head>
 <body>
-<div class="page">
 
-  <div class="header">
-    <div class="brand">
-      <div class="brand-name">SCA Explained<span>.</span></div>
-      <div class="brand-sub">mrcgpexplained@outlook.com</div>
+  <!-- Yellow header band with logo + invoice label -->
+  <div class="top-band">
+    <div class="logo">
+      <div class="logo-badge"><span>SCA</span></div>
+      <div class="logo-text">
+        <div class="name">Explained<em>.</em></div>
+        <div class="tagline">GP SCA Preparation</div>
+      </div>
     </div>
-    <div class="invoice-label">
+    <div class="invoice-title">
       <div class="word">Invoice</div>
-      <div class="num">Generated ${today}</div>
+      <div class="date">${today}</div>
     </div>
   </div>
 
-  <div class="meta-grid">
-    <div class="meta-block">
-      <div class="label">To</div>
-      <div class="value"><strong>${examinerNames}</strong></div>
-    </div>
-    <div class="meta-block">
-      <div class="label">Period</div>
-      <div class="value">${from || to ? `${from || "—"} to ${to || "—"}` : "All dates"}</div>
-    </div>
-    <div class="meta-block">
-      <div class="label">Rate</div>
-      <div class="value">£4.00 per recording reviewed</div>
-    </div>
-    <div class="meta-block">
-      <div class="label">Recordings</div>
-      <div class="value">${selected.length}</div>
-    </div>
-  </div>
+  <div class="body">
 
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Examiner</th><th>Station</th><th>Candidate</th><th>Amount</th></tr>
-    </thead>
-    <tbody>${tableRows}</tbody>
-  </table>
-
-  <div class="total-section">
-    <div class="total-box">
-      <div class="row">
-        <span class="lbl">${selected.length} recording${selected.length === 1 ? "" : "s"} × £4.00</span>
-        <span class="val">£${total.toFixed(2)}</span>
+    <!-- Billing details grid -->
+    <div class="billing-grid">
+      <div class="billing-cell">
+        <div class="lbl">Bill To</div>
+        <div class="val">${examinerNames}</div>
       </div>
-      <div class="row">
-        <span class="grand-lbl">Total Due</span>
-        <span class="grand-val">£${total.toFixed(2)}</span>
+      <div class="billing-cell">
+        <div class="lbl">Period</div>
+        <div class="val light">${from || to ? `${from || "—"} &rarr; ${to || "—"}` : "All dates"}</div>
+      </div>
+      <div class="billing-cell">
+        <div class="lbl">Rate</div>
+        <div class="val light">£4.00 per recording</div>
       </div>
     </div>
+
+    <!-- Line items table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Examiner</th><th>Station</th><th>Candidate</th><th>Amount</th></tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      <!-- Total strip inside the table border -->
+      <div class="total-strip">
+        <div>
+          <div class="tl">Total Due</div>
+          <div class="sub">${selected.length} recording${selected.length === 1 ? "" : "s"} × £4.00</div>
+        </div>
+        <div class="tr">£${total.toFixed(2)}</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-left">
+        <div class="footer-badge"><span>SCA</span></div>
+        <div class="footer-text">SCA Explained &middot; scaexplained.com &middot; mrcgpexplained@outlook.com</div>
+      </div>
+      <div class="footer-right">
+        For educational purposes only<br>
+        © ${new Date().getFullYear()} SCA Explained
+      </div>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
   </div>
 
-  <div class="footer">
-    <span>SCA Explained · scaexplained.com</span>
-    <span>For educational purposes only · © ${new Date().getFullYear()} SCA Explained</span>
-  </div>
-
-  <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
-</div>
 </body></html>`;
 
     const win = window.open("", "_blank");
