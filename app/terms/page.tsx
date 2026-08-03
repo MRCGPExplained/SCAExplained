@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <ContentPage
       title="Terms & Conditions"
-      subtitle="Last updated: 5 July 2026"
+      subtitle="Last updated: 3 August 2026"
     >
       <P>
         These terms govern your use of the SCA Explained website
@@ -45,19 +45,34 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>3. Digital products — no right to refund</H2>
+      <H2>3. Recording credits — purchases and refunds</H2>
       <P>
-        The SCA Explained Programme is a digital product. By completing your
-        purchase you expressly request immediate access to the Programme and
-        acknowledge that, in doing so, you waive your right to cancel under the
-        Consumer Contracts (Information, Cancellation and Additional Charges)
-        Regulations 2013. All sales of the Programme are final. No refunds will
-        be issued once access has been granted.
+        Recording credits are digital tokens that allow you to submit SCA
+        consultation recordings for AI grading and GP examiner feedback.
+        Credits are available in three packages: Entry (3 credits), Standard
+        (15 credits), and Intensive (50 credits).
       </P>
       <P>
-        This waiver does not affect your statutory rights in respect of
-        defective or misdescribed products, nor does it limit our liability for
-        fraud or any matter that cannot be excluded by law.
+        By completing a purchase of recording credits you expressly request
+        that the digital service begins immediately and acknowledge that, in
+        doing so, you waive your right to cancel under the Consumer Contracts
+        (Information, Cancellation and Additional Charges) Regulations 2013.
+        Recording credits are non-refundable once purchased. Unused credits
+        expire 12 months from the date of purchase.
+      </P>
+      <P>
+        This does not affect your statutory rights in respect of defective or
+        misdescribed products, nor does it limit our liability for fraud or any
+        matter that cannot be excluded by law. If you experience a technical
+        fault that prevents you from using credits you have purchased, please
+        contact us at{" "}
+        <a
+          href="mailto:mrcgpexplained@outlook.com"
+          className="font-semibold no-underline border-b-2" style={{ color: "#333333", borderColor: "rgba(246,212,75,0.60)" }}
+        >
+          mrcgpexplained@outlook.com
+        </a>{" "}
+        and we will resolve the issue.
       </P>
 
       <Divider />

@@ -5,9 +5,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 export const dynamic = "force-dynamic";
 
 const TIERS = {
-  starter:   { amount: 3000,  credits: 3,   name: "SCA Explained — 3 Recording Credits",         description: "Record 3 SCA consultations with AI grading and examiner feedback." },
-  standard:  { amount: 6000,  credits: 10,  name: "SCA Explained — 10 Recording Credits",        description: "Record 10 SCA consultations with AI grading and examiner feedback." },
-  unlimited: { amount: 25000, credits: 300, name: "SCA Explained — Max Recording Credits",      description: "Up to 300 SCA consultations — more than enough to attempt every station and retry the ones that matter." },
+  entry:     { amount: 3000,  credits: 3,  name: "SCA Explained — Entry (3 Recording Credits)",      description: "Record 3 SCA consultations with AI grading and GP examiner feedback." },
+  standard:  { amount: 12000, credits: 15, name: "SCA Explained — Standard (15 Recording Credits)",  description: "Record 15 SCA consultations with AI grading and GP examiner feedback." },
+  intensive: { amount: 34900, credits: 50, name: "SCA Explained — Intensive (50 Recording Credits)", description: "Record 50 SCA consultations with AI grading and GP examiner feedback." },
 } as const;
 
 type Tier = keyof typeof TIERS;
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const body = await req.formData().catch(() => null);
-  const tierKey = (body?.get("tier")?.toString() ?? "standard") as Tier;
+  const tierKey = (body?.get("tier")?.toString() ?? "entry") as Tier;
   const tier = TIERS[tierKey] ?? TIERS.standard;
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

@@ -216,18 +216,18 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-2 mb-6">
               {(
                 [
-                  { label: "3 consultations", price: "£30" },
-                  { label: "10 consultations", price: "£60" },
-                  { label: "Max",              price: "£250" },
+                  { tier: "Entry",     label: "3 recordings",  price: "£30"  },
+                  { tier: "Standard",  label: "15 recordings", price: "£120" },
+                  { tier: "Intensive", label: "50 recordings", price: "£349" },
                 ] as const
-              ).map(({ label, price }) => (
+              ).map(({ tier, label, price }) => (
                 <div
-                  key={label}
+                  key={tier}
                   className="rounded-lg px-3 py-1.5 text-[13px]"
                   style={{ background: "rgba(51,51,51,0.05)", color: DARK, border: "1px solid rgba(51,51,51,0.08)" }}
                 >
-                  <span className="font-bold">{price}</span>
-                  <span style={{ color: "rgba(51,51,51,0.5)" }}> · {label}</span>
+                  <span className="font-bold">{tier}</span>
+                  <span style={{ color: "rgba(51,51,51,0.5)" }}> · {label} · {price}</span>
                 </div>
               ))}
             </div>
