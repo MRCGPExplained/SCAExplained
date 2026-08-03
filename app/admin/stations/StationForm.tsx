@@ -169,8 +169,33 @@ export function StationForm({ station }: { station?: Station }) {
     setImageUploading(true);
     setImageError(null);
     try {
-      const buffer = await file.arrayBuffer();
-      const result = await uploadImageAction(station.id, file.name, buffer);
+      // Compress image if it's too large
+      let uploadFile = file;
+      if (file.size > 1000000) { // > 1MB
+        const canvas = document.createElement("canvas");
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = objectUrl;
+        });
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.drawImage(img, 0, 0);
+
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.7);
+        });
+        uploadFile = new File([blob], file.name, { type: "image/jpeg" });
+        URL.revokeObjectURL(objectUrl);
+      }
+
+      const buffer = await uploadFile.arrayBuffer();
+      const result = await uploadImageAction(station.id, uploadFile.name, buffer);
       if ("error" in result) { setImageError(result.error); return; }
       setImageUrls([...imageUrls, result.imageUrl]);
     } catch (err) {
