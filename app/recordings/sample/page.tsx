@@ -76,9 +76,6 @@ export default function SampleReportPage() {
             <path d="M8 5v3.5M8 10.5v.5" stroke={NAVY} strokeWidth="1.4" strokeLinecap="round"/>
           </svg>
           <span><strong>Sample report.</strong> This is what your report looks like after an examiner has reviewed your consultation.</span>
-          <Link href="/register" className="ml-auto shrink-0 font-bold text-[12px] px-4 py-1.5 rounded-lg no-underline" style={{ background: NAVY, color: "white" }}>
-            Get started →
-          </Link>
         </div>
 
         {/* Station header */}
@@ -161,14 +158,14 @@ export default function SampleReportPage() {
           {/* Overall examiner summary */}
           <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
             <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "#111111" }}>
-              Examiner&apos;s Overall Summary
+              Examiner's Overall Summary
             </div>
             <p className="text-[13.5px] leading-relaxed" style={{ color: "#111111" }}>
-              A solid clinical performance undermined by missed emotional cues. This patient was frightened — he
-              mentioned his father&apos;s heart attack unprompted and directly asked &quot;do you think it could be my heart?&quot;
+              A solid clinical performance undermined by missed emotional cues. This patient was frightened. He
+              mentioned his father's heart attack unprompted and directly asked "do you think it could be my heart?"
               Those were clear invitations to explore his concerns, and both were passed over quickly. Data gathering
               was structured and covered the key red flags well. The management plan was appropriate but lacked
-              specificity around immediate actions. Addressing the patient&apos;s ICE more fully would have transformed
+              specificity around immediate actions. Addressing the patient's ICE more fully would have transformed
               the Relating to Others score.
             </p>
           </div>
@@ -187,13 +184,13 @@ export default function SampleReportPage() {
               key: "cm",
               label: "Clinical Management",
               grade: "P",
-              comment: "Appropriate urgent management plan with ECG and troponin. Correctly identified the need for potential same-day hospital referral. Aspirin wasn't mentioned, and the explanation of what happens next — both in the practice and if admitted — was brief. The patient was left with some uncertainty about the process, though the safety-netting around driving was handled well.",
+              comment: "Appropriate urgent management plan with ECG and troponin. Correctly identified the need for potential same-day hospital referral. Aspirin wasn't mentioned, and the explanation of next steps (both in the practice and if admitted) was brief. The patient was left with some uncertainty about the process, though the safety-netting around driving was handled well.",
             },
             {
               key: "ro",
               label: "Relating to Others",
               grade: "F",
-              comment: "The patient disclosed his father&apos;s cardiac history early in the consultation and directly expressed worry. This was acknowledged minimally and not explored. When asked &quot;do you think it could be my heart?&quot; the response moved straight to the management plan without addressing the emotional content. ICE was partially covered but concerns were not fully explored. Language was professional but missed several opportunities to build rapport and address anxiety.",
+              comment: "The patient disclosed his father's cardiac history early in the consultation and directly expressed worry. This was acknowledged minimally and not explored. When asked if it could be his heart, the response moved straight to the management plan without addressing the emotional content. ICE was partially covered but concerns were not fully explored. Language was professional but missed several opportunities to build rapport and address anxiety.",
             },
           ] as const).map(({ key, label, grade, comment }) => (
             <div
@@ -247,22 +244,13 @@ export default function SampleReportPage() {
           <p className="text-[13.5px] mb-5" style={{ color: "rgba(51,51,51,0.55)" }}>
             Record a consultation, get it graded by AI, and reviewed by a GP. Usually back within 5 working days.
           </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link
-              href="/register"
-              className="font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
-              style={{ background: NAVY, color: "white" }}
-            >
-              Create free account →
-            </Link>
-            <Link
-              href="/"
-              className="font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
-              style={{ background: "rgba(51,51,51,0.07)", color: NAVY }}
-            >
-              Learn more
-            </Link>
-          </div>
+          <Link
+            href="/register"
+            className="font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
+            style={{ background: NAVY, color: "white" }}
+          >
+            Create free account →
+          </Link>
         </div>
 
       </div>
