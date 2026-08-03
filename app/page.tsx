@@ -169,7 +169,8 @@ export default async function HomePage() {
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Over 250 exam-style cases built to simulate the SCA examination.
               Each station includes a full case sheet, data-gathering guidance, management points
-              and an example explanation to practise and learn effectively.
+              and an example explanation to practise and learn effectively. Simply create an account
+              to access the full bank for free.
             </p>
 
 
