@@ -66,22 +66,13 @@ export function AudioPlaceholder() {
             <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.55)" }}>
               Create a free account to access consultation recordings and examiner voice notes.
             </p>
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/register"
-                className="block font-bold text-[14px] py-2.5 rounded-xl no-underline"
-                style={{ background: NAVY, color: "white" }}
-              >
-                Create free account →
-              </Link>
-              <button
-                onClick={() => setOpen(false)}
-                className="font-semibold text-[13px] py-2 rounded-xl"
-                style={{ background: "transparent", border: "none", color: "rgba(51,51,51,0.45)", cursor: "pointer" }}
-              >
-                OK
-              </button>
-            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="w-full font-bold text-[14px] py-2.5 rounded-xl"
+              style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
