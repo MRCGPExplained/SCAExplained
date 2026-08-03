@@ -193,9 +193,7 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.image_urls && station.image_urls.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
           {station.image_urls.map((url, idx) => (
-            <div key={idx} className="rounded-lg overflow-hidden border border-blue-200" style={{ background: "rgba(26,27,82,0.02)" }}>
-              <img src={url} alt={`Station image ${idx + 1}`} className="w-full h-auto max-h-[500px] object-contain" />
-            </div>
+            <img key={idx} src={url} alt={`Station image ${idx + 1}`} className="w-full h-auto max-h-[500px] object-contain rounded-lg" />
           ))}
         </div>
       )}
