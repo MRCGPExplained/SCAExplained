@@ -3,6 +3,7 @@
 import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
 import type { Station } from "@/lib/case-bank-types";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import {
   createStationAction,
   updateStationAction,
@@ -170,17 +171,27 @@ export function StationForm({ station }: { station?: Station }) {
     setImageUploading(true);
     setImageError(null);
     try {
-      const urlResult = await getImageUploadUrlAction(station.id, file.name);
-      if ("error" in urlResult) { setImageError(urlResult.error); return; }
-      const uploadRes = await fetch(urlResult.signedUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "image/jpeg" },
-      });
-      if (!uploadRes.ok) { setImageError("Upload failed — try again."); return; }
-      const confirmResult = await confirmImageUploadAction(station.id, urlResult.path);
+      const supabase = createSupabaseBrowserClient();
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const timestamp = Date.now();
+      const path = `${station.id}/${timestamp}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("station-images")
+        .upload(path, file);
+
+      if (uploadErr) { setImageError(uploadErr.message); return; }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("station-images")
+        .getPublicUrl(path);
+
+      const confirmResult = await confirmImageUploadAction(station.id, path);
       if ("error" in confirmResult) { setImageError(confirmResult.error); return; }
-      setCurrentImages([...currentImages, confirmResult.imageUrl]);
+
+      setCurrentImages([...currentImages, publicUrl]);
+    } catch (err) {
+      setImageError(`Error: ${err instanceof Error ? err.message : "unknown error"}`);
     } finally {
       setImageUploading(false);
       if (imageFileRef.current) imageFileRef.current.value = "";
