@@ -9,6 +9,9 @@ import {
   getAudioUploadUrlAction,
   confirmAudioUploadAction,
   deleteAudioAction,
+  getImageUploadUrlAction,
+  confirmImageUploadAction,
+  deleteImageAction,
 } from "../actions";
 
 const SUBJECTS = [
@@ -125,6 +128,12 @@ export function StationForm({ station }: { station?: Station }) {
   const [audioError, setAudioError] = useState<string | null>(null);
   const audioFileRef = useRef<HTMLInputElement>(null);
 
+  const [currentImages, setCurrentImages] = useState<string[]>(station?.image_urls ?? []);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageFileRef = useRef<HTMLInputElement>(null);
+  const imagePasteRef = useRef<HTMLDivElement>(null);
+
   async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !station?.id) return;
@@ -154,6 +163,57 @@ export function StationForm({ station }: { station?: Station }) {
     const result = await deleteAudioAction(station.id);
     if (result.error) { setAudioError(result.error); } else { setCurrentAudioUrl(null); }
     setAudioUploading(false);
+  }
+
+  async function uploadImage(file: File) {
+    if (!station?.id) return;
+    setImageUploading(true);
+    setImageError(null);
+    try {
+      const urlResult = await getImageUploadUrlAction(station.id, file.name);
+      if ("error" in urlResult) { setImageError(urlResult.error); return; }
+      const uploadRes = await fetch(urlResult.signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "image/jpeg" },
+      });
+      if (!uploadRes.ok) { setImageError("Upload failed — try again."); return; }
+      const confirmResult = await confirmImageUploadAction(station.id, urlResult.path);
+      if ("error" in confirmResult) { setImageError(confirmResult.error); return; }
+      setCurrentImages([...currentImages, confirmResult.imageUrl]);
+    } finally {
+      setImageUploading(false);
+      if (imageFileRef.current) imageFileRef.current.value = "";
+    }
+  }
+
+  function handleImageFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadImage(file);
+  }
+
+  function handleImagePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          uploadImage(file);
+        }
+        break;
+      }
+    }
+  }
+
+  async function handleImageDelete(url: string) {
+    if (!station?.id) return;
+    setImageUploading(true);
+    const result = await deleteImageAction(station.id, url);
+    if (result.error) { setImageError(result.error); } else { setCurrentImages(currentImages.filter((u) => u !== url)); }
+    setImageUploading(false);
   }
 
   return (
@@ -441,6 +501,84 @@ export function StationForm({ station }: { station?: Station }) {
             rows={4}
             hint="Text shown below the audio player. Pipe-delimited rows (A | B | C) render as tables, same as Recent Notes."
           />
+        </section>
+      )}
+
+      {/* ── Images ── */}
+      {station && (
+        <section className="bg-white rounded-xl border border-navy/10 p-6 mb-4">
+          <h2 className="font-display font-bold text-[15px] text-navy mb-4">Images</h2>
+
+          {imageError && (
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+              {imageError}
+            </div>
+          )}
+
+          {currentImages.length > 0 && (
+            <div className="mb-5 flex flex-col gap-2">
+              {currentImages.map((url, idx) => (
+                <div key={idx} className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                  <span className="text-[13px] text-navy/70 flex-1 truncate">{url.split("/").pop()}</span>
+                  <a href={url} download className="text-[12px] font-medium no-underline text-navy/50 hover:text-navy transition">
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleImageDelete(url)}
+                    disabled={imageUploading}
+                    className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
+                    style={{ background: "none", border: "none", cursor: imageUploading ? "not-allowed" : "pointer" }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            ref={imagePasteRef}
+            onPaste={handleImagePaste}
+            className="mb-4 p-4 rounded-lg border-2 border-dashed transition-colors"
+            style={{
+              borderColor: "rgba(26,27,82,0.15)",
+              background: "rgba(26,27,82,0.02)",
+              cursor: "pointer",
+              outline: "none",
+            }}
+            tabIndex={0}
+          >
+            <p className="text-[12px] text-navy/50 text-center m-0">
+              Click or paste an image here
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              ref={imageFileRef}
+              style={{ display: "none" }}
+              onChange={handleImageFileSelect}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              onClick={() => imageFileRef.current?.click()}
+              disabled={imageUploading}
+              className="block mx-auto mt-2 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-opacity"
+              style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: imageUploading ? "not-allowed" : "pointer", opacity: imageUploading ? 0.6 : 1 }}
+            >
+              {imageUploading ? "Uploading…" : "Browse files"}
+            </button>
+          </div>
+
+          <p className="text-[11px] text-navy/40 m-0">
+            You can drag files here, paste from clipboard (Ctrl+V), or click Browse. Uploaded directly to storage.
+          </p>
         </section>
       )}
 

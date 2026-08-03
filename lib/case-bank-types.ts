@@ -28,6 +28,7 @@ export type Station = {
   editor_video_url: string | null;
   audio_url: string | null;
   audio_notes: string | null;
+  image_urls: string[] | null;
   marking_notes_data_gathering: string | null;
   marking_notes_clinical_management: string | null;
   marking_notes_relating_to_others: string | null;

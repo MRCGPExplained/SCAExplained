@@ -150,6 +150,95 @@ export async function deleteStationAction(id: string): Promise<ActionResult> {
   return {};
 }
 
+// ── Image Management ──────────────────────────────────────────────────────────
+
+export async function getImageUploadUrlAction(
+  stationId: string,
+  filename: string
+): Promise<{ signedUrl: string; path: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+  const timestamp = Date.now();
+  const path = `${stationId}/${timestamp}.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from("station-images")
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { error: error?.message ?? "Failed to create upload URL." };
+  return { signedUrl: data.signedUrl, path: data.path };
+}
+
+export async function confirmImageUploadAction(
+  stationId: string,
+  path: string
+): Promise<{ imageUrl: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("station-images")
+    .getPublicUrl(path);
+
+  const { data: station, error: fetchErr } = await supabase
+    .from("stations")
+    .select("number, image_urls")
+    .eq("id", stationId)
+    .single<{ number: number; image_urls: string[] | null }>();
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const existingUrls = station.image_urls ?? [];
+  const updatedUrls = [...existingUrls, publicUrl];
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ image_urls: updatedUrls })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/case-bank/${station.number}`);
+  return { imageUrl: publicUrl };
+}
+
+export async function deleteImageAction(
+  stationId: string,
+  imageUrl: string
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: station, error: fetchErr } = await supabase
+    .from("stations")
+    .select("number, image_urls")
+    .eq("id", stationId)
+    .single<{ number: number; image_urls: string[] | null }>();
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const marker = "/object/public/station-images/";
+  const idx = imageUrl.indexOf(marker);
+  if (idx !== -1) {
+    const storagePath = imageUrl.slice(idx + marker.length);
+    await supabase.storage.from("station-images").remove([storagePath]);
+  }
+
+  const updatedUrls = (station.image_urls ?? []).filter((url) => url !== imageUrl);
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ image_urls: updatedUrls })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  if (station?.number) revalidatePath(`/case-bank/${station.number}`);
+  return { success: true };
+}
+
 // ── Audio Lesson Management ───────────────────────────────────────────────────
 
 export async function getAudioUploadUrlAction(
