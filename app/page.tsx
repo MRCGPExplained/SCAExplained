@@ -93,6 +93,13 @@ export default async function HomePage() {
       <section className="px-10 pb-16 pt-6 max-md:px-6">
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
+          <div className="mb-1">
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.35)" }}>What We Offer</p>
+            <h2 className="font-display font-extrabold text-[22px]" style={{ color: DARK }}>
+              Everything you need to pass your SCA
+            </h2>
+          </div>
+
           {/* FREE WEBINAR — primary */}
           <div
             className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
