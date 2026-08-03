@@ -167,7 +167,7 @@ export default async function HomePage() {
               SCA Case Bank
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Over 20 exam-style cases built to simulate the SCA examination.
+              Over 250 exam-style cases built to simulate the SCA examination.
               Each station includes a full case sheet, data-gathering guidance, management points
               and an example explanation to practise and learn effectively.
             </p>
@@ -179,7 +179,7 @@ export default async function HomePage() {
                 className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
                 style={{ background: DARK, color: "white" }}
               >
-                Show Sample Cases →
+                Show Sample Case →
               </Link>
               {user && (
                 <Link
@@ -200,10 +200,10 @@ export default async function HomePage() {
           >
             <div className="flex items-center gap-2 mb-2">
               <MicIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Examiner Marking</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Marking</p>
             </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              Real Feedback From a GP Trainer
+              Real Feedback From a GP
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Record a consultation with a partner and get it marked the same way RCGP examiners

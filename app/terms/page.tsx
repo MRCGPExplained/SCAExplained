@@ -57,8 +57,14 @@ export default function TermsPage() {
         that the digital service begins immediately and acknowledge that, in
         doing so, you waive your right to cancel under the Consumer Contracts
         (Information, Cancellation and Additional Charges) Regulations 2013.
-        Recording credits are non-refundable once purchased. Unused credits
-        expire 12 months from the date of purchase.
+        Recording credits are non-refundable once purchased. Credits are
+        non-transferable and may not be shared between accounts.
+      </P>
+      <P>
+        Audio recordings submitted through the platform are stored for up to
+        3 months from the date of submission, after which they are permanently
+        deleted from our systems. Transcripts and examiner feedback are retained
+        for as long as your account remains active.
       </P>
       <P>
         This does not affect your statutory rights in respect of defective or

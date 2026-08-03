@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS station_recordings (
   started_at           TIMESTAMPTZ DEFAULT now(),
   ended_at             TIMESTAMPTZ,
 
-  -- Audio (Supabase Storage paths; audio purged after 1 month by cron)
+  -- Audio (Supabase Storage paths; audio purged after 3 months by cron)
   doctor_audio_path    TEXT,
   patient_audio_path   TEXT,
   audio_deleted_at     TIMESTAMPTZ,
