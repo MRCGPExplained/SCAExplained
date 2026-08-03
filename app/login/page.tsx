@@ -36,7 +36,10 @@ function LoginForm() {
         </div>
 
         <div className="mb-6">
-          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>Password</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.5)" }}>Password</label>
+            <Link href="/forgot-password" className="text-[11px] font-semibold no-underline" style={{ color: "rgba(51,51,51,0.45)" }}>Forgot password?</Link>
+          </div>
           <input name="password" type="password" required autoComplete="current-password" className="w-full rounded-lg px-4 py-2.5 text-[13.5px]" style={{ border: "1.5px solid rgba(51,51,51,0.15)", color: "#333333", background: "#F3F2F0", outline: "none" }} />
         </div>
 

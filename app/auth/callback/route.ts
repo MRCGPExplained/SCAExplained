@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
   } else if (tokenHash && type) {
-    await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "signup" | "email" });
+    await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "signup" | "email" | "recovery" });
   }
 
-  return NextResponse.redirect(`${origin}/login`);
+  const redirectTo = type === "recovery" ? "/reset-password" : "/login";
+  return NextResponse.redirect(`${origin}${redirectTo}`);
 }
