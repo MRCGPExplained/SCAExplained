@@ -150,9 +150,15 @@ export default async function HomePage() {
 
           {/* CASE BANK */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1px solid rgba(51,51,51,0.10)" }}
           >
+            <span
+              className="absolute top-5 right-5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: "#F6D44B", color: DARK }}
+            >
+              Free
+            </span>
             <div className="flex items-center gap-2 mb-2">
               <CaseBankIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 250+ cases</p>
@@ -161,7 +167,7 @@ export default async function HomePage() {
               SCA Case Bank
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-              A growing library of exam-style cases built to simulate the SCA examination.
+              Over 20 exam-style cases built to simulate the SCA examination.
               Each station includes a full case sheet, data-gathering guidance, management points
               and an example explanation to practise and learn effectively.
             </p>
