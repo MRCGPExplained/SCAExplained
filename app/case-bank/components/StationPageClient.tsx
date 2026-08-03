@@ -818,25 +818,31 @@ export function StationPageClient({
             <p className="text-[13px] leading-relaxed mb-6" style={{ color: "rgba(26,27,82,0.55)" }}>
               Each recorded consultation uses 1 credit. Credits are reviewed by a GP examiner who grades your performance across all three marking domains.
             </p>
-            <div
-              className="rounded-xl p-4 mb-6 flex items-center justify-between"
-              style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}
-            >
-              <div>
-                <div className="font-bold text-[15px]" style={{ color: "#1A1B52" }}>5 recording credits</div>
-                <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.45)" }}>Each credit = 1 full consultation</div>
-              </div>
-              <div className="font-bold text-[18px]" style={{ color: "#1A1B52" }}>£60</div>
+            <div className="flex flex-col gap-2 mb-6">
+              {(
+                [
+                  { tier: "starter",   credits: "3 credits",        price: "£30",  sub: "£10 per consultation" },
+                  { tier: "standard",  credits: "10 credits",       price: "£60",  sub: "£6 per consultation" },
+                  { tier: "unlimited", credits: "Unlimited*",       price: "£250", sub: "Up to 300 consultations" },
+                ] as const
+              ).map(({ tier, credits, price, sub }) => (
+                <form key={tier} action="/api/recordings/checkout" method="POST">
+                  <input type="hidden" name="tier" value={tier} />
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl p-4 flex items-center justify-between text-left"
+                    style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)", cursor: "pointer" }}
+                  >
+                    <div>
+                      <div className="font-bold text-[15px]" style={{ color: "#1A1B52" }}>{credits}</div>
+                      <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.45)" }}>{sub}</div>
+                    </div>
+                    <div className="font-bold text-[18px]" style={{ color: "#1A1B52" }}>{price}</div>
+                  </button>
+                </form>
+              ))}
+              <p className="text-[11px]" style={{ color: "rgba(26,27,82,0.35)" }}>* Fair use cap of 300 consultations applies</p>
             </div>
-            <form action="/api/recordings/checkout" method="POST" className="mb-3">
-              <button
-                type="submit"
-                className="w-full rounded-xl py-3 text-[14px] font-bold"
-                style={{ background: "#1A1B52", color: "white", border: "none", cursor: "pointer" }}
-              >
-                Buy 5 credits — £60
-              </button>
-            </form>
             <button
               onClick={() => setShowBuyModal(false)}
               className="w-full rounded-xl py-2.5 text-[13px] font-semibold"

@@ -107,15 +107,26 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               <span className="font-bold text-[17px]">{credits}</span>{" "}
               <span style={{ color: "rgba(51,51,51,0.5)" }}>credit{credits !== 1 ? "s" : ""} remaining</span>
             </div>
-            <form action="/api/recordings/checkout" method="POST">
-              <button
-                type="submit"
-                className="rounded-xl px-4 py-2 text-[13px] font-bold"
-                style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
-              >
-                Buy 5 credits — £60
-              </button>
-            </form>
+            <div className="flex gap-2 flex-wrap">
+              {(
+                [
+                  { tier: "starter",   label: "3 credits — £30" },
+                  { tier: "standard",  label: "10 credits — £60" },
+                  { tier: "unlimited", label: "Unlimited — £250" },
+                ] as const
+              ).map(({ tier, label }) => (
+                <form key={tier} action="/api/recordings/checkout" method="POST">
+                  <input type="hidden" name="tier" value={tier} />
+                  <button
+                    type="submit"
+                    className="rounded-xl px-3.5 py-2 text-[13px] font-bold"
+                    style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+                  >
+                    {label}
+                  </button>
+                </form>
+              ))}
+            </div>
           </div>
         </div>
 
