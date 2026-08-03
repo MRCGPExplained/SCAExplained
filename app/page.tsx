@@ -176,7 +176,7 @@ export default async function HomePage() {
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Examiner Marking</p>
             </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              Real Feedback From a Qualified GP Examiner
+              Real Feedback From a GP Trainer
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Record a consultation with a partner and get it marked the same way RCGP examiners
