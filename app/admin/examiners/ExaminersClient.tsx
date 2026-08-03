@@ -202,40 +202,122 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     const periodLine = (from || to) ? `Period: ${from || "—"} to ${to || "—"}<br>` : "";
     const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-    const html = `<!DOCTYPE html><html><head><title>Examiner Invoice</title>
+    const html = `<!DOCTYPE html><html><head><title>SCA Explained — Examiner Invoice</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; padding: 48px; max-width: 760px; margin: auto; color: #222; }
-  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-  .meta { font-size: 13px; color: #666; line-height: 1.8; margin-bottom: 28px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #999; padding: 8px 12px; border-bottom: 2px solid #eee; }
-  th:last-child { text-align: right; }
-  td { padding: 9px 12px; font-size: 13px; border-bottom: 1px solid #f2f2f2; vertical-align: top; }
-  .total-block { margin-top: 24px; padding-top: 16px; border-top: 2px solid #222; display: flex; justify-content: flex-end; }
-  .total-block table { width: auto; }
-  .total-block td { border: none; padding: 3px 12px; font-size: 13px; }
-  .total-block .grand { font-weight: 700; font-size: 16px; }
-  .print-btn { display: block; margin-top: 32px; padding: 11px 24px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  @media print { .print-btn { display: none; } body { padding: 0; } }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #FAFAF8; color: #333; }
+  .page { max-width: 780px; margin: auto; padding: 56px 48px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #F6D44B; }
+  .brand { display: flex; flex-direction: column; gap: 2px; }
+  .brand-name { font-size: 20px; font-weight: 800; color: #333; letter-spacing: -0.02em; }
+  .brand-name span { color: #F6D44B; }
+  .brand-sub { font-size: 11px; color: #999; letter-spacing: 0.04em; text-transform: uppercase; }
+  .invoice-label { text-align: right; }
+  .invoice-label .word { font-size: 28px; font-weight: 800; color: #333; letter-spacing: -0.02em; }
+  .invoice-label .num { font-size: 13px; color: #999; margin-top: 2px; }
+
+  /* Meta block */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 36px; }
+  .meta-block .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #bbb; margin-bottom: 4px; }
+  .meta-block .value { font-size: 13px; color: #333; line-height: 1.6; }
+  .meta-block .value strong { font-weight: 700; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #333; }
+  thead th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.7); padding: 10px 14px; }
+  thead th:last-child { text-align: right; }
+  tbody tr:nth-child(even) { background: rgba(0,0,0,0.025); }
+  tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.06); vertical-align: top; color: #444; }
+  tbody td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .station-num { color: #bbb; margin-right: 4px; }
+
+  /* Total */
+  .total-section { margin-top: 0; display: flex; justify-content: flex-end; }
+  .total-box { background: #333; color: white; border-radius: 10px; padding: 16px 24px; min-width: 240px; margin-top: 20px; }
+  .total-box .row { display: flex; justify-content: space-between; align-items: center; gap: 32px; }
+  .total-box .row + .row { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.12); }
+  .total-box .lbl { font-size: 12px; color: rgba(255,255,255,0.55); }
+  .total-box .val { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .total-box .grand-lbl { font-size: 13px; font-weight: 600; color: white; }
+  .total-box .grand-val { font-size: 20px; font-weight: 800; color: #F6D44B; font-variant-numeric: tabular-nums; }
+
+  /* Footer */
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e8e8e8; font-size: 11px; color: #bbb; display: flex; justify-content: space-between; }
+
+  /* Print button */
+  .print-btn { display: block; margin-top: 28px; padding: 11px 26px; background: #333; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em; }
+  .print-btn:hover { background: #111; }
+
+  @media print {
+    body { background: white; }
+    .print-btn { display: none; }
+    .page { padding: 0; }
+  }
 </style>
-</head><body>
-<h1>Examiner Marking Invoice</h1>
-<div class="meta">
-  Generated: ${today}<br>
-  To: <strong>${examinerNames}</strong><br>
-  ${periodLine}
-</div>
-<table>
-  <thead><tr><th>Date</th><th>Examiner</th><th>Station</th><th>Candidate</th><th style="text-align:right">Amount</th></tr></thead>
-  <tbody>${tableRows}</tbody>
-</table>
-<div class="total-block">
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="brand">
+      <div class="brand-name">SCA Explained<span>.</span></div>
+      <div class="brand-sub">mrcgpexplained@outlook.com</div>
+    </div>
+    <div class="invoice-label">
+      <div class="word">Invoice</div>
+      <div class="num">Generated ${today}</div>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-block">
+      <div class="label">To</div>
+      <div class="value"><strong>${examinerNames}</strong></div>
+    </div>
+    <div class="meta-block">
+      <div class="label">Period</div>
+      <div class="value">${from || to ? `${from || "—"} to ${to || "—"}` : "All dates"}</div>
+    </div>
+    <div class="meta-block">
+      <div class="label">Rate</div>
+      <div class="value">£4.00 per recording reviewed</div>
+    </div>
+    <div class="meta-block">
+      <div class="label">Recordings</div>
+      <div class="value">${selected.length}</div>
+    </div>
+  </div>
+
   <table>
-    <tr><td style="color:#888">${selected.length} recording${selected.length === 1 ? "" : "s"} × £4.00</td><td class="grand">£${total.toFixed(2)}</td></tr>
+    <thead>
+      <tr><th>Date</th><th>Examiner</th><th>Station</th><th>Candidate</th><th>Amount</th></tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
   </table>
+
+  <div class="total-section">
+    <div class="total-box">
+      <div class="row">
+        <span class="lbl">${selected.length} recording${selected.length === 1 ? "" : "s"} × £4.00</span>
+        <span class="val">£${total.toFixed(2)}</span>
+      </div>
+      <div class="row">
+        <span class="grand-lbl">Total Due</span>
+        <span class="grand-val">£${total.toFixed(2)}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>SCA Explained · scaexplained.com</span>
+    <span>For educational purposes only · © ${new Date().getFullYear()} SCA Explained</span>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
 </div>
-<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
 </body></html>`;
 
     const win = window.open("", "_blank");
