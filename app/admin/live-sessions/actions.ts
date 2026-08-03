@@ -15,7 +15,7 @@ export async function createLiveSessionAction(_prev: unknown, formData: FormData
   const { error } = await supabase.from("live_sessions").insert({ zoom_url, scheduled_at, is_free });
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/live-sessions");
+  revalidatePath("/admin/webinar");
   revalidatePath("/");
   return { success: true };
 }
@@ -28,6 +28,6 @@ export async function deleteLiveSessionAction(formData: FormData) {
   if (!supabase) return;
 
   await supabase.from("live_sessions").delete().eq("id", id);
-  revalidatePath("/admin/live-sessions");
+  revalidatePath("/admin/webinar");
   revalidatePath("/");
 }

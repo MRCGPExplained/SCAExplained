@@ -15,30 +15,16 @@ function formatDate(iso: string) {
 export function LiveSessionsClient({ sessions }: { sessions: Session[] }) {
   const [state, formAction, pending] = useActionState(createLiveSessionAction, { success: false } as { error?: string; success?: boolean });
 
-  const free = sessions.filter((s) => s.is_free);
-  const paid = sessions.filter((s) => !s.is_free);
-
   return (
-    <div className="flex flex-col gap-10 max-w-[700px]">
+    <div className="flex flex-col gap-8 max-w-[700px]">
 
-      {/* Free webinars */}
-      <div>
-        <h2 className="font-display font-bold text-[16px] text-navy mb-1">Free Webinars</h2>
-        <p className="text-[12px] text-navy/40 mb-3">Shown in the homepage "Free Webinar" card. Attendees get a code for Case Bank access.</p>
-        <SessionList sessions={free} />
-      </div>
-
-      {/* Paid sessions */}
-      <div>
-        <h2 className="font-display font-bold text-[16px] text-navy mb-1">Paid Live Sessions</h2>
-        <p className="text-[12px] text-navy/40 mb-3">Shown in the homepage "Monthly Live Sessions" section. Payment via bank transfer for now.</p>
-        <SessionList sessions={paid} />
-      </div>
+      <SessionList sessions={sessions} />
 
       {/* Add session form */}
       <div>
-        <h2 className="font-display font-bold text-[16px] text-navy mb-3">Add a session</h2>
+        <h2 className="font-display font-bold text-[16px] text-navy mb-3">Add a date</h2>
         <form action={formAction} className="rounded-2xl border border-navy/10 bg-white p-5 flex flex-col gap-4">
+          <input type="hidden" name="is_free" value="true" />
           <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="scheduled_at" className="text-[11px] font-bold tracking-[0.06em] uppercase text-navy/55">Date &amp; Time</label>
@@ -50,23 +36,12 @@ export function LiveSessionsClient({ sessions }: { sessions: Session[] }) {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="is_free" value="true" defaultChecked className="accent-navy" />
-              <span className="text-[13px] font-semibold text-navy">Free webinar</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="is_free" value="false" className="accent-navy" />
-              <span className="text-[13px] font-semibold text-navy">Paid session</span>
-            </label>
-          </div>
-
           {state && "error" in state && state.error && (
             <p className="text-[13px] text-red-600">{state.error}</p>
           )}
 
           <button type="submit" disabled={pending} className="bg-navy text-white text-[14px] font-bold px-5 py-2.5 rounded-xl hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-60 self-start">
-            {pending ? "Adding…" : "Add Session"}
+            {pending ? "Adding…" : "Add Date"}
           </button>
         </form>
       </div>
