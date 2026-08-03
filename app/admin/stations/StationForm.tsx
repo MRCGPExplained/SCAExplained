@@ -10,8 +10,6 @@ import {
   getAudioUploadUrlAction,
   confirmAudioUploadAction,
   deleteAudioAction,
-  getImageUploadUrlAction,
-  confirmImageUploadAction,
   deleteImageAction,
 } from "../actions";
 
@@ -129,7 +127,7 @@ export function StationForm({ station }: { station?: Station }) {
   const [audioError, setAudioError] = useState<string | null>(null);
   const audioFileRef = useRef<HTMLInputElement>(null);
 
-  const [currentImages, setCurrentImages] = useState<string[]>(station?.image_urls ?? []);
+  const [imageUrls, setImageUrls] = useState<string[]>(station?.image_urls ?? []);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const imageFileRef = useRef<HTMLInputElement>(null);
@@ -186,10 +184,7 @@ export function StationForm({ station }: { station?: Station }) {
         .from("station-images")
         .getPublicUrl(path);
 
-      const confirmResult = await confirmImageUploadAction(station.id, path);
-      if ("error" in confirmResult) { setImageError(confirmResult.error); return; }
-
-      setCurrentImages([...currentImages, publicUrl]);
+      setImageUrls([...imageUrls, publicUrl]);
     } catch (err) {
       setImageError(`Error: ${err instanceof Error ? err.message : "unknown error"}`);
     } finally {
@@ -223,7 +218,7 @@ export function StationForm({ station }: { station?: Station }) {
     if (!station?.id) return;
     setImageUploading(true);
     const result = await deleteImageAction(station.id, url);
-    if (result.error) { setImageError(result.error); } else { setCurrentImages(currentImages.filter((u) => u !== url)); }
+    if (result.error) { setImageError(result.error); } else { setImageUrls(imageUrls.filter((u) => u !== url)); }
     setImageUploading(false);
   }
 
@@ -520,9 +515,9 @@ export function StationForm({ station }: { station?: Station }) {
             </div>
           )}
 
-          {currentImages.length > 0 && (
+          {imageUrls.length > 0 && (
             <div className="mb-5 flex flex-col gap-2">
-              {currentImages.map((url, idx) => (
+              {imageUrls.map((url, idx) => (
                 <div key={idx} className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -587,14 +582,15 @@ export function StationForm({ station }: { station?: Station }) {
 
           <div className="mt-5 pt-5" style={{ borderTop: "1px solid rgba(26,27,82,0.10)" }}>
             <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
-              Manual Image URLs (for record keeping)
+              Image URLs (for form submission)
             </label>
             <p className="text-[11px] text-navy/40 mb-3">
-              One URL per line. Useful for referencing external images or sources.
+              Automatically populated with uploaded images. Add more URLs manually if needed, one per line.
             </p>
             <textarea
               name="image_urls_manual"
-              defaultValue={(station?.image_urls ?? []).join("\n")}
+              value={imageUrls.join("\n")}
+              onChange={(e) => setImageUrls(e.target.value.split("\n").map((u) => u.trim()).filter(Boolean))}
               rows={3}
               className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition resize-y"
               placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
