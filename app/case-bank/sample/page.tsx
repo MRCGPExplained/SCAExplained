@@ -38,7 +38,7 @@ function AccountModal({ onClose, message }: { onClose: () => void; message: stri
         <h2 className="font-display font-bold text-[17px] mb-2" style={{ color: NAVY }}>
           Available with an account
         </h2>
-        <p className="text-[13px] mb-5" style={{ color: "rgba(31,41,55,0.55)" }}>
+        <p className="text-[14px] mb-5" style={{ color: "rgba(31,41,55,0.55)" }}>
           {message}
         </p>
         <button
@@ -69,7 +69,7 @@ function BulletList({ items }: { items: string[] }) {
       {items.map((item, i) => (
         <li key={i} className="flex gap-3 items-start">
           <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2" style={{ background: "rgba(31,41,55,0.25)" }} />
-          <span className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>{item}</span>
+          <span className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>{item}</span>
         </li>
       ))}
     </ul>
@@ -85,11 +85,11 @@ function BriefTab() {
         <div>
           <Label>Patient</Label>
           <div className="text-[14px] font-bold" style={{ color: NAVY }}>Amy Clarke</div>
-          <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.65)" }}>29 years old, Female</div>
+          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.65)" }}>29 years old, Female</div>
         </div>
         <div>
           <Label>Type</Label>
-          <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.75)" }}>Face to face</div>
+          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.75)" }}>Face to face</div>
         </div>
       </div>
       <div>
@@ -102,13 +102,13 @@ function BriefTab() {
       </div>
       <div>
         <Label>Recent Notes</Label>
-        <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
           Annual asthma review 11 months ago. PEFR 420 L/min. Advised to use preventer regularly. Repeat prescription issued. Prescription records show 5 salbutamol inhalers collected in the past 3 months.
         </p>
       </div>
       <div>
         <Label>Reason for Consultation</Label>
-        <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
           Amy is a 29-year-old graphic designer attending for her annual asthma review. She works from home. Prescription data flags high salbutamol use over the past 3 months.
         </p>
       </div>
@@ -121,14 +121,14 @@ function StoryTab() {
     <div className="flex flex-col gap-4">
       <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>Opening Statement</div>
-        <p className="text-[13.5px] leading-[1.65] italic" style={{ color: NAVY }}>
+        <p className="text-[15px] leading-[1.65] italic" style={{ color: NAVY }}>
           "I've been using my blue inhaler a lot more than usual lately. I had a bad episode about three weeks ago after a cold and ended up at the walk-in needing steroid tablets. I'm a bit worried about where things are heading."
         </p>
       </div>
 
       <div>
         <Label>If Asked to Explain Further</Label>
-        <p className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           Chest tightness and wheeze most days, worst in the mornings. Waking 1 to 2 nights a week with breathlessness or cough. Stopped going to yoga on Thursdays as exercise brings on symptoms. Using salbutamol 5 to 6 times a week, sometimes more. The episode 3 weeks ago followed a cold, salbutamol was not controlling it, attended walk-in and was given a 5-day course of prednisolone which helped quickly.
         </p>
       </div>
@@ -148,7 +148,7 @@ function StoryTab() {
           ].map((item, i) => (
             <li key={i} className="flex gap-2.5 items-start">
               <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-              <span className="text-[13px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>{item}</span>
+              <span className="text-[14px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>{item}</span>
             </li>
           ))}
         </ul>
@@ -156,7 +156,7 @@ function StoryTab() {
 
       <div>
         <Label>Social History</Label>
-        <p className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           Graphic designer, works from home. Lives alone. Partner has a cat. Non-smoker. Drinks 6 to 8 units per week. Enjoys yoga but has stopped due to symptoms.
         </p>
       </div>
@@ -169,20 +169,20 @@ function StoryTab() {
         ] as const).map(([label, value]) => (
           <div key={label} className="rounded-lg p-3" style={{ background: LIGHT_BG }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>{label}</div>
-            <p className="text-[12px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>{value}</p>
+            <p className="text-[13px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>{value}</p>
           </div>
         ))}
       </div>
 
       <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>Question for the Doctor</div>
-        <p className="text-[13px] leading-[1.6]" style={{ color: NAVY }}>
+        <p className="text-[14px] leading-[1.6]" style={{ color: NAVY }}>
           "Is there anything I could take instead of the steroid inhaler? I've read that steroids can cause problems if you use them for a long time."
         </p>
       </div>
 
       <div className="pt-3 border-t" style={{ borderColor: "rgba(26,27,82,0.08)" }}>
-        <p className="text-[12px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
+        <p className="text-[13px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
           Role player: appear quietly concerned, not distressed. Raise the steroid concern proactively if the doctor discusses stepping up treatment. Visibly relax if the doctor addresses the concern with a clear explanation. If steroid concerns are not addressed, re-raise them as a question before the end.
         </p>
       </div>
@@ -364,7 +364,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
             {activeTab === "data"        && <BulletList items={dataGathering} />}
             {activeTab === "management"  && <BulletList items={management} />}
             {activeTab === "explanation" && (
-              <p className="text-[13.5px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
+              <p className="text-[15px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
                 {explanation}
               </p>
             )}

@@ -52,7 +52,7 @@ function BulletList({ items }: { items: string[] }) {
             className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
             style={{ background: "rgba(31,41,55,0.25)" }}
           />
-          <span className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          <span className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {item}
           </span>
         </li>
@@ -70,13 +70,13 @@ function DoctorBriefContent({ station }: { station: Station }) {
           <div className="text-[14px] font-bold" style={{ color: NAVY }}>
             {station.patient_name}
           </div>
-          <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.65)" }}>
+          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.65)" }}>
             {station.patient_age}
           </div>
         </div>
         <div>
           <Label>Type</Label>
-          <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.75)" }}>
+          <div className="text-[14px]" style={{ color: "rgba(26,27,82,0.75)" }}>
             {station.consultation_type}
           </div>
         </div>
@@ -96,14 +96,14 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.recent_notes && (
         <div>
           <Label>Recent Notes</Label>
-          <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {station.recent_notes}
           </p>
         </div>
       )}
       <div>
         <Label>Reason for Consultation</Label>
-        <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.reason_for_consultation}
         </p>
       </div>
@@ -119,7 +119,7 @@ function PatientStoryContent({ station }: { station: Station }) {
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
           Opening Statement
         </div>
-        <p className="text-[13.5px] leading-[1.65] italic" style={{ color: NAVY }}>
+        <p className="text-[15px] leading-[1.65] italic" style={{ color: NAVY }}>
           &ldquo;{station.opening_statement}&rdquo;
         </p>
       </div>
@@ -127,7 +127,7 @@ function PatientStoryContent({ station }: { station: Station }) {
       {/* If asked further */}
       <div>
         <Label>If Asked to Explain Further</Label>
-        <p className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.if_asked_further}
         </p>
       </div>
@@ -154,7 +154,7 @@ function PatientStoryContent({ station }: { station: Station }) {
                   className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40"
                   style={{ background: NAVY }}
                 />
-                <span className="text-[13px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>
+                <span className="text-[14px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>
                   {item}
                 </span>
               </li>
@@ -166,7 +166,7 @@ function PatientStoryContent({ station }: { station: Station }) {
       {/* Social history */}
       <div>
         <Label>Social History</Label>
-        <p className="text-[13.5px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+        <p className="text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
           {station.social_history}
         </p>
       </div>
@@ -182,7 +182,7 @@ function PatientStoryContent({ station }: { station: Station }) {
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
               {label}
             </div>
-            <p className="text-[12px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>
+            <p className="text-[13px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>
               {value}
             </p>
           </div>
@@ -202,7 +202,7 @@ function PatientStoryContent({ station }: { station: Station }) {
                 >
                   {i + 1}.
                 </span>
-                <span className="text-[13px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+                <span className="text-[14px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
                   {s}
                 </span>
               </li>
@@ -217,7 +217,7 @@ function PatientStoryContent({ station }: { station: Station }) {
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
             Question for the Doctor
           </div>
-          <p className="text-[13px] leading-[1.6]" style={{ color: NAVY }}>
+          <p className="text-[14px] leading-[1.6]" style={{ color: NAVY }}>
             {station.question_for_doctor}
           </p>
         </div>
@@ -229,7 +229,7 @@ function PatientStoryContent({ station }: { station: Station }) {
           className="pt-3 border-t"
           style={{ borderColor: "rgba(26,27,82,0.08)" }}
         >
-          <p className="text-[12px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
+          <p className="text-[13px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
             {station.role_player_instruction}
           </p>
         </div>
@@ -696,7 +696,7 @@ export function StationPageClient({
             {activeTab === "data" && <BulletList items={station.data_gathering} />}
             {activeTab === "management" && <BulletList items={station.management} />}
             {activeTab === "explanation" && (
-              <p className="text-[13.5px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
+              <p className="text-[15px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
                 {station.example_explanation}
               </p>
             )}
@@ -714,7 +714,7 @@ export function StationPageClient({
                       className="absolute inset-0 w-full h-full"
                     />
                   </div>
-                  <p className="text-[13.5px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
+                  <p className="text-[15px] leading-[1.75]" style={{ color: "rgba(26,27,82,0.65)" }}>
                     This walkthrough covers the key clinical points for this station — guidelines, red flags, and how to structure your consultation.
                   </p>
                 </div>
