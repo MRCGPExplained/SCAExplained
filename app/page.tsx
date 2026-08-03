@@ -93,30 +93,33 @@ export default async function HomePage() {
       <section className="px-10 pb-16 pt-6 max-md:px-6">
         <div className="max-w-[720px] mx-auto flex flex-col gap-5">
 
-          <div className="mb-1">
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.35)" }}>What We Offer</p>
-            <h2 className="font-display font-extrabold text-[22px]" style={{ color: DARK }}>
-              Everything you need to pass your SCA
-            </h2>
-          </div>
+          <h2 className="font-display font-extrabold text-[22px]" style={{ color: DARK }}>
+            What We Offer
+          </h2>
 
           {/* FREE WEBINAR — primary */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
+            <span
+              className="absolute top-5 right-5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: "#F6D44B", color: DARK }}
+            >
+              Free
+            </span>
             <div className="flex items-center gap-2 mb-2">
               <WebinarIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Webinar</p>
             </div>
             <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              How To Pass Your SCA — Free Monthly Webinar
+              How To Pass Your SCA — Monthly Webinar
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
               A free 1-hour Zoom session every month. Learn what the RCGP
               examiners are actually scoring, how high-performing candidates think through cases, and
               the consultation habits that separate a Clear Pass from a near miss. Attendees receive
-              a code for 1 month of free Case Bank access.
+              a code for 3 free recording credits.
             </p>
 
             {freeWebinars.length > 0 ? (
@@ -152,15 +155,15 @@ export default async function HomePage() {
           >
             <div className="flex items-center gap-2 mb-2">
               <CaseBankIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 246 stations</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 250+ cases</p>
             </div>
             <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              246 Realistic SCA Stations
+              SCA Case Bank
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-              A growing library of exam-style cases built around the domains RCGP examiners score.
-              Each station includes a full case sheet, data-gathering guidance, management points,
-              and an example explanation — everything you need to practise purposefully.
+              A growing library of exam-style cases built to simulate the SCA examination.
+              Each station includes a full case sheet, data-gathering guidance, management points
+              and an example explanation to practise and learn effectively.
             </p>
 
 
@@ -187,7 +190,7 @@ export default async function HomePage() {
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Record a consultation with a partner and get it marked the same way RCGP examiners
-              mark in the real exam — graded across Data Gathering, Clinical Management, and Relating
+              mark in the real exam, graded across Data Gathering, Clinical Management, and Relating
               to Others, with written feedback and voice notes from a qualified GP. Read back
               the full transcript, listen to the recording, and track your performance across
               every station you attempt.
@@ -212,13 +215,15 @@ export default async function HomePage() {
               ))}
             </div>
 
-            <Link
-              href={user ? "/recordings" : "/register"}
-              className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: DARK, color: "white" }}
-            >
-              {user ? "View My Recordings →" : "Get Started →"}
-            </Link>
+            {user && (
+              <Link
+                href="/recordings"
+                className="inline-block font-bold text-[14px] px-7 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                style={{ background: DARK, color: "white" }}
+              >
+                View My Recordings →
+              </Link>
+            )}
           </div>
 
         </div>
