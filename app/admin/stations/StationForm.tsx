@@ -240,22 +240,6 @@ export function StationForm({ station }: { station?: Station }) {
     }
   }
 
-  function handleImagePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === "file" && item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          e.preventDefault();
-          uploadImage(file);
-        }
-        break;
-      }
-    }
-  }
-
   async function handleImageDelete(supabaseUrl: string) {
     if (!station?.id) return;
     setImageUploading(true);
