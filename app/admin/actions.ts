@@ -22,7 +22,7 @@ function stationFromForm(formData: FormData) {
   const imageUrlsRaw = String(formData.get("image_urls_manual") ?? "").trim();
   const imageUrls = imageUrlsRaw
     .split("\n")
-    .map((url) => url.trim())
+    .map((line) => line.trim())
     .filter(Boolean);
 
   return {

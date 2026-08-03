@@ -191,10 +191,26 @@ function DoctorBriefContent({ station }: { station: Station }) {
         </p>
       </div>
       {station.image_urls && station.image_urls.length > 0 && (
-        <div className="grid grid-cols-1 gap-3">
-          {station.image_urls.map((url, idx) => (
-            <img key={idx} src={url} alt={`Station image ${idx + 1}`} className="w-full h-auto max-h-[500px] object-contain rounded-lg" />
-          ))}
+        <div className="grid grid-cols-1 gap-4">
+          {station.image_urls.map((item, idx) => {
+            let record: { supabaseUrl?: string; originalUrl?: string; attributedTo?: string } = {};
+            try {
+              record = JSON.parse(item);
+            } catch {
+              record = { supabaseUrl: item };
+            }
+            const imgUrl = record.supabaseUrl || record.originalUrl || item;
+            return (
+              <div key={idx} className="flex flex-col gap-1.5">
+                <img src={imgUrl} alt={`Station image ${idx + 1}`} className="w-full h-auto max-h-[500px] object-contain rounded-lg" />
+                {record.attributedTo && (
+                  <p className="text-[12px]" style={{ color: "rgba(26,27,82,0.50)" }}>
+                    Image: {record.attributedTo}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

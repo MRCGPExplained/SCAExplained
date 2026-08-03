@@ -127,11 +127,28 @@ export function StationForm({ station }: { station?: Station }) {
   const [audioError, setAudioError] = useState<string | null>(null);
   const audioFileRef = useRef<HTMLInputElement>(null);
 
-  const [imageUrls, setImageUrls] = useState<string[]>(station?.image_urls ?? []);
+  interface ImageRecord {
+    supabaseUrl: string;
+    originalUrl?: string;
+    attributedTo?: string;
+  }
+
+  const parseImageRecords = (urls: string[] | null): ImageRecord[] => {
+    if (!urls) return [];
+    return urls.map((url) => {
+      try {
+        const parsed = JSON.parse(url);
+        return typeof parsed === "object" && parsed.supabaseUrl ? parsed : { supabaseUrl: url };
+      } catch {
+        return { supabaseUrl: url };
+      }
+    });
+  };
+
+  const [imageRecords, setImageRecords] = useState<ImageRecord[]>(parseImageRecords(station?.image_urls ?? []));
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const imageFileRef = useRef<HTMLInputElement>(null);
-  const imagePasteRef = useRef<HTMLDivElement>(null);
 
   async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -169,24 +186,20 @@ export function StationForm({ station }: { station?: Station }) {
     setImageUploading(true);
     setImageError(null);
     try {
-      // Compress image if it's too large
       let uploadFile = file;
-      if (file.size > 1000000) { // > 1MB
+      if (file.size > 1000000) {
         const canvas = document.createElement("canvas");
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
-
         await new Promise((resolve, reject) => {
           img.onload = resolve;
           img.onerror = reject;
           img.src = objectUrl;
         });
-
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
         if (ctx) ctx.drawImage(img, 0, 0);
-
         const blob = await new Promise<Blob>((resolve) => {
           canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.7);
         });
@@ -197,7 +210,7 @@ export function StationForm({ station }: { station?: Station }) {
       const buffer = await uploadFile.arrayBuffer();
       const result = await uploadImageAction(station.id, uploadFile.name, buffer);
       if ("error" in result) { setImageError(result.error); return; }
-      setImageUrls([...imageUrls, result.imageUrl]);
+      setImageRecords([...imageRecords, { supabaseUrl: result.imageUrl }]);
     } catch (err) {
       setImageError(`Error: ${err instanceof Error ? err.message : "unknown error"}`);
     } finally {
@@ -227,11 +240,11 @@ export function StationForm({ station }: { station?: Station }) {
     }
   }
 
-  async function handleImageDelete(url: string) {
+  async function handleImageDelete(supabaseUrl: string) {
     if (!station?.id) return;
     setImageUploading(true);
-    const result = await deleteImageAction(station.id, url);
-    if (result.error) { setImageError(result.error); } else { setImageUrls(imageUrls.filter((u) => u !== url)); }
+    const result = await deleteImageAction(station.id, supabaseUrl);
+    if (result.error) { setImageError(result.error); } else { setImageRecords(imageRecords.filter((r) => r.supabaseUrl !== supabaseUrl)); }
     setImageUploading(false);
   }
 
@@ -528,28 +541,28 @@ export function StationForm({ station }: { station?: Station }) {
             </div>
           )}
 
-          {imageUrls.length > 0 && (
-            <div className="mb-5 flex flex-col gap-2">
-              {imageUrls.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <path d="M21 15l-5-5L5 21"/>
-                  </svg>
-                  <span className="text-[13px] text-navy/70 flex-1 truncate">{url.split("/").pop()}</span>
-                  <a href={url} download className="text-[12px] font-medium no-underline text-navy/50 hover:text-navy transition">
-                    Download
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleImageDelete(url)}
-                    disabled={imageUploading}
-                    className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
-                    style={{ background: "none", border: "none", cursor: imageUploading ? "not-allowed" : "pointer" }}
-                  >
-                    Delete
-                  </button>
+          {imageRecords.length > 0 && (
+            <div className="mb-5 flex flex-col gap-4">
+              {imageRecords.map((rec, idx) => (
+                <div key={idx} className="px-4 py-3 rounded-lg border" style={{ background: "rgba(26,27,82,0.02)", borderColor: "rgba(26,27,82,0.08)" }}>
+                  <div className="mb-3 flex items-center gap-3">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <span className="text-[12px] text-navy/70 flex-1 truncate font-mono">{rec.supabaseUrl.split("/").pop()}</span>
+                    <a href={rec.supabaseUrl} download className="text-[11px] font-medium no-underline text-navy/50 hover:text-navy transition">Download</a>
+                    <button type="button" onClick={() => handleImageDelete(rec.supabaseUrl)} disabled={imageUploading} className="text-[11px] font-medium text-red-600/70 hover:text-red-700 transition" style={{ background: "none", border: "none", cursor: imageUploading ? "not-allowed" : "pointer" }}>Delete</button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Original URL</label>
+                      <input type="text" value={rec.originalUrl ?? ""} onChange={(e) => { const updated = [...imageRecords]; updated[idx] = { ...rec, originalUrl: e.target.value, attributedTo: rec.attributedTo || (e.target.value ? new URL(e.target.value).hostname : "") }; setImageRecords(updated); }} className="w-full px-2 py-1.5 rounded-lg border border-navy/15 text-[12px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition" placeholder="https://example.com/image.jpg" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Image Attributed to</label>
+                      <input type="text" value={rec.attributedTo ?? ""} onChange={(e) => { const updated = [...imageRecords]; updated[idx] = { ...rec, attributedTo: e.target.value }; setImageRecords(updated); }} className="w-full px-2 py-1.5 rounded-lg border border-navy/15 text-[12px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition" placeholder="Source or creator name" />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -593,22 +606,11 @@ export function StationForm({ station }: { station?: Station }) {
             You can drag files here, paste from clipboard (Ctrl+V), or click Browse. Uploaded directly to storage.
           </p>
 
-          <div className="mt-5 pt-5" style={{ borderTop: "1px solid rgba(26,27,82,0.10)" }}>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
-              Image URLs (for form submission)
-            </label>
-            <p className="text-[11px] text-navy/40 mb-3">
-              Automatically populated with uploaded images. Add more URLs manually if needed, one per line.
-            </p>
-            <textarea
-              name="image_urls_manual"
-              value={imageUrls.join("\n")}
-              onChange={(e) => setImageUrls(e.target.value.split("\n").map((u) => u.trim()).filter(Boolean))}
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition resize-y"
-              placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-            />
-          </div>
+          <input
+            type="hidden"
+            name="image_urls_manual"
+            value={imageRecords.map((r) => JSON.stringify(r)).join("\n")}
+          />
         </section>
       )}
 
