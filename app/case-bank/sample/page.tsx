@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const NAVY = "#1F2937";
@@ -20,7 +20,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 // ── Shared "needs account" modal ──────────────────────────────────────────────
 
-function AccountModal({ onClose }: { onClose: () => void }) {
+function AccountModal({ onClose, message }: { onClose: () => void; message: string }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
@@ -35,25 +35,16 @@ function AccountModal({ onClose }: { onClose: () => void }) {
         <h2 className="font-display font-bold text-[17px] mb-2" style={{ color: NAVY }}>
           Available with an account
         </h2>
-        <p className="text-[13px] mb-6" style={{ color: "rgba(31,41,55,0.55)" }}>
-          Create a free account to access the timer, study rooms, recording and the full case bank.
+        <p className="text-[13px] mb-5" style={{ color: "rgba(31,41,55,0.55)" }}>
+          {message}
         </p>
-        <div className="flex flex-col gap-2">
-          <Link
-            href="/register"
-            className="block font-bold text-[14px] py-2.5 rounded-xl no-underline"
-            style={{ background: NAVY, color: "white" }}
-          >
-            Create account
-          </Link>
-          <button
-            onClick={onClose}
-            className="font-semibold text-[13px] py-2 rounded-xl"
-            style={{ background: "transparent", border: "none", color: "rgba(31,41,55,0.4)", cursor: "pointer" }}
-          >
-            OK
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="font-semibold text-[14px] py-2.5 rounded-xl w-full"
+          style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
+        >
+          OK
+        </button>
       </div>
     </div>
   );
@@ -196,9 +187,68 @@ function StoryTab() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+// Pre-read 2 min, then consultation 10 min
+const PHASES: { label: string; secs: number }[] = [
+  { label: "Pre-Read", secs: 120 },
+  { label: "Consultation", secs: 600 },
+];
+
 export default function SampleCasePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
-  const [modal, setModal] = useState(false);
+  const [modal, setModal] = useState<string | null>(null);
+
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  const [remaining, setRemaining] = useState(PHASES[0].secs);
+  const [running, setRunning] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (running) {
+      intervalRef.current = setInterval(() => {
+        setRemaining((r) => {
+          if (r <= 1) {
+            const next = phaseIdx + 1;
+            if (next < PHASES.length) {
+              setPhaseIdx(next);
+              setRemaining(PHASES[next].secs);
+            } else {
+              setRunning(false);
+              clearInterval(intervalRef.current!);
+              return 0;
+            }
+            return PHASES[next]?.secs ?? 0;
+          }
+          return r - 1;
+        });
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [running, phaseIdx]);
+
+  const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const secs = String(remaining % 60).padStart(2, "0");
+
+  function handleStart() {
+    if (remaining === 0) {
+      setPhaseIdx(0);
+      setRemaining(PHASES[0].secs);
+    }
+    setRunning(true);
+  }
+
+  function handleSkip() {
+    const next = phaseIdx + 1;
+    if (next < PHASES.length) {
+      setPhaseIdx(next);
+      setRemaining(PHASES[next].secs);
+      setRunning(true);
+    } else {
+      setRunning(false);
+      setRemaining(0);
+    }
+  }
 
   const dataGathering = [
     "Onset, character, severity and radiation of the chest pain. Specifically ask about left arm, jaw and back.",
@@ -246,10 +296,10 @@ I can see this is worrying, especially given what happened with your dad. It's a
     "The patient's emotional cues are clinical data. A patient who mentions their father's cardiac event and asks whether it could be their heart has given you everything you need to score highly in Relating to Others.",
   ];
 
-  function NavBtn({ children, icon }: { children: React.ReactNode; icon: React.ReactNode }) {
+  function NavBtn({ children, icon, message }: { children: React.ReactNode; icon: React.ReactNode; message: string }) {
     return (
       <button
-        onClick={() => setModal(true)}
+        onClick={() => setModal(message)}
         className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
         style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.6)", cursor: "pointer" }}
       >
@@ -260,9 +310,9 @@ I can see this is worrying, especially given what happened with your dad. It's a
   }
 
   return (
-    <main style={{ fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh", background: "#F9F9F7" }}>
+    <main style={{ fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh", background: "#FAFAF8" }}>
 
-      {modal && <AccountModal onClose={() => setModal(false)} />}
+      {modal && <AccountModal message={modal} onClose={() => setModal(null)} />}
 
       {/* Top nav */}
       <div className="flex flex-wrap items-center justify-between px-6 py-2.5 gap-2" style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
@@ -277,27 +327,36 @@ I can see this is worrying, especially given what happened with your dad. It's a
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <NavBtn icon={
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="9" y="2" width="6" height="11" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-              <line x1="9" y1="21" x2="15" y2="21"/>
-            </svg>
-          }>Record</NavBtn>
+          <NavBtn
+            message="Recording credits start from £10 for 3 consultations. Create a free account to get started."
+            icon={
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="11" rx="3"/>
+                <path d="M5 10a7 7 0 0 0 14 0"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+                <line x1="9" y1="21" x2="15" y2="21"/>
+              </svg>
+            }
+          >Record</NavBtn>
 
-          <NavBtn icon={
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          }>Study Room</NavBtn>
+          <NavBtn
+            message="Create a free account to access study rooms and practise cases with a partner."
+            icon={
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            }
+          >Study Room</NavBtn>
 
-          <NavBtn icon={
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-          }>Star</NavBtn>
+          <NavBtn
+            message="Create a free account to star cases and track your progress across the full case bank."
+            icon={
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            }
+          >Star</NavBtn>
         </div>
       </div>
 
@@ -346,46 +405,61 @@ I can see this is worrying, especially given what happened with your dad. It's a
             {activeTab === "takeaways"   && <BulletList items={takeaways} />}
           </div>
 
-          {/* Right column: greyed-out timer */}
+          {/* Right column: live timer */}
           <div className="sticky top-4">
             <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: "white", border: "1px solid rgba(31,41,55,0.10)" }}>
-              {/* Timer display */}
               <div className="text-center">
-                <div className="text-[10px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "rgba(31,41,55,0.3)" }}>Pre-Read</div>
-                <div className="font-mono font-bold text-[38px] leading-none" style={{ color: "rgba(31,41,55,0.18)" }}>2:00</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "rgba(31,41,55,0.4)" }}>
+                  {PHASES[phaseIdx].label}
+                </div>
+                <div
+                  className="font-mono font-bold text-[38px] leading-none tabular-nums"
+                  style={{ color: remaining <= 30 && running ? "#DC2626" : NAVY }}
+                >
+                  {mins}:{secs}
+                </div>
               </div>
 
-              {/* Fake buttons */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => setModal(true)}
-                  className="flex-1 rounded-lg py-2 text-[12px] font-semibold"
-                  style={{ background: "rgba(31,41,55,0.05)", border: "1px solid rgba(31,41,55,0.10)", color: "rgba(31,41,55,0.3)", cursor: "pointer" }}
-                >
-                  Start
-                </button>
-                <button
-                  onClick={() => setModal(true)}
-                  className="flex-1 rounded-lg py-2 text-[12px] font-semibold"
-                  style={{ background: "rgba(31,41,55,0.05)", border: "1px solid rgba(31,41,55,0.10)", color: "rgba(31,41,55,0.3)", cursor: "pointer" }}
-                >
-                  Skip
-                </button>
+                {!running ? (
+                  <button
+                    onClick={handleStart}
+                    className="flex-1 rounded-lg py-2 text-[12px] font-bold"
+                    style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
+                  >
+                    {remaining === PHASES[phaseIdx].secs ? "Start" : "Resume"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setRunning(false)}
+                    className="flex-1 rounded-lg py-2 text-[12px] font-bold"
+                    style={{ background: "rgba(31,41,55,0.08)", border: "none", color: NAVY, cursor: "pointer" }}
+                  >
+                    Pause
+                  </button>
+                )}
+                {phaseIdx < PHASES.length - 1 && (
+                  <button
+                    onClick={handleSkip}
+                    className="rounded-lg py-2 px-3 text-[12px] font-semibold"
+                    style={{ background: "rgba(31,41,55,0.06)", border: "1px solid rgba(31,41,55,0.10)", color: "rgba(31,41,55,0.55)", cursor: "pointer" }}
+                  >
+                    Skip
+                  </button>
+                )}
               </div>
 
-              <p className="text-[11px] text-center" style={{ color: "rgba(31,41,55,0.35)" }}>
-                Timer available with an account
-              </p>
-
-              <div style={{ borderTop: "1px solid rgba(31,41,55,0.07)" }} className="pt-3">
-                <Link
-                  href="/recordings/sample"
-                  className="block text-center text-[12px] font-semibold no-underline"
-                  style={{ color: "rgba(31,41,55,0.45)" }}
-                >
-                  See sample report →
-                </Link>
-              </div>
+              {PHASES.length > 1 && (
+                <div className="flex gap-1.5">
+                  {PHASES.map((p, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 h-1 rounded-full"
+                      style={{ background: i < phaseIdx ? YELLOW : i === phaseIdx ? NAVY : "rgba(31,41,55,0.12)" }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

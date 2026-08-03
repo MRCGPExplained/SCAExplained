@@ -12,7 +12,7 @@ export function NavbarWrapper({
 }) {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
-  if (/^\/case-bank\/\d/.test(pathname)) return null;
+  if (/^\/case-bank\/((\d)|sample)/.test(pathname)) return null;
   if (/^\/video-course\/.+/.test(pathname)) return null;
   return <Navbar isLoggedIn={isLoggedIn} displayName={displayName} />;
 }
