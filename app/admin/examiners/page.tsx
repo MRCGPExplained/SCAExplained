@@ -16,6 +16,7 @@ type ActivityRow = {
   sent_to_candidate_at: string | null;
   status: string;
   examiner_id: string | null;
+  examiner_paid_at: string | null;
 };
 
 export default async function ExaminersPage({
@@ -35,7 +36,7 @@ export default async function ExaminersPage({
       ? (() => {
           let q = supabase
             .from("station_recordings")
-            .select("id, station_number, station_title, doctor_display_name, examiner_reviewed_at, sent_to_candidate_at, status, examiner_id")
+            .select("id, station_number, station_title, doctor_display_name, examiner_reviewed_at, sent_to_candidate_at, status, examiner_id, examiner_paid_at")
             .not("examiner_id", "is", null)
             .order("examiner_reviewed_at", { ascending: false })
             .limit(200);

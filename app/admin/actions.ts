@@ -931,3 +931,19 @@ export async function toggleBetaAction(userId: string, beta: boolean): Promise<A
   revalidatePath("/admin/case-bank-users");
   return {};
 }
+
+export async function bulkMarkExaminerPaidAction(ids: string[]): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+  if (!ids.length) return { error: "No recordings selected." };
+
+  const { error } = await supabase
+    .from("station_recordings")
+    .update({ examiner_paid_at: new Date().toISOString() })
+    .in("id", ids);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}

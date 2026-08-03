@@ -6,6 +6,7 @@ import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
   toggleExaminerIsAdminAction, toggleDeepgramAction, setVercelPlanAction, toggleResendAction,
+  bulkMarkExaminerPaidAction,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -22,6 +23,7 @@ type ActivityRow = {
   sent_to_candidate_at: string | null;
   status: string;
   examiner_id: string | null;
+  examiner_paid_at: string | null;
 };
 type BypassSettings = { enabled: boolean; emails: string };
 
@@ -118,6 +120,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   const [resendPending, startResendTransition] = useTransition();
   const [resendErr, setResendErr] = useState("");
 
+  // Activity selection + bulk pay
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [markingPaid, setMarkingPaid] = useState(false);
+  const [payErr, setPayErr] = useState("");
+
   useEffect(() => {
     if ("success" in promptState && promptState.success) {
       setShowPromptSaved(true);
@@ -142,6 +149,99 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
       await deleteExaminerAction(id);
       window.location.reload();
     });
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(rows: ActivityRow[]) {
+    setSelectedIds((prev) =>
+      prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))
+    );
+  }
+
+  async function handleMarkPaid() {
+    if (!selectedIds.size) return;
+    setMarkingPaid(true);
+    setPayErr("");
+    const result = await bulkMarkExaminerPaidAction(Array.from(selectedIds));
+    setMarkingPaid(false);
+    if (result.error) { setPayErr(result.error); return; }
+    setSelectedIds(new Set());
+    router.refresh();
+  }
+
+  function handleCreateInvoice(rows: ActivityRow[]) {
+    const selected = rows.filter((r) => selectedIds.has(r.id));
+    if (!selected.length) return;
+
+    const examinerNames = [...new Set(
+      selected.map((r) => (r.examiner_id ? examinerMap.get(r.examiner_id)?.name : null) ?? "Unknown")
+    )].join(", ");
+
+    const fmtDate = (iso: string | null) =>
+      iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
+    const tableRows = selected.map((r) => {
+      const exName = (r.examiner_id ? examinerMap.get(r.examiner_id)?.name : null) ?? "Unknown";
+      return `<tr>
+        <td>${fmtDate(r.examiner_reviewed_at)}</td>
+        <td>${exName}</td>
+        <td>#${r.station_number} ${r.station_title}</td>
+        <td>${r.doctor_display_name}</td>
+        <td style="text-align:right">£4.00</td>
+      </tr>`;
+    }).join("");
+
+    const total = selected.length * 4;
+    const periodLine = (from || to) ? `Period: ${from || "—"} to ${to || "—"}<br>` : "";
+    const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+    const html = `<!DOCTYPE html><html><head><title>Examiner Invoice</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; padding: 48px; max-width: 760px; margin: auto; color: #222; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .meta { font-size: 13px; color: #666; line-height: 1.8; margin-bottom: 28px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #999; padding: 8px 12px; border-bottom: 2px solid #eee; }
+  th:last-child { text-align: right; }
+  td { padding: 9px 12px; font-size: 13px; border-bottom: 1px solid #f2f2f2; vertical-align: top; }
+  .total-block { margin-top: 24px; padding-top: 16px; border-top: 2px solid #222; display: flex; justify-content: flex-end; }
+  .total-block table { width: auto; }
+  .total-block td { border: none; padding: 3px 12px; font-size: 13px; }
+  .total-block .grand { font-weight: 700; font-size: 16px; }
+  .print-btn { display: block; margin-top: 32px; padding: 11px 24px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  @media print { .print-btn { display: none; } body { padding: 0; } }
+</style>
+</head><body>
+<h1>Examiner Marking Invoice</h1>
+<div class="meta">
+  Generated: ${today}<br>
+  To: <strong>${examinerNames}</strong><br>
+  ${periodLine}
+</div>
+<table>
+  <thead><tr><th>Date</th><th>Examiner</th><th>Station</th><th>Candidate</th><th style="text-align:right">Amount</th></tr></thead>
+  <tbody>${tableRows}</tbody>
+</table>
+<div class="total-block">
+  <table>
+    <tr><td style="color:#888">${selected.length} recording${selected.length === 1 ? "" : "s"} × £4.00</td><td class="grand">£${total.toFixed(2)}</td></tr>
+  </table>
+</div>
+<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+</body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -268,6 +368,8 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
           {/* Activity log */}
           <div>
             <h2 className="font-display font-bold text-[18px] text-navy mb-4">Marking Activity</h2>
+
+            {/* Filters */}
             <div className="bg-white rounded-xl border border-navy/10 p-4 mb-4 flex items-end gap-3 flex-wrap">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/40">From</label>
@@ -286,42 +388,129 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
               </div>
               <button onClick={applyFilters} className="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white" style={{ background: NAVY, border: "none", cursor: "pointer" }}>Filter</button>
               {(from || to || examinerFilter) && (
-                <button onClick={() => { setFrom(""); setTo(""); setExaminerFilter(""); router.push("/admin/examiners"); }} className="text-[12px] text-navy/40 px-3 py-1.5" style={{ background: "none", border: "none", cursor: "pointer" }}>Clear</button>
+                <button onClick={() => { setFrom(""); setTo(""); setExaminerFilter(""); setSelectedIds(new Set()); router.push("/admin/examiners"); }} className="text-[12px] text-navy/40 px-3 py-1.5" style={{ background: "none", border: "none", cursor: "pointer" }}>Clear</button>
               )}
             </div>
+
             {activity.length === 0 ? (
               <div className="bg-white rounded-xl border border-navy/10 px-5 py-4 text-[13px] text-navy/40">No marking activity found.</div>
-            ) : (
-              <div className="bg-white rounded-xl border border-navy/10 overflow-hidden">
-                <table className="w-full text-[13px]" style={{ borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid rgba(51,51,51,0.08)" }}>
-                      {["Date", "Examiner", "Station", "Candidate", "Status"].map((h) => (
-                        <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activity.map((row) => {
-                      const ex = row.examiner_id ? examinerMap.get(row.examiner_id) : null;
-                      return (
-                        <tr key={row.id} style={{ borderBottom: "1px solid rgba(51,51,51,0.05)" }}>
-                          <td className="px-4 py-3 text-navy/60">{row.examiner_reviewed_at ? new Date(row.examiner_reviewed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
-                          <td className="px-4 py-3 font-semibold text-navy">{ex?.name ?? "Unknown"}</td>
-                          <td className="px-4 py-3 text-navy/80"><span className="text-navy/40 mr-1.5">#{row.station_number}</span>{row.station_title}</td>
-                          <td className="px-4 py-3 text-navy/60">{row.doctor_display_name}</td>
-                          <td className="px-4 py-3">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" style={row.status === "sent" ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" } : { background: "rgba(34,197,94,0.1)", color: "#166534" }}>
-                              {row.status === "sent" ? "Sent" : "Reviewed"}
-                            </span>
-                          </td>
+            ) : (() => {
+              const unpaid = activity.filter((r) => !r.examiner_paid_at);
+              const paid = activity.filter((r) => r.examiner_paid_at);
+              const allSelected = selectedIds.size === activity.length;
+              const someSelected = selectedIds.size > 0;
+
+              return (
+                <>
+                  {/* Summary stats */}
+                  <div className="flex gap-3 mb-4 flex-wrap">
+                    <div className="bg-white rounded-xl border border-navy/10 px-4 py-3 flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/40">Total</span>
+                      <span className="text-[20px] font-bold text-navy">{activity.length}</span>
+                      <span className="text-[12px] text-navy/40">£{(activity.length * 4).toFixed(0)}</span>
+                    </div>
+                    <div className="bg-white rounded-xl border border-navy/10 px-4 py-3 flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "#92400E" }}>Unpaid</span>
+                      <span className="text-[20px] font-bold" style={{ color: "#92400E" }}>{unpaid.length}</span>
+                      <span className="text-[12px]" style={{ color: "#92400E", opacity: 0.7 }}>£{(unpaid.length * 4).toFixed(0)}</span>
+                    </div>
+                    <div className="bg-white rounded-xl border border-navy/10 px-4 py-3 flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "#166534" }}>Paid</span>
+                      <span className="text-[20px] font-bold" style={{ color: "#166534" }}>{paid.length}</span>
+                      <span className="text-[12px]" style={{ color: "#166534", opacity: 0.7 }}>£{(paid.length * 4).toFixed(0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Bulk action bar */}
+                  {someSelected && (
+                    <div className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-xl flex-wrap" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)" }}>
+                      <span className="text-[13px] font-semibold text-navy">{selectedIds.size} selected</span>
+                      <button
+                        onClick={handleMarkPaid}
+                        disabled={markingPaid}
+                        className="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50"
+                        style={{ background: "#166534", border: "none", cursor: "pointer" }}
+                      >
+                        {markingPaid ? "Marking…" : `Mark ${selectedIds.size} as Paid`}
+                      </button>
+                      <button
+                        onClick={() => handleCreateInvoice(activity)}
+                        className="px-4 py-1.5 rounded-lg text-[12px] font-semibold"
+                        style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+                      >
+                        Create Invoice
+                      </button>
+                      <button
+                        onClick={() => setSelectedIds(new Set())}
+                        className="text-[12px] text-navy/40"
+                        style={{ background: "none", border: "none", cursor: "pointer" }}
+                      >
+                        Deselect all
+                      </button>
+                      {payErr && <span className="text-[12px] text-red-600">{payErr}</span>}
+                    </div>
+                  )}
+
+                  {/* Table */}
+                  <div className="bg-white rounded-xl border border-navy/10 overflow-hidden">
+                    <table className="w-full text-[13px]" style={{ borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid rgba(51,51,51,0.08)" }}>
+                          <th className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              onChange={() => toggleSelectAll(activity)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </th>
+                          {["Date", "Examiner", "Station", "Candidate", "Status", "Payment"].map((h) => (
+                            <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>{h}</th>
+                          ))}
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody>
+                        {activity.map((row) => {
+                          const ex = row.examiner_id ? examinerMap.get(row.examiner_id) : null;
+                          const isSelected = selectedIds.has(row.id);
+                          return (
+                            <tr
+                              key={row.id}
+                              onClick={() => toggleSelect(row.id)}
+                              style={{ borderBottom: "1px solid rgba(51,51,51,0.05)", background: isSelected ? "rgba(51,51,51,0.03)" : undefined, cursor: "pointer" }}
+                            >
+                              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(row.id)} style={{ cursor: "pointer" }} />
+                              </td>
+                              <td className="px-4 py-3 text-navy/60 whitespace-nowrap">
+                                {row.examiner_reviewed_at ? new Date(row.examiner_reviewed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-navy">{ex?.name ?? "Unknown"}</td>
+                              <td className="px-4 py-3 text-navy/80"><span className="text-navy/40 mr-1.5">#{row.station_number}</span>{row.station_title}</td>
+                              <td className="px-4 py-3 text-navy/60">{row.doctor_display_name}</td>
+                              <td className="px-4 py-3">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" style={row.status === "sent" ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" } : { background: "rgba(34,197,94,0.1)", color: "#166534" }}>
+                                  {row.status === "sent" ? "Sent" : "Reviewed"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                {row.examiner_paid_at ? (
+                                  <span className="text-[11px] font-semibold" style={{ color: "#166534" }}>
+                                    Paid {new Date(row.examiner_paid_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold" style={{ color: "#92400E" }}>Unpaid</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </>
       )}
