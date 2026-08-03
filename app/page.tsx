@@ -118,7 +118,7 @@ export default async function HomePage() {
             <p className="text-[14.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
               A free 1-hour Zoom session every month. Learn what the RCGP
               examiners are actually scoring, how high-performing candidates think through cases, and
-              the consultation habits that separate a Clear Pass from a near miss. Attendees receive
+              the consultation habits that earn you a Clear Pass. Attendees receive
               a code for 2 free recording credits.
             </p>
 
