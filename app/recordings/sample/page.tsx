@@ -67,18 +67,6 @@ export default function SampleReportPage() {
     <div className="min-h-screen" style={{ background: "#F4F4F2" }}>
       <div className="max-w-[960px] mx-auto px-4 py-10">
 
-        {/* Sample banner */}
-        <div
-          className="rounded-xl px-4 py-3 mb-5 flex items-center gap-2 text-[12.5px]"
-          style={{ background: "rgba(246,212,75,0.15)", border: "1.5px solid rgba(246,212,75,0.6)", color: NAVY }}
-        >
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
-            <circle cx="8" cy="8" r="7" stroke={NAVY} strokeWidth="1.4"/>
-            <path d="M8 5v3.5M8 10.5v.5" stroke={NAVY} strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-          <span><strong>Sample report.</strong> This is what your report looks like after an examiner has reviewed your consultation.</span>
-        </div>
-
         {/* Station header */}
         <div
           className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4"
@@ -117,6 +105,8 @@ export default function SampleReportPage() {
           <span>1 August 2026</span>
           <span>·</span>
           <span>Doctor: Dr S. Mehta</span>
+          <span>·</span>
+          <span>Patient: James Morrison</span>
           <span>·</span>
           <span>Marked by Dr R. Kapoor</span>
         </div>

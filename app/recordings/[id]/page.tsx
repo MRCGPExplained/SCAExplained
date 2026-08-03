@@ -206,6 +206,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
           <span>·</span>
           <span>Doctor: {rec.doctor_display_name}</span>
+          {rec.patient_display_name && <><span>·</span><span>Patient: {rec.patient_display_name}</span></>}
           {rec.examiners?.name && <><span>·</span><span>Marked by Dr {rec.examiners.name}</span></>}
         </div>
 
