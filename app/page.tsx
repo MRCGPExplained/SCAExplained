@@ -71,19 +71,19 @@ export default async function HomePage() {
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
       <section className="px-10 pt-10 pb-10 max-md:px-6">
-        <div className="max-w-[900px] mx-auto">
+        <div className="max-w-[720px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
-            <span className="block whitespace-nowrap font-extrabold text-[40px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[26px]">
+            <span className="block whitespace-nowrap tracking-tight font-extrabold text-[34px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[22px]">
               Every Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
             </span>
-            <span className="block font-bold text-[26px] leading-[1.3] mt-2 max-sm:text-[19px]">
+            <span className="block font-bold text-[27px] leading-[1.3] mt-2 max-sm:text-[19px]">
               Perform Your Best On SCA.
             </span>
-            <span className="block font-bold text-[26px] leading-[1.3] max-sm:text-[19px]">
+            <span className="block font-bold text-[27px] leading-[1.3] max-sm:text-[19px]">
               Know Exactly What <Swash>Scores Marks</Swash>
             </span>
           </h1>
-          <p className="text-[15.5px] leading-[1.7] mb-6 max-w-[720px]" style={{ color: "rgba(51,51,51,0.68)" }}>
+          <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.68)" }}>
             Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about demonstrating
             a specific set of consultation skills naturally under exam conditions — ICE, shared
             decision-making, sitting with uncertainty, handling patient emotion. These are the skills
