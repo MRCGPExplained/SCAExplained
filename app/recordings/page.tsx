@@ -48,6 +48,7 @@ type RecordingRow = {
   examiner_clinical_management: string | null;
   examiner_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
+  candidate_viewed_at: string | null;
 };
 
 export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string }> }) {
@@ -62,7 +63,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
     admin
       ? admin
           .from("station_recordings")
-          .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at")
+          .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, candidate_viewed_at")
           .eq("doctor_user_id", user.id)
           .order("started_at", { ascending: false })
           .limit(50)
@@ -150,6 +151,10 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           <div className="flex flex-col gap-3">
             {recordings.map((rec) => {
               const isFinal = !!rec.sent_to_candidate_at;
+              const isReviewed = rec.status === "reviewing" || rec.status === "sent";
+              const isUnread =
+                isFinal &&
+                (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!));
               const hasGrades = isFinal
                 ? !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others)
                 : !!(rec.ai_data_gathering && rec.ai_clinical_management && rec.ai_relating_to_others);
@@ -162,14 +167,27 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                   key={rec.id}
                   href={`/recordings/${rec.id}`}
                   className="block rounded-2xl p-5 transition hover:shadow-md"
-                  style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)", textDecoration: "none" }}
+                  style={{
+                    background: "white",
+                    border: isUnread ? "1.5px solid rgba(246,212,75,0.6)" : "1px solid rgba(51,51,51,0.08)",
+                    textDecoration: "none",
+                  }}
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-                        Station {rec.station_number}
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {isUnread && (
+                          <span
+                            className="shrink-0 w-2 h-2 rounded-full"
+                            style={{ background: "#F6D44B" }}
+                            aria-label="Unread"
+                          />
+                        )}
+                        <span className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                          Station {rec.station_number}
+                        </span>
                       </div>
-                      <div className="font-bold text-[15px]" style={{ color: NAVY }}>{rec.station_title}</div>
+                      <div className="text-[15px]" style={{ color: NAVY, fontWeight: isUnread ? 800 : 700 }}>{rec.station_title}</div>
                       <div className="text-[12px] mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
                         {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </div>
@@ -180,24 +198,20 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       <span
                         className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.05em]"
                         style={
-                          isFinal
-                            ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
-                            : rec.status === "reviewed"
+                          isReviewed
                             ? { background: "rgba(34,197,94,0.1)", color: "#166534" }
                             : rec.status === "processing"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
-                            : rec.status === "pending_examiner" || rec.status === "reviewing"
+                            : rec.status === "pending_examiner"
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
                       >
-                        {isFinal
-                          ? "Report sent"
-                          : rec.status === "reviewed"
+                        {isReviewed
                           ? "Reviewed"
                           : rec.status === "processing"
                           ? "Processing…"
-                          : rec.status === "pending_examiner" || rec.status === "reviewing"
+                          : rec.status === "pending_examiner"
                           ? "Awaiting examiner"
                           : rec.status}
                       </span>

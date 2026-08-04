@@ -68,6 +68,7 @@ type RecordingDetail = {
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
   sent_to_candidate_at: string | null;
+  candidate_viewed_at: string | null;
   doctor_user_id: string;
   examiners: { name: string } | null;
 };
@@ -111,6 +112,11 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
   const isFinal = !!rec.sent_to_candidate_at;
   const showExaminerGrades = isFinal || !!examiner;
+
+  // Mark as read by the candidate the first time they see the finalised report
+  if (!examiner && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
+    await admin.from("station_recordings").update({ candidate_viewed_at: new Date().toISOString() }).eq("id", rec.id);
+  }
 
   const [voiceResult, doctorResult, patientResult] = await Promise.all([
     showExaminerGrades && rec.examiner_voice_note_path
