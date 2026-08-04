@@ -725,6 +725,44 @@ export async function startRecordingAction(args: {
   return { recordingId: recording.id };
 }
 
+/**
+ * Called by the host when the synced start aborts because the live audio
+ * call failed to connect for an essential participant (doctor or patient).
+ * Refunds the credit startRecordingAction deducted and deletes the
+ * never-actually-recorded row — the attempt is treated as if it never
+ * happened, matching "give them back the credit" rather than leaving a
+ * dead/empty recording behind.
+ */
+export async function cancelRecordingAction(recordingId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const bypassed = await checkRecordingBypass(user.email);
+
+  if (!bypassed) {
+    const { data: creditsData } = await admin
+      .from("recording_credits")
+      .select("balance")
+      .eq("user_id", user.id)
+      .single<{ balance: number }>();
+
+    if (creditsData) {
+      await admin
+        .from("recording_credits")
+        .update({ balance: creditsData.balance + 1, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+  }
+
+  await admin.from("station_recordings").delete().eq("id", recordingId);
+
+  return { success: true };
+}
+
 // ── DailyCo live audio ──────────────────────────────────────────────────────────
 
 export async function getDailyCoEnabledAction(): Promise<boolean> {

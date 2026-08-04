@@ -10,6 +10,7 @@ import {
   transferHostAction,
   claimHostAction,
   startRecordingAction,
+  cancelRecordingAction,
   getRecordingCreditsAction,
   getRecordingBypassAction,
   getMostRecentRecordingForStation,
@@ -384,9 +385,19 @@ export function StudyRoomPanel({
       // their own mic if they're doctor or patient.
       if (!iAmHost) {
         (async () => {
+          let dailyOk = true;
           if (dailyRoomName && dailyRoomUrl) {
             const joined = await withTimeout(joinDailyCall(dailyRoomName, dailyRoomUrl), DAILY_JOIN_TIMEOUT_MS);
-            if (joined !== true) setDailyFailed(true);
+            dailyOk = joined === true;
+            if (!dailyOk) setDailyFailed(true);
+          }
+          const amEssential = userId === doctorUserId || userId === patientUserId;
+          if (!dailyOk && amEssential) {
+            // Voice call is required for this room but failed to connect for
+            // me — tell the host so they can cancel and refund, rather than
+            // starting my mic recorder into a consult no one can hear.
+            channelRef.current?.send({ type: "broadcast", event: "voice-call-failed", payload: { recordingId } });
+            return;
           }
           setRecordingState("recording");
           if (userId === doctorUserId) {
@@ -405,6 +416,26 @@ export function StudyRoomPanel({
       stopLocalRecording();
       leaveDailyCall();
       if (myRecordingRole === null) setRecordingState("done");
+    });
+
+    // A doctor/patient participant's voice call failed to connect — only the
+    // host (who holds the credit) acts on this, cancelling for everyone.
+    channel.on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
+      if (!iAmHost) return;
+      const { recordingId } = payload as { recordingId: string };
+      cancelRecordingDueToDailyFailure(recordingId);
+    });
+
+    // Recording was cancelled (voice call failed for an essential
+    // participant) — everyone unwinds back to idle.
+    channel.on("broadcast", { event: "recording-cancelled" }, ({ payload }) => {
+      const { reason } = payload as { reason?: string };
+      stopLocalRecording();
+      leaveDailyCall();
+      setRecordingState("error");
+      setRecordingError(reason ?? "Recording was cancelled — the voice call failed to connect.");
+      setActiveRecordingId(null);
+      setMyRecordingRole(null);
     });
 
     // Guest listens for host station changes
@@ -627,6 +658,33 @@ export function StudyRoomPanel({
     setDailyRoomName(null);
   }
 
+  /**
+   * Host-only. Voice call failed to connect for an essential (doctor/patient)
+   * participant — abort the whole attempt: refund the credit, delete the
+   * never-recorded row, tell everyone to unwind, and clean up the DailyCo
+   * room. Called either for the host's own failed join, or in response to a
+   * guest's voice-call-failed broadcast.
+   */
+  async function cancelRecordingDueToDailyFailure(recordingId: string) {
+    if (dailyRoomName) endDailyCallAction(dailyRoomName);
+    const result = await cancelRecordingAction(recordingId);
+    const reason = result.error ?? "There was an issue connecting the voice call. Your credit has been refunded — please try again.";
+
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "recording-cancelled",
+      payload: { reason },
+    });
+
+    stopLocalRecording();
+    leaveDailyCall();
+    setRecordingState("error");
+    setRecordingError(reason);
+    setActiveRecordingId(null);
+    setMyRecordingRole(null);
+    getRecordingCreditsAction().then(setRecordingCredits);
+  }
+
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -743,7 +801,14 @@ export function StudyRoomPanel({
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
       const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
-      if (joined !== true) setDailyFailed(true);
+      if (joined !== true) {
+        setDailyFailed(true);
+        const amEssential = userId === selectedDoctor || userId === selectedPatient;
+        if (amEssential) {
+          await cancelRecordingDueToDailyFailure(recordingId);
+          return;
+        }
+      }
     }
 
     setRecordingState("recording");
@@ -1100,8 +1165,17 @@ export function StudyRoomPanel({
         </div>
       </div>
       {recordingError && (
-        <div className="px-3.5 py-2 text-[11px]" style={{ background: "rgba(239,68,68,0.12)", color: "#FCA5A5" }}>
-          {recordingError}
+        <div className="px-3.5 py-2 text-[11px] flex items-center justify-between gap-3" style={{ background: "rgba(239,68,68,0.12)", color: "#FCA5A5" }}>
+          <span>{recordingError}</span>
+          {recordingState === "error" && iAmHost && (
+            <button
+              onClick={() => { setRecordingState("idle"); setRecordingError(""); }}
+              className="shrink-0 font-semibold"
+              style={{ background: "none", border: "none", color: "#FCA5A5", textDecoration: "underline", cursor: "pointer" }}
+            >
+              Try Again
+            </button>
+          )}
         </div>
       )}
 

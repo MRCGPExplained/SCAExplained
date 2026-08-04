@@ -8,6 +8,7 @@ import {
   createStudyRoomAction,
   joinStudyRoomAction,
   startRecordingAction,
+  cancelRecordingAction,
   getDailyCoEnabledAction,
   createDailyCallAction,
   getDailyTokenAction,
@@ -205,9 +206,19 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         // Join the shared live audio call first (or time out) so the mic
         // recorder starts in sync with it.
         (async () => {
+          let dailyOk = true;
           if (!isHostRef.current && dRoomName && dRoomUrl) {
             const joined = await withTimeout(joinDailyCall(dRoomName, dRoomUrl), DAILY_JOIN_TIMEOUT_MS);
-            if (joined !== true) setDailyFailed(true);
+            dailyOk = joined === true;
+            if (!dailyOk) setDailyFailed(true);
+          }
+          const amEssential = myId === dId || myId === pId;
+          if (!dailyOk && amEssential) {
+            // Voice call is required but failed to connect for me — tell the
+            // host so they can cancel and refund, instead of recording into
+            // a consult no one can hear.
+            channelRef.current?.send({ type: "broadcast", event: "voice-call-failed", payload: { recordingId: rid } });
+            return;
           }
           setRecordingStarting(false);
           setPhase("recording");
@@ -222,6 +233,19 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           setPhase("done");
         }
         leaveDailyCall();
+      })
+      .on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
+        if (!isHostRef.current) return;
+        const { recordingId: rid } = payload as { recordingId: string };
+        cancelRecordingDueToDailyFailure(rid);
+      })
+      .on("broadcast", { event: "recording-cancelled" }, ({ payload }) => {
+        const { reason } = payload as { reason?: string };
+        if (mrRef.current?.state === "recording") mrRef.current.stop();
+        leaveDailyCall();
+        setRecordingStarting(false);
+        setPhase("error");
+        setErrMsg(reason ?? "Recording was cancelled — the voice call failed to connect.");
       })
       .subscribe();
 
@@ -321,6 +345,31 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setCallConnected(false);
     setDailyFailed(false);
     setDailyRoomName(null);
+  }
+
+  /**
+   * Host-only. Voice call failed to connect for an essential (doctor/patient)
+   * participant — abort the whole attempt: refund the credit, delete the
+   * never-recorded row, tell everyone to unwind, and clean up the DailyCo
+   * room. Called either for the host's own failed join, or in response to a
+   * guest's voice-call-failed broadcast.
+   */
+  async function cancelRecordingDueToDailyFailure(recordingId: string) {
+    if (dailyRoomName) endDailyCallAction(dailyRoomName);
+    const result = await cancelRecordingAction(recordingId);
+    const reason = result.error ?? "There was an issue connecting the voice call. Your credit has been refunded — please try again.";
+
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "recording-cancelled",
+      payload: { reason },
+    });
+
+    if (mrRef.current?.state === "recording") mrRef.current.stop();
+    leaveDailyCall();
+    setRecordingStarting(false);
+    setPhase("error");
+    setErrMsg(reason);
   }
 
   function launchMediaRecorder(rid: string, role: "doctor" | "patient") {
@@ -513,7 +562,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
       const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
-      if (joined !== true) setDailyFailed(true);
+      if (joined !== true) {
+        setDailyFailed(true);
+        const amEssential = userId === doctorId || userId === patientId;
+        if (amEssential) {
+          await cancelRecordingDueToDailyFailure(rid);
+          return;
+        }
+      }
     }
 
     // Host transitions manually (doesn't receive own broadcast)
