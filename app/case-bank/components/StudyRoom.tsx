@@ -34,6 +34,14 @@ function PhoneIcon({ color = "currentColor" }: { color?: string }) {
   );
 }
 
+const DAILY_JOIN_TIMEOUT_MS = 5000;
+
+/** Waits for a promise, but never longer than `ms` — used so a slow/failed
+ * DailyCo join can delay the synced start briefly without ever blocking it. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | void> {
+  return Promise.race([promise, new Promise<void>((resolve) => setTimeout(resolve, ms))]);
+}
+
 interface Participant {
   userId: string;
   displayName: string;
@@ -370,19 +378,22 @@ export function StudyRoomPanel({
       };
       setActiveRecordingId(recordingId);
       setRecordingState("recording");
-      // Non-host participants start their own mic if they're doctor or patient
+      // Non-host participants: join the shared live audio call first (or
+      // time out) so the mic recorder starts in sync with it, then start
+      // their own mic if they're doctor or patient.
       if (!iAmHost) {
-        if (userId === doctorUserId) {
-          setMyRecordingRole("doctor");
-          startLocalRecording(recordingId, "doctor");
-        } else if (userId === patientUserId) {
-          setMyRecordingRole("patient");
-          startLocalRecording(recordingId, "patient");
-        }
-        // Everyone (including observers) joins the shared live audio call
-        if (dailyRoomName && dailyRoomUrl) {
-          joinDailyCall(dailyRoomName, dailyRoomUrl);
-        }
+        (async () => {
+          if (dailyRoomName && dailyRoomUrl) {
+            await withTimeout(joinDailyCall(dailyRoomName, dailyRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+          }
+          if (userId === doctorUserId) {
+            setMyRecordingRole("doctor");
+            await startLocalRecording(recordingId, "doctor");
+          } else if (userId === patientUserId) {
+            setMyRecordingRole("patient");
+            await startLocalRecording(recordingId, "patient");
+          }
+        })();
       }
     });
 
@@ -713,7 +724,11 @@ export function StudyRoomPanel({
       },
     });
 
-    if (dailyRoom) joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl);
+    // Wait for the live call to connect (or time out) before starting the
+    // timer and the recorder, so all three begin in sync.
+    if (dailyRoom) {
+      await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+    }
 
     // Reset the timer to start of consultation
     onTimerReset?.();

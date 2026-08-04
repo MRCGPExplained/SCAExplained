@@ -32,6 +32,13 @@ const DARK = "#333333";
 const YELLOW = "#F6D44B";
 const POLL_TIMEOUT_MS = 90_000;
 const POLL_INTERVAL_MS = 4_000;
+const DAILY_JOIN_TIMEOUT_MS = 5000;
+
+/** Waits for a promise, but never longer than `ms` — used so a slow/failed
+ * DailyCo join can delay the synced start briefly without ever blocking it. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | void> {
+  return Promise.race([promise, new Promise<void>((resolve) => setTimeout(resolve, ms))]);
+}
 
 function PhoneIcon({ color = "currentColor" }: { color?: string }) {
   return (
@@ -193,8 +200,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         setMyRole(role);
         setPhase("recording");
 
-        if (role) launchMediaRecorder(rid, role);
-        if (!isHostRef.current && dRoomName && dRoomUrl) joinDailyCall(dRoomName, dRoomUrl);
+        // Join the shared live audio call first (or time out) so the mic
+        // recorder starts in sync with it.
+        (async () => {
+          if (!isHostRef.current && dRoomName && dRoomUrl) {
+            await withTimeout(joinDailyCall(dRoomName, dRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+          }
+          if (role) launchMediaRecorder(rid, role);
+        })();
       })
       .on("broadcast", { event: "recording-stop" }, () => {
         if (mrRef.current?.state === "recording") {
@@ -480,7 +493,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       },
     });
 
-    if (dailyRoom) joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl);
+    // Wait for the live call to connect (or time out) before starting the
+    // timer and the recorder, so all three begin in sync.
+    if (dailyRoom) {
+      await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+    }
 
     // Host transitions manually (doesn't receive own broadcast)
     const role: "doctor" | "patient" | null =
