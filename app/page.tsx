@@ -108,55 +108,49 @@ export default async function HomePage() {
             >
               Free
             </span>
-            <div className="flex gap-8 max-md:flex-col">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <WebinarIcon />
-                  <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Webinar</p>
-                </div>
-                <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
-                  How To Pass Your SCA — Monthly Webinar
-                </h2>
-                <p className="text-[14.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.65)" }}>
-                  A free 1-hour Zoom session every month. Learn what the RCGP
-                  examiners are actually scoring, how high-performing candidates think through cases, and
-                  the consultation habits that earn you a Clear Pass. Attendees receive
-                  a code for 2 free recording credits.
-                </p>
-              </div>
-
-              <div
-                className="shrink-0 w-[240px] rounded-xl p-4 flex flex-col gap-3 max-md:w-full"
-                style={{ background: "rgba(255,255,255,0.6)", border: "1px solid rgba(246,212,75,0.4)" }}
-              >
-                {freeWebinars.length > 0 ? (
-                  freeWebinars.map((s) => (
-                    <div key={s.id} className="flex flex-col gap-1.5">
-                      <p className="font-semibold text-[13px] leading-[1.4]" style={{ color: DARK }}>
-                        {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
-                        <br />
-                        <span style={{ color: "rgba(51,51,51,0.5)", fontWeight: 500 }}>
-                          {new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
-                        </span>
-                      </p>
-                      <a
-                        href={s.zoom_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-bold text-[13px] no-underline hover:underline"
-                        style={{ color: DARK }}
-                      >
-                        Register free →
-                      </a>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[13px] font-semibold leading-[1.5]" style={{ color: "rgba(51,51,51,0.45)" }}>
-                    Next date coming soon — check back shortly.
-                  </p>
-                )}
-              </div>
+            <div className="flex items-center gap-2 mb-2">
+              <WebinarIcon />
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Webinar</p>
             </div>
+            <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
+              How To Pass Your SCA — Monthly Webinar
+            </h2>
+            <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
+              A free 1-hour Zoom session every month. Learn what the RCGP
+              examiners are actually scoring, how high-performing candidates think through cases, and
+              the consultation habits that earn you a Clear Pass. Attendees receive
+              a code for 2 free recording credits.
+            </p>
+
+            {freeWebinars.length > 0 ? (
+              <div className="flex flex-col gap-2 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
+                {freeWebinars.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 text-[13.5px] max-sm:flex-wrap">
+                    <span style={{ color: DARK, fontWeight: 600 }}>
+                      {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
+                    </span>
+                    <span style={{ color: "rgba(51,51,51,0.3)" }}>·</span>
+                    <span style={{ color: "rgba(51,51,51,0.45)" }}>
+                      {new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
+                    </span>
+                    <span style={{ color: "rgba(51,51,51,0.3)" }}>·</span>
+                    <a
+                      href={s.zoom_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold no-underline hover:underline"
+                      style={{ color: DARK }}
+                    >
+                      Register free →
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[14px] font-semibold pt-4" style={{ color: "rgba(51,51,51,0.45)", borderTop: "1px solid rgba(51,51,51,0.08)" }}>
+                Next date coming soon — check back shortly.
+              </p>
+            )}
           </div>
 
           {/* CASE BANK */}
