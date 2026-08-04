@@ -22,6 +22,9 @@ import {
 import type { DailyCall } from "@daily-co/daily-js";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
+import { createRecordingLogger } from "@/lib/recording-logger";
+
+const { logStatus, logError, logDuration } = createRecordingLogger("study-room");
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -386,6 +389,7 @@ export function StudyRoomPanel({
       };
       setActiveRecordingId(recordingId);
       setRecordingState("starting");
+      logStatus("recording-start received", { recordingId, iAmHost, dailyRoom: dailyRoomName ?? null });
       // Non-host participants: join the shared live audio call first (or
       // time out) so the mic recorder starts in sync with it, then start
       // their own mic if they're doctor or patient.
@@ -393,8 +397,10 @@ export function StudyRoomPanel({
         (async () => {
           let dailyOk = true;
           if (dailyRoomName && dailyRoomUrl) {
+            const t0 = Date.now();
             const joined = await withTimeout(joinDailyCall(dailyRoomName, dailyRoomUrl), DAILY_JOIN_TIMEOUT_MS);
             dailyOk = joined === true;
+            logDuration(dailyOk ? "guest DailyCo join succeeded" : "guest DailyCo join failed/timed out", t0);
             if (!dailyOk) setDailyFailed(true);
           }
           const amEssential = userId === doctorUserId || userId === patientUserId;
@@ -402,10 +408,12 @@ export function StudyRoomPanel({
             // Voice call is required for this room but failed to connect for
             // me — tell the host so they can cancel and refund, rather than
             // starting my mic recorder into a consult no one can hear.
+            logStatus("broadcasting voice-call-failed", { recordingId });
             channelRef.current?.send({ type: "broadcast", event: "voice-call-failed", payload: { recordingId } });
             return;
           }
           setRecordingState("recording");
+          logStatus("phase → recording (guest)", { role: userId === doctorUserId ? "doctor" : userId === patientUserId ? "patient" : "observer" });
           if (userId === doctorUserId) {
             setMyRecordingRole("doctor");
             await startLocalRecording(recordingId, "doctor");
@@ -419,6 +427,7 @@ export function StudyRoomPanel({
 
     // Recording: stop signal
     channel.on("broadcast", { event: "recording-stop" }, () => {
+      logStatus("recording-stop received");
       stopLocalRecording();
       leaveDailyCall();
       if (myRecordingRole === null) setRecordingState("done");
@@ -429,6 +438,7 @@ export function StudyRoomPanel({
     channel.on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
       if (!iAmHost) return;
       const { recordingId } = payload as { recordingId: string };
+      logStatus("voice-call-failed received (host)", { recordingId });
       cancelRecordingDueToDailyFailure(recordingId);
     });
 
@@ -436,6 +446,7 @@ export function StudyRoomPanel({
     // participant) — everyone unwinds back to idle.
     channel.on("broadcast", { event: "recording-cancelled" }, ({ payload }) => {
       const { reason } = payload as { reason?: string };
+      logStatus("recording-cancelled received", { reason });
       stopLocalRecording();
       leaveDailyCall();
       setRecordingState("error");
@@ -454,6 +465,7 @@ export function StudyRoomPanel({
     });
 
     channel.subscribe(async (status) => {
+      logStatus("realtime channel status", { status });
       if (status === "SUBSCRIBED") {
         await channel.track({ userId, displayName, initials });
         refreshParticipants(room.id);
@@ -611,34 +623,42 @@ export function StudyRoomPanel({
 
   /** Warms up mic access well before recording starts, so the real join is instant. */
   async function prewarmDailyCall() {
+    const t0 = Date.now();
     try {
       const call = await getOrCreateDailyCall();
       await call?.startCamera({ startVideoOff: true, startAudioOff: false });
-    } catch {
+      logDuration("DailyCo mic prewarm", t0);
+    } catch (err) {
       // best-effort — worst case the permission prompt just happens at join time instead
+      logError("DailyCo mic prewarm", err);
     }
   }
 
   async function joinDailyCall(roomName: string, roomUrl: string): Promise<boolean> {
     setDailyConnecting(true);
     setDailyFailed(false);
+    const t0 = Date.now();
     try {
       const tokenResult = await getDailyTokenAction(roomName, displayName, iAmHost);
       if ("error" in tokenResult) {
+        logError("getDailyTokenAction", tokenResult.error, { roomName });
         setDailyFailed(true);
         return false;
       }
       const call = await getOrCreateDailyCall();
       if (!call) {
+        logError("getOrCreateDailyCall", "returned null", { roomName });
         setDailyFailed(true);
         return false;
       }
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
       setCallConnected(true);
+      logDuration("DailyCo join", t0);
       return true;
-    } catch {
+    } catch (err) {
       // best-effort — recording continues locally regardless of live audio
+      logError("DailyCo join", err, { roomName });
       setCallConnected(false);
       setDailyFailed(true);
       return false;
@@ -652,8 +672,10 @@ export function StudyRoomPanel({
     if (call) {
       try {
         await call.leave();
-      } catch {
+        logStatus("DailyCo call left");
+      } catch (err) {
         // best-effort — recording/upload flow doesn't depend on this
+        logError("DailyCo leave", err);
       }
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
@@ -672,8 +694,10 @@ export function StudyRoomPanel({
    * guest's voice-call-failed broadcast.
    */
   async function cancelRecordingDueToDailyFailure(recordingId: string) {
+    logStatus("cancelling recording — voice call failed", { recordingId });
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
+    if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
     const reason = result.error ?? "There was an issue connecting the voice call. Your credit has been refunded — please try again.";
 
     channelRef.current?.send({
@@ -694,6 +718,7 @@ export function StudyRoomPanel({
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
     recorderStartingRef.current = true;
     pendingStopRef.current = false; // fresh attempt — clear any stale flag
+    const t0 = Date.now();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -705,17 +730,20 @@ export function StudyRoomPanel({
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
       recorder.onstop = () => {
+        logStatus("local recorder stopped", { role });
         stream.getTracks().forEach((t) => t.stop());
         uploadRecording(recordingId, role);
       };
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
       recorderStartingRef.current = false;
+      logDuration(`local recorder ready (${role})`, t0);
 
       // A stop signal arrived while we were still setting up — honor it now
       // instead of letting the recorder run with no way left to stop it.
       if (pendingStopRef.current) {
         pendingStopRef.current = false;
+        logStatus("pending stop honored — recorder was mid-setup when stop arrived", { role });
         recorder.stop();
         return;
       }
@@ -723,9 +751,11 @@ export function StudyRoomPanel({
       // Hard cutoff — recording never exceeds the 12-minute consult window,
       // regardless of whether the host remembers to stop it.
       recordingCutoffRef.current = setTimeout(() => {
+        logStatus("12-minute auto-cutoff fired", { role });
         stopLocalRecording();
       }, PHASE_DURATIONS.CONSULT * 1000);
-    } catch {
+    } catch (err) {
+      logError("getUserMedia (local recorder)", err, { role });
       recorderStartingRef.current = false;
       pendingStopRef.current = false;
       setRecordingState("error");
@@ -739,17 +769,23 @@ export function StudyRoomPanel({
       recordingCutoffRef.current = null;
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      logStatus("stopping local recorder", { state: mediaRecorderRef.current.state });
       mediaRecorderRef.current.stop();
     } else if (recorderStartingRef.current) {
       // Recorder isn't ready yet — remember to stop it the moment it is.
+      logStatus("stop requested before recorder was ready — queued as pending");
       pendingStopRef.current = true;
+    } else {
+      logStatus("stop requested but no recorder exists (observer or not yet started)");
     }
   }
 
   async function uploadRecording(recordingId: string, role: "doctor" | "patient") {
     setRecordingState("uploading");
+    const t0 = Date.now();
     try {
       const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      logStatus("upload starting", { role, sizeKB: Math.round(blob.size / 1024) });
       const fd = new FormData();
       fd.append("audio", blob, `${role}.webm`);
       const res = await fetch(`/api/recordings/${recordingId}/upload?role=${role}`, {
@@ -757,8 +793,10 @@ export function StudyRoomPanel({
         body: fd,
       });
       if (!res.ok) throw new Error("Upload failed");
+      logDuration(`upload (${role})`, t0);
       setRecordingState("done");
-    } catch {
+    } catch (err) {
+      logError("upload", err, { role });
       setRecordingState("error");
       setRecordingError("Upload failed. Please contact support.");
     }
@@ -773,6 +811,7 @@ export function StudyRoomPanel({
     setShowRoleSelector(false);
     setRecordingState("starting");
     setRecordingError("");
+    logStatus("host starting recording", { stationNumber, doctorId: selectedDoctor, patientId: selectedPatient });
 
     const doctorPart = participants.find((p) => p.userId === selectedDoctor);
     const patientPart = participants.find((p) => p.userId === selectedPatient);
@@ -788,12 +827,14 @@ export function StudyRoomPanel({
     });
 
     if (result.error) {
+      logError("startRecordingAction", result.error);
       setRecordingState("error");
       setRecordingError(result.error);
       return;
     }
 
     const recordingId = result.recordingId!;
+    logStatus("recording row created", { recordingId });
     setActiveRecordingId(recordingId);
     // Stay in "starting" — not yet "recording" — until the synced start
     // below actually happens, so the UI doesn't claim REC prematurely.
@@ -803,7 +844,12 @@ export function StudyRoomPanel({
     let dailyRoom: { roomName: string; roomUrl: string } | null = null;
     if (dailyCoEnabled) {
       const dailyResult = await createDailyCallAction(recordingId);
-      if (!("error" in dailyResult)) dailyRoom = dailyResult;
+      if (!("error" in dailyResult)) {
+        dailyRoom = dailyResult;
+        logStatus("DailyCo room created", { roomName: dailyRoom.roomName });
+      } else {
+        logError("createDailyCallAction", dailyResult.error);
+      }
     }
 
     // Notify all participants via broadcast
@@ -818,15 +864,19 @@ export function StudyRoomPanel({
         dailyRoomUrl: dailyRoom?.roomUrl,
       },
     });
+    logStatus("broadcast recording-start sent", { recordingId });
 
     // Wait for the live call to connect (or time out) before starting the
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
+      const t0 = Date.now();
       const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      logDuration(joined === true ? "host DailyCo join succeeded" : "host DailyCo join failed/timed out", t0);
       if (joined !== true) {
         setDailyFailed(true);
         const amEssential = userId === selectedDoctor || userId === selectedPatient;
         if (amEssential) {
+          logStatus("host is essential participant — cancelling recording due to Daily failure");
           await cancelRecordingDueToDailyFailure(recordingId);
           return;
         }
@@ -834,6 +884,7 @@ export function StudyRoomPanel({
     }
 
     setRecordingState("recording");
+    logStatus("phase → recording (host)");
 
     // Reset the timer to start of consultation
     onTimerReset?.();
@@ -841,6 +892,7 @@ export function StudyRoomPanel({
     // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
     // regardless of whether anyone remembers to click Stop.
     hostStopCutoffRef.current = setTimeout(() => {
+      logStatus("12-minute host cutoff fired — broadcasting stop");
       handleStopRecording();
     }, PHASE_DURATIONS.CONSULT * 1000);
 
@@ -859,6 +911,7 @@ export function StudyRoomPanel({
   }
 
   function handleStopRecording() {
+    logStatus("host stopping recording");
     if (hostStopCutoffRef.current) {
       clearTimeout(hostStopCutoffRef.current);
       hostStopCutoffRef.current = null;
@@ -902,10 +955,12 @@ export function StudyRoomPanel({
     setLoading(true);
     const result = await createStudyRoomAction();
     if (result.error) {
+      logError("createStudyRoomAction", result.error);
       setJoinError(result.error);
       setLoading(false);
       return;
     }
+    logStatus("room created", { roomId: result.roomId });
     const { data } = await supabase
       .from("study_rooms")
       .select("*")
@@ -924,10 +979,12 @@ export function StudyRoomPanel({
     setJoinError("");
     const result = await joinStudyRoomAction(joinCode.trim());
     if (result.error) {
+      logError("joinStudyRoomAction", result.error, { code: joinCode.trim() });
       setJoinError(result.error);
       setLoading(false);
       return;
     }
+    logStatus("joined room", { roomId: result.roomId });
     const { data } = await supabase
       .from("study_rooms")
       .select("*")

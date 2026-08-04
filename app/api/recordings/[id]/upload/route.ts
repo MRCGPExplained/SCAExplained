@@ -4,9 +4,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// 12-min consultation audio can be ~10MB. Also covers the after() callback
-// below, which awaits the full /process pipeline (transcription + grading,
-// up to 5 min) so the outbound trigger isn't dropped when the response ends.
+// 12-min consultation audio can be ~10MB. maxDuration also covers the
+// after() callback below — /process now acks quickly and does the real
+// grading work in its own after(), so this only needs to survive that ack,
+// but the extra headroom is cheap insurance against a slow ack round-trip.
 export const maxDuration = 300;
 
 interface RouteParams {

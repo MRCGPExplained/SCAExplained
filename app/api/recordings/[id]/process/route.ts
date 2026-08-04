@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerNotificationEmail } from "@/lib/email";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/ai-defaults";
@@ -242,133 +242,139 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true, skipped: "deepgram_disabled" });
   }
 
-  const { data: station } = await admin
-    .from("stations")
-    .select(
-      "title, opening_statement, ice_ideas, ice_concerns, ice_expectations, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
-    )
-    .eq("number", recording.station_number)
-    .single<{
-      title: string;
-      opening_statement: string;
-      ice_ideas: string;
-      ice_concerns: string;
-      ice_expectations: string;
-      role_player_instruction: string | null;
-      data_gathering: string[];
-      management: string[];
-      marking_notes_data_gathering: string | null;
-      marking_notes_clinical_management: string | null;
-      marking_notes_relating_to_others: string | null;
-    }>();
+  // The actual pipeline (transcription + grading) can take several minutes —
+  // longer than whatever caller is awaiting this fetch (e.g. the upload
+  // route's after()). Acknowledge now and do the real work in our own
+  // after(), which gets this route's full maxDuration independent of the
+  // caller's budget, so a slow grading run can't get severed mid-flight.
+  after(async () => {
+    const { data: station } = await admin
+      .from("stations")
+      .select(
+        "title, opening_statement, ice_ideas, ice_concerns, ice_expectations, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+      )
+      .eq("number", recording.station_number)
+      .single<{
+        title: string;
+        opening_statement: string;
+        ice_ideas: string;
+        ice_concerns: string;
+        ice_expectations: string;
+        role_player_instruction: string | null;
+        data_gathering: string[];
+        management: string[];
+        marking_notes_data_gathering: string | null;
+        marking_notes_clinical_management: string | null;
+        marking_notes_relating_to_others: string | null;
+      }>();
 
-  try {
-    let transcriptFormatted: string;
-    let transcriptRaw: unknown;
+    try {
+      let transcriptFormatted: string;
+      let transcriptRaw: unknown;
 
-    if (isSpike) {
-      // Skip Deepgram — use sample consultation transcript
-      transcriptFormatted = SPIKE_TRANSCRIPT;
-      transcriptRaw = { spike: true };
-    } else {
-      // Download both audio files from storage
-      const [{ data: doctorBlob }, { data: patientBlob }] = await Promise.all([
-        admin.storage.from("consultation-recordings").download(recording.doctor_audio_path!),
-        admin.storage.from("consultation-recordings").download(recording.patient_audio_path!),
-      ]);
+      if (isSpike) {
+        // Skip Deepgram — use sample consultation transcript
+        transcriptFormatted = SPIKE_TRANSCRIPT;
+        transcriptRaw = { spike: true };
+      } else {
+        // Download both audio files from storage
+        const [{ data: doctorBlob }, { data: patientBlob }] = await Promise.all([
+          admin.storage.from("consultation-recordings").download(recording.doctor_audio_path!),
+          admin.storage.from("consultation-recordings").download(recording.patient_audio_path!),
+        ]);
 
-      if (!doctorBlob || !patientBlob) throw new Error("Could not download audio files");
+        if (!doctorBlob || !patientBlob) throw new Error("Could not download audio files");
 
-      const [doctorBuf, patientBuf] = await Promise.all([
-        doctorBlob.arrayBuffer().then(Buffer.from),
-        patientBlob.arrayBuffer().then(Buffer.from),
-      ]);
+        const [doctorBuf, patientBuf] = await Promise.all([
+          doctorBlob.arrayBuffer().then(Buffer.from),
+          patientBlob.arrayBuffer().then(Buffer.from),
+        ]);
 
-      // Transcribe both tracks in parallel
-      const [doctorUtterances, patientUtterances] = await Promise.all([
-        transcribeAudio(doctorBuf),
-        transcribeAudio(patientBuf),
-      ]);
+        // Transcribe both tracks in parallel
+        const [doctorUtterances, patientUtterances] = await Promise.all([
+          transcribeAudio(doctorBuf),
+          transcribeAudio(patientBuf),
+        ]);
 
-      transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
-      transcriptRaw = { doctor: doctorUtterances, patient: patientUtterances };
+        transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
+        transcriptRaw = { doctor: doctorUtterances, patient: patientUtterances };
+      }
+
+      // Build station context for the grading prompt
+      const stationContext = [
+        `Station: ${station?.title ?? `Station ${recording.station_number}`}`,
+        station?.opening_statement ? `Opening: ${station.opening_statement}` : null,
+        station?.ice_ideas ? `Patient's ideas: ${station.ice_ideas}` : null,
+        station?.ice_concerns ? `Patient's concerns: ${station.ice_concerns}` : null,
+        station?.data_gathering?.length
+          ? `Key data gathering: ${station.data_gathering.join("; ")}`
+          : null,
+        station?.management?.length
+          ? `Expected management: ${station.management.join("; ")}`
+          : null,
+        station?.role_player_instruction
+          ? `Role player notes: ${station.role_player_instruction}`
+          : null,
+        station?.marking_notes_data_gathering
+          ? `Examiner notes (data gathering): ${station.marking_notes_data_gathering}`
+          : null,
+        station?.marking_notes_clinical_management
+          ? `Examiner notes (clinical management): ${station.marking_notes_clinical_management}`
+          : null,
+        station?.marking_notes_relating_to_others
+          ? `Examiner notes (relating to others): ${station.marking_notes_relating_to_others}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
+
+      // Save transcript + grades to DB
+      await admin.from("station_recordings").update({
+        transcript_formatted: transcriptFormatted,
+        transcript_raw: transcriptRaw,
+        ai_data_gathering: grades.data_gathering,
+        ai_clinical_management: grades.clinical_management,
+        ai_relating_to_others: grades.relating_to_others,
+        ai_comment_data_gathering: grades.comment_data_gathering,
+        ai_comment_clinical_management: grades.comment_clinical_management,
+        ai_comment_relating_to_others: grades.comment_relating_to_others,
+        ai_graded_at: new Date().toISOString(),
+        status: "pending_examiner",
+      }).eq("id", recordingId);
+
+      // Notify all examiners
+      const { data: recRow } = await admin
+        .from("station_recordings")
+        .select("station_number, station_title, doctor_display_name")
+        .eq("id", recordingId)
+        .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
+
+      if (recRow) {
+        const { data: examiners } = await admin
+          .from("examiners")
+          .select("name, email");
+
+        await Promise.all(
+          (examiners ?? []).map((ex: { name: string; email: string }) =>
+            sendExaminerNotificationEmail({
+              to: ex.email,
+              examinerName: ex.name,
+              candidateName: recRow.doctor_display_name,
+              stationNumber: recRow.station_number,
+              stationTitle: recRow.station_title,
+            })
+          )
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Processing failed";
+      console.error("[recordings/process]", msg);
+      // Don't leave it stuck in processing — roll back so examiner can still review
+      await admin.from("station_recordings").update({ status: "pending_examiner" }).eq("id", recordingId);
     }
+  });
 
-    // Build station context for the grading prompt
-    const stationContext = [
-      `Station: ${station?.title ?? `Station ${recording.station_number}`}`,
-      station?.opening_statement ? `Opening: ${station.opening_statement}` : null,
-      station?.ice_ideas ? `Patient's ideas: ${station.ice_ideas}` : null,
-      station?.ice_concerns ? `Patient's concerns: ${station.ice_concerns}` : null,
-      station?.data_gathering?.length
-        ? `Key data gathering: ${station.data_gathering.join("; ")}`
-        : null,
-      station?.management?.length
-        ? `Expected management: ${station.management.join("; ")}`
-        : null,
-      station?.role_player_instruction
-        ? `Role player notes: ${station.role_player_instruction}`
-        : null,
-      station?.marking_notes_data_gathering
-        ? `Examiner notes (data gathering): ${station.marking_notes_data_gathering}`
-        : null,
-      station?.marking_notes_clinical_management
-        ? `Examiner notes (clinical management): ${station.marking_notes_clinical_management}`
-        : null,
-      station?.marking_notes_relating_to_others
-        ? `Examiner notes (relating to others): ${station.marking_notes_relating_to_others}`
-        : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
-
-    // Save transcript + grades to DB
-    await admin.from("station_recordings").update({
-      transcript_formatted: transcriptFormatted,
-      transcript_raw: transcriptRaw,
-      ai_data_gathering: grades.data_gathering,
-      ai_clinical_management: grades.clinical_management,
-      ai_relating_to_others: grades.relating_to_others,
-      ai_comment_data_gathering: grades.comment_data_gathering,
-      ai_comment_clinical_management: grades.comment_clinical_management,
-      ai_comment_relating_to_others: grades.comment_relating_to_others,
-      ai_graded_at: new Date().toISOString(),
-      status: "pending_examiner",
-    }).eq("id", recordingId);
-
-    // Notify all examiners
-    const { data: recRow } = await admin
-      .from("station_recordings")
-      .select("station_number, station_title, doctor_display_name")
-      .eq("id", recordingId)
-      .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
-
-    if (recRow) {
-      const { data: examiners } = await admin
-        .from("examiners")
-        .select("name, email");
-
-      await Promise.all(
-        (examiners ?? []).map((ex: { name: string; email: string }) =>
-          sendExaminerNotificationEmail({
-            to: ex.email,
-            examinerName: ex.name,
-            candidateName: recRow.doctor_display_name,
-            stationNumber: recRow.station_number,
-            stationTitle: recRow.station_title,
-          })
-        )
-      );
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Processing failed";
-    console.error("[recordings/process]", msg);
-    // Don't leave it stuck in processing — roll back so examiner can still review
-    await admin.from("station_recordings").update({ status: "pending_examiner" }).eq("id", recordingId);
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+  return NextResponse.json({ ok: true, accepted: true });
 }
