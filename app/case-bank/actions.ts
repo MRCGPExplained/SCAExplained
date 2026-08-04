@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail } from "@/lib/email";
 import type { Highlight, HighlightColor } from "@/lib/case-bank-types";
+import { isDailyCoEnabled, createDailyRoom, createDailyMeetingToken, deleteDailyRoom } from "@/lib/daily";
 
 export interface ActionResult {
   error?: string;
@@ -722,4 +723,53 @@ export async function startRecordingAction(args: {
   }
 
   return { recordingId: recording.id };
+}
+
+// ── DailyCo live audio ──────────────────────────────────────────────────────────
+
+export async function getDailyCoEnabledAction(): Promise<boolean> {
+  return isDailyCoEnabled();
+}
+
+/**
+ * Creates the shared DailyCo room for one recording. Called once, by whoever
+ * starts the recording — the resulting room name/url is broadcast to the rest
+ * of the room so everyone joins the same call rather than each creating one.
+ */
+export async function createDailyCallAction(
+  recordingId: string
+): Promise<{ roomName: string; roomUrl: string } | { error: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const room = await createDailyRoom(recordingId);
+  if (!room) return { error: "Could not start live audio." };
+
+  return { roomName: room.name, roomUrl: room.url };
+}
+
+/**
+ * Issues a personal join token for an already-created room. Every
+ * participant (including whoever created the room) calls this for
+ * themselves before joining client-side.
+ */
+export async function getDailyTokenAction(
+  roomName: string,
+  userName: string,
+  isOwner: boolean
+): Promise<{ token: string } | { error: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const token = await createDailyMeetingToken(roomName, userName, isOwner);
+  if (!token) return { error: "Could not join live audio." };
+
+  return { token };
+}
+
+/** Best-effort cleanup — called once the recording stops. */
+export async function endDailyCallAction(roomName: string): Promise<void> {
+  await deleteDailyRoom(roomName);
 }
