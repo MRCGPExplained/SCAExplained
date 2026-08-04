@@ -116,12 +116,13 @@ export function Timer({
             {phase === "PREREAD" && (
               <button
                 onClick={onSkipPreread}
-                className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
+                disabled={locked}
+                className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
                 style={{
                   background: "transparent",
                   border: "1px solid rgba(26,27,82,0.15)",
                   color: "rgba(26,27,82,0.5)",
-                  cursor: "pointer",
+                  cursor: locked ? "not-allowed" : "pointer",
                 }}
               >
                 Skip
@@ -129,12 +130,13 @@ export function Timer({
             )}
             <button
               onClick={onReset}
-              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
+              disabled={locked}
+              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
               style={{
                 background: "transparent",
                 border: "1px solid rgba(26,27,82,0.15)",
                 color: "rgba(26,27,82,0.5)",
-                cursor: "pointer",
+                cursor: locked ? "not-allowed" : "pointer",
               }}
             >
               Reset
@@ -142,7 +144,7 @@ export function Timer({
           </div>
           {locked && (
             <p className="text-[10px] font-semibold" style={{ color: "#F97316" }}>
-              Recording in progress — timer can't be paused
+              Recording in progress — use Stop to end it early
             </p>
           )}
         </div>
