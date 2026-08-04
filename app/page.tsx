@@ -74,7 +74,10 @@ export default async function HomePage() {
         <div className="max-w-[720px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
             <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
-              Perform Your Best On SCA<span style={{ color: YELLOW }}>.</span>
+              Every Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
+            </span>
+            <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
+              Perform Your Best On SCA.
             </span>
             <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
               Know Exactly What <Swash>Scores Marks</Swash>
