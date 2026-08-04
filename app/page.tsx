@@ -73,13 +73,13 @@ export default async function HomePage() {
       <section className="px-10 pt-10 pb-10 max-md:px-6">
         <div className="max-w-[720px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
-            <span className="block font-extrabold text-[46px] leading-[1.14] max-sm:text-[34px]">
+            <span className="block whitespace-nowrap font-extrabold text-[32px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[21px]">
               Every Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
             </span>
-            <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
+            <span className="block font-bold text-[22px] leading-[1.35] mt-2 max-sm:text-[16px]">
               Perform Your Best On SCA.
             </span>
-            <span className="block font-bold text-[30px] leading-[1.25] max-sm:text-[22px]">
+            <span className="block font-bold text-[22px] leading-[1.35] max-sm:text-[16px]">
               Know Exactly What <Swash>Scores Marks</Swash>
             </span>
           </h1>
