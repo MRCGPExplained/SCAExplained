@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
@@ -123,28 +124,34 @@ export default async function HomePage() {
             </p>
 
             {freeWebinars.length > 0 ? (
-              <div className="flex flex-col gap-2 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
-                {freeWebinars.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2 text-[13.5px] max-sm:flex-wrap">
-                    <span style={{ color: DARK, fontWeight: 600 }}>
-                      {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
-                    </span>
-                    <span style={{ color: "rgba(51,51,51,0.3)" }}>·</span>
-                    <span style={{ color: "rgba(51,51,51,0.45)" }}>
-                      {new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
-                    </span>
-                    <span style={{ color: "rgba(51,51,51,0.3)" }}>·</span>
-                    <a
-                      href={s.zoom_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold no-underline hover:underline"
-                      style={{ color: DARK }}
-                    >
-                      Register free →
-                    </a>
-                  </div>
-                ))}
+              <div className="pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "rgba(51,51,51,0.40)" }}>
+                  Upcoming Dates
+                </p>
+                <div
+                  className="grid gap-x-3 gap-y-2 text-[13.5px] max-sm:grid-cols-1"
+                  style={{ gridTemplateColumns: "auto auto 1fr" }}
+                >
+                  {freeWebinars.map((s) => (
+                    <Fragment key={s.id}>
+                      <span style={{ color: DARK, fontWeight: 600 }}>
+                        {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
+                      </span>
+                      <span style={{ color: "rgba(51,51,51,0.45)" }}>
+                        {new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(s.scheduled_at))}
+                      </span>
+                      <a
+                        href={s.zoom_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold no-underline hover:underline justify-self-start"
+                        style={{ color: DARK }}
+                      >
+                        Register free →
+                      </a>
+                    </Fragment>
+                  ))}
+                </div>
               </div>
             ) : (
               <p className="text-[14px] font-semibold pt-4" style={{ color: "rgba(51,51,51,0.45)", borderTop: "1px solid rgba(51,51,51,0.08)" }}>
