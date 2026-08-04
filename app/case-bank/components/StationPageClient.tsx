@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { FeedbackModal } from "./ReportModal";
+import { HighlightProvider, Highlightable } from "./Highlighter";
 import { toggleStarAction, updateLastStationAction, getRecordingCreditsAction, getRecordingBypassAction } from "../actions";
 
 const NAVY = "#1F2937";
@@ -42,7 +43,7 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
+function BulletList({ items, listKey }: { items: string[]; listKey?: string }) {
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-2">
       {items.map((item, i) => (
@@ -51,9 +52,18 @@ function BulletList({ items }: { items: string[] }) {
             className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
             style={{ background: "rgba(31,41,55,0.25)" }}
           />
-          <span className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
-            {item}
-          </span>
+          {listKey ? (
+            <Highlightable
+              unitKey={`${listKey}-${i}`}
+              text={item}
+              className="text-[16px] leading-[1.65]"
+              style={{ color: "rgba(26,27,82,0.8)" }}
+            />
+          ) : (
+            <span className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+              {item}
+            </span>
+          )}
         </li>
       ))}
     </ul>
@@ -135,8 +145,12 @@ function RecentNotesRenderer({ text }: { text: string }) {
         return (
           <div key={i} className="flex flex-col gap-2">
             {paragraphs.map((para, pi) => (
-              <p key={pi} className="m-0 text-[15px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
-                {para}
+              <p key={pi} className="m-0 text-[15px] leading-[1.65]" style={{ whiteSpace: "pre-line" }}>
+                <Highlightable
+                  unitKey={`recent_notes-${i}-${pi}`}
+                  text={para}
+                  style={{ color: "rgba(26,27,82,0.8)" }}
+                />
               </p>
             ))}
           </div>
@@ -169,13 +183,13 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.pmh.length > 0 && (
         <div>
           <Label>Past Medical History</Label>
-          <BulletList items={station.pmh} />
+          <BulletList items={station.pmh} listKey="pmh" />
         </div>
       )}
       {station.medications_and_allergies.length > 0 && (
         <div>
           <Label>Drug & Allergy History</Label>
-          <BulletList items={station.medications_and_allergies} />
+          <BulletList items={station.medications_and_allergies} listKey="medications_and_allergies" />
         </div>
       )}
       {station.recent_notes && (
@@ -186,8 +200,8 @@ function DoctorBriefContent({ station }: { station: Station }) {
       )}
       <div>
         <Label>Reason for Consultation</Label>
-        <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
-          {station.reason_for_consultation}
+        <p className="text-[16px] leading-[1.6]">
+          <Highlightable unitKey="reason_for_consultation" text={station.reason_for_consultation} style={{ color: "rgba(26,27,82,0.8)" }} />
         </p>
       </div>
       {station.image_urls && station.image_urls.length > 0 && (
@@ -225,16 +239,16 @@ function PatientStoryContent({ station }: { station: Station }) {
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
           Opening Statement
         </div>
-        <p className="text-[16px] leading-[1.65] italic" style={{ color: NAVY }}>
-          &ldquo;{station.opening_statement}&rdquo;
+        <p className="text-[16px] leading-[1.65] italic">
+          &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: NAVY }} />&rdquo;
         </p>
       </div>
 
       {/* If asked further */}
       <div>
         <Label>If Asked to Explain Further</Label>
-        <p className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
-          {station.if_asked_further}
+        <p className="text-[16px] leading-[1.65]">
+          <Highlightable unitKey="if_asked_further" text={station.if_asked_further} style={{ color: "rgba(26,27,82,0.8)" }} />
         </p>
       </div>
 
@@ -260,9 +274,12 @@ function PatientStoryContent({ station }: { station: Station }) {
                   className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40"
                   style={{ background: NAVY }}
                 />
-                <span className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.75)" }}>
-                  {item}
-                </span>
+                <Highlightable
+                  unitKey={`only_if_asked-${i}`}
+                  text={item}
+                  className="text-[16px] leading-[1.6]"
+                  style={{ color: "rgba(26,27,82,0.75)" }}
+                />
               </li>
             ))}
           </ul>
@@ -272,24 +289,24 @@ function PatientStoryContent({ station }: { station: Station }) {
       {/* Social history */}
       <div>
         <Label>Social History</Label>
-        <p className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
-          {station.social_history}
+        <p className="text-[16px] leading-[1.65]">
+          <Highlightable unitKey="social_history" text={station.social_history} style={{ color: "rgba(26,27,82,0.8)" }} />
         </p>
       </div>
 
       {/* ICE */}
       <div className="grid grid-cols-3 gap-2.5">
         {[
-          ["Ideas", station.ice_ideas],
-          ["Concerns", station.ice_concerns],
-          ["Expectations", station.ice_expectations],
-        ].map(([label, value]) => (
+          ["Ideas", "ice_ideas", station.ice_ideas],
+          ["Concerns", "ice_concerns", station.ice_concerns],
+          ["Expectations", "ice_expectations", station.ice_expectations],
+        ].map(([label, key, value]) => (
           <div key={label} className="rounded-lg p-3" style={{ background: LIGHT_BG }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
               {label}
             </div>
-            <p className="text-[16px] leading-[1.55]" style={{ color: "rgba(26,27,82,0.75)" }}>
-              {value}
+            <p className="text-[16px] leading-[1.55]">
+              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.75)" }} />
             </p>
           </div>
         ))}
@@ -308,9 +325,12 @@ function PatientStoryContent({ station }: { station: Station }) {
                 >
                   {i + 1}.
                 </span>
-                <span className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
-                  {s}
-                </span>
+                <Highlightable
+                  unitKey={`scenarios-${i}`}
+                  text={s}
+                  className="text-[16px] leading-[1.6]"
+                  style={{ color: "rgba(26,27,82,0.8)" }}
+                />
               </li>
             ))}
           </ul>
@@ -323,8 +343,8 @@ function PatientStoryContent({ station }: { station: Station }) {
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
             Question for the Doctor
           </div>
-          <p className="text-[16px] leading-[1.6]" style={{ color: NAVY }}>
-            {station.question_for_doctor}
+          <p className="text-[16px] leading-[1.6]">
+            <Highlightable unitKey="question_for_doctor" text={station.question_for_doctor} style={{ color: NAVY }} />
           </p>
         </div>
       )}
@@ -335,8 +355,8 @@ function PatientStoryContent({ station }: { station: Station }) {
           className="pt-3 border-t"
           style={{ borderColor: "rgba(26,27,82,0.08)" }}
         >
-          <p className="text-[16px] italic" style={{ color: "rgba(26,27,82,0.5)" }}>
-            {station.role_player_instruction}
+          <p className="text-[16px] italic">
+            <Highlightable unitKey="role_player_instruction" text={station.role_player_instruction} style={{ color: "rgba(26,27,82,0.5)" }} />
           </p>
         </div>
       )}
@@ -778,16 +798,17 @@ export function StationPageClient({
         >
           {/* Tab content */}
           <div className="rounded-xl bg-white px-6 py-5" style={{ border: "1px solid rgba(31,41,55,0.10)" }}>
+            <HighlightProvider stationId={station.id}>
             {activeTab === "brief" && <DoctorBriefContent station={station} />}
             {activeTab === "story" && <PatientStoryContent station={station} />}
-            {activeTab === "data" && <BulletList items={station.data_gathering} />}
-            {activeTab === "management" && <BulletList items={station.management} />}
+            {activeTab === "data" && <BulletList items={station.data_gathering} listKey="data_gathering" />}
+            {activeTab === "management" && <BulletList items={station.management} listKey="management" />}
             {activeTab === "explanation" && (
-              <p className="text-[16px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
-                {station.example_explanation}
+              <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+                <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
               </p>
             )}
-            {activeTab === "takeaways" && <BulletList items={station.key_takeaways} />}
+            {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}
             {activeTab === "audio" && station.audio_url && (
               <div className="flex flex-col gap-5">
                 <audio
@@ -803,6 +824,7 @@ export function StationPageClient({
                 )}
               </div>
             )}
+            </HighlightProvider>
           </div>
 
           {/* Timer + study room */}

@@ -82,6 +82,26 @@ export type ChatMessage = {
   time: string;
 };
 
+export type HighlightColor = "red" | "orange" | "yellow" | "green" | "blue" | "violet" | "pink";
+
+export type Highlight = {
+  id: string;
+  container_key: string;
+  start_offset: number;
+  end_offset: number;
+  color: HighlightColor;
+};
+
+export const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
+  red: "#FFADAD",
+  orange: "#FFD6A5",
+  yellow: "#FDFFB6",
+  green: "#CAFFBF",
+  blue: "#A0E7E5",
+  violet: "#BDB2FF",
+  pink: "#FFC6FF",
+};
+
 export type TimerPhase = "PREREAD" | "CONSULT";
 
 export const PHASE_DURATIONS: Record<TimerPhase, number> = {

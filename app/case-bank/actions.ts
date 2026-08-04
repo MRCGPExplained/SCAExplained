@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail } from "@/lib/email";
+import type { Highlight, HighlightColor } from "@/lib/case-bank-types";
 
 export interface ActionResult {
   error?: string;
@@ -217,6 +218,83 @@ export async function submitReportAction(
     console.error("[feedback] DB insert failed");
   }
 
+  return { success: true };
+}
+
+// ── Highlights ────────────────────────────────────────────────────────────────
+
+export async function getStationHighlightsAction(
+  stationId: string
+): Promise<{ highlights: Highlight[]; lastColor: HighlightColor }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { highlights: [], lastColor: "yellow" };
+
+  const [{ data: highlights }, { data: profile }] = await Promise.all([
+    supabase
+      .from("station_highlights")
+      .select("id, container_key, start_offset, end_offset, color")
+      .eq("user_id", user.id)
+      .eq("station_id", stationId),
+    supabase
+      .from("user_profiles")
+      .select("last_highlight_color")
+      .eq("id", user.id)
+      .single<{ last_highlight_color: HighlightColor | null }>(),
+  ]);
+
+  return {
+    highlights: (highlights ?? []) as Highlight[],
+    lastColor: profile?.last_highlight_color ?? "yellow",
+  };
+}
+
+export async function createHighlightAction(
+  stationId: string,
+  containerKey: string,
+  startOffset: number,
+  endOffset: number,
+  color: HighlightColor
+): Promise<{ id?: string; error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const { data, error } = await supabase
+    .from("station_highlights")
+    .insert({
+      user_id: user.id,
+      station_id: stationId,
+      container_key: containerKey,
+      start_offset: startOffset,
+      end_offset: endOffset,
+      color,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error) return { error: error.message };
+
+  await supabase
+    .from("user_profiles")
+    .update({ last_highlight_color: color })
+    .eq("id", user.id);
+
+  return { id: data.id };
+}
+
+export async function deleteHighlightAction(highlightId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("station_highlights")
+    .delete()
+    .eq("id", highlightId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
   return { success: true };
 }
 
