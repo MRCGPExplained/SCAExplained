@@ -113,10 +113,20 @@ export function StudyRoomPanel({
   const [dailyError, setDailyError] = useState("");
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyContainerRef = useRef<HTMLDivElement>(null);
+  const dailyPrewarmingRef = useRef(false);
 
   useEffect(() => {
     getDailyCoEnabledAction().then(setDailyCoEnabled);
   }, []);
+
+  // Warm up mic access as soon as you're in the room — before recording
+  // starts — so the actual join later is instant instead of prompting for
+  // permission (or showing DailyCo's own device-check screen) mid-consult.
+  useEffect(() => {
+    if (!room || !dailyCoEnabled || dailyPrewarmingRef.current) return;
+    dailyPrewarmingRef.current = true;
+    prewarmDailyCall();
+  }, [room?.id, dailyCoEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Best-effort cleanup if the panel unmounts mid-call (e.g. navigating away)
   useEffect(() => {
@@ -500,6 +510,29 @@ export function StudyRoomPanel({
     getRecordingBypassAction().then(setRecordingBypassed);
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function getOrCreateDailyCall(): Promise<DailyCall | null> {
+    if (dailyCallRef.current) return dailyCallRef.current;
+    if (!dailyContainerRef.current) return null;
+    const DailyIframe = (await import("@daily-co/daily-js")).default;
+    const call = DailyIframe.createFrame(dailyContainerRef.current, {
+      showLeaveButton: false,
+      showFullscreenButton: false,
+      iframeStyle: { width: "100%", height: "180px", border: "none", borderRadius: "10px" },
+    });
+    dailyCallRef.current = call;
+    return call;
+  }
+
+  /** Warms up mic access well before recording starts, so the real join is instant. */
+  async function prewarmDailyCall() {
+    try {
+      const call = await getOrCreateDailyCall();
+      await call?.startCamera({ startVideoOff: true, startAudioOff: false });
+    } catch {
+      // best-effort — worst case the permission prompt just happens at join time instead
+    }
+  }
+
   async function joinDailyCall(roomName: string, roomUrl: string) {
     setDailyJoining(true);
     setDailyError("");
@@ -509,15 +542,8 @@ export function StudyRoomPanel({
         setDailyError(tokenResult.error);
         return;
       }
-      const DailyIframe = (await import("@daily-co/daily-js")).default;
-      if (!dailyContainerRef.current) return;
-
-      const call = DailyIframe.createFrame(dailyContainerRef.current, {
-        showLeaveButton: false,
-        showFullscreenButton: false,
-        iframeStyle: { width: "100%", height: "180px", border: "none", borderRadius: "10px" },
-      });
-      dailyCallRef.current = call;
+      const call = await getOrCreateDailyCall();
+      if (!call) return;
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
     } catch {
@@ -529,11 +555,9 @@ export function StudyRoomPanel({
 
   async function leaveDailyCall() {
     const call = dailyCallRef.current;
-    dailyCallRef.current = null;
     if (call) {
       try {
         await call.leave();
-        call.destroy();
       } catch {
         // best-effort — recording/upload flow doesn't depend on this
       }
@@ -989,9 +1013,16 @@ export function StudyRoomPanel({
         </div>
       )}
 
-      {/* Live audio (DailyCo) */}
-      {(recordingState === "recording" || recordingState === "starting") && dailyCoEnabled && (
-        <div className="px-3.5 pt-3" style={{ background: NAVY }}>
+      {/* Live audio (DailyCo) — container always mounted once enabled, so mic
+          permission can be pre-warmed before recording; only shown once active. */}
+      {dailyCoEnabled && (
+        <div
+          className="px-3.5 pt-3"
+          style={{
+            background: NAVY,
+            display: recordingState === "recording" || recordingState === "starting" ? "block" : "none",
+          }}
+        >
           <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
             Live Audio
           </div>

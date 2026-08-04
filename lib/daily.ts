@@ -83,6 +83,7 @@ export async function createDailyRoom(recordingId: string): Promise<DailyRoom | 
           enable_screenshare: false,
           enable_chat: false,
           enable_recording: false,
+          enable_prejoin_ui: false,
           start_video_off: true,
           start_audio_off: false,
         },

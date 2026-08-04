@@ -206,7 +206,6 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       }
       const DailyIframe = (await import("@daily-co/daily-js")).default;
       if (!dailyContainerRef.current) return;
-
       const call = DailyIframe.createFrame(dailyContainerRef.current, {
         showLeaveButton: false,
         showFullscreenButton: false,
