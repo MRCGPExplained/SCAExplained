@@ -54,6 +54,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [patientId, setPatientId] = useState("");
   const [startErr, setStartErr] = useState("");
   const [starting, setStarting] = useState(false);
+  const [showStartWarning, setShowStartWarning] = useState(false);
 
   // Recording
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -500,6 +501,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   if (phase === "lobby") {
     return (
+      <>
       <div
         className="rounded-2xl border bg-white p-6 flex flex-col gap-5"
         style={{ borderColor: "rgba(51,51,51,0.1)" }}
@@ -653,7 +655,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             )}
 
             <button
-              onClick={handleStartRecording}
+              onClick={() => {
+                if (doctorId === patientId) {
+                  setStartErr("Doctor and patient must be different participants.");
+                  return;
+                }
+                setStartErr("");
+                setShowStartWarning(true);
+              }}
               disabled={starting || participants.length < 2 || !doctorId || !patientId}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition self-start"
               style={{
@@ -695,6 +704,51 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           </div>
         )}
       </div>
+
+      {showStartWarning && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 px-6"
+          style={{ background: "rgba(26,27,82,0.55)" }}
+        >
+          <div
+            className="w-full max-w-[400px] rounded-2xl p-6"
+            style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <h2 className="font-display font-bold text-[15px]" style={{ color: DARK }}>
+                Before you start
+              </h2>
+            </div>
+            <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(51,51,51,0.7)" }}>
+              <li>• This will use <strong>1 recording credit</strong> immediately.</li>
+              <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused, reset, or stopped early — once started, you must see it through to the end.</li>
+              <li>• Recording stops automatically at the 12-minute mark.</li>
+            </ul>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowStartWarning(false)}
+                className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+                style={{ background: "rgba(51,51,51,0.06)", border: "none", color: DARK, cursor: "pointer" }}
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  setShowStartWarning(false);
+                  handleStartRecording();
+                }}
+                className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+                style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
+              >
+                I Understand, Start
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
     );
   }
 
@@ -741,33 +795,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           )}
         </div>
 
-        {isHost ? (
-          <button
-            onClick={handleStop}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition self-start"
-            style={{
-              background: "rgba(239,68,68,0.18)",
-              color: "#991B1B",
-              border: "1px solid rgba(239,68,68,0.3)",
-              cursor: "pointer",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                width: 10,
-                height: 10,
-                borderRadius: 2,
-                background: "#EF4444",
-              }}
-            />
-            Stop Recording
-          </button>
-        ) : (
-          <p className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
-            Host will stop the recording when ready.
-          </p>
-        )}
+        <p className="text-[12px] font-semibold" style={{ color: "#F97316" }}>
+          Recording must be seen through — it stops automatically after 12 minutes.
+        </p>
       </div>
     );
   }

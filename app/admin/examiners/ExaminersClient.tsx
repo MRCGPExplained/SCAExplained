@@ -6,7 +6,7 @@ import {
   createExaminerAction, updateExaminerAction, deleteExaminerAction,
   updateBypassSettingsAction, saveAiPromptAction, clearAiPromptAction,
   toggleExaminerIsAdminAction, toggleDeepgramAction, setVercelPlanAction, toggleResendAction,
-  bulkMarkExaminerPaidAction,
+  toggleDailyCoAction, bulkMarkExaminerPaidAction,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -37,6 +37,7 @@ interface Props {
   deepgramEnabled: boolean;
   vercelPlan: "hobby" | "pro";
   resendEnabled: boolean;
+  dailyCoEnabled: boolean;
 }
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan, resendEnabled: initialResend }: Props) {
+export default function ExaminersClient({ examiners, activity, filters, bypassSettings, aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan, resendEnabled: initialResend, dailyCoEnabled: initialDailyCo }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("examiners");
   const [isPending, startTransition] = useTransition();
@@ -119,6 +120,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
   const [resendOn, setResendOn] = useState(initialResend);
   const [resendPending, startResendTransition] = useTransition();
   const [resendErr, setResendErr] = useState("");
+
+  // DailyCo toggle
+  const [dailyCoOn, setDailyCoOn] = useState(initialDailyCo);
+  const [dailyCoPending, startDailyCoTransition] = useTransition();
+  const [dailyCoErr, setDailyCoErr] = useState("");
 
   // Activity selection + bulk pay
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -695,6 +701,44 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                 </div>
               </div>
             )}
+
+            {/* DailyCo on/off */}
+            <div style={{ paddingTop: 16, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+              <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>DailyCo Live Audio</div>
+              <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
+                When enabled, study room participants get a live audio call for the 12-minute consultation. When disabled, the call feature is hidden — participants only record locally as before.
+              </p>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  disabled={dailyCoPending}
+                  onClick={() => {
+                    const next = !dailyCoOn;
+                    setDailyCoOn(next);
+                    setDailyCoErr("");
+                    startDailyCoTransition(async () => {
+                      const res = await toggleDailyCoAction(next);
+                      if (res.error) { setDailyCoOn(!next); setDailyCoErr(res.error); }
+                    });
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+                  style={{
+                    background: dailyCoOn ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.07)",
+                    border: `1.5px solid ${dailyCoOn ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
+                    color: dailyCoOn ? "#166534" : "rgba(51,51,51,0.45)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {dailyCoPending ? "Saving…" : dailyCoOn ? "DailyCo: ON" : "DailyCo: OFF"}
+                </button>
+                <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                  {dailyCoOn
+                    ? "Live audio call is available in study rooms."
+                    : "Live audio call is disabled."}
+                </span>
+                {dailyCoErr && <span className="text-[12px] text-red-600">{dailyCoErr}</span>}
+              </div>
+            </div>
           </div>
         </div>
       )}

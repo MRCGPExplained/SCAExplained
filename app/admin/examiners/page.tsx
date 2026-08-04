@@ -47,7 +47,7 @@ export default async function ExaminersPage({
         })()
       : Promise.resolve({ data: [] }),
     supabase
-      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt", "deepgram_enabled", "vercel_plan", "resend_enabled"])
+      ? supabase.from("site_settings").select("key, value").in("key", ["recording_bypass_enabled", "recording_bypass_emails", "ai_grading_prompt", "deepgram_enabled", "vercel_plan", "resend_enabled", "daily_co_enabled"])
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -66,6 +66,7 @@ export default async function ExaminersPage({
   const deepgramEnabled = settingsMap.get("deepgram_enabled") !== "false"; // default on
   const vercelPlan = (settingsMap.get("vercel_plan") ?? "pro") as "hobby" | "pro";
   const resendEnabled = settingsMap.get("resend_enabled") !== "false"; // default on
+  const dailyCoEnabled = settingsMap.get("daily_co_enabled") === "true"; // default off
 
   return (
     <ExaminersClient
@@ -78,6 +79,7 @@ export default async function ExaminersPage({
       deepgramEnabled={deepgramEnabled}
       vercelPlan={vercelPlan}
       resendEnabled={resendEnabled}
+      dailyCoEnabled={dailyCoEnabled}
     />
   );
 }

@@ -41,6 +41,7 @@ interface StudyRoomProps {
   onTimerSync?: (phase: TimerPhase, timeLeft: number, running: boolean) => void;
   onStationChange?: (stationNumber: number) => void;
   onRoomStatusChange?: (inRoom: boolean, iAmHost: boolean, roomId: string | null, hostName: string | null) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
   /** Ref the parent fills so it can call broadcastTimer(phase, timeLeft, running) */
   broadcastTimerRef?: MutableRefObject<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>;
   /** Read-only ref the panel reads to re-announce timer state to late-joining guests */
@@ -58,6 +59,7 @@ export function StudyRoomPanel({
   onTimerSync,
   onStationChange,
   onRoomStatusChange,
+  onRecordingStateChange,
   broadcastTimerRef,
   timerStateRef,
   onTimerReset,
@@ -96,6 +98,11 @@ export function StudyRoomPanel({
 
   const iAmHost = room ? room.host_user_id === userId : false;
   const [recentReportId, setRecentReportId] = useState<string | null>(null);
+  const [showStartWarning, setShowStartWarning] = useState(false);
+
+  useEffect(() => {
+    onRecordingStateChange?.(recordingState === "recording");
+  }, [recordingState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!room) return;
@@ -829,6 +836,7 @@ export function StudyRoomPanel({
                 setSelectedDoctor(userId);
                 setSelectedPatient(participants.find((p) => !p.isSelf)?.userId ?? "");
                 setRecordingError("");
+                setShowStartWarning(false);
                 setShowRoleSelector(true);
               }}
               title={
@@ -854,17 +862,8 @@ export function StudyRoomPanel({
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
-                REC
+                REC — must be seen through
               </span>
-              {iAmHost && (
-                <button
-                  onClick={handleStopRecording}
-                  className="text-[10px] px-2 py-1 rounded"
-                  style={{ background: "rgba(239,68,68,0.25)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
-                >
-                  Stop
-                </button>
-              )}
             </div>
           )}
           {recordingState === "uploading" && (
@@ -989,7 +988,7 @@ export function StudyRoomPanel({
     </div>
 
     {/* Role selector modal — host assigns doctor/patient before recording */}
-    {showRoleSelector && (
+    {showRoleSelector && !showStartWarning && (
       <div
         className="fixed inset-0 flex items-center justify-center z-50 px-6"
         style={{ background: "rgba(26,27,82,0.55)" }}
@@ -1046,7 +1045,14 @@ export function StudyRoomPanel({
               Cancel
             </button>
             <button
-              onClick={handleConfirmRecord}
+              onClick={() => {
+                if (selectedDoctor === selectedPatient) {
+                  setRecordingError("Doctor and patient must be different participants.");
+                  return;
+                }
+                setRecordingError("");
+                setShowStartWarning(true);
+              }}
               disabled={!selectedDoctor || !selectedPatient}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
               style={{
@@ -1057,7 +1063,51 @@ export function StudyRoomPanel({
                 opacity: !selectedDoctor || !selectedPatient ? 0.5 : 1,
               }}
             >
-              Start Recording
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showRoleSelector && showStartWarning && (
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50 px-6"
+        style={{ background: "rgba(26,27,82,0.55)" }}
+      >
+        <div
+          className="w-full max-w-[400px] rounded-2xl p-6"
+          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <h2 className="font-display font-bold text-[15px]" style={{ color: NAVY }}>
+              Before you start
+            </h2>
+          </div>
+          <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
+            <li>• This will use <strong>1 recording credit</strong>{recordingBypassed ? " (waived for you)" : ""} immediately.</li>
+            <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused, reset, or stopped early — once started, you must see it through to the end.</li>
+            <li>• Recording stops automatically at the 12-minute mark.</li>
+          </ul>
+
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setShowStartWarning(false)}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
+            >
+              Back
+            </button>
+            <button
+              onClick={() => {
+                setShowStartWarning(false);
+                handleConfirmRecord();
+              }}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+              style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
+            >
+              I Understand, Start
             </button>
           </div>
         </div>

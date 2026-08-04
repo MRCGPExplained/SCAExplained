@@ -12,6 +12,7 @@ export function Timer({
   timeLeft,
   running,
   isHost,
+  locked,
   onStart,
   onPause,
   onSkipPreread,
@@ -23,6 +24,8 @@ export function Timer({
   timeLeft: number;
   running: boolean;
   isHost: boolean;
+  /** While true (a recording is in progress), Pause and Reset are disabled — the consultation must be seen through. */
+  locked?: boolean;
   onStart: () => void;
   onPause: () => void;
   onSkipPreread: () => void;
@@ -95,45 +98,55 @@ export function Timer({
 
       {/* Controls */}
       {isHost && (
-        <div className="flex gap-1.5 justify-center mt-2">
-          <button
-            onClick={running ? onPause : onStart}
-            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(26,27,82,0.15)",
-              color: "rgba(26,27,82,0.5)",
-              cursor: "pointer",
-            }}
-          >
-            {running ? "Pause" : "Start"}
-          </button>
-          {phase === "PREREAD" && (
+        <div className="flex flex-col items-center gap-1.5 mt-2">
+          <div className="flex gap-1.5 justify-center">
             <button
-              onClick={onSkipPreread}
-              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
+              onClick={running ? onPause : onStart}
+              disabled={locked}
+              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
               style={{
                 background: "transparent",
                 border: "1px solid rgba(26,27,82,0.15)",
                 color: "rgba(26,27,82,0.5)",
-                cursor: "pointer",
+                cursor: locked ? "not-allowed" : "pointer",
               }}
             >
-              Skip
+              {running ? "Pause" : "Start"}
             </button>
+            {phase === "PREREAD" && (
+              <button
+                onClick={onSkipPreread}
+                disabled={locked}
+                className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
+                style={{
+                  background: "transparent",
+                  border: "1px solid rgba(26,27,82,0.15)",
+                  color: "rgba(26,27,82,0.5)",
+                  cursor: locked ? "not-allowed" : "pointer",
+                }}
+              >
+                Skip
+              </button>
+            )}
+            <button
+              onClick={onReset}
+              disabled={locked}
+              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(26,27,82,0.15)",
+                color: "rgba(26,27,82,0.5)",
+                cursor: locked ? "not-allowed" : "pointer",
+              }}
+            >
+              Reset
+            </button>
+          </div>
+          {locked && (
+            <p className="text-[10px] font-semibold" style={{ color: "#F97316" }}>
+              Recording in progress — must be seen through
+            </p>
           )}
-          <button
-            onClick={onReset}
-            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold"
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(26,27,82,0.15)",
-              color: "rgba(26,27,82,0.5)",
-              cursor: "pointer",
-            }}
-          >
-            Reset
-          </button>
         </div>
       )}
     </div>

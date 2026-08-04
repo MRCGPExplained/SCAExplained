@@ -1018,6 +1018,19 @@ export async function toggleResendAction(enabled: boolean): Promise<ActionResult
   return { success: true };
 }
 
+export async function toggleDailyCoAction(enabled: boolean): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "daily_co_enabled", value: enabled ? "true" : "false" }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/examiners");
+  return { success: true };
+}
+
 // ── Admin passcodes ───────────────────────────────────────────────────────────
 
 export async function createAdminPasscodeAction(

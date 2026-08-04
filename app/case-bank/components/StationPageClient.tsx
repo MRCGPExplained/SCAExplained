@@ -406,6 +406,7 @@ export function StationPageClient({
   const [iAmHost, setIAmHost] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomHostName, setRoomHostName] = useState<string | null>(null);
+  const [isRecordingActive, setIsRecordingActive] = useState(false);
   const broadcastTimerRef = useRef<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>(null);
   const timerStateRef = useRef<{ phase: TimerPhase; timeLeft: number; running: boolean }>({
     phase: "PREREAD",
@@ -835,6 +836,7 @@ export function StationPageClient({
                 timeLeft={timeLeft}
                 running={timerRunning}
                 isHost={!inRoom || iAmHost}
+                locked={isRecordingActive}
                 onStart={handleTimerStart}
                 onPause={handleTimerPause}
                 onSkipPreread={handleSkipPreread}
@@ -860,6 +862,7 @@ export function StationPageClient({
                 onTimerSync={handleTimerSync}
                 onStationChange={handleStationChange}
                 onRoomStatusChange={handleRoomStatusChange}
+                onRecordingStateChange={setIsRecordingActive}
                 broadcastTimerRef={broadcastTimerRef}
                 timerStateRef={timerStateRef}
                 onTimerReset={handleTimerReset}
