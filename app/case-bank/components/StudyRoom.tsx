@@ -1205,7 +1205,8 @@ export function StudyRoomPanel({
           </div>
           <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
             <li>• This will use <strong>1 recording credit</strong>{recordingBypassed ? " (waived for you)" : ""} immediately.</li>
-            <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused, reset, or stopped early — once started, you must see it through to the end.</li>
+            <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
+            <li>• If stopped early, the credit used is not recoverable.</li>
             <li>• Recording stops automatically at the 12-minute mark.</li>
           </ul>
 
