@@ -127,6 +127,7 @@ export function StudyRoomPanel({
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
   const [dailyConnecting, setDailyConnecting] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
+  const [dailyFailed, setDailyFailed] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
@@ -377,15 +378,17 @@ export function StudyRoomPanel({
         dailyRoomUrl?: string;
       };
       setActiveRecordingId(recordingId);
-      setRecordingState("recording");
+      setRecordingState("starting");
       // Non-host participants: join the shared live audio call first (or
       // time out) so the mic recorder starts in sync with it, then start
       // their own mic if they're doctor or patient.
       if (!iAmHost) {
         (async () => {
           if (dailyRoomName && dailyRoomUrl) {
-            await withTimeout(joinDailyCall(dailyRoomName, dailyRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+            const joined = await withTimeout(joinDailyCall(dailyRoomName, dailyRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+            if (joined !== true) setDailyFailed(true);
           }
+          setRecordingState("recording");
           if (userId === doctorUserId) {
             setMyRecordingRole("doctor");
             await startLocalRecording(recordingId, "doctor");
@@ -579,19 +582,29 @@ export function StudyRoomPanel({
     }
   }
 
-  async function joinDailyCall(roomName: string, roomUrl: string) {
+  async function joinDailyCall(roomName: string, roomUrl: string): Promise<boolean> {
     setDailyConnecting(true);
+    setDailyFailed(false);
     try {
       const tokenResult = await getDailyTokenAction(roomName, displayName, iAmHost);
-      if ("error" in tokenResult) return;
+      if ("error" in tokenResult) {
+        setDailyFailed(true);
+        return false;
+      }
       const call = await getOrCreateDailyCall();
-      if (!call) return;
+      if (!call) {
+        setDailyFailed(true);
+        return false;
+      }
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
       setCallConnected(true);
+      return true;
     } catch {
       // best-effort — recording continues locally regardless of live audio
       setCallConnected(false);
+      setDailyFailed(true);
+      return false;
     } finally {
       setDailyConnecting(false);
     }
@@ -610,6 +623,7 @@ export function StudyRoomPanel({
     dailyAudioElsRef.current.clear();
     setDailyConnecting(false);
     setCallConnected(false);
+    setDailyFailed(false);
     setDailyRoomName(null);
   }
 
@@ -701,7 +715,8 @@ export function StudyRoomPanel({
 
     const recordingId = result.recordingId!;
     setActiveRecordingId(recordingId);
-    setRecordingState("recording");
+    // Stay in "starting" — not yet "recording" — until the synced start
+    // below actually happens, so the UI doesn't claim REC prematurely.
 
     // Start the shared live audio call, if enabled — best-effort, never
     // blocks the recording itself if DailyCo is unavailable.
@@ -727,8 +742,11 @@ export function StudyRoomPanel({
     // Wait for the live call to connect (or time out) before starting the
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
-      await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      if (joined !== true) setDailyFailed(true);
     }
+
+    setRecordingState("recording");
 
     // Reset the timer to start of consultation
     onTimerReset?.();
@@ -1023,10 +1041,17 @@ export function StudyRoomPanel({
           )}
           {(recordingState === "recording" || recordingState === "starting") && (
             <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
-                REC
-              </span>
+              {recordingState === "starting" ? (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.4)", animation: "pulse 1.2s infinite" }} />
+                  Starting…
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
+                  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
+                  REC
+                </span>
+              )}
               {dailyConnecting && (
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
                   <PhoneIcon color="rgba(255,255,255,0.5)" /> Connecting…
@@ -1035,6 +1060,11 @@ export function StudyRoomPanel({
               {callConnected && (
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
                   <PhoneIcon color="rgba(134,239,172,0.9)" /> Call Connected
+                </span>
+              )}
+              {dailyFailed && !callConnected && (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <PhoneIcon color="rgba(255,255,255,0.4)" /> Voice call off — connection failed
                 </span>
               )}
               {iAmHost && recordingState === "recording" && (

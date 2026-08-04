@@ -82,6 +82,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
   const [dailyConnecting, setDailyConnecting] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
+  const [dailyFailed, setDailyFailed] = useState(false);
+  const [recordingStarting, setRecordingStarting] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
@@ -198,14 +200,17 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         roleRef.current = role;
         setRecordingId(rid);
         setMyRole(role);
-        setPhase("recording");
+        setRecordingStarting(true);
 
         // Join the shared live audio call first (or time out) so the mic
         // recorder starts in sync with it.
         (async () => {
           if (!isHostRef.current && dRoomName && dRoomUrl) {
-            await withTimeout(joinDailyCall(dRoomName, dRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+            const joined = await withTimeout(joinDailyCall(dRoomName, dRoomUrl), DAILY_JOIN_TIMEOUT_MS);
+            if (joined !== true) setDailyFailed(true);
           }
+          setRecordingStarting(false);
+          setPhase("recording");
           if (role) launchMediaRecorder(rid, role);
         })();
       })
@@ -272,20 +277,30 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     }
   }
 
-  async function joinDailyCall(roomName: string, roomUrl: string) {
+  async function joinDailyCall(roomName: string, roomUrl: string): Promise<boolean> {
     setDailyConnecting(true);
+    setDailyFailed(false);
     try {
       const myName = participants.find((p) => p.user_id === userIdRef.current)?.display_name ?? "User";
       const tokenResult = await getDailyTokenAction(roomName, myName, isHostRef.current);
-      if ("error" in tokenResult) return;
+      if ("error" in tokenResult) {
+        setDailyFailed(true);
+        return false;
+      }
       const call = await getOrCreateDailyCall();
-      if (!call) return;
+      if (!call) {
+        setDailyFailed(true);
+        return false;
+      }
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
       setCallConnected(true);
+      return true;
     } catch {
       // best-effort — recording continues locally regardless of live audio
       setCallConnected(false);
+      setDailyFailed(true);
+      return false;
     } finally {
       setDailyConnecting(false);
     }
@@ -304,6 +319,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     dailyAudioElsRef.current.clear();
     setDailyConnecting(false);
     setCallConnected(false);
+    setDailyFailed(false);
     setDailyRoomName(null);
   }
 
@@ -496,7 +512,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     // Wait for the live call to connect (or time out) before starting the
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
-      await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      if (joined !== true) setDailyFailed(true);
     }
 
     // Host transitions manually (doesn't receive own broadcast)
@@ -554,6 +571,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     mrRef.current = null;
     roleRef.current = null;
     isHostRef.current = false;
+    leaveDailyCall();
+    setRecordingStarting(false);
     setPhase("setup");
     setRoomId(null);
     setRoomCode(null);
@@ -864,7 +883,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             className="rounded-lg px-4 py-3 text-[13px]"
             style={{ background: "rgba(51,51,51,0.04)", color: "rgba(51,51,51,0.5)" }}
           >
-            Waiting for the host to assign roles and start the recording…
+            {recordingStarting
+              ? "Starting…"
+              : "Waiting for the host to assign roles and start the recording…"}
           </div>
         )}
       </div>
@@ -953,6 +974,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             {callConnected && (
               <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "#15803d" }}>
                 <PhoneIcon color="#15803d" /> Call Connected
+              </span>
+            )}
+            {dailyFailed && !callConnected && (
+              <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.4)" }}>
+                <PhoneIcon color="rgba(51,51,51,0.4)" /> Voice call off — connection failed
               </span>
             )}
           </div>
