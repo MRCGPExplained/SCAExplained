@@ -76,10 +76,10 @@ export default async function HomePage() {
             <span className="block whitespace-nowrap tracking-tight font-extrabold text-[34px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[22px]">
               Every Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
             </span>
-            <span className="block font-bold text-[27px] leading-[1.3] mt-2 max-sm:text-[19px]">
+            <span className="block font-bold text-[23px] leading-[1.3] mt-2 max-sm:text-[16px]">
               Perform Your Best On SCA.
             </span>
-            <span className="block font-bold text-[27px] leading-[1.3] max-sm:text-[19px]">
+            <span className="block font-bold text-[23px] leading-[1.3] max-sm:text-[16px]">
               Know Exactly What <Swash>Scores Marks</Swash>
             </span>
           </h1>
