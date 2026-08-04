@@ -264,7 +264,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
         {phase.kind === "timedout" && (
           <div className="flex flex-col gap-2 w-full">
             <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", color: "#92400e" }}>
-              <strong>Processing timed out.</strong> The Vercel hobby plan cuts functions at 60 s — your recording was submitted but the AI marking didn&apos;t finish. Upgrade to Vercel Pro to fix this.
+              <strong>Still processing.</strong> AI marking for a full consultation can take a few minutes — your recording was submitted successfully. Check your recordings in a few minutes.
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <a

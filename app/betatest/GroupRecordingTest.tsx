@@ -1178,7 +1178,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
               color: "#92400e",
             }}
           >
-            <strong>Processing timed out.</strong> Recording submitted but AI marking didn&apos;t finish in time.
+            <strong>Still processing.</strong> AI marking for a full consultation can take a few minutes — your recording was submitted successfully. Check your recordings in a few minutes.
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {recordingId && (
