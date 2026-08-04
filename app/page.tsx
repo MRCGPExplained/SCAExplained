@@ -143,8 +143,8 @@ export default async function HomePage() {
                         href={s.zoom_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-center font-bold text-[13px] px-4 py-2 rounded-lg no-underline transition-opacity hover:opacity-85"
-                        style={{ background: YELLOW, color: DARK }}
+                        className="font-bold text-[13px] no-underline hover:underline"
+                        style={{ color: DARK }}
                       >
                         Register free →
                       </a>
