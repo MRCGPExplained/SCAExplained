@@ -1,6 +1,7 @@
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { examinerLoginAction, examinerLogoutAction } from "./actions";
+import RetryPipelineButton from "./RetryPipelineButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +14,23 @@ type QueueRow = {
   station_title: string;
   doctor_display_name: string;
   started_at: string;
+  ended_at: string | null;
   status: string;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
+  doctor_audio_path: string | null;
   examiners: { name: string } | null;
 };
+
+function formatDuration(startedAt: string, endedAt: string | null): string | null {
+  if (!endedAt) return null;
+  const seconds = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000));
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 const ERROR_MESSAGES: Record<string, string> = {
   required: "Passcode required.",
@@ -75,26 +86,37 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
 
   // ── Logged in: show review queue ─────────────────────────────────────────
   const admin = getSupabaseAdmin();
-  const [pendingResult, doneResult] = admin
+  const QUEUE_COLUMNS =
+    "id, station_number, station_title, doctor_display_name, started_at, ended_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiners(name)";
+  const [pendingResult, doneResult, settingsResult] = admin
     ? await Promise.all([
         admin
           .from("station_recordings")
-          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, examiners(name)")
+          .select(QUEUE_COLUMNS)
           .in("status", ["pending_examiner", "reviewing"])
           .order("started_at", { ascending: false })
           .limit(100),
         admin
           .from("station_recordings")
-          .select("id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, examiners(name)")
+          .select(QUEUE_COLUMNS)
           .in("status", ["reviewed", "sent"])
           .eq("examiner_id", examiner.id)
           .order("started_at", { ascending: false })
           .limit(100),
+        admin
+          .from("site_settings")
+          .select("key, value")
+          .in("key", ["deepgram_enabled", "vercel_plan"]),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
 
   const pending = (pendingResult.data ?? []) as unknown as QueueRow[];
   const done = (doneResult.data ?? []) as unknown as QueueRow[];
+  const settingsMap = new Map(
+    ((settingsResult.data ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
+  );
+  const pipelineRetryEnabled =
+    settingsMap.get("deepgram_enabled") === "true" && (settingsMap.get("vercel_plan") ?? "pro") === "pro";
 
   return (
     <div className="min-h-screen" style={{ background: "#FAFAF8" }}>
@@ -129,7 +151,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-              {pending.map((rec) => <RecordingCard key={rec.id} rec={rec} />)}
+              {pending.map((rec) => <RecordingCard key={rec.id} rec={rec} pipelineRetryEnabled={pipelineRetryEnabled} />)}
             </div>
           )}
         </div>
@@ -140,7 +162,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
               Completed ({done.length})
             </h2>
             <div className="flex flex-col gap-2.5">
-              {done.map((rec) => <RecordingCard key={rec.id} rec={rec} />)}
+              {done.map((rec) => <RecordingCard key={rec.id} rec={rec} pipelineRetryEnabled={pipelineRetryEnabled} />)}
             </div>
           </div>
         )}
@@ -149,10 +171,12 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
   );
 }
 
-function RecordingCard({ rec }: { rec: QueueRow }) {
+function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineRetryEnabled: boolean }) {
   const isReviewing = rec.status === "reviewing";
   const isPending = rec.status === "pending_examiner";
   const examinerName = rec.examiners?.name ?? null;
+  const duration = formatDuration(rec.started_at, rec.ended_at);
+  const canRetry = pipelineRetryEnabled && !!rec.doctor_audio_path && !rec.ai_data_gathering && (isPending || isReviewing);
 
   const statusChip = isPending
     ? { label: "Needs review", bg: "rgba(245,158,11,0.12)", color: "#92400E" }
@@ -176,6 +200,7 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
           <div className="font-bold text-[15px] mb-1" style={{ color: NAVY }}>{rec.station_title}</div>
           <div className="text-[12px]" style={{ color: "rgba(51,51,51,0.5)" }}>
             Dr {rec.doctor_display_name} · {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            {duration && <> · {duration}</>}
           </div>
           {isReviewing && examinerName && (
             <div className="text-[12px] font-semibold mt-1" style={{ color: "#4338CA" }}>
@@ -195,6 +220,7 @@ function RecordingCard({ rec }: { rec: QueueRow }) {
               AI: {rec.ai_data_gathering} / {rec.ai_clinical_management} / {rec.ai_relating_to_others}
             </div>
           )}
+          {canRetry && <RetryPipelineButton recordingId={rec.id} />}
         </div>
       </div>
     </Link>

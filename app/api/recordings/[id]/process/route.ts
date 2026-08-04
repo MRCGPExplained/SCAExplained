@@ -183,7 +183,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   // Fetch recording + station data
   const { data: recording } = await admin
     .from("station_recordings")
-    .select("id, station_number, doctor_audio_path, patient_audio_path, status")
+    .select("id, station_number, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw")
     .eq("id", recordingId)
     .single<{
       id: string;
@@ -191,6 +191,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       doctor_audio_path: string | null;
       patient_audio_path: string | null;
       status: string;
+      transcript_formatted: string | null;
+      transcript_raw: unknown;
     }>();
 
   if (!recording) return NextResponse.json({ error: "Recording not found" }, { status: 404 });
@@ -272,7 +274,13 @@ export async function POST(req: Request, { params }: RouteParams) {
       let transcriptFormatted: string;
       let transcriptRaw: unknown;
 
-      if (isSpike) {
+      if (recording.transcript_formatted) {
+        // A prior attempt already transcribed this (e.g. a retry after grading
+        // failed) — reuse it instead of re-downloading and re-transcribing.
+        console.log("[recordings/process] reusing existing transcript", recordingId);
+        transcriptFormatted = recording.transcript_formatted;
+        transcriptRaw = recording.transcript_raw;
+      } else if (isSpike) {
         // Skip Deepgram — use sample consultation transcript
         transcriptFormatted = SPIKE_TRANSCRIPT;
         transcriptRaw = { spike: true };
@@ -298,6 +306,14 @@ export async function POST(req: Request, { params }: RouteParams) {
 
         transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
         transcriptRaw = { doctor: doctorUtterances, patient: patientUtterances };
+
+        // Checkpoint the transcript as soon as it exists — if grading fails
+        // below, a retry can skip straight past Deepgram to Claude instead
+        // of re-downloading and re-transcribing audio it already has.
+        await admin
+          .from("station_recordings")
+          .update({ transcript_formatted: transcriptFormatted, transcript_raw: transcriptRaw })
+          .eq("id", recordingId);
       }
 
       // Build station context for the grading prompt
