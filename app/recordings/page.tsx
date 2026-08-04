@@ -110,9 +110,9 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             <div className="flex gap-2 flex-wrap">
               {(
                 [
-                  { tier: "starter",   label: "3 credits — £30" },
-                  { tier: "standard",  label: "10 credits — £60" },
-                  { tier: "unlimited", label: "Max — £250" },
+                  { tier: "entry",     label: "3 credits — £24" },
+                  { tier: "standard",  label: "15 credits — £105" },
+                  { tier: "intensive", label: "40 credits — £260" },
                 ] as const
               ).map(({ tier, label }) => (
                 <form key={tier} action="/api/recordings/checkout" method="POST">

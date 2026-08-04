@@ -48,9 +48,9 @@ export default function TermsPage() {
       <H2>3. Recording credits — purchases and refunds</H2>
       <P>
         Recording credits are digital tokens that allow you to submit SCA
-        consultation recordings for AI grading and GP examiner feedback.
-        Credits are available in three packages: Entry (3 credits), Standard
-        (15 credits), and Intensive (50 credits).
+        consultation recordings for GP examiner feedback. Credits are
+        available in three packages: Entry (3 credits), Standard (15
+        credits), and Intensive (40 credits).
       </P>
       <P>
         By completing a purchase of recording credits you expressly request

@@ -5,9 +5,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 export const dynamic = "force-dynamic";
 
 const TIERS = {
-  entry:     { amount: 2400,  credits: 3,  name: "SCA Explained — Entry (3 Recording Credits)",      description: "Record 3 SCA consultations with AI grading and GP examiner feedback." },
-  standard:  { amount: 9900,  credits: 15, name: "SCA Explained — Standard (15 Recording Credits)",  description: "Record 15 SCA consultations with AI grading and GP examiner feedback." },
-  intensive: { amount: 27900, credits: 50, name: "SCA Explained — Intensive (50 Recording Credits)", description: "Record 50 SCA consultations with AI grading and GP examiner feedback." },
+  entry:     { amount: 2400,  credits: 3,  name: "SCA Explained — Entry (3 Recording Credits)",      description: "Record 3 SCA consultations with GP examiner feedback." },
+  standard:  { amount: 10500, credits: 15, name: "SCA Explained — Standard (15 Recording Credits)",  description: "Record 15 SCA consultations with GP examiner feedback." },
+  intensive: { amount: 26000, credits: 40, name: "SCA Explained — Intensive (40 Recording Credits)", description: "Record 40 SCA consultations with GP examiner feedback." },
 } as const;
 
 type Tier = keyof typeof TIERS;
