@@ -8,7 +8,12 @@ import {
   createStudyRoomAction,
   joinStudyRoomAction,
   startRecordingAction,
+  getDailyCoEnabledAction,
+  createDailyCallAction,
+  getDailyTokenAction,
+  endDailyCallAction,
 } from "@/app/case-bank/actions";
+import type { DailyCall } from "@daily-co/daily-js";
 
 type Station = { id: string; number: number; title: string; subject: string };
 type Participant = { user_id: string; display_name: string | null };
@@ -56,6 +61,24 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [starting, setStarting] = useState(false);
   const [showStartWarning, setShowStartWarning] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
+
+  // DailyCo live audio
+  const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
+  const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
+  const [dailyJoining, setDailyJoining] = useState(false);
+  const [dailyError, setDailyError] = useState("");
+  const dailyCallRef = useRef<DailyCall | null>(null);
+  const dailyContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getDailyCoEnabledAction().then(setDailyCoEnabled);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      dailyCallRef.current?.destroy();
+    };
+  }, []);
 
   // Recording
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -133,10 +156,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         () => refreshParticipants(roomId),
       )
       .on("broadcast", { event: "recording-start" }, ({ payload }) => {
-        const { recordingId: rid, doctorUserId: dId, patientUserId: pId } = payload as {
+        const { recordingId: rid, doctorUserId: dId, patientUserId: pId, dailyRoomName: dRoomName, dailyRoomUrl: dRoomUrl } = payload as {
           recordingId: string;
           doctorUserId: string;
           patientUserId: string;
+          dailyRoomName?: string;
+          dailyRoomUrl?: string;
         };
         const myId = userIdRef.current;
         const role: "doctor" | "patient" | null =
@@ -148,6 +173,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         setPhase("recording");
 
         if (role) launchMediaRecorder(rid, role);
+        if (!isHostRef.current && dRoomName && dRoomUrl) joinDailyCall(dRoomName, dRoomUrl);
       })
       .on("broadcast", { event: "recording-stop" }, () => {
         if (mrRef.current?.state === "recording") {
@@ -156,6 +182,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         } else if (!roleRef.current) {
           setPhase("done");
         }
+        leaveDailyCall();
       })
       .subscribe();
 
@@ -166,6 +193,48 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       channelRef.current = null;
     };
   }, [roomId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function joinDailyCall(roomName: string, roomUrl: string) {
+    setDailyJoining(true);
+    setDailyError("");
+    try {
+      const myName = participants.find((p) => p.user_id === userIdRef.current)?.display_name ?? "User";
+      const tokenResult = await getDailyTokenAction(roomName, myName, isHostRef.current);
+      if ("error" in tokenResult) {
+        setDailyError(tokenResult.error);
+        return;
+      }
+      const DailyIframe = (await import("@daily-co/daily-js")).default;
+      if (!dailyContainerRef.current) return;
+
+      const call = DailyIframe.createFrame(dailyContainerRef.current, {
+        showLeaveButton: false,
+        showFullscreenButton: false,
+        iframeStyle: { width: "100%", height: "180px", border: "none", borderRadius: "10px" },
+      });
+      dailyCallRef.current = call;
+      setDailyRoomName(roomName);
+      await call.join({ url: roomUrl, token: tokenResult.token });
+    } catch {
+      setDailyError("Live audio failed to connect — recording continues locally.");
+    } finally {
+      setDailyJoining(false);
+    }
+  }
+
+  async function leaveDailyCall() {
+    const call = dailyCallRef.current;
+    dailyCallRef.current = null;
+    if (call) {
+      try {
+        await call.leave();
+        call.destroy();
+      } catch {
+        // best-effort — recording/upload flow doesn't depend on this
+      }
+    }
+    setDailyRoomName(null);
+  }
 
   function launchMediaRecorder(rid: string, role: "doctor" | "patient") {
     navigator.mediaDevices
@@ -332,12 +401,28 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
     const rid = result.recordingId;
 
+    // Start the shared live audio call, if enabled — best-effort, never
+    // blocks the recording itself if DailyCo is unavailable.
+    let dailyRoom: { roomName: string; roomUrl: string } | null = null;
+    if (dailyCoEnabled) {
+      const dailyResult = await createDailyCallAction(rid);
+      if (!("error" in dailyResult)) dailyRoom = dailyResult;
+    }
+
     // Broadcast to all other participants (host won't receive own broadcast)
     channelRef.current?.send({
       type: "broadcast",
       event: "recording-start",
-      payload: { recordingId: rid, doctorUserId: doctorId, patientUserId: patientId },
+      payload: {
+        recordingId: rid,
+        doctorUserId: doctorId,
+        patientUserId: patientId,
+        dailyRoomName: dailyRoom?.roomName,
+        dailyRoomUrl: dailyRoom?.roomUrl,
+      },
     });
+
+    if (dailyRoom) joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl);
 
     // Host transitions manually (doesn't receive own broadcast)
     const role: "doctor" | "patient" | null =
@@ -382,6 +467,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       // Host is observer — no recorder
       setPhase("done");
     }
+
+    if (dailyRoomName) endDailyCallAction(dailyRoomName);
+    leaveDailyCall();
   }
 
   function reset() {
@@ -820,6 +908,21 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             />
             Stop Recording
           </button>
+        )}
+
+        {dailyCoEnabled && (
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Live Audio
+            </div>
+            {dailyJoining && (
+              <p className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.5)" }}>Connecting…</p>
+            )}
+            {dailyError && (
+              <p className="text-[11px] mb-2" style={{ color: "#B91C1C" }}>{dailyError}</p>
+            )}
+            <div ref={dailyContainerRef} />
+          </div>
         )}
       </div>
 
