@@ -19,14 +19,6 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; pts
 
 const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
 
-function formatDuration(startedAt: string, endedAt: string | null): string | null {
-  if (!endedAt) return null;
-  const seconds = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000));
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
   const meta = GRADE_META[grade];
@@ -223,12 +215,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {/* Metadata row */}
         <div className="flex items-center gap-4 text-[11px] mb-5 px-1 flex-wrap" style={{ color: "rgba(51,51,51,0.4)" }}>
           <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
-          {formatDuration(rec.started_at, rec.ended_at) && (
-            <>
-              <span>·</span>
-              <span>{formatDuration(rec.started_at, rec.ended_at)}</span>
-            </>
-          )}
           <span>·</span>
           <span>Doctor: {rec.doctor_display_name}</span>
           {rec.patient_display_name && <><span>·</span><span>Patient: {rec.patient_display_name}</span></>}

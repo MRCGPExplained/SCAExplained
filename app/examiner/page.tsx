@@ -14,23 +14,17 @@ type QueueRow = {
   station_title: string;
   doctor_display_name: string;
   started_at: string;
-  ended_at: string | null;
   status: string;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
+  examiner_data_gathering: string | null;
+  examiner_clinical_management: string | null;
+  examiner_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
   doctor_audio_path: string | null;
   examiners: { name: string } | null;
 };
-
-function formatDuration(startedAt: string, endedAt: string | null): string | null {
-  if (!endedAt) return null;
-  const seconds = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000));
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
 const ERROR_MESSAGES: Record<string, string> = {
   required: "Passcode required.",
@@ -87,7 +81,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
   // ── Logged in: show review queue ─────────────────────────────────────────
   const admin = getSupabaseAdmin();
   const QUEUE_COLUMNS =
-    "id, station_number, station_title, doctor_display_name, started_at, ended_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiners(name)";
+    "id, station_number, station_title, doctor_display_name, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiners(name)";
   const [pendingResult, doneResult, settingsResult] = admin
     ? await Promise.all([
         admin
@@ -175,7 +169,6 @@ function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineR
   const isReviewing = rec.status === "reviewing";
   const isPending = rec.status === "pending_examiner";
   const examinerName = rec.examiners?.name ?? null;
-  const duration = formatDuration(rec.started_at, rec.ended_at);
   const canRetry = pipelineRetryEnabled && !!rec.doctor_audio_path && !rec.ai_data_gathering && (isPending || isReviewing);
 
   const statusChip = isPending
@@ -201,7 +194,6 @@ function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineR
           <div className="text-[12px]" style={{ color: "rgba(51,51,51,0.5)" }}>
             Dr {rec.doctor_display_name} · {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             {" "}{new Date(rec.started_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-            {duration && <> · {duration}</>}
           </div>
           {isReviewing && examinerName && (
             <div className="text-[12px] font-semibold mt-1" style={{ color: "#4338CA" }}>
@@ -219,6 +211,11 @@ function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineR
           {rec.ai_data_gathering && (
             <div className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>
               AI: {rec.ai_data_gathering} / {rec.ai_clinical_management} / {rec.ai_relating_to_others}
+            </div>
+          )}
+          {rec.examiner_data_gathering && (
+            <div className="text-[11px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>
+              Examiner: {rec.examiner_data_gathering} / {rec.examiner_clinical_management} / {rec.examiner_relating_to_others}
             </div>
           )}
           {canRetry && <RetryPipelineButton recordingId={rec.id} />}
