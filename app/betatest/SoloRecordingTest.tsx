@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { startSoloRecordingAction } from "@/app/case-bank/actions";
 import { runMarkingSpikeAction } from "@/app/betatest/actions";
+import { logStatus, logError, logDuration } from "./testLogger";
 
 type Station = { id: string; number: number; title: string; subject: string };
 
@@ -40,7 +41,8 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
+    } catch (err) {
+      logError("getUserMedia", err);
       setPhase({ kind: "error", message: "Microphone access denied." });
       return;
     }
@@ -69,11 +71,13 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
 
     mr.start(1000);
     setPhase({ kind: "recording" });
+    logStatus("recording started");
 
     timerRef.current = setInterval(() => setElapsed((n) => n + 1), 1000);
   }
 
   function stopRecording() {
+    logStatus("stop requested");
     mediaRecorderRef.current?.stop();
   }
 
@@ -86,12 +90,15 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     });
 
     if (result.error || !result.recordingId) {
+      logError("startSoloRecordingAction", result.error);
       setPhase({ kind: "error", message: result.error ?? "Failed to create recording." });
       return;
     }
 
     const { recordingId } = result;
+    logStatus("recording row created", { recordingId });
     setPhase({ kind: "uploading", recordingId });
+    const uploadT0 = Date.now();
 
     const uploadRole = async (role: "doctor" | "patient") => {
       const fd = new FormData();
@@ -109,7 +116,9 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     try {
       await uploadRole("doctor");
       await uploadRole("patient");
+      logDuration("upload (doctor + patient tracks)", uploadT0);
     } catch (e: unknown) {
+      logError("upload", e, { recordingId });
       setPhase({ kind: "error", message: e instanceof Error ? e.message : "Upload failed" });
       return;
     }
@@ -117,36 +126,48 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     setPhase({ kind: "processing", recordingId });
     // Fire from the browser — server-side fire-and-forget in the upload route is
     // unreliable on Vercel Hobby (function may be killed before the outbound fetch starts).
-    fetch(`/api/recordings/${recordingId}/process`, { method: "POST" }).catch(() => {});
+    fetch(`/api/recordings/${recordingId}/process`, { method: "POST" }).catch((err) =>
+      logError("process trigger (fire-and-forget)", err, { recordingId })
+    );
     poll(recordingId);
   }
 
   async function poll(recordingId: string) {
-    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    const pollStart = Date.now();
+    logStatus("polling for grading status", { recordingId });
+    const deadline = pollStart + POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
       try {
         const res = await fetch(`/api/recordings/${recordingId}/status`);
         if (res.ok) {
           const { status } = await res.json();
+          logStatus("poll tick", { status });
           if (status === "pending_examiner" || status === "reviewed") {
+            logDuration("total processing (upload end → graded)", pollStart);
             setPhase({ kind: "done", recordingId });
             return;
           }
           if (status === "failed") {
+            logError("pipeline status", "failed", { recordingId });
             setPhase({ kind: "error", message: "Pipeline failed — check Vercel logs." });
             return;
           }
+        } else {
+          logStatus("poll request not ok", { httpStatus: res.status });
         }
-      } catch {
+      } catch (err) {
         // transient network error — keep polling
+        logError("poll request (transient, retrying)", err);
       }
     }
     // 90s elapsed and still processing — almost certainly hit the 60s hobby limit
+    logStatus("poll gave up — still processing on the server", { waitedSeconds: POLL_TIMEOUT_MS / 1000 });
     setPhase({ kind: "timedout", recordingId });
   }
 
   function reset() {
+    logStatus("session reset");
     if (timerRef.current) clearInterval(timerRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setPhase({ kind: "idle" });
@@ -156,6 +177,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
   async function runSpikeMarking() {
     if (!selected) return;
     setPhase({ kind: "processing", recordingId: "pending" });
+    logStatus("marking spike starting", { stationId: selected.id });
 
     const result = await runMarkingSpikeAction({
       stationNumber: selected.number,
@@ -163,17 +185,19 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     });
 
     if (result.error || !result.recordingId) {
+      logError("runMarkingSpikeAction", result.error);
       setPhase({ kind: "error", message: result.error ?? "Failed to start spike." });
       return;
     }
 
     const { recordingId } = result;
+    logStatus("spike recording row created", { recordingId });
     setPhase({ kind: "processing", recordingId });
 
     // Fire the process call from the browser — server-side fire-and-forget is
     // unreliable on Vercel (function may be killed before the outbound fetch runs).
     fetch(`/api/recordings/${recordingId}/process?spike=1`, { method: "POST" }).catch(
-      () => {/* process route errors are visible via the status poll */}
+      (err) => logError("process trigger (spike, fire-and-forget)", err, { recordingId })
     );
 
     poll(recordingId);

@@ -15,6 +15,7 @@ import {
   endDailyCallAction,
 } from "@/app/case-bank/actions";
 import type { DailyCall } from "@daily-co/daily-js";
+import { logStatus, logError, logDuration } from "./testLogger";
 
 type Station = { id: string; number: number; title: string; subject: string };
 type Participant = { user_id: string; display_name: string | null };
@@ -203,6 +204,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         const myId = userIdRef.current;
         const role: "doctor" | "patient" | null =
           myId === dId ? "doctor" : myId === pId ? "patient" : null;
+        logStatus("recording-start received", { recordingId: rid, role, dailyRoom: dRoomName ?? null });
 
         roleRef.current = role;
         setRecordingId(rid);
@@ -214,8 +216,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         (async () => {
           let dailyOk = true;
           if (!isHostRef.current && dRoomName && dRoomUrl) {
+            const t0 = Date.now();
             const joined = await withTimeout(joinDailyCall(dRoomName, dRoomUrl), DAILY_JOIN_TIMEOUT_MS);
             dailyOk = joined === true;
+            logDuration(dailyOk ? "guest DailyCo join succeeded" : "guest DailyCo join failed/timed out", t0);
             if (!dailyOk) setDailyFailed(true);
           }
           const amEssential = myId === dId || myId === pId;
@@ -223,15 +227,18 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             // Voice call is required but failed to connect for me — tell the
             // host so they can cancel and refund, instead of recording into
             // a consult no one can hear.
+            logStatus("broadcasting voice-call-failed", { recordingId: rid });
             channelRef.current?.send({ type: "broadcast", event: "voice-call-failed", payload: { recordingId: rid } });
             return;
           }
           setRecordingStarting(false);
           setPhase("recording");
+          logStatus("phase → recording (guest)", { role });
           if (role) launchMediaRecorder(rid, role);
         })();
       })
       .on("broadcast", { event: "recording-stop" }, () => {
+        logStatus("recording-stop received");
         const wasRecording = mrRef.current?.state === "recording";
         stopLocalRecording(); // mr.onstop (if it fires) handles upload → processing
         if (!wasRecording && !roleRef.current) {
@@ -242,17 +249,21 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       .on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
         if (!isHostRef.current) return;
         const { recordingId: rid } = payload as { recordingId: string };
+        logStatus("voice-call-failed received (host)", { recordingId: rid });
         cancelRecordingDueToDailyFailure(rid);
       })
       .on("broadcast", { event: "recording-cancelled" }, ({ payload }) => {
         const { reason } = payload as { reason?: string };
+        logStatus("recording-cancelled received", { reason });
         stopLocalRecording();
         leaveDailyCall();
         setRecordingStarting(false);
         setPhase("error");
         setErrMsg(reason ?? "Recording was cancelled — the voice call failed to connect.");
       })
-      .subscribe();
+      .subscribe((status) => {
+        logStatus("realtime channel status", { status });
+      });
 
     channelRef.current = channel;
 
@@ -298,35 +309,43 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   /** Warms up mic access as soon as you're in the lobby, so the real join later is instant. */
   async function prewarmDailyCall() {
+    const t0 = Date.now();
     try {
       const call = await getOrCreateDailyCall();
       await call?.startCamera({ startVideoOff: true, startAudioOff: false });
-    } catch {
+      logDuration("DailyCo mic prewarm", t0);
+    } catch (err) {
       // best-effort — worst case the permission prompt just happens at join time instead
+      logError("DailyCo mic prewarm", err);
     }
   }
 
   async function joinDailyCall(roomName: string, roomUrl: string): Promise<boolean> {
+    const t0 = Date.now();
     setDailyConnecting(true);
     setDailyFailed(false);
     try {
       const myName = participants.find((p) => p.user_id === userIdRef.current)?.display_name ?? "User";
       const tokenResult = await getDailyTokenAction(roomName, myName, isHostRef.current);
       if ("error" in tokenResult) {
+        logError("getDailyTokenAction", tokenResult.error, { roomName });
         setDailyFailed(true);
         return false;
       }
       const call = await getOrCreateDailyCall();
       if (!call) {
+        logError("getOrCreateDailyCall", "returned null", { roomName });
         setDailyFailed(true);
         return false;
       }
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
       setCallConnected(true);
+      logDuration("DailyCo join", t0);
       return true;
-    } catch {
+    } catch (err) {
       // best-effort — recording continues locally regardless of live audio
+      logError("DailyCo join", err, { roomName });
       setCallConnected(false);
       setDailyFailed(true);
       return false;
@@ -340,8 +359,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     if (call) {
       try {
         await call.leave();
-      } catch {
+        logStatus("DailyCo call left");
+      } catch (err) {
         // best-effort — recording/upload flow doesn't depend on this
+        logError("DailyCo leave", err);
       }
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
@@ -360,8 +381,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
    * guest's voice-call-failed broadcast.
    */
   async function cancelRecordingDueToDailyFailure(recordingId: string) {
+    logStatus("cancelling recording — voice call failed", { recordingId });
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
+    if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
     const reason = result.error ?? "There was an issue connecting the voice call. Your credit has been refunded — please try again.";
 
     channelRef.current?.send({
@@ -378,6 +401,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   }
 
   function launchMediaRecorder(rid: string, role: "doctor" | "patient") {
+    const t0 = Date.now();
     recorderStartingRef.current = true;
     pendingStopRef.current = false; // fresh attempt — clear any stale flag
     navigator.mediaDevices
@@ -398,6 +422,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         };
 
         mr.onstop = async () => {
+          logStatus("local recorder stopped", { role });
           stream.getTracks().forEach((t) => t.stop());
           const blob = new Blob(chunksRef.current, { type: mimeType });
           await handleUpload(blob, rid, role);
@@ -405,10 +430,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
         mr.start(1000);
         recorderStartingRef.current = false;
+        logDuration(`local recorder ready (${role})`, t0);
 
         // A stop signal arrived while we were still setting up — honor it
         // now instead of letting the recorder run with no way left to stop it.
         if (pendingStopRef.current) {
+          logStatus("pending stop honored — recorder was mid-setup when stop arrived", { role });
           pendingStopRef.current = false;
           mr.stop();
           return;
@@ -417,12 +444,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         // Hard cutoff — recording never exceeds the 12-minute consult window,
         // regardless of whether the host remembers to stop it.
         recordingCutoffRef.current = setTimeout(() => {
+          logStatus("12-minute auto-cutoff fired", { role });
           stopLocalRecording();
         }, PHASE_DURATIONS.CONSULT * 1000);
       })
-      .catch(() => {
+      .catch((err) => {
         recorderStartingRef.current = false;
         pendingStopRef.current = false;
+        logError("getUserMedia (local recorder)", err, { role });
         setPhase("error");
         setErrMsg("Microphone access denied.");
       });
@@ -434,15 +463,21 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       recordingCutoffRef.current = null;
     }
     if (mrRef.current && mrRef.current.state !== "inactive") {
+      logStatus("stopping local recorder", { state: mrRef.current.state });
       mrRef.current.stop();
     } else if (recorderStartingRef.current) {
       // Recorder isn't ready yet — remember to stop it the moment it is.
+      logStatus("stop requested before recorder was ready — queued as pending");
       pendingStopRef.current = true;
+    } else {
+      logStatus("stop requested but no recorder exists (observer or not yet started)");
     }
   }
 
   async function handleUpload(blob: Blob, rid: string, role: "doctor" | "patient") {
     setPhase("uploading");
+    logStatus("upload starting", { role, sizeKB: Math.round(blob.size / 1024) });
+    const t0 = Date.now();
 
     const fd = new FormData();
     fd.append("audio", blob, `${role}.webm`);
@@ -456,7 +491,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         const body = await res.json().catch(() => ({ error: "Upload failed" }));
         throw new Error(body.error ?? "Upload failed");
       }
+      logDuration(`upload (${role})`, t0);
     } catch (e: unknown) {
+      logError("upload", e, { role, sizeKB: Math.round(blob.size / 1024) });
       setPhase("error");
       setErrMsg(e instanceof Error ? e.message : "Upload failed");
       return;
@@ -472,27 +509,36 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   }
 
   async function pollStatus(rid: string) {
-    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    const pollStart = Date.now();
+    const deadline = pollStart + POLL_TIMEOUT_MS;
+    logStatus("polling for grading status", { recordingId: rid });
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
       try {
         const res = await fetch(`/api/recordings/${rid}/status`);
         if (res.ok) {
           const { status } = await res.json();
+          logStatus("poll tick", { status });
           if (status === "pending_examiner" || status === "reviewed") {
+            logDuration("total processing (upload end → graded)", pollStart);
             setPhase("done");
             return;
           }
           if (status === "failed") {
+            logError("pipeline status", "failed", { recordingId: rid });
             setPhase("error");
             setErrMsg("Pipeline failed — check Vercel logs.");
             return;
           }
+        } else {
+          logStatus("poll request not ok", { httpStatus: res.status });
         }
-      } catch {
+      } catch (err) {
         // transient — keep polling
+        logError("poll request (transient, retrying)", err);
       }
     }
+    logStatus("poll gave up — still processing on the server", { waitedSeconds: POLL_TIMEOUT_MS / 1000 });
     setPhase("timedout");
   }
 
@@ -502,9 +548,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     const result = await createStudyRoomAction();
     setBusy(false);
     if (result.error || !result.roomId) {
+      logError("createStudyRoomAction", result.error);
       setJoinErr(result.error ?? "Failed to create room.");
       return;
     }
+    logStatus("room created", { roomId: result.roomId, roomCode: result.roomCode });
     setRoomId(result.roomId);
     setRoomCode(result.roomCode ?? null);
     setIsHost(true);
@@ -522,9 +570,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     const result = await joinStudyRoomAction(joinInput.trim());
     setBusy(false);
     if (result.error || !result.roomId) {
+      logError("joinStudyRoomAction", result.error, { code: joinInput.trim() });
       setJoinErr(result.error ?? "Room not found.");
       return;
     }
+    logStatus("joined room", { roomId: result.roomId });
     setRoomId(result.roomId);
     setIsHost(false);
     isHostRef.current = false;
@@ -545,6 +595,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
     setStartErr("");
     setStarting(true);
+    logStatus("host starting recording", { stationId: station.id, doctorId, patientId });
 
     const dName = participants.find((p) => p.user_id === doctorId)?.display_name ?? "Doctor";
     const pName = participants.find((p) => p.user_id === patientId)?.display_name ?? "Patient";
@@ -560,19 +611,26 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     });
 
     if (result.error || !result.recordingId) {
+      logError("startRecordingAction", result.error);
       setStartErr(result.error ?? "Failed to start recording.");
       setStarting(false);
       return;
     }
 
     const rid = result.recordingId;
+    logStatus("recording row created", { recordingId: rid });
 
     // Start the shared live audio call, if enabled — best-effort, never
     // blocks the recording itself if DailyCo is unavailable.
     let dailyRoom: { roomName: string; roomUrl: string } | null = null;
     if (dailyCoEnabled) {
       const dailyResult = await createDailyCallAction(rid);
-      if (!("error" in dailyResult)) dailyRoom = dailyResult;
+      if (!("error" in dailyResult)) {
+        dailyRoom = dailyResult;
+        logStatus("DailyCo room created", { roomName: dailyRoom.roomName });
+      } else {
+        logError("createDailyCallAction", dailyResult.error);
+      }
     }
 
     // Broadcast to all other participants (host won't receive own broadcast)
@@ -587,15 +645,19 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         dailyRoomUrl: dailyRoom?.roomUrl,
       },
     });
+    logStatus("broadcast recording-start sent", { recordingId: rid });
 
     // Wait for the live call to connect (or time out) before starting the
     // timer and the recorder, so all three begin in sync.
     if (dailyRoom) {
+      const t0 = Date.now();
       const joined = await withTimeout(joinDailyCall(dailyRoom.roomName, dailyRoom.roomUrl), DAILY_JOIN_TIMEOUT_MS);
+      logDuration(joined === true ? "host DailyCo join succeeded" : "host DailyCo join failed/timed out", t0);
       if (joined !== true) {
         setDailyFailed(true);
         const amEssential = userId === doctorId || userId === patientId;
         if (amEssential) {
+          logStatus("host is essential participant — cancelling recording due to Daily failure");
           await cancelRecordingDueToDailyFailure(rid);
           return;
         }
@@ -611,10 +673,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setMyRole(role);
     setStarting(false);
     setPhase("recording");
+    logStatus("phase → recording (host)", { role });
 
     // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
     // regardless of whether anyone remembers to click Stop.
     hostStopCutoffRef.current = setTimeout(() => {
+      logStatus("12-minute host cutoff fired — broadcasting stop");
       handleStop();
     }, PHASE_DURATIONS.CONSULT * 1000);
 
@@ -622,6 +686,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   }
 
   function handleStop() {
+    logStatus("host stopping recording");
     if (hostStopCutoffRef.current) {
       clearTimeout(hostStopCutoffRef.current);
       hostStopCutoffRef.current = null;
@@ -648,6 +713,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   }
 
   function reset() {
+    logStatus("session reset");
     streamRef.current?.getTracks().forEach((t) => t.stop());
     channelRef.current?.unsubscribe();
     channelRef.current = null;
