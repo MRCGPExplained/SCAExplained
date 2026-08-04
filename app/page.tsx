@@ -235,8 +235,8 @@ export default async function HomePage() {
               {(
                 [
                   { tier: "Entry",     label: "3 recordings",  price: "£24"  },
-                  { tier: "Standard",  label: "15 recordings", price: "£105" },
-                  { tier: "Intensive", label: "40 recordings", price: "£260" },
+                  { tier: "Standard",  label: "15 recordings", price: "£99"  },
+                  { tier: "Intensive", label: "40 recordings", price: "£259" },
                 ] as const
               ).map(({ tier, label, price }) => (
                 <div

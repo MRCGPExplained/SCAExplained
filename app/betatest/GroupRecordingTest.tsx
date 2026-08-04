@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 import {
   createStudyRoomAction,
   joinStudyRoomAction,
@@ -66,6 +67,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const streamRef = useRef<MediaStream | null>(null);
   const roleRef = useRef<"doctor" | "patient" | null>(null);
   const isHostRef = useRef(false);
+  const recordingCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hostStopCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Timer via effect so it starts/stops with phase
   useEffect(() => {
@@ -187,6 +190,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         };
 
         mr.start(1000);
+
+        // Hard cutoff — recording never exceeds the 12-minute consult window,
+        // regardless of whether the host remembers to stop it.
+        recordingCutoffRef.current = setTimeout(() => {
+          if (mrRef.current?.state === "recording") mrRef.current.stop();
+        }, PHASE_DURATIONS.CONSULT * 1000);
       })
       .catch(() => {
         setPhase("error");
@@ -338,10 +347,25 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setStarting(false);
     setPhase("recording");
 
+    // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
+    // regardless of whether anyone remembers to click Stop.
+    hostStopCutoffRef.current = setTimeout(() => {
+      handleStop();
+    }, PHASE_DURATIONS.CONSULT * 1000);
+
     if (role) launchMediaRecorder(rid, role);
   }
 
   function handleStop() {
+    if (hostStopCutoffRef.current) {
+      clearTimeout(hostStopCutoffRef.current);
+      hostStopCutoffRef.current = null;
+    }
+    if (recordingCutoffRef.current) {
+      clearTimeout(recordingCutoffRef.current);
+      recordingCutoffRef.current = null;
+    }
+
     // Broadcast stop to other participants
     channelRef.current?.send({
       type: "broadcast",

@@ -112,8 +112,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               {(
                 [
                   { tier: "entry",     label: "3 credits — £24" },
-                  { tier: "standard",  label: "15 credits — £105" },
-                  { tier: "intensive", label: "40 credits — £260" },
+                  { tier: "standard",  label: "15 credits — £99" },
+                  { tier: "intensive", label: "40 credits — £259" },
                 ] as const
               ).map(({ tier, label }) => (
                 <form key={tier} action="/api/recordings/checkout" method="POST">

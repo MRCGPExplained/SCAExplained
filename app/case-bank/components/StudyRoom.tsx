@@ -91,6 +91,8 @@ export function StudyRoomPanel({
   const [recordingError, setRecordingError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hostStopCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const iAmHost = room ? room.host_user_id === userId : false;
   const [recentReportId, setRecentReportId] = useState<string | null>(null);
@@ -476,6 +478,12 @@ export function StudyRoomPanel({
       };
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
+
+      // Hard cutoff — recording never exceeds the 12-minute consult window,
+      // regardless of whether the host remembers to stop it.
+      recordingCutoffRef.current = setTimeout(() => {
+        stopLocalRecording();
+      }, PHASE_DURATIONS.CONSULT * 1000);
     } catch {
       setRecordingState("error");
       setRecordingError("Microphone access denied. Please allow microphone access and try again.");
@@ -483,6 +491,10 @@ export function StudyRoomPanel({
   }
 
   function stopLocalRecording() {
+    if (recordingCutoffRef.current) {
+      clearTimeout(recordingCutoffRef.current);
+      recordingCutoffRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -553,6 +565,12 @@ export function StudyRoomPanel({
     // Reset the timer to start of consultation
     onTimerReset?.();
 
+    // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
+    // regardless of whether anyone remembers to click Stop.
+    hostStopCutoffRef.current = setTimeout(() => {
+      handleStopRecording();
+    }, PHASE_DURATIONS.CONSULT * 1000);
+
     // Start this user's own microphone if they're doctor or patient
     if (userId === selectedDoctor) {
       setMyRecordingRole("doctor");
@@ -568,6 +586,10 @@ export function StudyRoomPanel({
   }
 
   function handleStopRecording() {
+    if (hostStopCutoffRef.current) {
+      clearTimeout(hostStopCutoffRef.current);
+      hostStopCutoffRef.current = null;
+    }
     channelRef.current?.send({
       type: "broadcast",
       event: "recording-stop",

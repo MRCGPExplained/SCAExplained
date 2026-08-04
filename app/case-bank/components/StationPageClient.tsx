@@ -911,8 +911,8 @@ export function StationPageClient({
               {(
                 [
                   { tier: "entry",     credits: "3 credits",        price: "£24",  sub: "£8.00 per consultation" },
-                  { tier: "standard",  credits: "15 credits",       price: "£105", sub: "£7.00 per consultation" },
-                  { tier: "intensive", credits: "40 credits",       price: "£260", sub: "£6.50 per consultation" },
+                  { tier: "standard",  credits: "15 credits",       price: "£99",  sub: "£6.60 per consultation" },
+                  { tier: "intensive", credits: "40 credits",       price: "£259", sub: "£6.48 per consultation" },
                 ] as const
               ).map(({ tier, credits, price, sub }) => (
                 <form key={tier} action="/api/recordings/checkout" method="POST">

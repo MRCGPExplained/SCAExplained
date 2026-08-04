@@ -352,6 +352,24 @@ export async function joinStudyRoomAction(
 
   if (!room) return { error: "Room not found. Check the code and try again." };
 
+  const { data: existing } = await supabase
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", room.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!existing) {
+    const { count } = await supabase
+      .from("room_participants")
+      .select("user_id", { count: "exact", head: true })
+      .eq("room_id", room.id);
+
+    if ((count ?? 0) >= 4) {
+      return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+    }
+  }
+
   await supabase
     .from("room_participants")
     .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
