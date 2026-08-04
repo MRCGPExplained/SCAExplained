@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// 12-min consultation audio can be ~10MB
-export const maxDuration = 60;
+// 12-min consultation audio can be ~10MB. Also covers the after() callback
+// below, which awaits the full /process pipeline (transcription + grading,
+// up to 5 min) so the outbound trigger isn't dropped when the response ends.
+export const maxDuration = 300;
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -85,12 +87,24 @@ export async function POST(req: Request, { params }: RouteParams) {
       .update({ status: "processing", ended_at: new Date().toISOString() })
       .eq("id", recordingId);
 
-    // Fire-and-forget: call the process endpoint
+    // Trigger the pipeline after the response is sent — using `after()`
+    // instead of a bare fire-and-forget fetch, since Vercel can freeze/tear
+    // down the function as soon as the response is returned, silently
+    // dropping an un-awaited outbound request before it ever goes out.
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    fetch(`${origin}/api/recordings/${recordingId}/process`, {
-      method: "POST",
-      headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
-    }).catch((e) => console.error("[recording/upload] failed to trigger process:", e));
+    after(async () => {
+      try {
+        const res = await fetch(`${origin}/api/recordings/${recordingId}/process`, {
+          method: "POST",
+          headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
+        });
+        if (!res.ok) {
+          console.error("[recording/upload] process trigger returned non-OK:", res.status);
+        }
+      } catch (e) {
+        console.error("[recording/upload] failed to trigger process:", e);
+      }
+    });
   }
 
   return NextResponse.json({ ok: true, path: storagePath });
