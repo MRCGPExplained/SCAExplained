@@ -200,6 +200,7 @@ function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineR
           <div className="font-bold text-[15px] mb-1" style={{ color: NAVY }}>{rec.station_title}</div>
           <div className="text-[12px]" style={{ color: "rgba(51,51,51,0.5)" }}>
             Dr {rec.doctor_display_name} · {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            {" "}{new Date(rec.started_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
             {duration && <> · {duration}</>}
           </div>
           {isReviewing && examinerName && (
