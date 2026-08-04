@@ -151,7 +151,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           <div className="flex flex-col gap-3">
             {recordings.map((rec) => {
               const isFinal = !!rec.sent_to_candidate_at;
-              const isReviewed = rec.status === "reviewing" || rec.status === "sent";
+              const isReviewed = isFinal;
               const isUnread =
                 isFinal &&
                 (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!));
@@ -202,7 +202,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(34,197,94,0.1)", color: "#166534" }
                             : rec.status === "processing"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
-                            : rec.status === "pending_examiner"
+                            : rec.status === "pending_examiner" || rec.status === "reviewing"
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
@@ -211,7 +211,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "Reviewed"
                           : rec.status === "processing"
                           ? "Processing…"
-                          : rec.status === "pending_examiner"
+                          : rec.status === "pending_examiner" || rec.status === "reviewing"
                           ? "Awaiting examiner"
                           : rec.status}
                       </span>
