@@ -214,8 +214,8 @@ function RecordingCard({ rec, pipelineRetryEnabled }: { rec: QueueRow; pipelineR
             </div>
           )}
           {rec.examiner_data_gathering && (
-            <div className="text-[11px] font-semibold" style={{ color: "rgba(51,51,51,0.6)" }}>
-              Examiner: {rec.examiner_data_gathering} / {rec.examiner_clinical_management} / {rec.examiner_relating_to_others}
+            <div className="text-[11px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+              GP: {rec.examiner_data_gathering} / {rec.examiner_clinical_management} / {rec.examiner_relating_to_others}
             </div>
           )}
           {canRetry && <RetryPipelineButton recordingId={rec.id} />}
