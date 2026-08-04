@@ -109,6 +109,7 @@ export function StudyRoomPanel({
   // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
+  const [callConnected, setCallConnected] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
@@ -566,8 +567,10 @@ export function StudyRoomPanel({
       if (!call) return;
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
+      setCallConnected(true);
     } catch {
       // best-effort — recording continues locally regardless of live audio
+      setCallConnected(false);
     }
   }
 
@@ -582,6 +585,7 @@ export function StudyRoomPanel({
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
     dailyAudioElsRef.current.clear();
+    setCallConnected(false);
     setDailyRoomName(null);
   }
 
@@ -995,6 +999,11 @@ export function StudyRoomPanel({
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
                 REC
               </span>
+              {callConnected && (
+                <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
+                  📞 Call Connected
+                </span>
+              )}
               {iAmHost && recordingState === "recording" && (
                 <button
                   onClick={() => setStopConfirmMode("stop")}

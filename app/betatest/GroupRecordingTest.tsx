@@ -67,6 +67,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
   const [micPrewarmed, setMicPrewarmed] = useState(false);
   const [micPrewarming, setMicPrewarming] = useState(false);
+  const [callConnected, setCallConnected] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
@@ -254,8 +255,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       if (!call) return;
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
+      setCallConnected(true);
     } catch {
       // best-effort — recording continues locally regardless of live audio
+      setCallConnected(false);
     }
   }
 
@@ -270,6 +273,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
     dailyAudioElsRef.current.clear();
+    setCallConnected(false);
     setDailyRoomName(null);
   }
 
@@ -923,6 +927,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             <span className="font-mono text-[15px] font-bold" style={{ color: "#EF4444" }}>
               {fmtTime(elapsed)}
             </span>
+            {callConnected && (
+              <span className="text-[12px] font-semibold" style={{ color: "#15803d" }}>
+                📞 Call Connected
+              </span>
+            )}
           </div>
 
           {myRole ? (
