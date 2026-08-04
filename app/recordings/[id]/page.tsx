@@ -111,7 +111,8 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   if (!rec) notFound();
 
   const isFinal = !!rec.sent_to_candidate_at;
-  const showExaminerGrades = isFinal || !!examiner;
+  const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
+  const showExaminerGrades = isFinal || hasExaminerGrades;
 
   // Mark as read by the candidate the first time they see the finalised report
   if (!examiner && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
