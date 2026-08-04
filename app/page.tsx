@@ -197,9 +197,15 @@ export default async function HomePage() {
 
           {/* EXAMINER MARKING */}
           <div
-            className="rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
+            <span
+              className="absolute top-5 right-5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: "#3B82F6", color: "white" }}
+            >
+              Paid
+            </span>
             <div className="flex items-center gap-2 mb-2">
               <MicIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Marking</p>
