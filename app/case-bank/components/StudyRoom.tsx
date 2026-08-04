@@ -106,13 +106,11 @@ export function StudyRoomPanel({
   const [showStartWarning, setShowStartWarning] = useState(false);
   const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
 
-  // ── DailyCo live audio ────────────────────────────────────────────────────────
+  // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
-  const [dailyJoining, setDailyJoining] = useState(false);
-  const [dailyError, setDailyError] = useState("");
   const dailyCallRef = useRef<DailyCall | null>(null);
-  const dailyContainerRef = useRef<HTMLDivElement>(null);
+  const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
 
   useEffect(() => {
@@ -128,9 +126,15 @@ export function StudyRoomPanel({
     prewarmDailyCall();
   }, [room?.id, dailyCoEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Best-effort cleanup if the panel unmounts mid-call (e.g. navigating away)
+  // Best-effort cleanup if the panel unmounts mid-call (e.g. navigating away).
+  // dailyCallRef is read fresh inside the closure since it's set lazily,
+  // long after this effect's setup — only the Map itself is safe to capture
+  // early since that reference never changes, just its contents.
   useEffect(() => {
+    const audioEls = dailyAudioElsRef.current;
     return () => {
+      audioEls.forEach((el) => el.remove());
+      audioEls.clear();
       dailyCallRef.current?.destroy();
     };
   }, []);
@@ -510,15 +514,36 @@ export function StudyRoomPanel({
     getRecordingBypassAction().then(setRecordingBypassed);
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Plays a remote participant's audio track through a hidden <audio> element — headless mode renders nothing itself. */
+  function handleDailyTrackStarted(ev: { participant: { local: boolean; session_id: string } | null; track: MediaStreamTrack; type: string }) {
+    if (ev.type !== "audio" || !ev.participant || ev.participant.local) return;
+    const key = ev.participant.session_id;
+    const existing = dailyAudioElsRef.current.get(key);
+    if (existing) existing.remove();
+
+    const audioEl = document.createElement("audio");
+    audioEl.autoplay = true;
+    audioEl.srcObject = new MediaStream([ev.track]);
+    audioEl.style.display = "none";
+    document.body.appendChild(audioEl);
+    dailyAudioElsRef.current.set(key, audioEl);
+  }
+
+  function handleDailyTrackStopped(ev: { participant: { session_id: string } | null; type: string }) {
+    if (ev.type !== "audio" || !ev.participant) return;
+    const el = dailyAudioElsRef.current.get(ev.participant.session_id);
+    if (el) {
+      el.remove();
+      dailyAudioElsRef.current.delete(ev.participant.session_id);
+    }
+  }
+
   async function getOrCreateDailyCall(): Promise<DailyCall | null> {
     if (dailyCallRef.current) return dailyCallRef.current;
-    if (!dailyContainerRef.current) return null;
     const DailyIframe = (await import("@daily-co/daily-js")).default;
-    const call = DailyIframe.createFrame(dailyContainerRef.current, {
-      showLeaveButton: false,
-      showFullscreenButton: false,
-      iframeStyle: { width: "100%", height: "180px", border: "none", borderRadius: "10px" },
-    });
+    const call = DailyIframe.createCallObject({ subscribeToTracksAutomatically: true });
+    call.on("track-started", handleDailyTrackStarted as never);
+    call.on("track-stopped", handleDailyTrackStopped as never);
     dailyCallRef.current = call;
     return call;
   }
@@ -534,22 +559,15 @@ export function StudyRoomPanel({
   }
 
   async function joinDailyCall(roomName: string, roomUrl: string) {
-    setDailyJoining(true);
-    setDailyError("");
     try {
       const tokenResult = await getDailyTokenAction(roomName, displayName, iAmHost);
-      if ("error" in tokenResult) {
-        setDailyError(tokenResult.error);
-        return;
-      }
+      if ("error" in tokenResult) return;
       const call = await getOrCreateDailyCall();
       if (!call) return;
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
     } catch {
-      setDailyError("Live audio failed to connect — recording continues locally.");
-    } finally {
-      setDailyJoining(false);
+      // best-effort — recording continues locally regardless of live audio
     }
   }
 
@@ -562,6 +580,8 @@ export function StudyRoomPanel({
         // best-effort — recording/upload flow doesn't depend on this
       }
     }
+    dailyAudioElsRef.current.forEach((el) => el.remove());
+    dailyAudioElsRef.current.clear();
     setDailyRoomName(null);
   }
 
@@ -1010,29 +1030,6 @@ export function StudyRoomPanel({
       {recordingError && (
         <div className="px-3.5 py-2 text-[11px]" style={{ background: "rgba(239,68,68,0.12)", color: "#FCA5A5" }}>
           {recordingError}
-        </div>
-      )}
-
-      {/* Live audio (DailyCo) — container always mounted once enabled, so mic
-          permission can be pre-warmed before recording; only shown once active. */}
-      {dailyCoEnabled && (
-        <div
-          className="px-3.5 pt-3"
-          style={{
-            background: NAVY,
-            display: recordingState === "recording" || recordingState === "starting" ? "block" : "none",
-          }}
-        >
-          <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Live Audio
-          </div>
-          {dailyJoining && (
-            <p className="text-[11px] mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>Connecting…</p>
-          )}
-          {dailyError && (
-            <p className="text-[11px] mb-2" style={{ color: "#FCA5A5" }}>{dailyError}</p>
-          )}
-          <div ref={dailyContainerRef} />
         </div>
       )}
 

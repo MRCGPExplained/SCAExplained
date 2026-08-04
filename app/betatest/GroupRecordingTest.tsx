@@ -62,20 +62,23 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [showStartWarning, setShowStartWarning] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
 
-  // DailyCo live audio
+  // DailyCo live audio (headless — no visible UI, audio plays in the background)
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
-  const [dailyJoining, setDailyJoining] = useState(false);
-  const [dailyError, setDailyError] = useState("");
+  const [micPrewarmed, setMicPrewarmed] = useState(false);
+  const [micPrewarming, setMicPrewarming] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
-  const dailyContainerRef = useRef<HTMLDivElement>(null);
+  const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   useEffect(() => {
     getDailyCoEnabledAction().then(setDailyCoEnabled);
   }, []);
 
   useEffect(() => {
+    const audioEls = dailyAudioElsRef.current;
     return () => {
+      audioEls.forEach((el) => el.remove());
+      audioEls.clear();
       dailyCallRef.current?.destroy();
     };
   }, []);
@@ -194,44 +197,79 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     };
   }, [roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Plays a remote participant's audio track through a hidden <audio> element — headless mode renders nothing itself. */
+  function handleDailyTrackStarted(ev: { participant: { local: boolean; session_id: string } | null; track: MediaStreamTrack; type: string }) {
+    if (ev.type !== "audio" || !ev.participant || ev.participant.local) return;
+    const key = ev.participant.session_id;
+    const existing = dailyAudioElsRef.current.get(key);
+    if (existing) existing.remove();
+
+    const audioEl = document.createElement("audio");
+    audioEl.autoplay = true;
+    audioEl.srcObject = new MediaStream([ev.track]);
+    audioEl.style.display = "none";
+    document.body.appendChild(audioEl);
+    dailyAudioElsRef.current.set(key, audioEl);
+  }
+
+  function handleDailyTrackStopped(ev: { participant: { session_id: string } | null; type: string }) {
+    if (ev.type !== "audio" || !ev.participant) return;
+    const el = dailyAudioElsRef.current.get(ev.participant.session_id);
+    if (el) {
+      el.remove();
+      dailyAudioElsRef.current.delete(ev.participant.session_id);
+    }
+  }
+
+  async function getOrCreateDailyCall(): Promise<DailyCall | null> {
+    if (dailyCallRef.current) return dailyCallRef.current;
+    const DailyIframe = (await import("@daily-co/daily-js")).default;
+    const call = DailyIframe.createCallObject({ subscribeToTracksAutomatically: true });
+    call.on("track-started", handleDailyTrackStarted as never);
+    call.on("track-stopped", handleDailyTrackStopped as never);
+    dailyCallRef.current = call;
+    return call;
+  }
+
+  /** Explicit "Enable microphone" button on the lobby screen calls this — warms up mic access ahead of time. */
+  async function handleEnableMic() {
+    setMicPrewarming(true);
+    try {
+      const call = await getOrCreateDailyCall();
+      await call?.startCamera({ startVideoOff: true, startAudioOff: false });
+      setMicPrewarmed(true);
+    } catch {
+      // best-effort — worst case the permission prompt just happens at join time instead
+    } finally {
+      setMicPrewarming(false);
+    }
+  }
+
   async function joinDailyCall(roomName: string, roomUrl: string) {
-    setDailyJoining(true);
-    setDailyError("");
     try {
       const myName = participants.find((p) => p.user_id === userIdRef.current)?.display_name ?? "User";
       const tokenResult = await getDailyTokenAction(roomName, myName, isHostRef.current);
-      if ("error" in tokenResult) {
-        setDailyError(tokenResult.error);
-        return;
-      }
-      const DailyIframe = (await import("@daily-co/daily-js")).default;
-      if (!dailyContainerRef.current) return;
-      const call = DailyIframe.createFrame(dailyContainerRef.current, {
-        showLeaveButton: false,
-        showFullscreenButton: false,
-        iframeStyle: { width: "100%", height: "180px", border: "none", borderRadius: "10px" },
-      });
-      dailyCallRef.current = call;
+      if ("error" in tokenResult) return;
+      const call = await getOrCreateDailyCall();
+      if (!call) return;
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
     } catch {
-      setDailyError("Live audio failed to connect — recording continues locally.");
-    } finally {
-      setDailyJoining(false);
+      // best-effort — recording continues locally regardless of live audio
     }
   }
 
   async function leaveDailyCall() {
     const call = dailyCallRef.current;
-    dailyCallRef.current = null;
     if (call) {
       try {
         await call.leave();
-        call.destroy();
       } catch {
         // best-effort — recording/upload flow doesn't depend on this
       }
     }
+    dailyAudioElsRef.current.forEach((el) => el.remove());
+    dailyAudioElsRef.current.clear();
     setDailyRoomName(null);
   }
 
@@ -602,6 +640,22 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           🎙 Your browser may ask for microphone access — we&apos;re just prepping permissions in advance so recording starts instantly if you choose to record. Nothing is captured until the host clicks Start.
         </div>
 
+        {dailyCoEnabled && (
+          <button
+            onClick={handleEnableMic}
+            disabled={micPrewarming || micPrewarmed}
+            className="self-start px-4 py-2 rounded-lg text-[12.5px] font-bold transition"
+            style={{
+              background: micPrewarmed ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.06)",
+              color: micPrewarmed ? "#166534" : DARK,
+              border: `1px solid ${micPrewarmed ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
+              cursor: micPrewarming || micPrewarmed ? "default" : "pointer",
+            }}
+          >
+            {micPrewarmed ? "✓ Microphone ready" : micPrewarming ? "Requesting access…" : "Enable microphone for live audio"}
+          </button>
+        )}
+
         {/* Room code + leave */}
         <div className="flex items-start gap-4">
           <div>
@@ -907,21 +961,6 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             />
             Stop Recording
           </button>
-        )}
-
-        {dailyCoEnabled && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Live Audio
-            </div>
-            {dailyJoining && (
-              <p className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.5)" }}>Connecting…</p>
-            )}
-            {dailyError && (
-              <p className="text-[11px] mb-2" style={{ color: "#B91C1C" }}>{dailyError}</p>
-            )}
-            <div ref={dailyContainerRef} />
-          </div>
         )}
       </div>
 
