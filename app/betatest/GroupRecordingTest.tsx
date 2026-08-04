@@ -125,6 +125,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const isHostRef = useRef(false);
   const recordingCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostStopCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True while launchMediaRecorder's async setup (getUserMedia → MediaRecorder)
+  // is in flight — mrRef.current is still null during this window.
+  const recorderStartingRef = useRef(false);
+  // True if stop was requested while the recorder wasn't ready yet — honored
+  // the instant it becomes ready, instead of being silently dropped.
+  const pendingStopRef = useRef(false);
 
   // Timer via effect so it starts/stops with phase
   useEffect(() => {
@@ -226,10 +232,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         })();
       })
       .on("broadcast", { event: "recording-stop" }, () => {
-        if (mrRef.current?.state === "recording") {
-          mrRef.current.stop();
-          // mr.onstop handles upload → processing
-        } else if (!roleRef.current) {
+        const wasRecording = mrRef.current?.state === "recording";
+        stopLocalRecording(); // mr.onstop (if it fires) handles upload → processing
+        if (!wasRecording && !roleRef.current) {
           setPhase("done");
         }
         leaveDailyCall();
@@ -241,7 +246,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       })
       .on("broadcast", { event: "recording-cancelled" }, ({ payload }) => {
         const { reason } = payload as { reason?: string };
-        if (mrRef.current?.state === "recording") mrRef.current.stop();
+        stopLocalRecording();
         leaveDailyCall();
         setRecordingStarting(false);
         setPhase("error");
@@ -365,7 +370,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       payload: { reason },
     });
 
-    if (mrRef.current?.state === "recording") mrRef.current.stop();
+    stopLocalRecording();
     leaveDailyCall();
     setRecordingStarting(false);
     setPhase("error");
@@ -373,6 +378,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   }
 
   function launchMediaRecorder(rid: string, role: "doctor" | "patient") {
+    recorderStartingRef.current = true;
+    pendingStopRef.current = false; // fresh attempt — clear any stale flag
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
@@ -397,17 +404,41 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         };
 
         mr.start(1000);
+        recorderStartingRef.current = false;
+
+        // A stop signal arrived while we were still setting up — honor it
+        // now instead of letting the recorder run with no way left to stop it.
+        if (pendingStopRef.current) {
+          pendingStopRef.current = false;
+          mr.stop();
+          return;
+        }
 
         // Hard cutoff — recording never exceeds the 12-minute consult window,
         // regardless of whether the host remembers to stop it.
         recordingCutoffRef.current = setTimeout(() => {
-          if (mrRef.current?.state === "recording") mrRef.current.stop();
+          stopLocalRecording();
         }, PHASE_DURATIONS.CONSULT * 1000);
       })
       .catch(() => {
+        recorderStartingRef.current = false;
+        pendingStopRef.current = false;
         setPhase("error");
         setErrMsg("Microphone access denied.");
       });
+  }
+
+  function stopLocalRecording() {
+    if (recordingCutoffRef.current) {
+      clearTimeout(recordingCutoffRef.current);
+      recordingCutoffRef.current = null;
+    }
+    if (mrRef.current && mrRef.current.state !== "inactive") {
+      mrRef.current.stop();
+    } else if (recorderStartingRef.current) {
+      // Recorder isn't ready yet — remember to stop it the moment it is.
+      pendingStopRef.current = true;
+    }
   }
 
   async function handleUpload(blob: Blob, rid: string, role: "doctor" | "patient") {
@@ -433,11 +464,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
     setPhase("processing");
 
-    // Only the doctor fires the process route to avoid double-processing
-    if (role === "doctor") {
-      fetch(`/api/recordings/${rid}/process`, { method: "POST" }).catch(() => {});
-    }
-
+    // The server-side trigger in the upload route fires /process once BOTH
+    // audio paths are uploaded (and only then sets status to "processing") —
+    // firing it again here from the client was redundant and raced it,
+    // occasionally 409ing if this side's upload finished before the other's.
     pollStatus(rid);
   }
 
@@ -596,10 +626,6 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       clearTimeout(hostStopCutoffRef.current);
       hostStopCutoffRef.current = null;
     }
-    if (recordingCutoffRef.current) {
-      clearTimeout(recordingCutoffRef.current);
-      recordingCutoffRef.current = null;
-    }
 
     // Broadcast stop to other participants
     channelRef.current?.send({
@@ -608,11 +634,12 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       payload: {},
     });
 
-    // Stop host's own recorder (if assigned a role)
-    if (mrRef.current?.state === "recording") {
-      mrRef.current.stop();
-    } else {
-      // Host is observer — no recorder
+    // Stop host's own recorder (if assigned a role) — stopLocalRecording
+    // handles both "already recording" and "still starting" cases.
+    const hasRecorder = mrRef.current !== null || recorderStartingRef.current;
+    stopLocalRecording();
+    if (!hasRecorder) {
+      // Host is observer — no recorder ever existed
       setPhase("done");
     }
 
@@ -627,6 +654,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     mrRef.current = null;
     roleRef.current = null;
     isHostRef.current = false;
+    recorderStartingRef.current = false;
+    pendingStopRef.current = false;
     leaveDailyCall();
     setRecordingStarting(false);
     setPhase("setup");

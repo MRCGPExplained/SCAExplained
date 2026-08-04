@@ -117,6 +117,12 @@ export function StudyRoomPanel({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostStopCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True while startLocalRecording's async setup (getUserMedia → MediaRecorder)
+  // is in flight — mediaRecorderRef.current is still null during this window.
+  const recorderStartingRef = useRef(false);
+  // True if stop was requested while the recorder wasn't ready yet — honored
+  // the instant it becomes ready, instead of being silently dropped.
+  const pendingStopRef = useRef(false);
 
   const iAmHost = room ? room.host_user_id === userId : false;
   const [recentReportId, setRecentReportId] = useState<string | null>(null);
@@ -686,6 +692,8 @@ export function StudyRoomPanel({
   }
 
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
+    recorderStartingRef.current = true;
+    pendingStopRef.current = false; // fresh attempt — clear any stale flag
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -702,6 +710,15 @@ export function StudyRoomPanel({
       };
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
+      recorderStartingRef.current = false;
+
+      // A stop signal arrived while we were still setting up — honor it now
+      // instead of letting the recorder run with no way left to stop it.
+      if (pendingStopRef.current) {
+        pendingStopRef.current = false;
+        recorder.stop();
+        return;
+      }
 
       // Hard cutoff — recording never exceeds the 12-minute consult window,
       // regardless of whether the host remembers to stop it.
@@ -709,6 +726,8 @@ export function StudyRoomPanel({
         stopLocalRecording();
       }, PHASE_DURATIONS.CONSULT * 1000);
     } catch {
+      recorderStartingRef.current = false;
+      pendingStopRef.current = false;
       setRecordingState("error");
       setRecordingError("Microphone access denied. Please allow microphone access and try again.");
     }
@@ -721,6 +740,9 @@ export function StudyRoomPanel({
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
+    } else if (recorderStartingRef.current) {
+      // Recorder isn't ready yet — remember to stop it the moment it is.
+      pendingStopRef.current = true;
     }
   }
 
