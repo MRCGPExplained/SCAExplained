@@ -17,8 +17,14 @@ function RepeatIcon() {
   );
 }
 
+// Keeps the console readable for at least this long after success before
+// reloading — a reload clears the console, so an instant reload meant the
+// final log lines (and everything before them) vanished before anyone could
+// read them.
+const RELOAD_DELAY_MS = 60_000;
+
 export default function RetryPipelineButton({ recordingId }: { recordingId: string }) {
-  const [phase, setPhase] = useState<"idle" | "retrying" | "error">("idle");
+  const [phase, setPhase] = useState<"idle" | "retrying" | "done" | "error">("idle");
   const [error, setError] = useState("");
 
   async function handleRetry(e: React.MouseEvent) {
@@ -49,7 +55,9 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
       logStatus("poll tick", { recordingId, status });
       if (status === "pending_examiner" || status === "reviewing" || status === "sent") {
         logDuration("retry completed", t0);
-        window.location.reload();
+        logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);
+        setPhase("done");
+        setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
         return;
       }
       if (status === "failed") {
@@ -72,6 +80,14 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
         </span>
         Retrying…
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </span>
+    );
+  }
+
+  if (phase === "done") {
+    return (
+      <span className="text-[10px] font-semibold" style={{ color: "#166534" }}>
+        Done — refreshing shortly…
       </span>
     );
   }
