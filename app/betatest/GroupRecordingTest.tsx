@@ -55,6 +55,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const [startErr, setStartErr] = useState("");
   const [starting, setStarting] = useState(false);
   const [showStartWarning, setShowStartWarning] = useState(false);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
 
   // Recording
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -756,6 +757,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   if (phase === "recording") {
     return (
+      <>
       <div
         className="rounded-2xl border bg-white p-6 flex flex-col gap-5"
         style={{ borderColor: "rgba(51,51,51,0.1)" }}
@@ -795,10 +797,73 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           )}
         </div>
 
-        <p className="text-[12px] font-semibold" style={{ color: "#F97316" }}>
-          Recording must be seen through — it stops automatically after 12 minutes.
-        </p>
+        {isHost && (
+          <button
+            onClick={() => setShowStopConfirm(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold transition self-start"
+            style={{
+              background: "rgba(239,68,68,0.18)",
+              color: "#991B1B",
+              border: "1px solid rgba(239,68,68,0.3)",
+              cursor: "pointer",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 10,
+                height: 10,
+                borderRadius: 2,
+                background: "#EF4444",
+              }}
+            />
+            Stop Recording
+          </button>
+        )}
       </div>
+
+      {showStopConfirm && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 px-6"
+          style={{ background: "rgba(26,27,82,0.55)" }}
+        >
+          <div
+            className="w-full max-w-[400px] rounded-2xl p-6"
+            style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <h2 className="font-display font-bold text-[15px]" style={{ color: DARK }}>
+                Stop recording now?
+              </h2>
+            </div>
+            <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(51,51,51,0.7)" }}>
+              A credit has already been used. If you stop now, the consultation ends early and only what&apos;s been recorded so far will be transcribed and graded.
+            </p>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowStopConfirm(false)}
+                className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+                style={{ background: "rgba(51,51,51,0.06)", border: "none", color: DARK, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowStopConfirm(false);
+                  handleStop();
+                }}
+                className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+                style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
+              >
+                Stop Recording
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
     );
   }
 

@@ -99,6 +99,7 @@ export function StudyRoomPanel({
   const iAmHost = room ? room.host_user_id === userId : false;
   const [recentReportId, setRecentReportId] = useState<string | null>(null);
   const [showStartWarning, setShowStartWarning] = useState(false);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
 
   useEffect(() => {
     onRecordingStateChange?.(recordingState === "recording");
@@ -862,8 +863,17 @@ export function StudyRoomPanel({
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
-                REC — must be seen through
+                REC
               </span>
+              {iAmHost && recordingState === "recording" && (
+                <button
+                  onClick={() => setShowStopConfirm(true)}
+                  className="text-[10px] px-2 py-1 rounded"
+                  style={{ background: "rgba(239,68,68,0.25)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
+                >
+                  Stop
+                </button>
+              )}
             </div>
           )}
           {recordingState === "uploading" && (
@@ -1108,6 +1118,49 @@ export function StudyRoomPanel({
               style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
             >
               I Understand, Start
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Stop recording confirmation */}
+    {showStopConfirm && (
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50 px-6"
+        style={{ background: "rgba(26,27,82,0.55)" }}
+      >
+        <div
+          className="w-full max-w-[400px] rounded-2xl p-6"
+          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <h2 className="font-display font-bold text-[15px]" style={{ color: NAVY }}>
+              Stop recording now?
+            </h2>
+          </div>
+          <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
+            A credit has already been used. If you stop now, the consultation ends early and only what&apos;s been recorded so far will be transcribed and graded.
+          </p>
+
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setShowStopConfirm(false)}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowStopConfirm(false);
+                handleStopRecording();
+              }}
+              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+              style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
+            >
+              Stop Recording
             </button>
           </div>
         </div>
