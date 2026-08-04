@@ -205,7 +205,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap">
             <span>Doctor: {rec.doctor_display_name}</span>
             <span>Patient: {rec.patient_display_name}</span>
-            <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+            <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" })}</span>
             {isSent && <span style={{ color: "#86efac" }}>✓ Report already sent</span>}
           </div>
         </div>
