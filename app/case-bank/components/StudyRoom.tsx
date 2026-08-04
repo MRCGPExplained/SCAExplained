@@ -99,7 +99,7 @@ export function StudyRoomPanel({
   const iAmHost = room ? room.host_user_id === userId : false;
   const [recentReportId, setRecentReportId] = useState<string | null>(null);
   const [showStartWarning, setShowStartWarning] = useState(false);
-  const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
 
   useEffect(() => {
     onRecordingStateChange?.(recordingState === "recording");
@@ -867,7 +867,7 @@ export function StudyRoomPanel({
               </span>
               {iAmHost && recordingState === "recording" && (
                 <button
-                  onClick={() => setShowStopConfirm(true)}
+                  onClick={() => setStopConfirmMode("stop")}
                   className="text-[10px] px-2 py-1 rounded"
                   style={{ background: "rgba(239,68,68,0.25)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
                 >
@@ -883,7 +883,13 @@ export function StudyRoomPanel({
             <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.8)" }}>✓ Sent for review</span>
           )}
           <button
-            onClick={handleLeave}
+            onClick={() => {
+              if (recordingState === "recording" || recordingState === "starting") {
+                setStopConfirmMode("leave");
+              } else {
+                handleLeave();
+              }
+            }}
             className="text-[10px] px-2 py-1 rounded"
             style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
           >
@@ -1124,8 +1130,8 @@ export function StudyRoomPanel({
       </div>
     )}
 
-    {/* Stop recording confirmation */}
-    {showStopConfirm && (
+    {/* Stop / leave-during-recording confirmation */}
+    {stopConfirmMode && (
       <div
         className="fixed inset-0 flex items-center justify-center z-50 px-6"
         style={{ background: "rgba(26,27,82,0.55)" }}
@@ -1137,16 +1143,18 @@ export function StudyRoomPanel({
           <div className="flex items-center gap-2 mb-3">
             <span style={{ fontSize: 20 }}>⚠️</span>
             <h2 className="font-display font-bold text-[15px]" style={{ color: NAVY }}>
-              Stop recording now?
+              {stopConfirmMode === "leave" ? "Leave and stop recording now?" : "Stop recording now?"}
             </h2>
           </div>
           <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
-            A credit has already been used. If you stop now, the consultation ends early and only what&apos;s been recorded so far will be transcribed and graded.
+            {stopConfirmMode === "leave"
+              ? "A credit has already been used. Leaving now ends the consultation early for everyone in the room — only what's been recorded so far will be transcribed and graded."
+              : "A credit has already been used. If you stop now, the consultation ends early and only what's been recorded so far will be transcribed and graded."}
           </p>
 
           <div className="flex gap-2.5">
             <button
-              onClick={() => setShowStopConfirm(false)}
+              onClick={() => setStopConfirmMode(null)}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
               style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
             >
@@ -1154,13 +1162,15 @@ export function StudyRoomPanel({
             </button>
             <button
               onClick={() => {
-                setShowStopConfirm(false);
+                const mode = stopConfirmMode;
+                setStopConfirmMode(null);
                 handleStopRecording();
+                if (mode === "leave") handleLeave();
               }}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
               style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
             >
-              Stop Recording
+              {stopConfirmMode === "leave" ? "Leave & Stop Recording" : "Stop Recording"}
             </button>
           </div>
         </div>
