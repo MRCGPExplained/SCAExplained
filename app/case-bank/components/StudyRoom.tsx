@@ -26,6 +26,14 @@ const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
+function PhoneIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
 interface Participant {
   userId: string;
   displayName: string;
@@ -109,6 +117,7 @@ export function StudyRoomPanel({
   // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
+  const [dailyConnecting, setDailyConnecting] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
@@ -560,6 +569,7 @@ export function StudyRoomPanel({
   }
 
   async function joinDailyCall(roomName: string, roomUrl: string) {
+    setDailyConnecting(true);
     try {
       const tokenResult = await getDailyTokenAction(roomName, displayName, iAmHost);
       if ("error" in tokenResult) return;
@@ -571,6 +581,8 @@ export function StudyRoomPanel({
     } catch {
       // best-effort — recording continues locally regardless of live audio
       setCallConnected(false);
+    } finally {
+      setDailyConnecting(false);
     }
   }
 
@@ -585,6 +597,7 @@ export function StudyRoomPanel({
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
     dailyAudioElsRef.current.clear();
+    setDailyConnecting(false);
     setCallConnected(false);
     setDailyRoomName(null);
   }
@@ -999,9 +1012,14 @@ export function StudyRoomPanel({
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
                 REC
               </span>
+              {dailyConnecting && (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <PhoneIcon color="rgba(255,255,255,0.5)" /> Connecting…
+                </span>
+              )}
               {callConnected && (
-                <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
-                  📞 Call Connected
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
+                  <PhoneIcon color="rgba(134,239,172,0.9)" /> Call Connected
                 </span>
               )}
               {iAmHost && recordingState === "recording" && (

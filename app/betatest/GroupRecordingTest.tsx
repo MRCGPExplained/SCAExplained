@@ -33,6 +33,14 @@ const YELLOW = "#F6D44B";
 const POLL_TIMEOUT_MS = 90_000;
 const POLL_INTERVAL_MS = 4_000;
 
+function PhoneIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
 export default function GroupRecordingTest({ stations }: { stations: Station[] }) {
   const supabase = createSupabaseBrowserClient();
 
@@ -65,15 +73,24 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   // DailyCo live audio (headless — no visible UI, audio plays in the background)
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
-  const [micPrewarmed, setMicPrewarmed] = useState(false);
-  const [micPrewarming, setMicPrewarming] = useState(false);
+  const [dailyConnecting, setDailyConnecting] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const dailyPrewarmingRef = useRef(false);
 
   useEffect(() => {
     getDailyCoEnabledAction().then(setDailyCoEnabled);
   }, []);
+
+  // Warm up mic access as soon as you're in the lobby — before recording
+  // starts — so the real join later is instant instead of prompting for
+  // permission mid-consult. Matches the production Study Room's behavior.
+  useEffect(() => {
+    if (phase !== "lobby" || !dailyCoEnabled || dailyPrewarmingRef.current) return;
+    dailyPrewarmingRef.current = true;
+    prewarmDailyCall();
+  }, [phase, dailyCoEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const audioEls = dailyAudioElsRef.current;
@@ -232,21 +249,18 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     return call;
   }
 
-  /** Explicit "Enable microphone" button on the lobby screen calls this — warms up mic access ahead of time. */
-  async function handleEnableMic() {
-    setMicPrewarming(true);
+  /** Warms up mic access as soon as you're in the lobby, so the real join later is instant. */
+  async function prewarmDailyCall() {
     try {
       const call = await getOrCreateDailyCall();
       await call?.startCamera({ startVideoOff: true, startAudioOff: false });
-      setMicPrewarmed(true);
     } catch {
       // best-effort — worst case the permission prompt just happens at join time instead
-    } finally {
-      setMicPrewarming(false);
     }
   }
 
   async function joinDailyCall(roomName: string, roomUrl: string) {
+    setDailyConnecting(true);
     try {
       const myName = participants.find((p) => p.user_id === userIdRef.current)?.display_name ?? "User";
       const tokenResult = await getDailyTokenAction(roomName, myName, isHostRef.current);
@@ -259,6 +273,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     } catch {
       // best-effort — recording continues locally regardless of live audio
       setCallConnected(false);
+    } finally {
+      setDailyConnecting(false);
     }
   }
 
@@ -273,6 +289,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     }
     dailyAudioElsRef.current.forEach((el) => el.remove());
     dailyAudioElsRef.current.clear();
+    setDailyConnecting(false);
     setCallConnected(false);
     setDailyRoomName(null);
   }
@@ -644,22 +661,6 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           🎙 Your browser may ask for microphone access — we&apos;re just prepping permissions in advance so recording starts instantly if you choose to record. Nothing is captured until the host clicks Start.
         </div>
 
-        {dailyCoEnabled && (
-          <button
-            onClick={handleEnableMic}
-            disabled={micPrewarming || micPrewarmed}
-            className="self-start px-4 py-2 rounded-lg text-[12.5px] font-bold transition"
-            style={{
-              background: micPrewarmed ? "rgba(34,197,94,0.12)" : "rgba(51,51,51,0.06)",
-              color: micPrewarmed ? "#166534" : DARK,
-              border: `1px solid ${micPrewarmed ? "rgba(34,197,94,0.3)" : "rgba(51,51,51,0.12)"}`,
-              cursor: micPrewarming || micPrewarmed ? "default" : "pointer",
-            }}
-          >
-            {micPrewarmed ? "✓ Microphone ready" : micPrewarming ? "Requesting access…" : "Enable microphone for live audio"}
-          </button>
-        )}
-
         {/* Room code + leave */}
         <div className="flex items-start gap-4">
           <div>
@@ -927,9 +928,14 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             <span className="font-mono text-[15px] font-bold" style={{ color: "#EF4444" }}>
               {fmtTime(elapsed)}
             </span>
+            {dailyConnecting && (
+              <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>
+                <PhoneIcon color="rgba(51,51,51,0.5)" /> Connecting…
+              </span>
+            )}
             {callConnected && (
-              <span className="text-[12px] font-semibold" style={{ color: "#15803d" }}>
-                📞 Call Connected
+              <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "#15803d" }}>
+                <PhoneIcon color="#15803d" /> Call Connected
               </span>
             )}
           </div>
