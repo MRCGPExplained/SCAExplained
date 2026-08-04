@@ -36,6 +36,18 @@ const POLL_TIMEOUT_MS = 90_000;
 const POLL_INTERVAL_MS = 4_000;
 const DAILY_JOIN_TIMEOUT_MS = 5000;
 
+// Survives a refresh so testers don't have to spin up a brand new room (and
+// get everyone to re-join with a new code) after every attempt.
+const ROOM_STORAGE_KEY = "betatestGroupRoom";
+
+function saveRoomToSession(roomId: string, roomCode: string | null, isHost: boolean) {
+  sessionStorage.setItem(ROOM_STORAGE_KEY, JSON.stringify({ roomId, roomCode, isHost }));
+}
+
+function clearRoomFromSession() {
+  sessionStorage.removeItem(ROOM_STORAGE_KEY);
+}
+
 /** Waits for a promise, but never longer than `ms` — used so a slow/failed
  * DailyCo join can delay the synced start briefly without ever blocking it. */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | void> {
@@ -157,6 +169,29 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) { setUserId(user.id); userIdRef.current = user.id; }
     });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-rejoin a saved room on mount (survives refresh) so testers aren't
+  // forced to create a new room and re-share the code every attempt.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(ROOM_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const { roomId: savedRoomId, roomCode: savedRoomCode, isHost: savedIsHost } = JSON.parse(saved) as {
+        roomId: string;
+        roomCode: string | null;
+        isHost: boolean;
+      };
+      logStatus("restoring room from session", { roomId: savedRoomId });
+      setRoomId(savedRoomId);
+      setRoomCode(savedRoomCode);
+      setIsHost(savedIsHost);
+      isHostRef.current = savedIsHost;
+      setPhase("lobby");
+    } catch (err) {
+      logError("restoring room from session", err);
+      clearRoomFromSession();
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh participants list from DB
@@ -561,6 +596,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setPatientId("");
     setParticipants([]);
     setPhase("lobby");
+    saveRoomToSession(result.roomId, result.roomCode ?? null, true);
   }
 
   async function handleJoin() {
@@ -579,6 +615,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setIsHost(false);
     isHostRef.current = false;
     setPhase("lobby");
+    saveRoomToSession(result.roomId, null, false);
   }
 
   async function handleStartRecording() {
@@ -712,8 +749,31 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     leaveDailyCall();
   }
 
+  // Returns to the lobby for another attempt without leaving the room — so
+  // testers assigned different roles can just record again, no need to
+  // recreate the room and re-share the code each time.
+  function testAgain() {
+    logStatus("returning to lobby for another attempt");
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    mrRef.current = null;
+    roleRef.current = null;
+    recorderStartingRef.current = false;
+    pendingStopRef.current = false;
+    leaveDailyCall();
+    setRecordingStarting(false);
+    setPhase("lobby");
+    setDoctorId("");
+    setPatientId("");
+    setRecordingId(null);
+    setMyRole(null);
+    setElapsed(0);
+    setStartErr("");
+    setErrMsg("");
+  }
+
   function reset() {
     logStatus("session reset");
+    clearRoomFromSession();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     channelRef.current?.unsubscribe();
     channelRef.current = null;
@@ -1257,7 +1317,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
               </a>
             )}
             <button
-              onClick={reset}
+              onClick={testAgain}
               className="text-[12px] font-semibold"
               style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: "pointer" }}
             >
@@ -1282,7 +1342,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             </a>
           )}
           <button
-            onClick={reset}
+            onClick={testAgain}
             className="text-[12px] font-semibold"
             style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: "pointer" }}
           >
@@ -1297,7 +1357,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             {errMsg}
           </span>
           <button
-            onClick={reset}
+            onClick={testAgain}
             className="text-[12px] font-semibold"
             style={{ color: "rgba(51,51,51,0.5)", background: "none", border: "none", cursor: "pointer" }}
           >

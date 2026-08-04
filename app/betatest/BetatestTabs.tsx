@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SoloRecordingTest from "./SoloRecordingTest";
 import GroupRecordingTest from "./GroupRecordingTest";
 import VoiceLoop from "./VoiceLoop";
@@ -15,8 +15,26 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+const TAB_STORAGE_KEY = "betatestActiveTab";
+
+function isTabId(value: string | null): value is TabId {
+  return TABS.some((t) => t.id === value);
+}
+
 export default function BetatestTabs({ stations }: { stations: Station[] }) {
   const [active, setActive] = useState<TabId>("solo");
+
+  // Restore the last-used tab on refresh — mid-test navigation shouldn't
+  // bounce testers back to Solo every time.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(TAB_STORAGE_KEY);
+    if (isTabId(saved)) setActive(saved);
+  }, []);
+
+  function selectTab(id: TabId) {
+    setActive(id);
+    sessionStorage.setItem(TAB_STORAGE_KEY, id);
+  }
 
   return (
     <div>
@@ -25,7 +43,7 @@ export default function BetatestTabs({ stations }: { stations: Station[] }) {
         {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActive(tab.id)}
+            onClick={() => selectTab(tab.id)}
             className="px-4 py-2 rounded-lg text-[13px] font-semibold transition"
             style={{
               background: active === tab.id ? "white" : "transparent",
