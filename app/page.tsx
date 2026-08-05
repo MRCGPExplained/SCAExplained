@@ -1,4 +1,3 @@
-import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
@@ -32,9 +31,6 @@ function SmallCheck() {
 
 
 export default async function HomePage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-
   const supabaseAdmin = getSupabaseAdmin();
 
   const stationsResult = supabaseAdmin
@@ -52,7 +48,7 @@ export default async function HomePage() {
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
       <section className="px-10 pt-14 pb-16 max-md:px-6">
-        <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 
           {/* Left: message + CTAs */}
           <div className="max-w-[650px]">
@@ -73,40 +69,32 @@ export default async function HomePage() {
             </h1>
 
             <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Practise realistic SCA consultations with instant AI feedback, then submit your
-              strongest attempts for detailed review by an experienced GP. Know exactly what to
+              Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
+              the consultation skills RCGP examiners assess—ICE, shared decision-making, managing
+              uncertainty and responding to patient emotion. Every consultation is reviewed by an
+              experienced GP, giving you clear, personalised feedback so you know exactly what to
               improve before exam day.
             </p>
 
             <div className="flex items-center gap-3 flex-wrap mb-7">
-              {user ? (
-                <Link
-                  href="/case-bank"
-                  className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: YELLOW, color: DARK }}
-                >
-                  Start Practising →
-                </Link>
-              ) : (
-                <Link
-                  href="/case-bank/sample"
-                  className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: YELLOW, color: DARK }}
-                >
-                  Start Practising →
-                </Link>
-              )}
               <Link
-                href="/recordings/sample"
+                href="/register"
+                className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                style={{ background: YELLOW, color: DARK }}
+              >
+                Register Now →
+              </Link>
+              <Link
+                href="/case-bank/sample"
                 className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-colors"
                 style={{ border: `1.5px solid rgba(51,51,51,0.2)`, color: DARK }}
               >
-                View Sample Report
+                See Demo Case
               </Link>
             </div>
 
             <div className="flex items-center gap-5 flex-wrap">
-              {(["Unlimited AI practice", "GP-reviewed feedback", "Complete 256-case bank"] as const).map((item) => (
+              {(["Access to 250+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
                   <SmallCheck /> {item}
                 </span>
@@ -248,47 +236,44 @@ export default async function HomePage() {
               <TickIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
             </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-5" style={{ color: DARK }}>
-              Get Your Consultations Reviewed
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-1" style={{ color: DARK }}>
+              The Complete SCA Programme
             </h2>
-
-            <div className="flex flex-wrap gap-2 mb-6">
-              {(
-                [
-                  { tier: "Entry",     label: "3 reviews",  price: "£24"  },
-                  { tier: "Standard",  label: "15 reviews", price: "£99"  },
-                  { tier: "Intensive", label: "40 reviews", price: "£259" },
-                ] as const
-              ).map(({ tier, label, price }) => (
-                <div
-                  key={tier}
-                  className="rounded-lg px-3 py-1.5 text-[13px]"
-                  style={{ background: "rgba(51,51,51,0.05)", color: DARK, border: "1px solid rgba(51,51,51,0.08)" }}
-                >
-                  <span className="font-bold">{tier}</span>
-                  <span style={{ color: "rgba(51,51,51,0.5)" }}> · {label} · {price}</span>
-                </div>
-              ))}
+            <div className="flex items-end gap-2 mb-5">
+              <span className="font-extrabold leading-none" style={{ fontSize: 36, color: DARK }}>£295</span>
+              <span className="text-[13px] mb-1" style={{ color: "rgba(51,51,51,0.5)" }}>one-off payment</span>
             </div>
 
+            <ul className="flex flex-col gap-2 mb-6">
+              {(
+                [
+                  "Access to 250+ cases",
+                  "Unlimited AI review",
+                  "20 GP reviews",
+                  "Access lasts 4 months",
+                ] as const
+              ).map((item) => (
+                <li key={item} className="flex items-center gap-2.5 text-[14px]" style={{ color: DARK }}>
+                  <SmallCheck /> {item}
+                </li>
+              ))}
+            </ul>
+
             <div className="flex items-center gap-3 flex-wrap">
-              {user ? (
-                <Link
-                  href="/recordings"
-                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                >
-                  My Reviews →
-                </Link>
-              ) : (
-                <Link
-                  href="/recordings/sample"
-                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                >
-                  Show Sample Review →
-                </Link>
-              )}
+              <Link
+                href="/register"
+                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+                style={{ background: YELLOW, color: DARK }}
+              >
+                Register Now →
+              </Link>
+              <Link
+                href="/recordings/sample"
+                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-colors"
+                style={{ border: "1.5px solid rgba(51,51,51,0.2)", color: DARK }}
+              >
+                Show Sample Review
+              </Link>
             </div>
           </div>
         </div>
@@ -328,8 +313,8 @@ export default async function HomePage() {
                   a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback. A GP examiner then reviews it, verifies the scoring and finalises your feedback.",
                 },
                 {
-                  q: "How do credits work?",
-                  a: "Each consultation review uses one credit. Credits come in bundles of 3, 15 or 40, and attending our free monthly webinar earns you 2 free credits.",
+                  q: "What's included in the programme?",
+                  a: "A one-off £295 payment gives you access to 250+ cases, unlimited AI review, and 20 GP reviews, valid for 4 months.",
                 },
               ] as const
             ).map(({ q, a }) => (
