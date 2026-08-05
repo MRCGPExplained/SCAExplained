@@ -86,15 +86,135 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CARDS */}
+      {/* EXAMPLES */}
       <section className="px-10 pb-16 pt-6 max-md:px-6">
-        <div className="max-w-[720px] mx-auto flex flex-col gap-5">
-
-          <h2 className="font-display font-extrabold text-[22px]" style={{ color: DARK }}>
-            What We Offer
+        <div className="max-w-[720px] mx-auto">
+          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
+            See Exactly What You&apos;ll Receive
           </h2>
 
-          {/* FREE WEBINAR — primary */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* EXAMPLE CASE */}
+            <div
+              className="rounded-2xl p-7 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+              style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <CaseBankIcon />
+                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Example Case</p>
+              </div>
+              <h3 className="font-display font-extrabold text-[19px] leading-[1.2] mb-2" style={{ color: DARK }}>
+                Example Case
+              </h3>
+              <p className="text-[14px] leading-[1.65] mb-3" style={{ color: "rgba(51,51,51,0.65)" }}>
+                See a real SCA case sheet, complete with data-gathering guidance, management points
+                and an example explanation.
+              </p>
+              <p className="text-[12.5px] font-bold mb-5" style={{ color: "#B8901E" }}>
+                Available for FREE — just requires account creation.
+              </p>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {user ? (
+                  <Link
+                    href="/case-bank"
+                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
+                  >
+                    Open Case Bank →
+                  </Link>
+                ) : (
+                  <Link
+                    href="/case-bank/sample"
+                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
+                  >
+                    Show Sample Case →
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* EXAMPLE REVIEW */}
+            <div
+              className="rounded-2xl p-7 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+              style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <TickIcon />
+                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Example Review</p>
+              </div>
+              <h3 className="font-display font-extrabold text-[19px] leading-[1.2] mb-2" style={{ color: DARK }}>
+                Example Review
+              </h3>
+              <p className="text-[14px] leading-[1.65] mb-3" style={{ color: "rgba(51,51,51,0.65)" }}>
+                See exactly how consultations are assessed and the detailed feedback you&apos;ll
+                receive after every submission.
+              </p>
+              <p className="text-[12.5px] font-bold mb-5" style={{ color: "transparent" }} aria-hidden>
+                &nbsp;
+              </p>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {user ? (
+                  <Link
+                    href="/recordings"
+                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
+                  >
+                    My Reviews →
+                  </Link>
+                ) : (
+                  <Link
+                    href="/recordings/sample"
+                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
+                  >
+                    Show Sample Review →
+                  </Link>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
+            How It Works
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {(
+              [
+                { n: "1", title: "Record", body: "Record your consultation directly on SCA Explained with your study partner. No downloads or third-party software required." },
+                { n: "2", title: "Instant AI Analysis", body: "Your consultation is securely transcribed and analysed immediately to generate provisional scores and feedback." },
+                { n: "3", title: "GP Review", body: "An experienced GP reviews every consultation, verifies the scoring and provides personalised feedback." },
+                { n: "4", title: "Improve", body: "Review your report, identify weaknesses and track your progress over time." },
+              ] as const
+            ).map(({ n, title, body }) => (
+              <div key={n} className="rounded-2xl p-6 bg-white" style={{ border: "1px solid rgba(51,51,51,0.08)" }}>
+                <div
+                  className="flex items-center justify-center rounded-full font-display font-extrabold text-[13px] mb-3"
+                  style={{ width: 28, height: 28, background: YELLOW, color: DARK }}
+                >
+                  {n}
+                </div>
+                <h3 className="font-display font-extrabold text-[16px] mb-1.5" style={{ color: DARK }}>{title}</h3>
+                <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* MONTHLY WEBINAR */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
@@ -107,7 +227,7 @@ export default async function HomePage() {
             </span>
             <div className="flex items-center gap-2 mb-2">
               <WebinarIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Webinar</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Live SCA Teaching</p>
             </div>
             <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
               How To Pass Your SCA — Monthly Webinar
@@ -143,7 +263,7 @@ export default async function HomePage() {
                         className="font-bold no-underline hover:underline justify-self-start"
                         style={{ color: DARK }}
                       >
-                        Register free →
+                        Reserve Your Place →
                       </a>
                     </Fragment>
                   ))}
@@ -155,57 +275,43 @@ export default async function HomePage() {
               </p>
             )}
           </div>
+        </div>
+      </section>
 
-          {/* CASE BANK */}
+      {/* WHY HUMAN REVIEW MATTERS */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <h2 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
+            Why Human Review Matters
+          </h2>
+          <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
+            AI is excellent for speed — it gives you a provisional score within minutes of finishing
+            your consultation. But exam feedback needs judgement AI can&apos;t fully replace, so every
+            single consultation is reviewed by an experienced GP before your feedback is finalised.
+          </p>
+          <ul className="flex flex-col gap-2.5">
+            {(
+              [
+                "Instant AI feedback",
+                "Every consultation reviewed by an experienced GP",
+                "Personalised comments",
+                "Feedback you can trust",
+              ] as const
+            ).map((item) => (
+              <li key={item} className="flex items-center gap-2.5 text-[14.5px]" style={{ color: DARK }}>
+                <span className="shrink-0"><TickIcon /></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
           <div
-            className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-            style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
-          >
-            <span
-              className="absolute top-5 right-5 text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: "#F6D44B", color: DARK }}
-            >
-              Free
-            </span>
-            <div className="flex items-center gap-2 mb-2">
-              <CaseBankIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Case Bank · 250+ cases</p>
-            </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              SCA Case Bank
-            </h2>
-            <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Over 250 exam-style cases built to simulate the SCA examination.
-              Each station includes a full case sheet, data-gathering guidance, management points
-              and an example explanation to practise and learn effectively. Simply create an account
-              to access the full bank for free.
-            </p>
-
-
-            <div className="flex items-center gap-3 flex-wrap">
-              {user ? (
-                <Link
-                  href="/case-bank"
-                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                >
-                  Open Case Bank →
-                </Link>
-              ) : (
-                <Link
-                  href="/case-bank/sample"
-                  className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                  style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                >
-                  Show Sample Case →
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* EXAMINER MARKING */}
-          <div
-            className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            className="relative rounded-2xl p-8 bg-white"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
             <span
@@ -216,16 +322,11 @@ export default async function HomePage() {
             </span>
             <div className="flex items-center gap-2 mb-2">
               <TickIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Marking</p>
+              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
             </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              Real Feedback From a GP
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-5" style={{ color: DARK }}>
+              Get Your Consultations Reviewed
             </h2>
-            <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-              Record a consultation with a partner and get it marked the same way RCGP examiners
-              mark in the real exam, graded across Data Gathering, Clinical Management, and Relating
-              to Others, with written feedback and voice notes from a qualified GP.
-            </p>
 
             <div className="flex flex-wrap gap-2 mb-6">
               {(
@@ -266,7 +367,62 @@ export default async function HomePage() {
               )}
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* FAQ */}
+      <section className="px-10 pb-16 max-md:px-6">
+        <div className="max-w-[720px] mx-auto">
+          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
+            Frequently Asked Questions
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {(
+              [
+                {
+                  q: "Who reviews consultations?",
+                  a: "Every consultation is reviewed by a qualified, experienced GP — the same kind of examiner who marks the real SCA.",
+                },
+                {
+                  q: "How quickly is feedback returned?",
+                  a: "AI analysis is available within minutes of submitting. Full, GP-reviewed feedback is usually returned within 5 working days.",
+                },
+                {
+                  q: "How does recording work?",
+                  a: "You record directly in your browser with a study partner — no downloads or extra software. One of you plays the doctor, the other the patient, for a fixed 12-minute consultation, just like the real exam.",
+                },
+                {
+                  q: "Do I need Zoom?",
+                  a: "No — consultations are recorded directly in your browser. Our free monthly teaching session is hosted on Zoom separately.",
+                },
+                {
+                  q: "How long are consultations?",
+                  a: "12 minutes, fixed, matching the real SCA exam timing.",
+                },
+                {
+                  q: "Is AI used?",
+                  a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback. A GP examiner then reviews it, verifies the scoring and finalises your feedback.",
+                },
+                {
+                  q: "How do credits work?",
+                  a: "Each consultation review uses one credit. Credits come in bundles of 3, 15 or 40, and attending our free monthly webinar earns you 2 free credits.",
+                },
+              ] as const
+            ).map(({ q, a }) => (
+              <details
+                key={q}
+                className="rounded-xl px-5 py-4 bg-white"
+                style={{ border: "1px solid rgba(51,51,51,0.08)" }}
+              >
+                <summary className="cursor-pointer select-none font-display font-bold text-[14.5px]" style={{ color: DARK }}>
+                  {q}
+                </summary>
+                <p className="text-[13.5px] leading-[1.65] mt-2.5" style={{ color: "rgba(51,51,51,0.65)" }}>
+                  {a}
+                </p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
