@@ -21,6 +21,15 @@ function TickIcon() {
   );
 }
 
+function SmallCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill={YELLOW} />
+      <path d="M7.5 12.5l3 3 6-6.5" stroke={DARK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
@@ -42,20 +51,79 @@ export default async function HomePage() {
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
-      <section className="px-10 pt-10 pb-10 max-md:px-6">
-        <div className="max-w-[900px] mx-auto">
-          <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
-            <span className="block whitespace-nowrap tracking-tight font-extrabold text-[34px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[22px]">
-              <Swash>Every</Swash> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
-            </span>
-          </h1>
-          <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.68)" }}>
-            Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
-            the consultation skills RCGP examiners assess—ICE, shared decision-making, managing
-            uncertainty and responding to patient emotion. Every consultation is reviewed by an
-            experienced GP, giving you clear, personalised feedback so you know exactly what to
-            improve before exam day.
-          </p>
+      <section className="px-10 pt-14 pb-16 max-md:px-6">
+        <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+          {/* Left: message + CTAs */}
+          <div className="max-w-[650px]">
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5"
+              style={{ background: "rgba(246,212,75,0.32)" }}
+            >
+              <AwardIcon size={15} />
+              <span className="text-[11px] font-bold uppercase tracking-[0.05em]" style={{ color: DARK }}>
+                Built by Experienced GP Educators
+              </span>
+            </div>
+
+            <h1 className="font-display font-extrabold mb-5" style={{ color: DARK }}>
+              <span className="block text-[42px] leading-[1.18] max-sm:text-[28px]">
+                <Swash>Every</Swash> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
+              </span>
+            </h1>
+
+            <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
+              Practise realistic SCA consultations with instant AI feedback, then submit your
+              strongest attempts for detailed review by an experienced GP. Know exactly what to
+              improve before exam day.
+            </p>
+
+            <div className="flex items-center gap-3 flex-wrap mb-7">
+              {user ? (
+                <Link
+                  href="/case-bank"
+                  className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                  style={{ background: YELLOW, color: DARK }}
+                >
+                  Start Practising →
+                </Link>
+              ) : (
+                <Link
+                  href="/case-bank/sample"
+                  className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
+                  style={{ background: YELLOW, color: DARK }}
+                >
+                  Start Practising →
+                </Link>
+              )}
+              <Link
+                href="/recordings/sample"
+                className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-colors"
+                style={{ border: `1.5px solid rgba(51,51,51,0.2)`, color: DARK }}
+              >
+                View Sample Report
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-5 flex-wrap">
+              {(["Unlimited AI practice", "GP-reviewed feedback", "Complete 256-case bank"] as const).map((item) => (
+                <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
+                  <SmallCheck /> {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: report preview — the clearest proof of the product */}
+          <Link
+            href="/recordings/sample"
+            className="block rounded-[28px] p-6 sm:p-7 no-underline transition-all duration-200 hover:-translate-y-1"
+            style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
+          >
+            <ScaledPreview scale={0.85}>
+              <SampleReportContent interactive={false} compact />
+            </ScaledPreview>
+          </Link>
 
         </div>
       </section>

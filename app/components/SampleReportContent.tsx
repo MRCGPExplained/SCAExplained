@@ -123,10 +123,14 @@ interface SampleReportContentProps {
    * purely visual (no modal, no expand) and the "Create free account" CTA
    * is omitted, since the homepage already has its own conversion CTAs. */
   interactive?: boolean;
+  /** True for the hero preview — truncates the summary/domain comments and
+   * swaps the transcript disclosure for a plain "View full report" line,
+   * since the hero wraps the whole card in a link to the real report. */
+  compact?: boolean;
 }
 
-/** The full sample SCA report — shared between /recordings/sample and the homepage's Examples section. */
-export function SampleReportContent({ interactive = true }: SampleReportContentProps) {
+/** The full sample SCA report — shared between /recordings/sample, the homepage's Examples section, and the hero preview. */
+export function SampleReportContent({ interactive = true, compact = false }: SampleReportContentProps) {
   const dgPts = 2;
   const cmPts = 3;
   const roPts = 2;
@@ -185,7 +189,7 @@ export function SampleReportContent({ interactive = true }: SampleReportContentP
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "#111111" }}>
             Examiner&apos;s Overall Summary
           </div>
-          <p className="text-[13.5px] leading-relaxed" style={{ color: "#111111" }}>
+          <p className={`text-[13.5px] leading-relaxed ${compact ? "line-clamp-6" : ""}`} style={{ color: "#111111" }}>
             A solid consultation with good clinical instincts. The RCP 3 questions were used well and the step-up to a combination inhaler was appropriate and clearly explained. The steroid concern was identified and addressed. Where marks were lost was in the detail. Inhaler technique was mentioned but not properly assessed: the examiner was left unsure whether the candidate understood why the technique was suboptimal or what specifically to correct. The written asthma action plan was issued but its structure was not explained to the patient in a way that would make it useful at home. The candidate should also have asked about occupational exposures given this is adult-onset worsening asthma.
           </p>
           <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
@@ -226,48 +230,61 @@ export function SampleReportContent({ interactive = true }: SampleReportContentP
               <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
               <GradePill grade={grade} />
             </div>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.7)" }}>{comment}</p>
+            <p className={`text-[12.5px] leading-relaxed ${compact ? "line-clamp-4" : ""}`} style={{ color: "rgba(51,51,51,0.7)" }}>{comment}</p>
           </div>
         ))}
       </div>
 
-      {/* Transcript */}
-      <details
-        className="rounded-2xl overflow-hidden"
-        style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-      >
-        <summary
-          onClick={interactive ? undefined : (e) => e.preventDefault()}
-          className="px-5 py-4 select-none flex items-center justify-center gap-2"
-          style={{ listStyle: "none", cursor: interactive ? "pointer" : "default" }}
+      {/* Transcript — or, in compact mode, a plain indicator (the hero
+          wraps this whole card in one link, so this can't be its own control) */}
+      {compact ? (
+        <div
+          className="rounded-2xl px-5 py-4 flex items-center justify-center gap-2"
+          style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
             <path d="M2 4h12M2 8h8M2 12h5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>View Consultation</span>
-        </summary>
-
-        <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
-          <div className="px-5 pt-5 pb-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Consultation Audio
-            </div>
-            <AudioPlaceholder disabled={!interactive} />
-          </div>
-          <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Transcript
-            </div>
-            {TRANSCRIPT.map((line, i) => (
-              <div key={i}>
-                <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>[{line.t}]</span>
-                <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{line.s}:</span>
-                <span className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.75)" }}>{line.l}</span>
-              </div>
-            ))}
-          </div>
+          <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>View full report</span>
         </div>
-      </details>
+      ) : (
+        <details
+          className="rounded-2xl overflow-hidden"
+          style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+        >
+          <summary
+            onClick={interactive ? undefined : (e) => e.preventDefault()}
+            className="px-5 py-4 select-none flex items-center justify-center gap-2"
+            style={{ listStyle: "none", cursor: interactive ? "pointer" : "default" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+              <path d="M2 4h12M2 8h8M2 12h5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>View Consultation</span>
+          </summary>
+
+          <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+            <div className="px-5 pt-5 pb-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Consultation Audio
+              </div>
+              <AudioPlaceholder disabled={!interactive} />
+            </div>
+            <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Transcript
+              </div>
+              {TRANSCRIPT.map((line, i) => (
+                <div key={i}>
+                  <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>[{line.t}]</span>
+                  <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{line.s}:</span>
+                  <span className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.75)" }}>{line.l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      )}
 
       {/* CTA footer */}
       {interactive && (
