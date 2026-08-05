@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { SampleReportContent } from "./components/SampleReportContent";
+import { ScaledPreview } from "./components/ScaledPreview";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,9 @@ export default async function HomePage() {
             className="rounded-[28px] p-6 sm:p-8"
             style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
           >
-            <SampleReportContent interactive={false} />
+            <ScaledPreview scale={0.25}>
+              <SampleReportContent interactive={false} />
+            </ScaledPreview>
           </div>
         </div>
       </section>
