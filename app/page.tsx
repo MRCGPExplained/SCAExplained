@@ -4,7 +4,7 @@ import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
-import { AwardIcon, SparklesIcon, StethoscopeIcon, BooksIcon, ShieldCheckIcon, ClockIcon, LockIcon, PeopleIcon } from "./components/TrustIcons";
+import { AwardIcon, SparklesIcon, StethoscopeIcon, BooksIcon } from "./components/TrustIcons";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -74,16 +74,16 @@ export default async function HomePage() {
       <section className="px-10 pb-16 pt-16 max-md:px-6">
         <div className="max-w-[1100px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
-            See Exactly What You&apos;ll Receive
+            Everything Included In Your Programme
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 mb-10">
-            {/* Report preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-9">
+            {/* Report preview — the hero of this section */}
             <div
               className="rounded-[28px] p-6 sm:p-8"
               style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
             >
-              <ScaledPreview scale={0.75}>
+              <ScaledPreview scale={0.8}>
                 <SampleReportContent interactive={false} />
               </ScaledPreview>
             </div>
@@ -92,51 +92,33 @@ export default async function HomePage() {
             <div className="rounded-[28px] p-7 sm:p-8" style={{ background: "rgba(246,212,75,0.14)" }}>
               {(
                 [
-                  { icon: AwardIcon, title: "Designed by GP Educators", body: "Built by experienced GP educators who understand the SCA inside out." },
-                  { icon: SparklesIcon, title: "AI feedback attuned to the SCA", body: "Instant, tailored feedback aligned with the RCGP SCA framework and marking domains." },
-                  { icon: StethoscopeIcon, title: "Expertly marked", body: "Every submitted consultation reviewed by experienced GPs who know exactly what examiners look for." },
-                  { icon: BooksIcon, title: "Case coverage of all specialities", body: "Access a comprehensive case bank covering the full SCA blueprint across all clinical domains." },
+                  { icon: AwardIcon, title: "Built by Experienced GP Educators", body: "Built by experienced GP educators who understand the SCA inside out." },
+                  { icon: SparklesIcon, title: "AI Feedback Attuned to the SCA", body: "Instant feedback aligned with the RCGP SCA marking domains." },
+                  { icon: StethoscopeIcon, title: "Every Consultation Expertly Reviewed", body: "Every submitted consultation reviewed by an experienced GP." },
+                  { icon: BooksIcon, title: "Complete Case Bank", body: "256 consultations covering every SCA clinical domain." },
                 ] as const
-              ).map(({ icon: Icon, title, body }, i) => (
-                <div
-                  key={title}
-                  className="flex items-start gap-4 py-5"
-                  style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
-                >
-                  <span
-                    className="shrink-0 flex items-center justify-center rounded-full"
-                    style={{ width: 48, height: 48, background: "white" }}
+              ).map(({ icon: Icon, title, body }, i) => {
+                const isBadge = i === 0;
+                return (
+                  <div
+                    key={title}
+                    className="flex items-start gap-4 py-5"
+                    style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
                   >
-                    <Icon />
-                  </span>
-                  <div>
-                    <h3 className="font-display font-extrabold text-[16px] mb-1" style={{ color: DARK }}>{title}</h3>
-                    <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
+                    <span
+                      className="shrink-0 flex items-center justify-center rounded-full"
+                      style={{ width: isBadge ? 60 : 48, height: isBadge ? 60 : 48, background: "white" }}
+                    >
+                      <Icon size={isBadge ? 32 : 26} />
+                    </span>
+                    <div>
+                      <h3 className="font-display font-extrabold mb-1" style={{ color: DARK, fontSize: isBadge ? 18 : 16 }}>{title}</h3>
+                      <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-
-          {/* Trust badges */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {(
-              [
-                { icon: ShieldCheckIcon, title: "Built around the RCGP SCA", body: "Everything mapped to the official SCA blueprint." },
-                { icon: ClockIcon, title: "Improve faster", body: "Practice more. Get instant feedback. Submit when you're ready." },
-                { icon: LockIcon, title: "Secure & confidential", body: "Your data is encrypted and never shared." },
-                { icon: PeopleIcon, title: "Trusted by candidates", body: "Join thousands preparing smarter for the SCA." },
-              ] as const
-            ).map(({ icon: Icon, title, body }, i) => (
-              <div
-                key={title}
-                className={`flex flex-col gap-2 ${i > 0 ? "border-t lg:border-t-0 lg:border-l border-[rgba(51,51,51,0.12)] pt-5 lg:pt-0 lg:pl-6" : ""}`}
-              >
-                <Icon size={28} />
-                <h3 className="font-display font-extrabold text-[15px]" style={{ color: DARK }}>{title}</h3>
-                <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>{body}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
