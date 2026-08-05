@@ -84,10 +84,11 @@ export default async function HomePage() {
             </span>
           </h1>
           <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.68)" }}>
-            Getting a Clear Pass isn&apos;t about knowing more medicine. It&apos;s about demonstrating
-            a specific set of consultation skills naturally under exam conditions — ICE, shared
-            decision-making, sitting with uncertainty, handling patient emotion. These are the skills
-            RCGP examiners score. That&apos;s exactly what we teach.
+            Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
+            the consultation skills RCGP examiners assess—ICE, shared decision-making, managing
+            uncertainty and responding to patient emotion. Every consultation is reviewed by an
+            experienced GP, giving you clear, personalised feedback so you know exactly what to
+            improve before exam day.
           </p>
 
         </div>
