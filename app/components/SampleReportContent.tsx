@@ -116,8 +116,15 @@ const TRANSCRIPT = [
   { t: "10:01", s: "Doctor", l: "Good. Let me get that prescription and action plan printed for you now." },
 ];
 
+interface SampleReportContentProps {
+  /** False on the homepage preview — voice note/transcript disclosure become
+   * purely visual (no modal, no expand) and the "Create free account" CTA
+   * is omitted, since the homepage already has its own conversion CTAs. */
+  interactive?: boolean;
+}
+
 /** The full sample SCA report — shared between /recordings/sample and the homepage's Examples section. */
-export function SampleReportContent() {
+export function SampleReportContent({ interactive = true }: SampleReportContentProps) {
   const dgPts = 2;
   const cmPts = 3;
   const roPts = 2;
@@ -181,7 +188,7 @@ export function SampleReportContent() {
           </p>
           <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
             <div className="text-[11px] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>Voice note</div>
-            <AudioPlaceholder />
+            <AudioPlaceholder disabled={!interactive} />
           </div>
         </div>
       </div>
@@ -228,8 +235,9 @@ export function SampleReportContent() {
         style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
       >
         <summary
-          className="px-5 py-4 cursor-pointer select-none flex items-center justify-center gap-2"
-          style={{ listStyle: "none" }}
+          onClick={interactive ? undefined : (e) => e.preventDefault()}
+          className="px-5 py-4 select-none flex items-center justify-center gap-2"
+          style={{ listStyle: "none", cursor: interactive ? "pointer" : "default" }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
             <path d="M2 4h12M2 8h8M2 12h5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
@@ -242,7 +250,7 @@ export function SampleReportContent() {
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
               Consultation Audio
             </div>
-            <AudioPlaceholder />
+            <AudioPlaceholder disabled={!interactive} />
           </div>
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
@@ -260,19 +268,21 @@ export function SampleReportContent() {
       </details>
 
       {/* CTA footer */}
-      <div className="mt-8 rounded-2xl p-7 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
-        <h2 className="font-display font-extrabold text-[20px] mb-2" style={{ color: NAVY }}>Ready to get your own report?</h2>
-        <p className="text-[13.5px] mb-5" style={{ color: "rgba(51,51,51,0.55)" }}>
-          Record a consultation, get it graded by AI, and reviewed by a GP. Usually back within 5 working days.
-        </p>
-        <Link
-          href="/register"
-          className="font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
-          style={{ background: NAVY, color: "white" }}
-        >
-          Create free account →
-        </Link>
-      </div>
+      {interactive && (
+        <div className="mt-8 rounded-2xl p-7 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
+          <h2 className="font-display font-extrabold text-[20px] mb-2" style={{ color: NAVY }}>Ready to get your own report?</h2>
+          <p className="text-[13.5px] mb-5" style={{ color: "rgba(51,51,51,0.55)" }}>
+            Record a consultation, get it graded by AI, and reviewed by a GP. Usually back within 5 working days.
+          </p>
+          <Link
+            href="/register"
+            className="font-bold text-[14px] px-7 py-3 rounded-xl no-underline"
+            style={{ background: NAVY, color: "white" }}
+          >
+            Create free account →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

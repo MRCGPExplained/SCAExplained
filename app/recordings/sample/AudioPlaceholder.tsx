@@ -5,16 +5,16 @@ import Link from "next/link";
 
 const NAVY = "#333333";
 
-export function AudioPlaceholder() {
+export function AudioPlaceholder({ disabled = false }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       {/* Fake player */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={disabled ? undefined : () => setOpen(true)}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
-        style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.09)", cursor: "pointer" }}
+        style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.09)", cursor: disabled ? "default" : "pointer" }}
         aria-label="Play audio"
       >
         {/* Play icon */}
@@ -40,7 +40,7 @@ export function AudioPlaceholder() {
       </button>
 
       {/* Modal */}
-      {open && (
+      {!disabled && open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: "rgba(0,0,0,0.45)" }}
