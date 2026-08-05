@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { CircleHighlight } from "./components/CircleHighlight";
+import { Swash } from "./components/Swash";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -74,7 +74,7 @@ export default async function HomePage() {
         <div className="max-w-[720px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
             <span className="block whitespace-nowrap tracking-tight font-extrabold text-[34px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[22px]">
-              <CircleHighlight>Every</CircleHighlight> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
+              <Swash>Every</Swash> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
             </span>
           </h1>
           <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.68)" }}>
