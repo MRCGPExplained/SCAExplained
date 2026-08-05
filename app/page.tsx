@@ -62,11 +62,22 @@ export default async function HomePage() {
 
       {/* HOW IT WORKS */}
       <section className="px-10 py-16 max-md:px-6" style={{ background: "rgba(246,212,75,0.09)" }}>
-        <div className="max-w-[900px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
-            How It Works
-          </h2>
-          <HowItWorks />
+        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <h2 className="font-display font-extrabold text-[38px] leading-[1.2] mb-5" style={{ color: DARK }}>
+              Every step is designed to help you improve.
+            </h2>
+            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
+              From recording your consultation to receiving expert feedback, we make SCA
+              preparation simple and effective.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
+              How It Works
+            </h2>
+            <HowItWorks />
+          </div>
         </div>
       </section>
 
