@@ -16,7 +16,7 @@ export function WebinarClient({ sessions, codes }: { sessions: Session[]; codes:
     <div>
       <div className="mb-8">
         <h1 className="font-display font-extrabold text-[26px] text-navy">Webinar</h1>
-        <p className="text-[13px] text-navy/50 mt-0.5">Manage upcoming webinar dates and the codes attendees use to redeem recording credits.</p>
+        <p className="text-[13px] text-navy/50 mt-0.5">Manage upcoming webinar dates and the codes attendees use to redeem GP review credits.</p>
       </div>
 
       {/* Sub-tabs */}

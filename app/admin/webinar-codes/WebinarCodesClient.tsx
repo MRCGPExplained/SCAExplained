@@ -112,7 +112,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
               <input name="label" type="text" required placeholder="e.g. July 2026 Webinar" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">Recording Credits</label>
+              <label className="text-[11px] font-bold uppercase tracking-[0.06em] text-navy/55">GP Review Credits</label>
               <input name="recording_credits" type="number" defaultValue="2" min="1" max="50" className="field" />
             </div>
             <div className="flex flex-col gap-1.5">

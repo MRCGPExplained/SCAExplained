@@ -45,21 +45,35 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>3. Recording credits — purchases and refunds</H2>
+      <H2>3. The Complete SCA Programme — purchases and refunds</H2>
       <P>
-        Recording credits are digital tokens that allow you to submit SCA
-        consultation recordings for AI-graded provisional feedback, which is
-        then reviewed and finalised by a GP examiner. Credits are available
-        in three packages: Entry (3 credits), Standard (15 credits), and
-        Intensive (40 credits).
+        The Complete SCA Programme is a single paid package priced at £295
+        that gives you access to our full case bank of 250+ stations,
+        unlimited AI-graded practice, and 20 GP review credits, for a period
+        of 4 months from the date of purchase.
       </P>
       <P>
-        By completing a purchase of recording credits you expressly request
-        that the digital service begins immediately and acknowledge that, in
-        doing so, you waive your right to cancel under the Consumer Contracts
-        (Information, Cancellation and Additional Charges) Regulations 2013.
-        Recording credits are non-refundable once purchased. Credits are
-        non-transferable and may not be shared between accounts.
+        Practising a station and receiving AI-graded provisional feedback
+        does not use a GP review credit. A GP review credit is only used
+        when you explicitly submit a recording for review, at which point
+        it is queued for a GP examiner to assess and finalise your feedback.
+        GP review credits are non-transferable and may not be shared between
+        accounts.
+      </P>
+      <P>
+        AI-graded practice is offered on a fair-use basis and is soft-capped
+        at 500 uses per programme purchase. This limit is intended to
+        accommodate genuine exam preparation; we may contact you if your
+        usage suggests the service is being shared or resold, and reserve
+        the right to suspend access in such cases.
+      </P>
+      <P>
+        By completing a purchase you expressly request that the digital
+        service begins immediately and acknowledge that, in doing so, you
+        waive your right to cancel under the Consumer Contracts (Information,
+        Cancellation and Additional Charges) Regulations 2013. Purchases are
+        non-refundable once made. Access is personal to your account and may
+        not be shared, resold, or transferred.
       </P>
       <P>
         Audio recordings submitted through the platform are stored for up to

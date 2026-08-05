@@ -18,9 +18,9 @@ export function RedeemLoggedIn() {
               <path d="M5 13l4 4L19 7" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>Recording credits added!</h1>
+          <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>GP review credits added!</h1>
           <p className="text-[14px] mb-6" style={{ color: "rgba(51,51,51,0.60)" }}>
-            Use them to record consultations and get feedback from a GP examiner.
+            Use them to submit your AI-reviewed recordings for feedback from a GP examiner.
           </p>
           <Link
             href="/recordings"

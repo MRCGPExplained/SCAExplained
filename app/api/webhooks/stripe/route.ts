@@ -34,6 +34,8 @@ export async function POST(req: Request) {
       await confirmProgrammePurchase(session);
     } else if (session.metadata?.type === "recording_credits") {
       await confirmRecordingCreditsPurchase(session);
+    } else if (session.metadata?.type === "case_bank_programme") {
+      await confirmCaseBankPurchase(session);
     }
   }
 
@@ -54,6 +56,14 @@ async function confirmRecordingCreditsPurchase(session: Stripe.Checkout.Session)
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
+  await addRecordingCredits(supabase, userId, credits);
+}
+
+async function addRecordingCredits(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  userId: string,
+  credits: number
+) {
   // Upsert: add purchased credits to existing balance
   const { error } = await supabase.rpc("add_recording_credits", {
     p_user_id: userId,
@@ -124,6 +134,62 @@ async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
       customerName: userEmail,
       eventTitle: "The SCA Explained Programme — 90-Day Access",
       ticketName: "Access granted",
+      startTime: now.toISOString(),
+      endTime: newExpiry,
+      zoomLink: null,
+    });
+  }
+}
+
+// ── Case Bank programme purchase (£295, 4 months, 20 GP reviews) ───────────────
+
+async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.user_id;
+  const userEmail = session.metadata?.user_email ?? "";
+
+  if (!userId) {
+    console.error("[webhook] case_bank_programme checkout without user_id");
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setMonth(expiresAt.getMonth() + 4);
+
+  const { data: existing } = await supabase
+    .from("user_access")
+    .select("case_bank_expires_at")
+    .eq("user_id", userId)
+    .single<{ case_bank_expires_at: string | null }>();
+
+  const newExpiry =
+    existing?.case_bank_expires_at && existing.case_bank_expires_at > expiresAt.toISOString()
+      ? existing.case_bank_expires_at
+      : expiresAt.toISOString();
+
+  const { error } = await supabase.from("user_access").upsert({
+    user_id: userId,
+    has_case_bank: true,
+    case_bank_expires_at: newExpiry,
+  });
+
+  if (error) {
+    console.error("[webhook] failed to write case bank access:", error.message);
+    return;
+  }
+
+  // 20 GP reviews, on top of any credits already held
+  await addRecordingCredits(supabase, userId, 20);
+
+  if (userEmail) {
+    await sendConfirmationEmail({
+      to: userEmail,
+      customerName: userEmail,
+      eventTitle: "The Complete SCA Programme",
+      ticketName: "Access granted — 250+ cases, unlimited AI review, 20 GP reviews",
       startTime: now.toISOString(),
       endTime: newExpiry,
       zoomLink: null,

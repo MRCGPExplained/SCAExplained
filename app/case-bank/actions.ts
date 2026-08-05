@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail, sendExaminerNotificationEmail } from "@/lib/email";
 import type { Highlight, HighlightColor } from "@/lib/case-bank-types";
 import { isDailyCoEnabled, createDailyRoom, createDailyMeetingToken, deleteDailyRoom } from "@/lib/daily";
 
@@ -560,18 +560,6 @@ export async function getMostRecentRecordingForStation(stationNumber: number): P
   return data?.id ?? null;
 }
 
-export async function getRecordingCreditsAction(): Promise<number> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return 0;
-  const { data } = await supabase
-    .from("recording_credits")
-    .select("balance")
-    .eq("user_id", user.id)
-    .single<{ balance: number }>();
-  return data?.balance ?? 0;
-}
-
 async function checkRecordingBypass(email: string | undefined): Promise<boolean> {
   if (!email) return false;
   const admin = getSupabaseAdmin();
@@ -601,10 +589,28 @@ async function checkRecordingBypass(email: string | undefined): Promise<boolean>
   return bypassList.includes(normalEmail);
 }
 
-export async function getRecordingBypassAction(): Promise<boolean> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return checkRecordingBypass(user?.email);
+const AI_USE_SOFT_CAP = 500;
+
+/** Returns an error message if the user has no active Case Bank access or
+ * has hit the AI-review soft cap; null if they're clear to record. */
+async function checkAiUsageCap(
+  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  userId: string
+): Promise<string | null> {
+  const { data } = await admin
+    .from("user_access")
+    .select("has_case_bank, case_bank_expires_at, ai_uses_count")
+    .eq("user_id", userId)
+    .single<{ has_case_bank: boolean; case_bank_expires_at: string | null; ai_uses_count: number }>();
+
+  const hasAccess = !!data?.has_case_bank && !!data.case_bank_expires_at && data.case_bank_expires_at > new Date().toISOString();
+  if (!hasAccess) return "Your Case Bank access has expired or is not active.";
+
+  if ((data?.ai_uses_count ?? 0) >= AI_USE_SOFT_CAP) {
+    return "You've reached the fair-use limit for AI review on this programme. Contact us if you need more.";
+  }
+
+  return null;
 }
 
 export async function startSoloRecordingAction(args: {
@@ -617,6 +623,12 @@ export async function startSoloRecordingAction(args: {
 
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
+
+  const bypassed = await checkRecordingBypass(user.email);
+  if (!bypassed) {
+    const capError = await checkAiUsageCap(admin, user.id);
+    if (capError) return { error: capError };
+  }
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -662,33 +674,12 @@ export async function startRecordingAction(args: {
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
+  // Gated on the doctor/candidate's access — they're the one being AI-reviewed,
+  // regardless of who (host or patient role-player) actually clicks Start.
   const bypassed = await checkRecordingBypass(user.email);
-
-  let credits: { balance: number } | null = null;
-
   if (!bypassed) {
-    // Check and decrement credits
-    const { data: creditsData } = await admin
-      .from("recording_credits")
-      .select("balance")
-      .eq("user_id", user.id)
-      .single<{ balance: number }>();
-
-    if (!creditsData || creditsData.balance < 1) {
-      return { error: "No recording credits remaining. Purchase more to continue." };
-    }
-
-    const { error: deductErr } = await admin
-      .from("recording_credits")
-      .update({
-        balance: creditsData.balance - 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id)
-      .eq("balance", creditsData.balance);
-
-    if (deductErr) return { error: "Could not deduct credit. Please try again." };
-    credits = creditsData;
+    const capError = await checkAiUsageCap(admin, args.doctorUserId);
+    if (capError) return { error: capError };
   }
 
   // Fetch candidate email for the report
@@ -712,14 +703,7 @@ export async function startRecordingAction(args: {
     .single<{ id: string }>();
 
   if (insertErr || !recording) {
-    if (!bypassed && credits) {
-      // Refund the credit on failure
-      await admin
-        .from("recording_credits")
-        .update({ balance: credits.balance, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
-    }
-    return { error: "Could not create recording." + (!bypassed ? " Credit refunded." : "") };
+    return { error: "Could not create recording." };
   }
 
   return { recordingId: recording.id };
@@ -728,10 +712,9 @@ export async function startRecordingAction(args: {
 /**
  * Called by the host when the synced start aborts because the live audio
  * call failed to connect for an essential participant (doctor or patient).
- * Refunds the credit startRecordingAction deducted and deletes the
- * never-actually-recorded row — the attempt is treated as if it never
- * happened, matching "give them back the credit" rather than leaving a
- * dead/empty recording behind.
+ * Deletes the never-actually-recorded row — the attempt is treated as if
+ * it never happened. No credit refund needed: starting a recording no
+ * longer consumes one (AI review is unlimited; only Submit for GP Review does).
  */
 export async function cancelRecordingAction(recordingId: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
@@ -740,6 +723,42 @@ export async function cancelRecordingAction(recordingId: string): Promise<Action
 
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
+
+  await admin.from("station_recordings").delete().eq("id", recordingId);
+
+  return { success: true };
+}
+
+/**
+ * Candidate-initiated: consumes 1 of their 20 GP-review credits and moves
+ * this specific AI-graded recording into the examiner queue. AI review
+ * itself (reaching status "ai_graded") never consumes a credit — only an
+ * explicit decision to submit does.
+ */
+export async function submitForReviewAction(recordingId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const { data: recording } = await admin
+    .from("station_recordings")
+    .select("id, doctor_user_id, status, station_number, station_title, doctor_display_name")
+    .eq("id", recordingId)
+    .single<{
+      id: string;
+      doctor_user_id: string;
+      status: string;
+      station_number: number;
+      station_title: string;
+      doctor_display_name: string;
+    }>();
+
+  if (!recording) return { error: "Recording not found." };
+  if (recording.doctor_user_id !== user.id) return { error: "Not authorised." };
+  if (recording.status !== "ai_graded") return { error: "This recording is not ready to submit." };
 
   const bypassed = await checkRecordingBypass(user.email);
 
@@ -750,15 +769,38 @@ export async function cancelRecordingAction(recordingId: string): Promise<Action
       .eq("user_id", user.id)
       .single<{ balance: number }>();
 
-    if (creditsData) {
-      await admin
-        .from("recording_credits")
-        .update({ balance: creditsData.balance + 1, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
+    if (!creditsData || creditsData.balance < 1) {
+      return { error: "No GP review credits remaining." };
     }
+
+    const { error: deductErr } = await admin
+      .from("recording_credits")
+      .update({ balance: creditsData.balance - 1, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("balance", creditsData.balance);
+
+    if (deductErr) return { error: "Could not deduct credit. Please try again." };
   }
 
-  await admin.from("station_recordings").delete().eq("id", recordingId);
+  const { error: updateErr } = await admin
+    .from("station_recordings")
+    .update({ status: "pending_examiner", submitted_for_review_at: new Date().toISOString() })
+    .eq("id", recordingId);
+
+  if (updateErr) return { error: "Could not submit for review." };
+
+  const { data: examiners } = await admin.from("examiners").select("name, email");
+  await Promise.all(
+    (examiners ?? []).map((ex: { name: string; email: string }) =>
+      sendExaminerNotificationEmail({
+        to: ex.email,
+        examinerName: ex.name,
+        candidateName: recording.doctor_display_name,
+        stationNumber: recording.station_number,
+        stationTitle: recording.station_title,
+      })
+    )
+  );
 
   return { success: true };
 }

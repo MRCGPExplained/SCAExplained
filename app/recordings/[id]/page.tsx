@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
+import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 
 export const dynamic = "force-dynamic";
 
@@ -221,8 +222,21 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           {rec.examiners?.name && <><span>·</span><span>Marked by Dr {rec.examiners.name}</span></>}
         </div>
 
-        {/* Provisional banner */}
-        {!isFinal && !examiner && (
+        {/* Ready to submit — AI-graded but not yet sent for GP review */}
+        {isDoctor && rec.status === "ai_graded" && (
+          <div
+            className="rounded-xl px-4 py-3 mb-5 text-[12.5px] flex items-center justify-between gap-3 flex-wrap"
+            style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", color: "#1D4ED8" }}
+          >
+            <span>
+              <strong>AI review complete.</strong> This is provisional — submit it to get GP-reviewed feedback (uses 1 of your credits).
+            </span>
+            <SubmitForReviewButton recordingId={rec.id} />
+          </div>
+        )}
+
+        {/* Provisional banner — only once it's genuinely been submitted */}
+        {!isFinal && !examiner && (rec.status === "pending_examiner" || rec.status === "reviewing") && (
           <div
             className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
             style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#92400E" }}

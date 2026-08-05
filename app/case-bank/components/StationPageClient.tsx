@@ -10,7 +10,7 @@ import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { FeedbackModal } from "./ReportModal";
 import { HighlightProvider, Highlightable } from "./Highlighter";
-import { toggleStarAction, updateLastStationAction, getRecordingCreditsAction, getRecordingBypassAction } from "../actions";
+import { toggleStarAction, updateLastStationAction } from "../actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -414,15 +414,6 @@ export function StationPageClient({
     running: false,
   });
 
-  // Recording credits + bypass
-  const [recordingCredits, setRecordingCredits] = useState<number | null>(null);
-  const [recordingBypassed, setRecordingBypassed] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  useEffect(() => {
-    getRecordingCreditsAction().then(setRecordingCredits);
-    getRecordingBypassAction().then(setRecordingBypassed);
-  }, []);
-
   // Station jump
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpValue, setJumpValue] = useState("");
@@ -687,10 +678,7 @@ export function StationPageClient({
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => {
-              if (!recordingBypassed && recordingCredits === 0) { setShowBuyModal(true); }
-              else { setShowRoom(true); }
-            }}
+            onClick={() => setShowRoom(true)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
               background: "transparent",
@@ -705,11 +693,7 @@ export function StationPageClient({
               <line x1="12" y1="17" x2="12" y2="21"/>
               <line x1="9" y1="21" x2="15" y2="21"/>
             </svg>
-            {recordingBypassed
-              ? "Record (free)"
-              : recordingCredits !== null
-                ? `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""})`
-                : "Record"}
+            Record
           </button>
 
           <button
@@ -881,69 +865,6 @@ export function StationPageClient({
         />
       )}
 
-      {showBuyModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          style={{ background: "rgba(26,27,82,0.6)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowBuyModal(false)}
-        >
-          <div
-            className="w-full max-w-[380px] rounded-2xl p-7"
-            style={{ background: "white", boxShadow: "0 24px 64px rgba(26,27,82,0.22)" }}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(26,27,82,0.07)" }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1B52" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="2" width="6" height="11" rx="3"/>
-                  <path d="M5 10a7 7 0 0 0 14 0"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                  <line x1="9" y1="21" x2="15" y2="21"/>
-                </svg>
-              </div>
-              <h2 className="font-display font-bold text-[17px]" style={{ color: "#1A1B52" }}>
-                No recording credits
-              </h2>
-            </div>
-            <p className="text-[16px] leading-relaxed mb-6" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Each recorded consultation uses 1 credit. Credits are reviewed by a GP examiner who grades your performance across all three marking domains.
-            </p>
-            <div className="flex flex-col gap-2 mb-6">
-              {(
-                [
-                  { tier: "entry",     credits: "3 credits",        price: "£24",  sub: "£8.00 per consultation" },
-                  { tier: "standard",  credits: "15 credits",       price: "£99",  sub: "£6.60 per consultation" },
-                  { tier: "intensive", credits: "40 credits",       price: "£259", sub: "£6.48 per consultation" },
-                ] as const
-              ).map(({ tier, credits, price, sub }) => (
-                <form key={tier} action="/api/recordings/checkout" method="POST">
-                  <input type="hidden" name="tier" value={tier} />
-                  <button
-                    type="submit"
-                    className="w-full rounded-xl p-4 flex items-center justify-between text-left"
-                    style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)", cursor: "pointer" }}
-                  >
-                    <div>
-                      <div className="font-bold text-[16px]" style={{ color: "#1A1B52" }}>{credits}</div>
-                      <div className="text-[12px]" style={{ color: "rgba(26,27,82,0.45)" }}>{sub}</div>
-                    </div>
-                    <div className="font-bold text-[18px]" style={{ color: "#1A1B52" }}>{price}</div>
-                  </button>
-                </form>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowBuyModal(false)}
-              className="w-full rounded-xl py-2.5 text-[16px] font-semibold"
-              style={{ background: "none", border: "1.5px solid rgba(26,27,82,0.12)", color: "rgba(26,27,82,0.5)", cursor: "pointer" }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
     </main>
   );

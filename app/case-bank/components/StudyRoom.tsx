@@ -11,8 +11,6 @@ import {
   claimHostAction,
   startRecordingAction,
   cancelRecordingAction,
-  getRecordingCreditsAction,
-  getRecordingBypassAction,
   getMostRecentRecordingForStation,
   getDailyCoEnabledAction,
   createDailyCallAction,
@@ -113,8 +111,6 @@ export function StudyRoomPanel({
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedPatient, setSelectedPatient] = useState("");
-  const [recordingCredits, setRecordingCredits] = useState(0);
-  const [recordingBypassed, setRecordingBypassed] = useState(false);
   const [recordingError, setRecordingError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -580,12 +576,6 @@ export function StudyRoomPanel({
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch credits + bypass when joining a room
-  useEffect(() => {
-    if (!room) return;
-    getRecordingCreditsAction().then(setRecordingCredits);
-    getRecordingBypassAction().then(setRecordingBypassed);
-  }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Plays a remote participant's audio track through a hidden <audio> element — headless mode renders nothing itself. */
   function handleDailyTrackStarted(ev: { participant: { local: boolean; session_id: string } | null; track: MediaStreamTrack; type: string }) {
@@ -698,7 +688,7 @@ export function StudyRoomPanel({
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
     if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
-    const reason = result.error ?? "There was an issue connecting the voice call. Your credit has been refunded — please try again.";
+    const reason = result.error ?? "There was an issue connecting the voice call — please try again.";
 
     channelRef.current?.send({
       type: "broadcast",
@@ -712,7 +702,6 @@ export function StudyRoomPanel({
     setRecordingError(reason);
     setActiveRecordingId(null);
     setMyRecordingRole(null);
-    getRecordingCreditsAction().then(setRecordingCredits);
   }
 
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
@@ -904,10 +893,6 @@ export function StudyRoomPanel({
       setMyRecordingRole("patient");
       await startLocalRecording(recordingId, "patient");
     }
-
-    // Refresh credits + bypass
-    getRecordingCreditsAction().then(setRecordingCredits);
-    getRecordingBypassAction().then(setRecordingBypassed);
   }
 
   function handleStopRecording() {
@@ -1164,20 +1149,13 @@ export function StudyRoomPanel({
                 setShowStartWarning(false);
                 setShowRoleSelector(true);
               }}
-              title={
-                recordingBypassed
-                  ? "Record (free)"
-                  : recordingCredits === 0
-                  ? "No recording credits"
-                  : `Record (${recordingCredits} credit${recordingCredits !== 1 ? "s" : ""} left)`
-              }
-              disabled={!recordingBypassed && recordingCredits === 0}
+              title="Record — free AI review, GP review is a separate step afterwards"
               className="text-[10px] px-2 py-1 rounded flex items-center gap-1"
               style={{
-                background: !recordingBypassed && recordingCredits === 0 ? "rgba(255,255,255,0.08)" : "rgba(239,68,68,0.2)",
-                color: !recordingBypassed && recordingCredits === 0 ? "rgba(255,255,255,0.3)" : "#FCA5A5",
+                background: "rgba(239,68,68,0.2)",
+                color: "#FCA5A5",
                 border: "none",
-                cursor: !recordingBypassed && recordingCredits === 0 ? "not-allowed" : "pointer",
+                cursor: "pointer",
               }}
             >
               ⏺ Record
@@ -1373,7 +1351,8 @@ export function StudyRoomPanel({
             Start Recording
           </h2>
           <p className="text-[12.5px] mb-5 leading-snug" style={{ color: "rgba(26,27,82,0.55)" }}>
-            Assign roles. The consultation timer will reset. 1 credit will be deducted.
+            Assign roles. The consultation timer will reset. AI review is free — a GP review credit is
+            only used if you choose to submit the recording afterwards.
           </p>
 
           <div className="flex flex-col gap-3 mb-5">
@@ -1457,10 +1436,10 @@ export function StudyRoomPanel({
             </h2>
           </div>
           <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
-            <li>• This will use <strong>1 recording credit</strong>{recordingBypassed ? " (waived for you)" : ""} immediately.</li>
+            <li>• AI review is free and starts immediately — no credit is used yet.</li>
             <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
-            <li>• If stopped early, the credit used is not recoverable.</li>
             <li>• Recording stops automatically at the 12-minute mark.</li>
+            <li>• You can choose to submit for GP review afterwards, which uses 1 credit.</li>
           </ul>
 
           <div className="flex gap-2.5">
@@ -1504,8 +1483,8 @@ export function StudyRoomPanel({
           </div>
           <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
             {stopConfirmMode === "leave"
-              ? "A credit has already been used. Leaving now ends the consultation early for everyone in the room — only what's been recorded so far will be transcribed and graded."
-              : "A credit has already been used. If you stop now, the consultation ends early and only what's been recorded so far will be transcribed and graded."}
+              ? "Leaving now ends the consultation early for everyone in the room — only what's been recorded so far will be transcribed and AI-reviewed."
+              : "If you stop now, the consultation ends early and only what's been recorded so far will be transcribed and AI-reviewed."}
           </p>
 
           <div className="flex gap-2.5">

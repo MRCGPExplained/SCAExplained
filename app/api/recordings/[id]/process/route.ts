@@ -1,6 +1,5 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendExaminerNotificationEmail } from "@/lib/email";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/ai-defaults";
 
 export const dynamic = "force-dynamic";
@@ -183,11 +182,12 @@ export async function POST(req: Request, { params }: RouteParams) {
   // Fetch recording + station data
   const { data: recording } = await admin
     .from("station_recordings")
-    .select("id, station_number, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw")
+    .select("id, station_number, doctor_user_id, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw")
     .eq("id", recordingId)
     .single<{
       id: string;
       station_number: number;
+      doctor_user_id: string;
       doctor_audio_path: string | null;
       patient_audio_path: string | null;
       status: string;
@@ -213,33 +213,13 @@ export async function POST(req: Request, { params }: RouteParams) {
   const vercelPlan = settingsMap.get("vercel_plan") ?? "pro"; // default pro
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
 
-  // If Deepgram is disabled, skip pipeline and send straight to examiner queue
+  // If Deepgram is disabled, skip AI grading — the candidate can still
+  // choose to Submit for GP Review with no AI pre-assessment shown.
   if (!deepgramEnabled || vercelPlan === "hobby") {
     await admin
       .from("station_recordings")
-      .update({ status: "pending_examiner" })
+      .update({ status: "ai_graded" })
       .eq("id", recordingId);
-
-    const { data: recRow } = await admin
-      .from("station_recordings")
-      .select("station_number, station_title, doctor_display_name")
-      .eq("id", recordingId)
-      .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
-
-    if (recRow) {
-      const { data: examiners } = await admin.from("examiners").select("name, email");
-      await Promise.all(
-        (examiners ?? []).map((ex: { name: string; email: string }) =>
-          sendExaminerNotificationEmail({
-            to: ex.email,
-            examinerName: ex.name,
-            candidateName: recRow.doctor_display_name,
-            stationNumber: recRow.station_number,
-            stationTitle: recRow.station_title,
-          })
-        )
-      );
-    }
 
     return NextResponse.json({ ok: true, skipped: "deepgram_disabled" });
   }
@@ -346,7 +326,9 @@ export async function POST(req: Request, { params }: RouteParams) {
 
       const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
 
-      // Save transcript + grades to DB
+      // Save transcript + grades to DB. Status lands on "ai_graded", not the
+      // examiner queue — the candidate has to explicitly Submit for GP Review
+      // (which is what actually consumes one of their 20 credits) to enter it.
       await admin.from("station_recordings").update({
         transcript_formatted: transcriptFormatted,
         transcript_raw: transcriptRaw,
@@ -357,38 +339,25 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_comment_clinical_management: grades.comment_clinical_management,
         ai_comment_relating_to_others: grades.comment_relating_to_others,
         ai_graded_at: new Date().toISOString(),
-        status: "pending_examiner",
+        status: "ai_graded",
       }).eq("id", recordingId);
 
-      // Notify all examiners
-      const { data: recRow } = await admin
-        .from("station_recordings")
-        .select("station_number, station_title, doctor_display_name")
-        .eq("id", recordingId)
-        .single<{ station_number: number; station_title: string; doctor_display_name: string }>();
-
-      if (recRow) {
-        const { data: examiners } = await admin
-          .from("examiners")
-          .select("name, email");
-
-        await Promise.all(
-          (examiners ?? []).map((ex: { name: string; email: string }) =>
-            sendExaminerNotificationEmail({
-              to: ex.email,
-              examinerName: ex.name,
-              candidateName: recRow.doctor_display_name,
-              stationNumber: recRow.station_number,
-              stationTitle: recRow.station_title,
-            })
-          )
-        );
-      }
+      // Count this toward the candidate's unlimited-but-soft-capped AI usage.
+      const { data: accessRow } = await admin
+        .from("user_access")
+        .select("ai_uses_count")
+        .eq("user_id", recording.doctor_user_id)
+        .single<{ ai_uses_count: number }>();
+      await admin
+        .from("user_access")
+        .update({ ai_uses_count: (accessRow?.ai_uses_count ?? 0) + 1 })
+        .eq("user_id", recording.doctor_user_id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Processing failed";
       console.error("[recordings/process]", msg);
-      // Don't leave it stuck in processing — roll back so examiner can still review
-      await admin.from("station_recordings").update({ status: "pending_examiner" }).eq("id", recordingId);
+      // Don't leave it stuck in processing — roll back so the candidate can
+      // still choose to submit, even with no AI pre-assessment to show.
+      await admin.from("station_recordings").update({ status: "ai_graded" }).eq("id", recordingId);
     }
   });
 

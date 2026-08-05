@@ -195,7 +195,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                       <tr className={!isLast ? "border-b border-navy/[0.06]" : ""}>
                         <td colSpan={8} className="px-5 py-3 bg-blue-50/40">
                           <div className="flex items-end gap-4 flex-wrap">
-                            <span className="text-[13px] font-semibold text-navy">Recording Credits — current balance: <strong>{user.credits}</strong></span>
+                            <span className="text-[13px] font-semibold text-navy">GP Review Credits — current balance: <strong>{user.credits}</strong></span>
                             <form
                               onSubmit={(e) => {
                                 e.preventDefault();

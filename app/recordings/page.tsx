@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { SubmitForReviewButton } from "./SubmitForReviewButton";
 
 export const dynamic = "force-dynamic";
 
@@ -106,34 +107,23 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)", color: NAVY }}
             >
               <span className="font-bold text-[17px]">{credits}</span>{" "}
-              <span style={{ color: "rgba(51,51,51,0.5)" }}>credit{credits !== 1 ? "s" : ""} remaining</span>
+              <span style={{ color: "rgba(51,51,51,0.5)" }}>GP review credit{credits !== 1 ? "s" : ""} remaining</span>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {(
-                [
-                  { tier: "entry",     label: "3 credits — £24" },
-                  { tier: "standard",  label: "15 credits — £99" },
-                  { tier: "intensive", label: "40 credits — £259" },
-                ] as const
-              ).map(({ tier, label }) => (
-                <form key={tier} action="/api/recordings/checkout" method="POST">
-                  <input type="hidden" name="tier" value={tier} />
-                  <button
-                    type="submit"
-                    className="rounded-xl px-3.5 py-2 text-[13px] font-bold"
-                    style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
-                  >
-                    {label}
-                  </button>
-                </form>
-              ))}
-            </div>
+            {credits === 0 && (
+              <Link
+                href="/case-bank/upgrade"
+                className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
+                style={{ background: NAVY, color: "white" }}
+              >
+                Renew Programme
+              </Link>
+            )}
           </div>
         </div>
 
         {purchased === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
-            Purchase successful — your credits have been added.
+            Purchase successful — your programme access is now active.
           </div>
         )}
 
@@ -202,6 +192,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(34,197,94,0.1)", color: "#166534" }
                             : rec.status === "processing"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
+                            : rec.status === "ai_graded"
+                            ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
                             : rec.status === "pending_examiner" || rec.status === "reviewing"
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
@@ -211,6 +203,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "Reviewed"
                           : rec.status === "processing"
                           ? "Processing…"
+                          : rec.status === "ai_graded"
+                          ? "AI graded"
                           : rec.status === "pending_examiner" || rec.status === "reviewing"
                           ? "Awaiting examiner"
                           : rec.status}
@@ -237,6 +231,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           </span>
                         </div>
                       )}
+
+                      {rec.status === "ai_graded" && <SubmitForReviewButton recordingId={rec.id} />}
                     </div>
                   </div>
                 </Link>

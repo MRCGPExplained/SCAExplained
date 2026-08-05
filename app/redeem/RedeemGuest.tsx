@@ -13,10 +13,10 @@ export function RedeemGuest() {
   return (
     <div className="rounded-2xl p-8 bg-white" style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}>
       <h1 className="font-display font-bold text-[20px] mb-1" style={{ color: DARK }}>
-        Get your recording credits
+        Get your GP review credits
       </h1>
       <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.50)" }}>
-        Enter your details and the code from the webinar — your account and free recording credits are set up in one step.
+        Enter your details and the code from the webinar — your account and bonus GP review credits are set up in one step.
       </p>
 
       {state.error && (

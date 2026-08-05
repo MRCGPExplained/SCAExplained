@@ -89,7 +89,7 @@ export default async function DashboardPage() {
               className="block text-center no-underline px-4 py-3 rounded-xl transition-opacity duration-200 hover:opacity-70"
               style={{ border: "1px dashed rgba(51,51,51,0.18)", color: "rgba(51,51,51,0.40)", fontSize: "12.5px" }}
             >
-              Have a webinar code? Redeem it for 3 free recording credits.{" "}
+              Have a webinar code? Redeem it for bonus GP review credits.{" "}
               <span style={{ fontWeight: 600 }}>Redeem code →</span>
             </Link>
           )}

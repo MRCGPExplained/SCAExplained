@@ -57,7 +57,7 @@ export default async function LiveEventsPage() {
               A free 1-hour Zoom session every month. Learn what the RCGP
               examiners are actually scoring, how high-performing candidates think through cases, and
               the consultation habits that earn you a Clear Pass. Attendees receive
-              a code for 2 free review credits.
+              a code for 2 bonus GP review credits, redeemable on top of Programme access.
             </p>
 
             {freeWebinars.length > 0 ? (

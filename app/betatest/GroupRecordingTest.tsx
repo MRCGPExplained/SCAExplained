@@ -1117,10 +1117,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
               </h2>
             </div>
             <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(51,51,51,0.7)" }}>
-              <li>• This will use <strong>1 recording credit</strong> immediately.</li>
+              <li>• AI review is free and starts immediately — no credit is used yet.</li>
               <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
-              <li>• If stopped early, the credit used is not recoverable.</li>
               <li>• Recording stops automatically at the 12-minute mark.</li>
+              <li>• You can choose to submit for GP review afterwards, which uses 1 credit.</li>
             </ul>
 
             <div className="flex gap-2.5">

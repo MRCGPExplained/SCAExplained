@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getCaseBankAccess } from "@/lib/case-bank-access";
 import type { Station } from "@/lib/case-bank-types";
 import { StationPageClient } from "../components/StationPageClient";
 
@@ -20,6 +21,9 @@ export default async function StationPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/case-bank/login");
+
+  const access = await getCaseBankAccess(supabase, user.id);
+  if (!access.hasAccess) redirect("/case-bank/upgrade");
 
   // Fetch station
   const { data: station } = await supabase
