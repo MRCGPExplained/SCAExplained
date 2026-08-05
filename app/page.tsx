@@ -99,7 +99,12 @@ export default async function HomePage() {
             A real example report — the same score, examiner comments and transcript format every
             candidate gets back.
           </p>
-          <SampleReportContent />
+          <div
+            className="rounded-[28px] p-6 sm:p-8"
+            style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
+          >
+            <SampleReportContent />
+          </div>
         </div>
       </section>
 
