@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
+import { SampleReportContent } from "./components/SampleReportContent";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -15,15 +16,6 @@ function WebinarIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="2" y="5" width="14" height="14" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
       <path d="M16 10l5.5-3.2v10.4L16 14" stroke={DARK} strokeWidth="1.6" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function CaseBankIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="2" width="16" height="20" rx="2.5" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M8 8h8M8 12h8M8 16h5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -97,141 +89,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* EXAMPLES */}
+      {/* EXAMPLES: full sample report, straight from /recordings/sample */}
       <section className="px-10 pb-16 pt-16 max-md:px-6">
         <div className="max-w-[900px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
+          <h2 className="font-display font-extrabold text-[22px] mb-1" style={{ color: DARK }}>
             See Exactly What You&apos;ll Receive
           </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            {/* EXAMPLE CASE */}
-            <div
-              className="rounded-2xl p-7 bg-white"
-              style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <CaseBankIcon />
-                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Example Case</p>
-              </div>
-              <h3 className="font-display font-extrabold text-[19px] leading-[1.2] mb-2" style={{ color: DARK }}>
-                Example Case
-              </h3>
-              <p className="text-[14px] leading-[1.65] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
-                See a real SCA case sheet, complete with data-gathering guidance, management points
-                and an example explanation.
-              </p>
-
-              <div className="rounded-lg p-4 mb-4" style={{ background: "#EFF6FF" }}>
-                <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(51,51,51,0.45)" }}>
-                  Opening Statement
-                </div>
-                <p className="text-[13.5px] leading-[1.6] italic" style={{ color: DARK }}>
-                  &ldquo;I&apos;ve been using my blue inhaler a lot more than usual lately. I had a bad
-                  episode about three weeks ago after a cold and ended up at the walk-in needing steroid
-                  tablets. I&apos;m a bit worried about where things are heading.&rdquo;
-                </p>
-              </div>
-
-              <p className="text-[12.5px] font-bold mb-5" style={{ color: "#B8901E" }}>
-                Available for FREE — just requires account creation.
-              </p>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                {user ? (
-                  <Link
-                    href="/case-bank"
-                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                  >
-                    Open Case Bank →
-                  </Link>
-                ) : (
-                  <Link
-                    href="/case-bank/sample"
-                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                  >
-                    Open Full Sample Case →
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {/* EXAMPLE REVIEW */}
-            <div
-              className="rounded-2xl p-7 bg-white"
-              style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <TickIcon />
-                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Example Review</p>
-              </div>
-              <h3 className="font-display font-extrabold text-[19px] leading-[1.2] mb-2" style={{ color: DARK }}>
-                Example Review
-              </h3>
-              <p className="text-[14px] leading-[1.65] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
-                See exactly how consultations are assessed and the detailed feedback you&apos;ll
-                receive after every submission.
-              </p>
-
-              {/* Real score preview, straight from the sample report */}
-              <div className="rounded-lg p-4 mb-4" style={{ background: "rgba(51,51,51,0.035)" }}>
-                <div className="flex items-end gap-2 mb-3">
-                  <span className="font-extrabold leading-none" style={{ fontSize: 32, color: DARK }}>
-                    7<span className="font-extrabold text-[18px]">/10.5</span>
-                  </span>
-                  <span className="text-[11px] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>Pass threshold: 7 pts</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {(
-                    [
-                      { label: "Data Gathering", pts: 2, max: 3 },
-                      { label: "Clinical Management", pts: 3, max: 4.5 },
-                      { label: "Relating to Others", pts: 2, max: 3 },
-                    ] as const
-                  ).map(({ label, pts, max }) => (
-                    <div key={label}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11.5px] font-medium" style={{ color: "rgba(51,51,51,0.65)" }}>{label}</span>
-                        <span className="text-[11.5px] font-bold tabular-nums" style={{ color: DARK }}>{pts}/{max}</span>
-                      </div>
-                      <div style={{ background: "rgba(51,51,51,0.08)", borderRadius: 99, height: 5, overflow: "hidden" }}>
-                        <div style={{ width: `${Math.round((pts / max) * 100)}%`, height: "100%", background: YELLOW, borderRadius: 99 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[12.5px] leading-[1.6] mt-3 pt-3" style={{ color: "rgba(51,51,51,0.65)", borderTop: "1px solid rgba(51,51,51,0.08)" }}>
-                  &ldquo;A solid consultation with good clinical instincts&hellip; the steroid concern was
-                  identified and addressed. Where marks were lost was in the detail — inhaler technique
-                  was mentioned but not properly assessed.&rdquo;
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                {user ? (
-                  <Link
-                    href="/recordings"
-                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                  >
-                    My Reviews →
-                  </Link>
-                ) : (
-                  <Link
-                    href="/recordings/sample"
-                    className="inline-block font-bold text-[13.5px] px-5 py-2.5 rounded-xl no-underline transition-opacity hover:opacity-90"
-                    style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
-                  >
-                    Open Full Sample Report →
-                  </Link>
-                )}
-              </div>
-            </div>
-
-          </div>
+          <p className="text-[13.5px] mb-6" style={{ color: "rgba(51,51,51,0.5)" }}>
+            A real example report — the same score, examiner comments and transcript format every
+            candidate gets back.
+          </p>
+          <SampleReportContent />
         </div>
       </section>
 
