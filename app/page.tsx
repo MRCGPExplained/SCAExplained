@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
+import { HowItWorks } from "./components/HowItWorks";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -184,31 +185,10 @@ export default async function HomePage() {
       {/* HOW IT WORKS */}
       <section className="px-10 pb-16 max-md:px-6">
         <div className="max-w-[720px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
+          <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
             How It Works
           </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {(
-              [
-                { n: "1", title: "Record", body: "Record your consultation directly on SCA Explained with your study partner. No downloads or third-party software required." },
-                { n: "2", title: "Instant AI Analysis", body: "Your consultation is securely transcribed and analysed immediately to generate provisional scores and feedback." },
-                { n: "3", title: "GP Review", body: "An experienced GP reviews every consultation, verifies the scoring and provides personalised feedback." },
-                { n: "4", title: "Improve", body: "Review your report, identify weaknesses and track your progress over time." },
-              ] as const
-            ).map(({ n, title, body }) => (
-              <div key={n} className="rounded-2xl p-6 bg-white" style={{ border: "1px solid rgba(51,51,51,0.08)" }}>
-                <div
-                  className="flex items-center justify-center rounded-full font-display font-extrabold text-[13px] mb-3"
-                  style={{ width: 28, height: 28, background: YELLOW, color: DARK }}
-                >
-                  {n}
-                </div>
-                <h3 className="font-display font-extrabold text-[16px] mb-1.5" style={{ color: DARK }}>{title}</h3>
-                <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>{body}</p>
-              </div>
-            ))}
-          </div>
+          <HowItWorks />
         </div>
       </section>
 
