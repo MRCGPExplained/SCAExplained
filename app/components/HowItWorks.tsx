@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
+
+const AUTO_CYCLE_MS = 4500;
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
@@ -17,17 +19,17 @@ function MicOutline({ size = 22 }: { size?: number }) {
   );
 }
 
-function RobotOutline({ size = 22 }: { size?: number }) {
+function SparklesOutline({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="5" y="8" width="14" height="11.5" rx="2.8" stroke={DARK} strokeWidth="1.6" />
-      <line x1="12" y1="8" x2="12" y2="4.3" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="12" cy="3" r="1.3" stroke={DARK} strokeWidth="1.6" />
-      <circle cx="9.3" cy="13.3" r="1.15" fill={DARK} />
-      <circle cx="14.7" cy="13.3" r="1.15" fill={DARK} />
-      <path d="M9 17h6" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="2.6" y1="12.5" x2="5" y2="12.5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="19" y1="12.5" x2="21.4" y2="12.5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M12 3l2.1 6.9L21 12l-6.9 2.1L12 21l-2.1-6.9L3 12l6.9-2.1L12 3z"
+        fill={DARK}
+      />
+      <path
+        d="M18.5 2.2l0.95 2.75 2.75 0.95-2.75 0.95-0.95 2.75-0.95-2.75-2.75-0.95 2.75-0.95 0.95-2.75z"
+        fill={DARK}
+      />
     </svg>
   );
 }
@@ -64,7 +66,7 @@ const STEPS = [
     label: "AI Review",
     title: "Instant AI Feedback",
     description: "Your consultation is securely transcribed and analysed immediately to generate provisional scores and feedback.",
-    icon: RobotOutline,
+    icon: SparklesOutline,
   },
   {
     id: "gp",
@@ -89,14 +91,41 @@ const MOBILE_ICON = 32;
 
 export function HowItWorks() {
   const [active, setActive] = useState(0);
+  const [autoPlaying, setAutoPlaying] = useState(true);
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-80px" });
   const reduceMotion = useReducedMotion();
 
+  // Auto-cycles through the steps until the user does anything with the
+  // component — click, hover, or tab into it. Interaction wins permanently;
+  // we never resume auto-play once a person has taken control.
+  useEffect(() => {
+    if (!autoPlaying || reduceMotion) return;
+    const id = setInterval(() => {
+      setActive((a) => (a + 1) % STEPS.length);
+    }, AUTO_CYCLE_MS);
+    return () => clearInterval(id);
+  }, [autoPlaying, reduceMotion]);
+
+  function stopAutoPlay() {
+    setAutoPlaying(false);
+  }
+
+  function selectStep(i: number) {
+    stopAutoPlay();
+    setActive(i);
+  }
+
   const ActiveIcon = STEPS[active].icon;
 
   return (
-    <div ref={sectionRef}>
+    <div
+      ref={sectionRef}
+      onMouseEnter={stopAutoPlay}
+      onFocusCapture={stopAutoPlay}
+      className="rounded-[28px] p-7 sm:p-10"
+      style={{ background: "white", boxShadow: "0 8px 40px rgba(51,51,51,0.07)", border: "1px solid rgba(51,51,51,0.04)" }}
+    >
       {/* Desktop / tablet: horizontal timeline */}
       <div className="hidden sm:flex items-start">
         {STEPS.map((step, i) => {
@@ -107,7 +136,7 @@ export function HowItWorks() {
             <div key={step.id} className={i < STEPS.length - 1 ? "flex items-start flex-1" : "flex items-start"}>
               <button
                 type="button"
-                onClick={() => setActive(i)}
+                onClick={() => selectStep(i)}
                 aria-current={isActive ? "step" : undefined}
                 aria-label={step.title}
                 className="flex flex-col items-center gap-4 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
@@ -179,7 +208,7 @@ export function HowItWorks() {
               <div className="flex flex-col items-center shrink-0">
                 <button
                   type="button"
-                  onClick={() => setActive(i)}
+                  onClick={() => selectStep(i)}
                   aria-current={isActive ? "step" : undefined}
                   aria-label={step.title}
                   className="flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -223,7 +252,7 @@ export function HowItWorks() {
       </div>
 
       {/* Single description panel — updates on step selection */}
-      <div className="mt-7 rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
+      <div className="mt-9 pt-7" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={STEPS[active].id}
