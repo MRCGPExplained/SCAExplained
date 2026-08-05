@@ -36,6 +36,16 @@ export function Navbar({
         </Link>
 
         <div className="flex items-center gap-5">
+          <Link
+            href="/live-events"
+            className="text-[13px] font-semibold no-underline transition-colors"
+            style={{ color: "rgba(255,255,255,0.60)" }}
+            onMouseOver={(e) => (e.currentTarget.style.color = "white")}
+            onMouseOut={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.60)")}
+          >
+            Live Events
+          </Link>
+
           {isLoggedIn ? (
             <>
               <Link
