@@ -70,7 +70,7 @@ export default async function HomePage() {
     <main style={{ background: "#FAFAF8" }}>
       {/* HERO */}
       <section className="px-10 pt-10 pb-10 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <h1 className="font-display mb-[22px]" style={{ color: DARK }}>
             <span className="block whitespace-nowrap tracking-tight font-extrabold text-[34px] leading-[1.2] max-sm:whitespace-normal max-sm:text-[22px]">
               <Swash>Every</Swash> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
@@ -89,7 +89,7 @@ export default async function HomePage() {
 
       {/* EXAMPLES */}
       <section className="px-10 pb-16 pt-6 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
             See Exactly What You&apos;ll Receive
           </h2>
@@ -183,8 +183,8 @@ export default async function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+      <section className="px-10 py-16 max-md:px-6" style={{ background: "rgba(246,212,75,0.09)" }}>
+        <div className="max-w-[900px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
             How It Works
           </h2>
@@ -194,7 +194,7 @@ export default async function HomePage() {
 
       {/* MONTHLY WEBINAR */}
       <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white hover:bg-[#FFFBEA] transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
@@ -260,7 +260,7 @@ export default async function HomePage() {
 
       {/* WHY HUMAN REVIEW MATTERS */}
       <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
             Why Human Review Matters
           </h2>
@@ -289,7 +289,7 @@ export default async function HomePage() {
 
       {/* PRICING */}
       <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
@@ -352,7 +352,7 @@ export default async function HomePage() {
 
       {/* FAQ */}
       <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[720px] mx-auto">
+        <div className="max-w-[900px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
             Frequently Asked Questions
           </h2>
@@ -408,7 +408,7 @@ export default async function HomePage() {
 
       {/* CONTACT LINE */}
       <section className="px-10 pb-12 max-md:px-6">
-        <div className="max-w-[720px] mx-auto text-center">
+        <div className="max-w-[900px] mx-auto text-center">
           <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.45)" }}>
             Questions?{" "}
             <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: DARK }}>

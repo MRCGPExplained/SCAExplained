@@ -176,14 +176,14 @@ export function HowItWorks() {
 
               {i < STEPS.length - 1 && (
                 <div className="relative flex-1 mx-2" style={{ marginTop: DESKTOP_CIRCLE / 2 - 2 }}>
-                  <div className="absolute inset-0 rounded-full" style={{ height: 4, background: "rgba(51,51,51,0.12)" }} />
+                  <div className="absolute inset-0 rounded-full" style={{ height: 4, background: "rgba(51,51,51,0.22)" }} />
                   <motion.div
                     className="absolute inset-0 origin-left rounded-full"
                     style={{ height: 4, background: YELLOW }}
                     initial={reduceMotion ? { scaleX: 1 } : { scaleX: 0 }}
                     animate={{
                       scaleX: inView ? 1 : 0,
-                      opacity: connectorHighlighted ? 1 : 0.55,
+                      opacity: connectorHighlighted ? 1 : 0.7,
                     }}
                     transition={{
                       scaleX: { duration: 0.5, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" },
@@ -226,14 +226,14 @@ export function HowItWorks() {
                 </button>
                 {i < STEPS.length - 1 && (
                   <div className="relative w-1 flex-1 my-1.5 rounded-full" style={{ minHeight: 36 }}>
-                    <div className="absolute inset-0 rounded-full" style={{ background: "rgba(51,51,51,0.12)" }} />
+                    <div className="absolute inset-0 rounded-full" style={{ background: "rgba(51,51,51,0.22)" }} />
                     <motion.div
                       className="absolute inset-0 top-0 origin-top rounded-full"
                       style={{ background: YELLOW }}
                       initial={reduceMotion ? { scaleY: 1 } : { scaleY: 0 }}
                       animate={{
                         scaleY: inView ? 1 : 0,
-                        opacity: connectorHighlighted ? 1 : 0.55,
+                        opacity: connectorHighlighted ? 1 : 0.7,
                       }}
                       transition={{
                         scaleY: { duration: 0.4, delay: reduceMotion ? 0 : i * 0.15 + 0.3, ease: "easeOut" },
