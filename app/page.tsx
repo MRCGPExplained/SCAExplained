@@ -72,7 +72,7 @@ export default async function HomePage() {
 
       {/* EXAMPLES: full sample report, straight from /recordings/sample */}
       <section className="px-10 pb-16 pt-16 max-md:px-6">
-        <div className="max-w-[1100px] mx-auto">
+        <div className="max-w-[1250px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
             Everything Included In Your Programme
           </h2>
