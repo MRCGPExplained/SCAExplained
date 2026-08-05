@@ -39,15 +39,13 @@ export default async function DashboardPage() {
     },
     {
       href: "/recordings",
-      label: "My Recordings",
+      label: "My Reviews",
       description: "AI-graded consultations with RCGP examiner review",
       badge: `${credits} credit${credits !== 1 ? "s" : ""}`,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
-          <rect x="8" y="2" width="6" height="10" rx="3" stroke={DARK} strokeWidth="1.5"/>
-          <path d="M4.5 10.5a6.5 6.5 0 0 0 13 0" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="11" y1="17" x2="11" y2="20" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="8" y1="20" x2="14" y2="20" stroke={DARK} strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="11" cy="11" r="8.5" stroke={DARK} strokeWidth="1.5"/>
+          <path d="M6.5 11.2l3 3 6-6.5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
     },

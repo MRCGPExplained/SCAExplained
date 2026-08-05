@@ -27,13 +27,11 @@ function CaseBankIcon() {
   );
 }
 
-function MicIcon() {
+function TickIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="8" y="2" width="8" height="13" rx="4" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M5 11a7 7 0 0 0 14 0" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="12" y1="18" x2="12" y2="22" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="9" y1="22" x2="15" y2="22" stroke={DARK} strokeWidth="1.6" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="9.5" stroke={DARK} strokeWidth="1.6"/>
+      <path d="M7.5 12.5l3 3 6-6.5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -217,15 +215,12 @@ export default async function HomePage() {
               Paid
             </span>
             <div className="flex items-center gap-2 mb-2">
-              <MicIcon />
+              <TickIcon />
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>GP Marking</p>
             </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-2" style={{ color: DARK }}>
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-3" style={{ color: DARK }}>
               Real Feedback From a GP
             </h2>
-            <p className="text-[15px] font-bold leading-[1.4] mb-3" style={{ color: DARK }}>
-              Every consultation is reviewed by a GP examiner.
-            </p>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               Record a consultation with a partner and get it marked the same way RCGP examiners
               mark in the real exam, graded across Data Gathering, Clinical Management, and Relating
@@ -258,7 +253,7 @@ export default async function HomePage() {
                   className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
                   style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
                 >
-                  View My Recordings →
+                  My Reviews →
                 </Link>
               ) : (
                 <Link
@@ -266,7 +261,7 @@ export default async function HomePage() {
                   className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
                   style={{ background: "rgba(51,51,51,0.07)", color: DARK }}
                 >
-                  Show Sample Report →
+                  Show Sample Review →
                 </Link>
               )}
             </div>
