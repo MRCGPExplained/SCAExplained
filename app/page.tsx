@@ -64,7 +64,7 @@ export default async function HomePage() {
 
             <h1 className="font-display font-extrabold mb-5" style={{ color: DARK }}>
               <span className="block text-[42px] leading-[1.18] max-sm:text-[28px]">
-                <Swash>Every</Swash> Consultation Reviewed By A GP<span style={{ color: YELLOW }}>.</span>
+                The <Swash>Complete</Swash> SCA Preparation Programme<span style={{ color: YELLOW }}>.</span>
               </span>
             </h1>
 
