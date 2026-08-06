@@ -1365,22 +1365,30 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
                 View Report →
               </a>
             )}
-            <button
-              onClick={handleSubmitForReview}
-              disabled={submittingReview}
-              className="px-4 py-2 rounded-xl text-[13px] font-bold"
-              style={{ background: YELLOW, color: DARK, border: "none", cursor: submittingReview ? "default" : "pointer", opacity: submittingReview ? 0.6 : 1 }}
-            >
-              {submittingReview ? "Submitting…" : "Submit for GP Review →"}
-            </button>
-            <button
-              onClick={() => setPhase("done")}
-              disabled={submittingReview}
-              className="text-[12px] font-semibold"
-              style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: submittingReview ? "default" : "pointer" }}
-            >
-              Skip — test AI-only path
-            </button>
+            {myRole === "doctor" ? (
+              <>
+                <button
+                  onClick={handleSubmitForReview}
+                  disabled={submittingReview}
+                  className="px-4 py-2 rounded-xl text-[13px] font-bold"
+                  style={{ background: YELLOW, color: DARK, border: "none", cursor: submittingReview ? "default" : "pointer", opacity: submittingReview ? 0.6 : 1 }}
+                >
+                  {submittingReview ? "Submitting…" : "Submit for GP Review →"}
+                </button>
+                <button
+                  onClick={() => setPhase("done")}
+                  disabled={submittingReview}
+                  className="text-[12px] font-semibold"
+                  style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: submittingReview ? "default" : "pointer" }}
+                >
+                  Skip — test AI-only path
+                </button>
+              </>
+            ) : (
+              <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.45)" }}>
+                Only the doctor account can submit this for GP review.
+              </span>
+            )}
           </div>
         </div>
       )}
