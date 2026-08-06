@@ -64,9 +64,17 @@ export default async function HomePage() {
 
             <h1 className="font-display font-extrabold mb-5" style={{ color: DARK }}>
               <span className="block text-[42px] leading-[1.18] max-sm:text-[28px]">
-                The <Swash>Complete</Swash> SCA Preparation Programme<span style={{ color: YELLOW }}>.</span>
+                The <Swash>Complete</Swash> SCA Package<span style={{ color: YELLOW }}>.</span>
               </span>
             </h1>
+
+            <div className="flex items-center gap-5 flex-wrap mb-7">
+              {(["Access to 250+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
+                <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
+                  <SmallCheck /> {item}
+                </span>
+              ))}
+            </div>
 
             <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
               Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
@@ -91,14 +99,6 @@ export default async function HomePage() {
               >
                 See Demo Case
               </Link>
-            </div>
-
-            <div className="flex items-center gap-5 flex-wrap">
-              {(["Access to 250+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
-                <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
-                  <SmallCheck /> {item}
-                </span>
-              ))}
             </div>
           </div>
 
