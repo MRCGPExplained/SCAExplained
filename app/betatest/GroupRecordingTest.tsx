@@ -13,6 +13,7 @@ import {
   createDailyCallAction,
   getDailyTokenAction,
   endDailyCallAction,
+  submitForReviewAction,
 } from "@/app/case-bank/actions";
 import type { DailyCall } from "@daily-co/daily-js";
 import { logStatus, logError, logDuration } from "./testLogger";
@@ -27,6 +28,7 @@ type Phase =
   | "uploading"
   | "processing"
   | "timedout"
+  | "ai_graded"
   | "done"
   | "error";
 
@@ -126,6 +128,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   // Recording
   const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [myRole, setMyRole] = useState<"doctor" | "patient" | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -554,6 +557,11 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         if (res.ok) {
           const { status } = await res.json();
           logStatus("poll tick", { status });
+          if (status === "ai_graded") {
+            logDuration("total processing (upload end → graded)", pollStart);
+            setPhase("ai_graded");
+            return;
+          }
           if (status === "pending_examiner" || status === "reviewed") {
             logDuration("total processing (upload end → graded)", pollStart);
             setPhase("done");
@@ -575,6 +583,21 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     }
     logStatus("poll gave up — still processing on the server", { waitedSeconds: POLL_TIMEOUT_MS / 1000 });
     setPhase("timedout");
+  }
+
+  async function handleSubmitForReview() {
+    if (!recordingId) return;
+    setSubmittingReview(true);
+    const result = await submitForReviewAction(recordingId);
+    setSubmittingReview(false);
+    if (result.error) {
+      logError("submitForReviewAction", result.error, { recordingId });
+      setErrMsg(result.error);
+      setPhase("error");
+      return;
+    }
+    logStatus("submitted for GP review", { recordingId });
+    setPhase("done");
   }
 
   async function handleCreate() {
@@ -1322,6 +1345,41 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
               style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: "pointer" }}
             >
               Test Again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {phase === "ai_graded" && (
+        <div className="flex flex-col gap-3">
+          <span className="text-[13px] font-semibold" style={{ color: "#15803d" }}>
+            AI grading complete — not yet submitted to the examiner queue.
+          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            {recordingId && (
+              <a
+                href={`/recordings/${recordingId}`}
+                className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline"
+                style={{ background: "rgba(51,51,51,0.08)", color: DARK }}
+              >
+                View Report →
+              </a>
+            )}
+            <button
+              onClick={handleSubmitForReview}
+              disabled={submittingReview}
+              className="px-4 py-2 rounded-xl text-[13px] font-bold"
+              style={{ background: YELLOW, color: DARK, border: "none", cursor: submittingReview ? "default" : "pointer", opacity: submittingReview ? 0.6 : 1 }}
+            >
+              {submittingReview ? "Submitting…" : "Submit for GP Review →"}
+            </button>
+            <button
+              onClick={() => setPhase("done")}
+              disabled={submittingReview}
+              className="text-[12px] font-semibold"
+              style={{ color: "rgba(51,51,51,0.4)", background: "none", border: "none", cursor: submittingReview ? "default" : "pointer" }}
+            >
+              Skip — test AI-only path
             </button>
           </div>
         </div>
