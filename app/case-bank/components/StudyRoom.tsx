@@ -708,6 +708,10 @@ export function StudyRoomPanel({
   // through the station before it ends.
   function startDebrief() {
     logStatus("debrief window started", { seconds: DEBRIEF_DURATION_SECONDS });
+    // Everyone in the call — observers included — can talk freely during the
+    // debrief, so make sure this participant's mic is live regardless of its
+    // state during the recording.
+    dailyCallRef.current?.setLocalAudio(true);
     clearDebriefTimers();
     setDebriefSecondsLeft(DEBRIEF_DURATION_SECONDS);
     debriefIntervalRef.current = setInterval(() => {

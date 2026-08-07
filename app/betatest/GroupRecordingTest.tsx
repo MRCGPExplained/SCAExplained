@@ -438,6 +438,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   function startDebrief() {
     logStatus("debrief window started", { seconds: DEBRIEF_DURATION_SECONDS });
+    // Everyone — observers included — can talk freely during the debrief.
+    dailyCallRef.current?.setLocalAudio(true);
     clearDebriefTimers();
     setDebriefSecondsLeft(DEBRIEF_DURATION_SECONDS);
     debriefIntervalRef.current = setInterval(() => {
