@@ -50,6 +50,8 @@ export type StudyRoom = {
   id: string;
   room_code: string;
   host_user_id: string;
+  doctor_user_id: string | null;
+  patient_user_id: string | null;
   current_station_id: string | null;
   current_station_number: number | null;
   timer_phase: "PREREAD" | "CONSULT";

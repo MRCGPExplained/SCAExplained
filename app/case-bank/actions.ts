@@ -321,7 +321,8 @@ export async function createStudyRoomAction(): Promise<
 
   const { data: room, error } = await supabase
     .from("study_rooms")
-    .insert({ room_code: roomCode, host_user_id: user.id })
+    // The creator starts as the doctor, and the doctor is always the host.
+    .insert({ room_code: roomCode, host_user_id: user.id, doctor_user_id: user.id })
     .select("id,room_code")
     .single<{ id: string; room_code: string }>();
 
@@ -484,6 +485,55 @@ export async function transferHostAction(
   const { error } = await supabase
     .from("study_rooms")
     .update({ host_user_id: newHostUserId })
+    .eq("id", roomId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+/**
+ * Sets who is the doctor and patient for a room. Anyone in the room may change
+ * these. The doctor is always the host, so host_user_id is kept in sync with
+ * the doctor. patientUserId may be null (no patient chosen yet).
+ */
+export async function setRoomRolesAction(
+  roomId: string,
+  doctorUserId: string,
+  patientUserId: string | null
+): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  // Anyone currently in the room can change the roles.
+  const { data: me } = await supabase
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", roomId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!me) return { error: "You are not in this room." };
+
+  if (!doctorUserId) return { error: "A doctor must be selected." };
+  if (patientUserId && patientUserId === doctorUserId) {
+    return { error: "Doctor and patient must be different people." };
+  }
+
+  const { data: parts } = await supabase
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", roomId);
+  const ids = new Set((parts ?? []).map((p) => p.user_id as string));
+  if (!ids.has(doctorUserId)) return { error: "Selected doctor is not in the room." };
+  if (patientUserId && !ids.has(patientUserId)) return { error: "Selected patient is not in the room." };
+
+  const { error } = await supabase
+    .from("study_rooms")
+    .update({
+      doctor_user_id: doctorUserId,
+      patient_user_id: patientUserId,
+      host_user_id: doctorUserId, // doctor is always the host
+    })
     .eq("id", roomId);
 
   if (error) return { error: error.message };

@@ -850,6 +850,9 @@ export function StationPageClient({
                 broadcastTimerRef={broadcastTimerRef}
                 timerStateRef={timerStateRef}
                 onTimerReset={handleTimerReset}
+                timerPhase={timerPhase}
+                timerRunning={timerRunning}
+                timeLeft={timeLeft}
               />
             </div>
           </div>

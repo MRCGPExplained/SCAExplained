@@ -7,8 +7,7 @@ import {
   createStudyRoomAction,
   joinStudyRoomAction,
   leaveStudyRoomAction,
-  transferHostAction,
-  claimHostAction,
+  setRoomRolesAction,
   startRecordingAction,
   cancelRecordingAction,
   getMostRecentRecordingForStation,
@@ -66,6 +65,10 @@ interface StudyRoomProps {
   onStationChange?: (stationNumber: number) => void;
   onRoomStatusChange?: (inRoom: boolean, iAmHost: boolean, roomId: string | null, hostName: string | null) => void;
   onRecordingStateChange?: (isRecording: boolean) => void;
+  /** Live timer state, used to lock the doctor/patient dropdowns once a session begins */
+  timerPhase?: TimerPhase;
+  timerRunning?: boolean;
+  timeLeft?: number;
   /** Ref the parent fills so it can call broadcastTimer(phase, timeLeft, running) */
   broadcastTimerRef?: MutableRefObject<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>;
   /** Read-only ref the panel reads to re-announce timer state to late-joining guests */
@@ -87,6 +90,9 @@ export function StudyRoomPanel({
   broadcastTimerRef,
   timerStateRef,
   onTimerReset,
+  timerPhase = "PREREAD",
+  timerRunning = false,
+  timeLeft = PHASE_DURATIONS.PREREAD,
 }: StudyRoomProps) {
   const [room, setRoom] = useState<StudyRoom | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -96,9 +102,11 @@ export function StudyRoomPanel({
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
   const [hostNameState, setHostNameState] = useState<string | null>(null);
-  const [showClaimModal, setShowClaimModal] = useState(false);
   const [hostStation, setHostStation] = useState<number | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; userId: string; displayName: string } | null>(null);
+  // userIds currently connected to the realtime channel (presence) — used to
+  // flag a doctor/patient who has dropped out as "(disconnected)".
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+  const [rolesSaving, setRolesSaving] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentHostIdRef = useRef<string | null>(null);
@@ -109,9 +117,6 @@ export function StudyRoomPanel({
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [activeRecordingId, setActiveRecordingId] = useState<string | null>(null);
   const [myRecordingRole, setMyRecordingRole] = useState<"doctor" | "patient" | null>(null);
-  const [showRoleSelector, setShowRoleSelector] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState("");
   const [recordingError, setRecordingError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -129,6 +134,12 @@ export function StudyRoomPanel({
   const [showStartWarning, setShowStartWarning] = useState(false);
   const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
 
+  // Doctor and patient come straight from the synced room row. The doctor is
+  // always the host.
+  const doctorUserId = room?.doctor_user_id ?? null;
+  const patientUserId = room?.patient_user_id ?? null;
+  const rolesReady = !!doctorUserId && !!patientUserId;
+
   // ── Post-recording debrief window ──────────────────────────────────────────
   // Recording stops sharp at 12 minutes, but the voice call stays open a bit
   // longer so the two candidates can talk through the station before the
@@ -137,6 +148,34 @@ export function StudyRoomPanel({
   const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
   const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Roles can only be changed before a session starts — locked through
+  // pre-read, the consultation, and the debrief. The pristine pre-start state
+  // is: PREREAD, not running, full time on the clock, nothing recording, no
+  // debrief in progress.
+  const sessionIdle =
+    timerPhase === "PREREAD" &&
+    !timerRunning &&
+    timeLeft >= PHASE_DURATIONS.PREREAD &&
+    recordingState === "idle" &&
+    debriefSecondsLeft === null;
+
+  async function handleSetRoles(nextDoctor: string, nextPatient: string | null) {
+    if (!room || !sessionIdle) return;
+    setRolesSaving(true);
+    setRecordingError("");
+    // Optimistic local update; realtime UPDATE will confirm for everyone.
+    setRoom((prev) =>
+      prev ? { ...prev, doctor_user_id: nextDoctor, patient_user_id: nextPatient, host_user_id: nextDoctor } : prev
+    );
+    currentHostIdRef.current = nextDoctor;
+    const result = await setRoomRolesAction(room.id, nextDoctor, nextPatient);
+    setRolesSaving(false);
+    if (result.error) {
+      setRecordingError(result.error);
+      refreshParticipants(room.id);
+    }
+  }
 
   // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
@@ -192,14 +231,6 @@ export function StudyRoomPanel({
     stationNumberRef.current = stationNumber;
   }, [stationNumber]);
 
-  // Close context menu when clicking anywhere outside it
-  useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [contextMenu]);
-
   const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("room_participants")
@@ -246,22 +277,6 @@ export function StudyRoomPanel({
     setParticipants(plist);
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
   }, [supabase, userId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleTransferHost(targetUserId: string) {
-    if (!room) return;
-    setContextMenu(null);
-    const result = await transferHostAction(room.id, targetUserId);
-    if (result.error) return;
-    // Update ref first so refreshParticipants reads the new host immediately
-    currentHostIdRef.current = targetUserId;
-    setRoom((prev) => prev ? { ...prev, host_user_id: targetUserId } : prev);
-    channelRef.current?.send({
-      type: "broadcast",
-      event: "host-change",
-      payload: { newHostUserId: targetUserId },
-    });
-    refreshParticipants(room.id);
-  }
 
   // On join/rejoin: seed hostStation, currentHostIdRef, and redirect guest if needed.
   // Timer is NOT restored from DB — it resets to PREREAD on every station change,
@@ -364,8 +379,10 @@ export function StudyRoomPanel({
       }
     });
 
-    // Presence sync fires whenever anyone joins or leaves — refresh participant list immediately
+    // Presence sync fires whenever anyone joins or leaves — refresh participant
+    // list and recompute who is actually connected right now.
     channel.on("presence", { event: "sync" }, () => {
+      setConnectedIds(new Set(Object.keys(channel.presenceState())));
       refreshParticipants(room.id);
     });
 
@@ -845,8 +862,8 @@ export function StudyRoomPanel({
   }
 
   async function handleConfirmRecord() {
-    if (!room || !iAmHost || !selectedDoctor || !selectedPatient) return;
-    if (selectedDoctor === selectedPatient) {
+    if (!room || !iAmHost || !doctorUserId || !patientUserId) return;
+    if (doctorUserId === patientUserId) {
       setRecordingError("Doctor and patient must be different participants.");
       return;
     }
@@ -856,20 +873,20 @@ export function StudyRoomPanel({
       logStatus("new recording starting — ending previous debrief call immediately");
       endDebrief();
     }
-    setShowRoleSelector(false);
+    setShowStartWarning(false);
     setRecordingState("starting");
     setRecordingError("");
-    logStatus("host starting recording", { stationNumber, doctorId: selectedDoctor, patientId: selectedPatient });
+    logStatus("host starting recording", { stationNumber, doctorId: doctorUserId, patientId: patientUserId });
 
-    const doctorPart = participants.find((p) => p.userId === selectedDoctor);
-    const patientPart = participants.find((p) => p.userId === selectedPatient);
+    const doctorPart = participants.find((p) => p.userId === doctorUserId);
+    const patientPart = participants.find((p) => p.userId === patientUserId);
 
     const result = await startRecordingAction({
       roomId: room.id,
       stationNumber,
       stationTitle: stationTitle ?? `Station ${stationNumber}`,
-      doctorUserId: selectedDoctor,
-      patientUserId: selectedPatient,
+      doctorUserId: doctorUserId,
+      patientUserId: patientUserId,
       doctorDisplayName: doctorPart?.displayName ?? "Doctor",
       patientDisplayName: patientPart?.displayName ?? "Patient",
     });
@@ -906,8 +923,8 @@ export function StudyRoomPanel({
       event: "recording-start",
       payload: {
         recordingId,
-        doctorUserId: selectedDoctor,
-        patientUserId: selectedPatient,
+        doctorUserId,
+        patientUserId,
         dailyRoomName: dailyRoom?.roomName,
         dailyRoomUrl: dailyRoom?.roomUrl,
       },
@@ -922,7 +939,7 @@ export function StudyRoomPanel({
       logDuration(joined === true ? "host DailyCo join succeeded" : "host DailyCo join failed/timed out", t0);
       if (joined !== true) {
         setDailyFailed(true);
-        const amEssential = userId === selectedDoctor || userId === selectedPatient;
+        const amEssential = userId === doctorUserId || userId === patientUserId;
         if (amEssential) {
           logStatus("host is essential participant — cancelling recording due to Daily failure");
           await cancelRecordingDueToDailyFailure(recordingId);
@@ -936,7 +953,7 @@ export function StudyRoomPanel({
 
     // Only the doctor and patient should be audible during the graded
     // consult — mute observers (the debrief unmutes everyone again).
-    const hostEssential = userId === selectedDoctor || userId === selectedPatient;
+    const hostEssential = userId === doctorUserId || userId === patientUserId;
     dailyCallRef.current?.setLocalAudio(hostEssential);
 
     // Reset the timer to start of consultation
@@ -950,10 +967,10 @@ export function StudyRoomPanel({
     }, PHASE_DURATIONS.CONSULT * 1000);
 
     // Start this user's own microphone if they're doctor or patient
-    if (userId === selectedDoctor) {
+    if (userId === doctorUserId) {
       setMyRecordingRole("doctor");
       await startLocalRecording(recordingId, "doctor");
-    } else if (userId === selectedPatient) {
+    } else if (userId === patientUserId) {
       setMyRecordingRole("patient");
       await startLocalRecording(recordingId, "patient");
     }
@@ -1045,56 +1062,22 @@ export function StudyRoomPanel({
     setLoading(false);
   }
 
-  async function handleClaimHost() {
-    if (!room) return;
-    setShowClaimModal(false);
-    const result = await claimHostAction(room.id);
-    if (result.error) return;
-    currentHostIdRef.current = userId;
-    setRoom((prev) => prev ? { ...prev, host_user_id: userId } : prev);
-    channelRef.current?.send({
-      type: "broadcast",
-      event: "host-change",
-      payload: { newHostUserId: userId },
-    });
-    refreshParticipants(room.id);
-    // Post system message so everyone sees the change
-    const systemText = `${displayName} has taken over as host.`;
-    const { data } = await supabase
-      .from("room_messages")
-      .insert({ room_id: room.id, user_id: userId, display_name: "System", message: systemText })
-      .select("id, created_at")
-      .single();
-    if (data) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: data.id,
-          from: "System",
-          fromSelf: false,
-          text: systemText,
-          time: new Date(data.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-    }
-  }
-
   async function handleLeave() {
     if (!room) return;
-    // If we're the host and others are present, hand off before leaving
-    if (iAmHost) {
-      const others = participants.filter(p => !p.isSelf);
-      if (others.length > 0) {
-        const newHost = others[Math.floor(Math.random() * others.length)];
-        const result = await transferHostAction(room.id, newHost.userId);
-        if (!result.error) {
-          channelRef.current?.send({
-            type: "broadcast",
-            event: "host-change",
-            payload: { newHostUserId: newHost.userId },
-          });
-        }
+    const others = participants.filter((p) => !p.isSelf);
+    // Keep the doctor=host invariant when a role-holder leaves.
+    if (iAmHost && others.length > 0) {
+      // The leaver is the doctor (and therefore host) — hand the doctor/host
+      // role to another participant so the room isn't left hostless.
+      const newDoctor = others[Math.floor(Math.random() * others.length)].userId;
+      const keepPatient = patientUserId && patientUserId !== newDoctor && patientUserId !== userId ? patientUserId : null;
+      const result = await setRoomRolesAction(room.id, newDoctor, keepPatient);
+      if (!result.error) {
+        channelRef.current?.send({ type: "broadcast", event: "host-change", payload: { newHostUserId: newDoctor } });
       }
+    } else if (patientUserId === userId && doctorUserId) {
+      // The leaver is the patient — clear the patient slot.
+      await setRoomRolesAction(room.id, doctorUserId, null);
     }
     await leaveStudyRoomAction(room.id);
     sessionStorage.removeItem("studyRoomId");
@@ -1206,19 +1189,22 @@ export function StudyRoomPanel({
           {recordingState === "idle" && iAmHost && (
             <button
               onClick={() => {
-                setSelectedDoctor(userId);
-                setSelectedPatient(participants.find((p) => !p.isSelf)?.userId ?? "");
+                if (!rolesReady) {
+                  setRecordingError("Set both a doctor and a patient before recording.");
+                  return;
+                }
                 setRecordingError("");
-                setShowStartWarning(false);
-                setShowRoleSelector(true);
+                setShowStartWarning(true);
               }}
-              title="Record — free AI review, GP review is a separate step afterwards"
+              disabled={!rolesReady}
+              title={rolesReady ? "Record — free AI review, GP review is a separate step afterwards" : "Set a doctor and a patient first"}
               className="text-[10px] px-2 py-1 rounded flex items-center gap-1"
               style={{
                 background: "rgba(239,68,68,0.2)",
                 color: "#FCA5A5",
                 border: "none",
-                cursor: "pointer",
+                cursor: rolesReady ? "pointer" : "not-allowed",
+                opacity: rolesReady ? 1 : 0.5,
               }}
             >
               ⏺ Record
@@ -1313,35 +1299,93 @@ export function StudyRoomPanel({
         </div>
       )}
 
-      {/* Participants */}
-      <div className="py-1.5 px-1.5" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
-        {participants.map((p) => (
-          <div
-            key={p.userId}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-            style={{
-              background: p.isHost
-                ? "rgba(246,212,75,0.15)"
-                : p.isSelf
-                ? "rgba(59,130,246,0.08)"
-                : "transparent",
-              cursor: iAmHost && !p.isSelf ? "context-menu" : "default",
-            }}
-            onContextMenu={iAmHost && !p.isSelf ? (e) => {
-              e.preventDefault();
-              setContextMenu({ x: e.clientX, y: e.clientY, userId: p.userId, displayName: p.displayName });
-            } : undefined}
-          >
-            <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
-              {p.isSelf ? "You" : p.displayName}
-              {p.isHost && (
-                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(31,41,55,0.12)", color: "rgba(31,41,55,0.5)", fontWeight: 600 }}>
-                  HOST
+      {/* Roles — anyone can set these while idle; locked once a session starts */}
+      <div className="px-3.5 py-3 flex flex-col gap-2.5" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
+        {(["doctor", "patient"] as const).map((role) => {
+          const currentId = role === "doctor" ? doctorUserId : patientUserId;
+          const disconnected = !!currentId && connectedIds.size > 0 && !connectedIds.has(currentId);
+          return (
+            <div key={role} className="flex items-center gap-2.5">
+              <label className="text-[11px] font-bold uppercase tracking-[0.06em] w-[58px] shrink-0" style={{ color: "rgba(26,27,82,0.5)" }}>
+                {role === "doctor" ? "Doctor" : "Patient"}
+              </label>
+              <select
+                value={currentId ?? ""}
+                disabled={!sessionIdle || rolesSaving}
+                onChange={(e) => {
+                  const val = e.target.value || null;
+                  if (role === "doctor") {
+                    if (!val) return; // doctor is required (and is the host)
+                    handleSetRoles(val, patientUserId === val ? null : patientUserId);
+                  } else {
+                    handleSetRoles(doctorUserId ?? userId, val);
+                  }
+                }}
+                className="flex-1 rounded-lg px-2.5 py-1.5 text-[12.5px]"
+                style={{
+                  border: "1.5px solid rgba(26,27,82,0.15)",
+                  color: NAVY,
+                  background: !sessionIdle ? "rgba(26,27,82,0.04)" : LIGHT_BG,
+                  outline: "none",
+                  fontFamily: "inherit",
+                  cursor: !sessionIdle || rolesSaving ? "not-allowed" : "pointer",
+                  opacity: !sessionIdle ? 0.7 : 1,
+                }}
+              >
+                <option value="">— None —</option>
+                {participants.map((p) => (
+                  <option key={p.userId} value={p.userId}>
+                    {p.isSelf ? `You (${p.displayName})` : p.displayName}
+                  </option>
+                ))}
+              </select>
+              {disconnected && (
+                <span className="text-[10px] font-semibold shrink-0" style={{ color: "#B91C1C" }}>
+                  disconnected
                 </span>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
+        {!sessionIdle && (
+          <p className="text-[10px]" style={{ color: "rgba(26,27,82,0.4)" }}>
+            Roles are locked once the session starts. Reset the timer to change them.
+          </p>
+        )}
+      </div>
+
+      {/* Participants */}
+      <div className="py-1.5 px-1.5" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
+        {participants.map((p) => {
+          const role =
+            p.userId === doctorUserId ? "Doctor" : p.userId === patientUserId ? "Patient" : null;
+          const disconnected = connectedIds.size > 0 && !connectedIds.has(p.userId);
+          return (
+            <div
+              key={p.userId}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+              style={{
+                background: p.isHost
+                  ? "rgba(246,212,75,0.15)"
+                  : p.isSelf
+                  ? "rgba(59,130,246,0.08)"
+                  : "transparent",
+              }}
+            >
+              <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
+                {p.isSelf ? "You" : p.displayName}
+                {role && (
+                  <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: "rgba(31,41,55,0.12)", color: "rgba(31,41,55,0.5)", fontWeight: 600 }}>
+                    {role.toUpperCase()}
+                  </span>
+                )}
+                {disconnected && (
+                  <span className="text-[9px] font-semibold" style={{ color: "#B91C1C" }}>(disconnected)</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Chat */}
@@ -1413,91 +1457,7 @@ export function StudyRoomPanel({
 
     </div>
 
-    {/* Role selector modal — host assigns doctor/patient before recording */}
-    {showRoleSelector && !showStartWarning && (
-      <div
-        className="fixed inset-0 flex items-center justify-center z-50 px-6"
-        style={{ background: "rgba(26,27,82,0.55)" }}
-        onClick={(e) => e.target === e.currentTarget && setShowRoleSelector(false)}
-      >
-        <div
-          className="w-full max-w-[400px] rounded-2xl p-6"
-          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
-        >
-          <h2 className="font-display font-bold text-[15px] mb-1" style={{ color: NAVY }}>
-            Start Recording
-          </h2>
-          <p className="text-[12.5px] mb-5 leading-snug" style={{ color: "rgba(26,27,82,0.55)" }}>
-            Assign roles. The consultation timer will reset. AI review is free — a GP review credit is
-            only used if you choose to submit the recording afterwards.
-          </p>
-
-          <div className="flex flex-col gap-3 mb-5">
-            {(["doctor", "patient"] as const).map((role) => (
-              <div key={role} className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.5)" }}>
-                  {role === "doctor" ? "Doctor (candidate)" : "Patient (role-player)"}
-                </label>
-                <select
-                  value={role === "doctor" ? selectedDoctor : selectedPatient}
-                  onChange={(e) =>
-                    role === "doctor"
-                      ? setSelectedDoctor(e.target.value)
-                      : setSelectedPatient(e.target.value)
-                  }
-                  className="rounded-lg px-3 py-2 text-[13px]"
-                  style={{ border: "1.5px solid rgba(26,27,82,0.15)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit" }}
-                >
-                  <option value="">— Select —</option>
-                  {participants.map((p) => (
-                    <option key={p.userId} value={p.userId}>
-                      {p.isSelf ? `You (${p.displayName})` : p.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-
-          {recordingError && (
-            <p className="text-[12px] text-red-600 mb-3">{recordingError}</p>
-          )}
-
-          <div className="flex gap-2.5">
-            <button
-              onClick={() => setShowRoleSelector(false)}
-              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
-              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (selectedDoctor === selectedPatient) {
-                  setRecordingError("Doctor and patient must be different participants.");
-                  return;
-                }
-                setRecordingError("");
-                setShowStartWarning(true);
-              }}
-              disabled={!selectedDoctor || !selectedPatient}
-              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
-              style={{
-                background: NAVY,
-                border: "none",
-                color: "white",
-                cursor: !selectedDoctor || !selectedPatient ? "not-allowed" : "pointer",
-                opacity: !selectedDoctor || !selectedPatient ? 0.5 : 1,
-              }}
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {showRoleSelector && showStartWarning && (
+    {showStartWarning && (
       <div
         className="fixed inset-0 flex items-center justify-center z-50 px-6"
         style={{ background: "rgba(26,27,82,0.55)" }}
@@ -1589,29 +1549,6 @@ export function StudyRoomPanel({
       </div>
     )}
 
-    {/* Claim Host — guests only, sits below the room panel */}
-    {!iAmHost && (
-      <div className="flex justify-center pt-2">
-        <button
-          onClick={() => setShowClaimModal(true)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 10,
-            letterSpacing: "0.07em",
-            textTransform: "uppercase",
-            color: "rgba(26,27,82,0.28)",
-            fontFamily: "inherit",
-            fontWeight: 600,
-            padding: 0,
-          }}
-        >
-          Claim Host
-        </button>
-      </div>
-    )}
-
     {/* Share Most Recent Report */}
     {recentReportId && (
       <div className="flex justify-center pt-1">
@@ -1635,82 +1572,6 @@ export function StudyRoomPanel({
       </div>
     )}
 
-    {/* Claim Host modal */}
-    {showClaimModal && (
-      <div
-        className="fixed inset-0 flex items-center justify-center z-50 px-6"
-        style={{ background: "rgba(26,27,82,0.5)" }}
-        onClick={(e) => e.target === e.currentTarget && setShowClaimModal(false)}
-      >
-        <div
-          className="w-full max-w-[380px] rounded-2xl p-6"
-          style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}
-        >
-          <h2 className="font-display font-bold text-[15px] mb-2" style={{ color: NAVY }}>
-            Claim Host
-          </h2>
-          <p className="text-[13.5px] leading-[1.7] mb-5" style={{ color: "rgba(26,27,82,0.65)" }}>
-            <strong style={{ color: NAVY }}>{hostName}</strong> is the current host. Would you like to assume the role?
-          </p>
-          <div className="flex gap-2.5">
-            <button
-              onClick={() => setShowClaimModal(false)}
-              className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
-              style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
-            >
-              Go Back
-            </button>
-            <button
-              onClick={handleClaimHost}
-              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
-              style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
-            >
-              Confirm
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Right-click context menu for host transfer */}
-    {contextMenu && (
-      <div
-        style={{
-          position: "fixed",
-          top: contextMenu.y,
-          left: contextMenu.x,
-          zIndex: 1000,
-          background: "white",
-          border: "1px solid rgba(26,27,82,0.12)",
-          borderRadius: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          padding: 4,
-          minWidth: 160,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={() => handleTransferHost(contextMenu.userId)}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            padding: "7px 12px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 12,
-            color: NAVY,
-            borderRadius: 6,
-            fontFamily: "inherit",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(26,27,82,0.05)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-        >
-          Make {contextMenu.displayName} host
-        </button>
-      </div>
-    )}
     </>
   );
 }
