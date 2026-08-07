@@ -426,6 +426,9 @@ export function StudyRoomPanel({
           }
           setRecordingState("recording");
           logStatus("phase → recording (guest)", { role: userId === doctorUserId ? "doctor" : userId === patientUserId ? "patient" : "observer" });
+          // Mute observers during the graded consult — only doctor/patient
+          // should be audible. The debrief unmutes everyone again.
+          dailyCallRef.current?.setLocalAudio(amEssential);
           if (userId === doctorUserId) {
             setMyRecordingRole("doctor");
             await startLocalRecording(recordingId, "doctor");
@@ -930,6 +933,11 @@ export function StudyRoomPanel({
 
     setRecordingState("recording");
     logStatus("phase → recording (host)");
+
+    // Only the doctor and patient should be audible during the graded
+    // consult — mute observers (the debrief unmutes everyone again).
+    const hostEssential = userId === selectedDoctor || userId === selectedPatient;
+    dailyCallRef.current?.setLocalAudio(hostEssential);
 
     // Reset the timer to start of consultation
     onTimerReset?.();

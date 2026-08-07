@@ -286,6 +286,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           setRecordingStarting(false);
           setPhase("recording");
           logStatus("phase → recording (guest)", { role });
+          // Mute observers during the graded consult; debrief unmutes all.
+          dailyCallRef.current?.setLocalAudio(amEssential);
           if (role) launchMediaRecorder(rid, role);
         })();
       })
@@ -775,6 +777,9 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setStarting(false);
     setPhase("recording");
     logStatus("phase → recording (host)", { role });
+
+    // Mute observers during the graded consult; debrief unmutes all.
+    dailyCallRef.current?.setLocalAudio(role !== null);
 
     // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
     // regardless of whether anyone remembers to click Stop.
