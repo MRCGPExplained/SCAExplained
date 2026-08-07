@@ -361,6 +361,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                         const res = await generateOverallCommentAction({
                           dgGrade, dgComment, cmGrade, cmComment, roGrade, roComment,
                           stationTitle: rec.station_title,
+                          recordingId: rec.id,
                         });
                         if (res.text) setOverallComment(res.text);
                         else setAiGenError(res.error ?? "Failed");
@@ -377,7 +378,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                     onClick={() => {
                       setAiGenError("");
                       startGrammar(async () => {
-                        const res = await grammarCheckAction({ text: overallComment });
+                        const res = await grammarCheckAction({ text: overallComment, recordingId: rec.id });
                         if (res.text) setOverallComment(res.text);
                         else setAiGenError(res.error ?? "Failed");
                       });

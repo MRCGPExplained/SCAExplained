@@ -30,16 +30,72 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.metadata?.type === "programme") {
+    const type = session.metadata?.type;
+    if (type === "programme") {
       await confirmProgrammePurchase(session);
-    } else if (session.metadata?.type === "recording_credits") {
+    } else if (type === "recording_credits") {
       await confirmRecordingCreditsPurchase(session);
-    } else if (session.metadata?.type === "case_bank_programme") {
+    } else if (type === "case_bank_programme") {
       await confirmCaseBankPurchase(session);
+    }
+    // Record actual revenue + Stripe fee for every recognised purchase, for
+    // the economics dashboard. Best-effort — never fails the webhook.
+    if (type === "programme" || type === "recording_credits" || type === "case_bank_programme") {
+      await recordRevenueEvent(stripe, session, type);
     }
   }
 
   return NextResponse.json({ received: true });
+}
+
+// ── Revenue + Stripe fee capture ───────────────────────────────────────────────
+
+async function recordRevenueEvent(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  planType: string
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return;
+
+    const grossMinor = session.amount_total ?? 0; // pence
+    const currency = session.currency ?? "gbp";
+
+    // Fetch the actual Stripe fee from the charge's balance transaction.
+    let feeMinor = 0;
+    const piId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    if (piId) {
+      const pi = await stripe.paymentIntents.retrieve(piId, {
+        expand: ["latest_charge.balance_transaction"],
+      });
+      const charge = pi.latest_charge as Stripe.Charge | null;
+      const bt = charge?.balance_transaction as Stripe.BalanceTransaction | null;
+      feeMinor = bt?.fee ?? 0;
+    }
+
+    const grossGbp = grossMinor / 100;
+    const feeGbp = feeMinor / 100;
+
+    const { error } = await supabase.from("revenue_events").upsert(
+      {
+        user_id: session.metadata?.user_id ?? null,
+        plan_type: planType,
+        amount_gross_gbp: grossGbp,
+        currency,
+        stripe_fee_gbp: feeGbp,
+        amount_net_gbp: grossGbp - feeGbp,
+        stripe_session_id: session.id,
+      },
+      { onConflict: "stripe_session_id" }
+    );
+    if (error) console.error("[webhook] failed to record revenue_event:", error.message);
+  } catch (e) {
+    console.error("[webhook] recordRevenueEvent threw:", e);
+  }
 }
 
 // ── Recording credits purchase ────────────────────────────────────────────────

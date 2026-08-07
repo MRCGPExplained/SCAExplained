@@ -5,12 +5,59 @@ import { redirect } from "next/navigation";
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
+import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
+import { snapshotGpReview } from "@/lib/consultation-costs";
+
+const EXAMINER_CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+
+// Records the token usage + cost of an examiner-initiated Claude call.
+// Best-effort: never blocks the examiner's action.
+async function recordExaminerClaudeUsage(
+  callType: "overall_comment" | "grammar_check",
+  model: string,
+  usage: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  },
+  recordingId?: string
+): Promise<void> {
+  try {
+    const admin = getSupabaseAdmin();
+    if (!admin) return;
+    const pricing = await getCurrentPricing(admin);
+    if (!pricing) return;
+    const tokens = {
+      input_tokens: usage.input_tokens ?? 0,
+      output_tokens: usage.output_tokens ?? 0,
+      cache_creation_tokens: usage.cache_creation_input_tokens ?? 0,
+      cache_read_tokens: usage.cache_read_input_tokens ?? 0,
+    };
+    const costUsd = claudeCostUsd(tokens, pricing);
+    await admin.from("claude_usage").insert({
+      recording_id: recordingId ?? null,
+      call_type: callType,
+      model,
+      input_tokens: tokens.input_tokens,
+      output_tokens: tokens.output_tokens,
+      cache_creation_tokens: tokens.cache_creation_tokens,
+      cache_read_tokens: tokens.cache_read_tokens,
+      cost_usd: costUsd,
+      cost_gbp: usdToGbp(costUsd, pricing),
+      pricing_version_id: pricing.id,
+    });
+  } catch (e) {
+    console.error("[examiner] failed to record Claude usage:", e);
+  }
+}
 
 export async function generateOverallCommentAction(args: {
   dgGrade: string; dgComment: string;
   cmGrade: string; cmComment: string;
   roGrade: string; roComment: string;
   stationTitle: string;
+  recordingId?: string;
 }): Promise<{ text?: string; error?: string }> {
   const examiner = await getExaminerFromCookie();
   if (!examiner) return { error: "Not authorised." };
@@ -23,7 +70,7 @@ export async function generateOverallCommentAction(args: {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: EXAMINER_CLAUDE_MODEL,
       max_tokens: 300,
       system: "You are an RCGP examiner writing a brief overall comment to a GP registrar after their SCA consultation. Write in a supportive but honest tone. Use plain sentences, no bullet points, no em dashes. 3-5 sentences maximum.",
       messages: [{
@@ -42,10 +89,11 @@ Write a brief overall comment that summarises performance and highlights the sin
   if (!res.ok) return { error: "AI request failed." };
   const data = await res.json();
   const text = (data.content?.[0]?.text ?? "").trim();
+  await recordExaminerClaudeUsage("overall_comment", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
 }
 
-export async function grammarCheckAction(args: { text: string }): Promise<{ text?: string; error?: string }> {
+export async function grammarCheckAction(args: { text: string; recordingId?: string }): Promise<{ text?: string; error?: string }> {
   const examiner = await getExaminerFromCookie();
   if (!examiner) return { error: "Not authorised." };
   if (!args.text.trim()) return { error: "Nothing to check." };
@@ -58,7 +106,7 @@ export async function grammarCheckAction(args: { text: string }): Promise<{ text
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: EXAMINER_CLAUDE_MODEL,
       max_tokens: 400,
       system: "You are a copy editor. Fix grammar and spelling only. Do not change the meaning, tone, structure, or word choice. Return ONLY the corrected text with no explanation.",
       messages: [{ role: "user", content: args.text }],
@@ -68,6 +116,7 @@ export async function grammarCheckAction(args: { text: string }): Promise<{ text
   if (!res.ok) return { error: "AI request failed." };
   const data = await res.json();
   const text = (data.content?.[0]?.text ?? "").trim();
+  await recordExaminerClaudeUsage("grammar_check", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
 }
 
@@ -202,6 +251,20 @@ export async function submitExaminerReviewAction(
     .eq("id", recordingId);
 
   if (updateErr) return { error: updateErr.message };
+
+  // Snapshot the GP-review cost onto the consultation ledger the first time a
+  // GP reviews it (whether a normal GP review or an AI-pile manual overwrite —
+  // a GP was paid for their time either way). Frozen at the rate current now.
+  {
+    const { data: costRow } = await admin
+      .from("consultation_costs")
+      .select("gp_reviewed")
+      .eq("recording_id", recordingId)
+      .maybeSingle<{ gp_reviewed: boolean }>();
+    if (!costRow?.gp_reviewed) {
+      await snapshotGpReview(admin, recordingId, examiner.id);
+    }
+  }
 
   const { data: rec } = await admin
     .from("station_recordings")

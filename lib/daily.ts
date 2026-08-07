@@ -142,6 +142,63 @@ export async function createDailyMeetingToken(
   }
 }
 
+export interface DailyMeetingUsage {
+  participantMinutes: number;
+  roomDurationSeconds: number;
+  maxParticipants: number;
+  /** True only when Daily returned real per-participant durations. When false
+   * the caller should treat cost as unknown rather than estimate. */
+  hasData: boolean;
+}
+
+/**
+ * Actual usage for a room, from Daily's server-side meetings API (the billing
+ * source of truth). Retained by Daily even after the room is deleted, so this
+ * is safe to call once the consultation has ended. Sums real per-participant
+ * connected time — never estimates. Returns null on API failure.
+ *
+ * Our rooms are always created audio-only (start_video_off, screenshare off,
+ * recording off), so when usage data exists the room qualifies for Daily's
+ * audio-only billing rate.
+ */
+export async function getMeetingUsage(roomName: string): Promise<DailyMeetingUsage | null> {
+  try {
+    const res = await dailyFetch(`/meetings?room=${encodeURIComponent(roomName)}&limit=100`);
+    if (!res || !res.ok) {
+      console.error("[daily] getMeetingUsage failed:", res ? await res.text() : "no API key");
+      return null;
+    }
+    const json = (await res.json()) as {
+      data?: Array<{
+        duration?: number;
+        max_participants?: number;
+        participants?: Array<{ duration?: number }>;
+      }>;
+    };
+    const sessions = json.data ?? [];
+
+    let participantSeconds = 0;
+    let roomDurationSeconds = 0;
+    let maxParticipants = 0;
+    for (const s of sessions) {
+      roomDurationSeconds = Math.max(roomDurationSeconds, s.duration ?? 0);
+      const parts = s.participants ?? [];
+      maxParticipants = Math.max(maxParticipants, s.max_participants ?? parts.length);
+      for (const p of parts) participantSeconds += p.duration ?? 0;
+    }
+
+    return {
+      participantMinutes: participantSeconds / 60,
+      roomDurationSeconds,
+      maxParticipants,
+      hasData: participantSeconds > 0,
+    };
+  } catch (err) {
+    console.error("[daily] getMeetingUsage threw:", err);
+    return null;
+  }
+}
+
 /**
  * Best-effort room cleanup after a recording ends. Safe to call even if the
  * room already expired/was already deleted — failures are logged, not thrown,

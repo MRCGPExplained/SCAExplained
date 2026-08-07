@@ -1,6 +1,19 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/ai-defaults";
+import {
+  getCurrentPricing,
+  claudeCostUsd,
+  deepgramBillableMinutes,
+  deepgramCostUsd,
+  dailyCostUsd,
+  usdToGbp,
+  type ClaudeTokens,
+} from "@/lib/pricing";
+import { getMeetingUsage } from "@/lib/daily";
+import { buildConsultationLedger } from "@/lib/consultation-costs";
+
+const DEEPGRAM_MODEL = "nova-2-medical";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,13 +34,30 @@ interface GradeResult {
   comment_relating_to_others: string;
 }
 
+interface ClaudeUsageRaw {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
 interface DeepgramUtterance {
   start: number;
   end: number;
   transcript: string;
 }
 
+interface TranscriptionResult {
+  utterances: DeepgramUtterance[];
+  durationSec: number;
+  requestId: string | null;
+}
+
 interface DeepgramResponse {
+  metadata?: {
+    duration?: number;
+    request_id?: string;
+  };
   results?: {
     utterances?: DeepgramUtterance[];
     channels?: Array<{
@@ -36,10 +66,11 @@ interface DeepgramResponse {
   };
 }
 
-// Deepgram transcription for a single audio file
-async function transcribeAudio(audioBuffer: Buffer): Promise<DeepgramUtterance[]> {
+// Deepgram transcription for a single audio file. Returns the utterances plus
+// the billing metadata (audio duration + request id) so cost can be recorded.
+async function transcribeAudio(audioBuffer: Buffer): Promise<TranscriptionResult> {
   const res = await fetch(
-    "https://api.deepgram.com/v1/listen?model=nova-2-medical&punctuate=true&utterances=true",
+    `https://api.deepgram.com/v1/listen?model=${DEEPGRAM_MODEL}&punctuate=true&utterances=true`,
     {
       method: "POST",
       headers: {
@@ -56,7 +87,11 @@ async function transcribeAudio(audioBuffer: Buffer): Promise<DeepgramUtterance[]
   }
 
   const data = (await res.json()) as DeepgramResponse;
-  return data?.results?.utterances ?? [];
+  return {
+    utterances: data?.results?.utterances ?? [],
+    durationSec: data?.metadata?.duration ?? 0,
+    requestId: data?.metadata?.request_id ?? null,
+  };
 }
 
 // Merge doctor + patient utterances chronologically into a readable transcript
@@ -79,12 +114,21 @@ function buildTranscript(
 }
 
 
-// Grade the consultation with Claude
+const GRADING_MODEL = "claude-haiku-4-5-20251001";
+
+interface GradeWithUsage {
+  grades: GradeResult;
+  model: string;
+  tokens: ClaudeTokens;
+}
+
+// Grade the consultation with Claude. Returns the grades plus the token usage
+// so the cost of the call can be recorded.
 async function gradeWithClaude(
   stationContext: string,
   transcript: string,
   customPrompt?: string
-): Promise<GradeResult> {
+): Promise<GradeWithUsage> {
   const systemPrompt = customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
 
   const userMessage = `STATION CONTEXT:\n${stationContext}\n\nCONSULTATION TRANSCRIPT:\n${transcript}\n\nPlease grade this consultation.`;
@@ -97,7 +141,7 @@ async function gradeWithClaude(
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: GRADING_MODEL,
       max_tokens: 600,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
@@ -114,8 +158,16 @@ async function gradeWithClaude(
   // Strip markdown code fences Claude sometimes adds despite instructions
   const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 
+  const usage = (data.usage ?? {}) as ClaudeUsageRaw;
+  const tokens: ClaudeTokens = {
+    input_tokens: usage.input_tokens ?? 0,
+    output_tokens: usage.output_tokens ?? 0,
+    cache_creation_tokens: usage.cache_creation_input_tokens ?? 0,
+    cache_read_tokens: usage.cache_read_input_tokens ?? 0,
+  };
+
   try {
-    return JSON.parse(text) as GradeResult;
+    return { grades: JSON.parse(text) as GradeResult, model: data.model ?? GRADING_MODEL, tokens };
   } catch {
     throw new Error(`Claude returned invalid JSON: ${text.slice(0, 200)}`);
   }
@@ -250,6 +302,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         marking_notes_relating_to_others: string | null;
       }>();
 
+    // Load the pricing version once for all cost calculations in this run.
+    const pricing = await getCurrentPricing(admin);
+
     try {
       let transcriptFormatted: string;
       let transcriptRaw: unknown;
@@ -279,13 +334,13 @@ export async function POST(req: Request, { params }: RouteParams) {
         ]);
 
         // Transcribe both tracks in parallel
-        const [doctorUtterances, patientUtterances] = await Promise.all([
+        const [doctorTx, patientTx] = await Promise.all([
           transcribeAudio(doctorBuf),
           transcribeAudio(patientBuf),
         ]);
 
-        transcriptFormatted = buildTranscript(doctorUtterances, patientUtterances);
-        transcriptRaw = { doctor: doctorUtterances, patient: patientUtterances };
+        transcriptFormatted = buildTranscript(doctorTx.utterances, patientTx.utterances);
+        transcriptRaw = { doctor: doctorTx.utterances, patient: patientTx.utterances };
 
         // Checkpoint the transcript as soon as it exists — if grading fails
         // below, a retry can skip straight past Deepgram to Claude instead
@@ -294,6 +349,26 @@ export async function POST(req: Request, { params }: RouteParams) {
           .from("station_recordings")
           .update({ transcript_formatted: transcriptFormatted, transcript_raw: transcriptRaw })
           .eq("id", recordingId);
+
+        // Record Deepgram usage + cost for both tracks (fresh transcription
+        // only — a retry reuses the transcript and does not re-bill Deepgram).
+        if (pricing) {
+          for (const [role, tx] of [["doctor", doctorTx], ["patient", patientTx]] as const) {
+            const billable = deepgramBillableMinutes(tx.durationSec);
+            const costUsd = deepgramCostUsd(billable, pricing);
+            await admin.from("deepgram_usage").insert({
+              recording_id: recordingId,
+              role,
+              audio_duration_s: tx.durationSec,
+              billable_min: billable,
+              model: DEEPGRAM_MODEL,
+              request_id: tx.requestId,
+              cost_usd: costUsd,
+              cost_gbp: usdToGbp(costUsd, pricing),
+              pricing_version_id: pricing.id,
+            });
+          }
+        }
       }
 
       // Deepgram returns nothing (or near-nothing) for silent, inaudible, or
@@ -333,7 +408,31 @@ export async function POST(req: Request, { params }: RouteParams) {
         .filter(Boolean)
         .join("\n");
 
-      const grades = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
+      const { grades, model: gradeModel, tokens } = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
+
+      // Record Claude usage + cost. First grading call for a recording is
+      // "grading"; any later call (a Retry AI run) is "retry".
+      if (pricing) {
+        const { count } = await admin
+          .from("claude_usage")
+          .select("id", { count: "exact", head: true })
+          .eq("recording_id", recordingId)
+          .eq("call_type", "grading");
+        const callType = (count ?? 0) > 0 ? "retry" : "grading";
+        const costUsd = claudeCostUsd(tokens, pricing);
+        await admin.from("claude_usage").insert({
+          recording_id: recordingId,
+          call_type: callType,
+          model: gradeModel,
+          input_tokens: tokens.input_tokens,
+          output_tokens: tokens.output_tokens,
+          cache_creation_tokens: tokens.cache_creation_tokens,
+          cache_read_tokens: tokens.cache_read_tokens,
+          cost_usd: costUsd,
+          cost_gbp: usdToGbp(costUsd, pricing),
+          pricing_version_id: pricing.id,
+        });
+      }
 
       // Save transcript + grades to DB. Status lands on "ai_graded", not the
       // examiner queue — the candidate has to explicitly Submit for GP Review
@@ -367,6 +466,35 @@ export async function POST(req: Request, { params }: RouteParams) {
       // Don't leave it stuck in processing — roll back so the candidate can
       // still choose to submit, even with no AI pre-assessment to show.
       await admin.from("station_recordings").update({ status: "ai_graded" }).eq("id", recordingId);
+    } finally {
+      // Record Daily live-audio usage (group consultations only) and build the
+      // immutable cost ledger — runs even if grading failed, since Deepgram and
+      // Daily costs were still incurred.
+      try {
+        const usage = await getMeetingUsage(`sca-${recordingId}`);
+        if (usage && usage.hasData && pricing) {
+          // Rooms are always created audio-only, so they bill at the audio rate.
+          const mode = "audio" as const;
+          const costUsd = dailyCostUsd(usage.participantMinutes, mode, pricing) ?? 0;
+          await admin.from("daily_usage").upsert(
+            {
+              recording_id: recordingId,
+              participant_minutes: usage.participantMinutes,
+              room_duration_s: usage.roomDurationSeconds,
+              max_participants: usage.maxParticipants,
+              billing_mode: mode,
+              cost_usd: costUsd,
+              cost_gbp: usdToGbp(costUsd, pricing),
+              pricing_version_id: pricing.id,
+            },
+            { onConflict: "recording_id" }
+          );
+        }
+      } catch (e) {
+        console.error("[recordings/process] Daily usage capture failed:", e);
+      }
+
+      await buildConsultationLedger(admin, recordingId);
     }
   });
 
