@@ -296,6 +296,15 @@ export async function POST(req: Request, { params }: RouteParams) {
           .eq("id", recordingId);
       }
 
+      // Deepgram returns nothing (or near-nothing) for silent, inaudible, or
+      // heavily mumbled audio. Grading from that would force Claude to
+      // invent plausible-sounding scores and feedback with no real basis —
+      // refuse instead, and let the fallback below leave it ungraded.
+      const wordCount = transcriptFormatted.trim().split(/\s+/).filter(Boolean).length;
+      if (wordCount < 15) {
+        throw new Error(`Transcript too short to grade (${wordCount} words) — audio may be silent, unintelligible, or failed to capture.`);
+      }
+
       // Build station context for the grading prompt
       const stationContext = [
         `Station: ${station?.title ?? `Station ${recording.station_number}`}`,
