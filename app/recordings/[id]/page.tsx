@@ -92,7 +92,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   if (examiner) {
     const { data } = await admin
       .from("station_recordings")
-      .select("*, examiners(name)")
+      .select("*, examiners!station_recordings_examiner_id_fkey(name)")
       .eq("id", id)
       .single<RecordingDetail>();
     rec = data;
@@ -100,7 +100,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   } else {
     const { data } = await admin
       .from("station_recordings")
-      .select("*, examiners(name)")
+      .select("*, examiners!station_recordings_examiner_id_fkey(name)")
       .eq("id", id)
       .single<RecordingDetail>();
     rec = data;

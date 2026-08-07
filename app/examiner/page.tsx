@@ -62,7 +62,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
   // ── Logged in: show review portal ────────────────────────────────────────
   const admin = getSupabaseAdmin();
   const QUEUE_COLUMNS =
-    "id, station_number, station_title, doctor_display_name, candidate_email, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiner_id, manually_checked_at, examiners(name)";
+    "id, station_number, station_title, doctor_display_name, candidate_email, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiner_id, manually_checked_at, examiners!station_recordings_examiner_id_fkey(name)";
   const [gpResult, aiResult, examinersResult, settingsResult] = admin
     ? await Promise.all([
         admin
