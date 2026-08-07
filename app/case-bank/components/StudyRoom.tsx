@@ -21,6 +21,7 @@ import type { DailyCall } from "@daily-co/daily-js";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 import { createRecordingLogger } from "@/lib/recording-logger";
+import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
 
 const { logStatus, logError, logDuration } = createRecordingLogger("study-room");
 
@@ -128,6 +129,15 @@ export function StudyRoomPanel({
   const [showStartWarning, setShowStartWarning] = useState(false);
   const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
 
+  // ── Post-recording debrief window ──────────────────────────────────────────
+  // Recording stops sharp at 12 minutes, but the voice call stays open a bit
+  // longer so the two candidates can talk through the station before the
+  // room closes — this window is separate from (and outlives) the recording.
+  const DEBRIEF_DURATION_SECONDS = 3 * 60;
+  const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
+  const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
   const [dailyCoEnabled, setDailyCoEnabled] = useState(false);
   const [dailyRoomName, setDailyRoomName] = useState<string | null>(null);
@@ -161,6 +171,8 @@ export function StudyRoomPanel({
       audioEls.forEach((el) => el.remove());
       audioEls.clear();
       dailyCallRef.current?.destroy();
+      if (debriefIntervalRef.current) clearInterval(debriefIntervalRef.current);
+      if (debriefTimeoutRef.current) clearTimeout(debriefTimeoutRef.current);
     };
   }, []);
 
@@ -383,6 +395,10 @@ export function StudyRoomPanel({
         dailyRoomName?: string;
         dailyRoomUrl?: string;
       };
+      // A new recording always wins — force-end any debrief still counting
+      // down from a previous take before joining the new call. Harmless
+      // no-op if there was nothing to end.
+      endDebrief();
       setActiveRecordingId(recordingId);
       setRecordingState("starting");
       logStatus("recording-start received", { recordingId, iAmHost, dailyRoom: dailyRoomName ?? null });
@@ -425,7 +441,7 @@ export function StudyRoomPanel({
     channel.on("broadcast", { event: "recording-stop" }, () => {
       logStatus("recording-stop received");
       stopLocalRecording();
-      leaveDailyCall();
+      startDebrief();
       if (myRecordingRole === null) setRecordingState("done");
     });
 
@@ -676,6 +692,42 @@ export function StudyRoomPanel({
     setDailyRoomName(null);
   }
 
+  function clearDebriefTimers() {
+    if (debriefIntervalRef.current) {
+      clearInterval(debriefIntervalRef.current);
+      debriefIntervalRef.current = null;
+    }
+    if (debriefTimeoutRef.current) {
+      clearTimeout(debriefTimeoutRef.current);
+      debriefTimeoutRef.current = null;
+    }
+  }
+
+  // Recording has just stopped — start the debrief window instead of
+  // closing the call immediately, so both candidates get a moment to talk
+  // through the station before it ends.
+  function startDebrief() {
+    logStatus("debrief window started", { seconds: DEBRIEF_DURATION_SECONDS });
+    clearDebriefTimers();
+    setDebriefSecondsLeft(DEBRIEF_DURATION_SECONDS);
+    debriefIntervalRef.current = setInterval(() => {
+      setDebriefSecondsLeft((s) => (s !== null ? Math.max(0, s - 1) : s));
+    }, 1000);
+    debriefTimeoutRef.current = setTimeout(() => {
+      logStatus("debrief window ended — closing call");
+      endDebrief();
+    }, DEBRIEF_DURATION_SECONDS * 1000);
+  }
+
+  // Actually closes the call, whether the debrief window ran out or someone
+  // ended it early.
+  function endDebrief() {
+    clearDebriefTimers();
+    setDebriefSecondsLeft(null);
+    if (iAmHost && dailyRoomName) endDailyCallAction(dailyRoomName);
+    leaveDailyCall();
+  }
+
   /**
    * Host-only. Voice call failed to connect for an essential (doctor/patient)
    * participant — abort the whole attempt: refund the credit, delete the
@@ -775,13 +827,7 @@ export function StudyRoomPanel({
     try {
       const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
       logStatus("upload starting", { role, sizeKB: Math.round(blob.size / 1024) });
-      const fd = new FormData();
-      fd.append("audio", blob, `${role}.webm`);
-      const res = await fetch(`/api/recordings/${recordingId}/upload?role=${role}`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) throw new Error("Upload failed");
+      await uploadRecordingAudio(recordingId, role, blob);
       logDuration(`upload (${role})`, t0);
       setRecordingState("done");
     } catch (err) {
@@ -796,6 +842,12 @@ export function StudyRoomPanel({
     if (selectedDoctor === selectedPatient) {
       setRecordingError("Doctor and patient must be different participants.");
       return;
+    }
+    // Starting a new recording always wins — any leftover debrief call from
+    // a previous take is closed immediately, no grace period.
+    if (debriefSecondsLeft !== null) {
+      logStatus("new recording starting — ending previous debrief call immediately");
+      endDebrief();
     }
     setShowRoleSelector(false);
     setRecordingState("starting");
@@ -907,8 +959,7 @@ export function StudyRoomPanel({
       payload: {},
     });
     stopLocalRecording();
-    if (iAmHost && dailyRoomName) endDailyCallAction(dailyRoomName);
-    leaveDailyCall();
+    startDebrief();
     if (myRecordingRole === null) {
       // Host is observer — nothing to upload, just update state
       setRecordingState("done");
@@ -1205,6 +1256,20 @@ export function StudyRoomPanel({
           )}
           {recordingState === "done" && (
             <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.8)" }}>✓ Sent for review</span>
+          )}
+          {debriefSecondsLeft !== null && (
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(96,165,250,0.9)" }}>
+                <PhoneIcon color="rgba(96,165,250,0.9)" /> Debrief — call closes in {Math.floor(debriefSecondsLeft / 60)}:{String(debriefSecondsLeft % 60).padStart(2, "0")}
+              </span>
+              <button
+                onClick={endDebrief}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
+              >
+                End Call Now
+              </button>
+            </div>
           )}
           <button
             onClick={() => {

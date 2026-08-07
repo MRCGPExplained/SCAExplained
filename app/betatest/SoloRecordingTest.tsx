@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { startSoloRecordingAction } from "@/app/case-bank/actions";
 import { runMarkingSpikeAction } from "@/app/betatest/actions";
+import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
 import { logStatus, logError, logDuration } from "./testLogger";
 
 type Station = { id: string; number: number; title: string; subject: string };
@@ -100,18 +101,7 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
     setPhase({ kind: "uploading", recordingId });
     const uploadT0 = Date.now();
 
-    const uploadRole = async (role: "doctor" | "patient") => {
-      const fd = new FormData();
-      fd.append("audio", blob, `${role}.webm`);
-      const res = await fetch(`/api/recordings/${recordingId}/upload?role=${role}`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(body.error ?? "Upload failed");
-      }
-    };
+    const uploadRole = (role: "doctor" | "patient") => uploadRecordingAudio(recordingId, role, blob);
 
     try {
       await uploadRole("doctor");

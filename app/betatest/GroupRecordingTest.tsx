@@ -16,6 +16,7 @@ import {
   submitForReviewAction,
 } from "@/app/case-bank/actions";
 import type { DailyCall } from "@daily-co/daily-js";
+import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
 import { logStatus, logError, logDuration } from "./testLogger";
 
 type Station = { id: string; number: number; title: string; subject: string };
@@ -104,6 +105,13 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
 
+  // Post-recording debrief window — mirrors StudyRoom.tsx: recording stops
+  // sharp at 12 minutes, but the call stays open a bit longer for debrief.
+  const DEBRIEF_DURATION_SECONDS = 3 * 60;
+  const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
+  const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     getDailyCoEnabledAction().then(setDailyCoEnabled);
   }, []);
@@ -123,6 +131,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       audioEls.forEach((el) => el.remove());
       audioEls.clear();
       dailyCallRef.current?.destroy();
+      if (debriefIntervalRef.current) clearInterval(debriefIntervalRef.current);
+      if (debriefTimeoutRef.current) clearTimeout(debriefTimeoutRef.current);
     };
   }, []);
 
@@ -244,6 +254,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           myId === dId ? "doctor" : myId === pId ? "patient" : null;
         logStatus("recording-start received", { recordingId: rid, role, dailyRoom: dRoomName ?? null });
 
+        // A new recording always wins — force-end any debrief still
+        // counting down from a previous take. Harmless no-op otherwise.
+        endDebrief();
+
         roleRef.current = role;
         setRecordingId(rid);
         setMyRole(role);
@@ -282,7 +296,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
         if (!wasRecording && !roleRef.current) {
           setPhase("done");
         }
-        leaveDailyCall();
+        startDebrief();
       })
       .on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
         if (!isHostRef.current) return;
@@ -411,6 +425,37 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setDailyRoomName(null);
   }
 
+  function clearDebriefTimers() {
+    if (debriefIntervalRef.current) {
+      clearInterval(debriefIntervalRef.current);
+      debriefIntervalRef.current = null;
+    }
+    if (debriefTimeoutRef.current) {
+      clearTimeout(debriefTimeoutRef.current);
+      debriefTimeoutRef.current = null;
+    }
+  }
+
+  function startDebrief() {
+    logStatus("debrief window started", { seconds: DEBRIEF_DURATION_SECONDS });
+    clearDebriefTimers();
+    setDebriefSecondsLeft(DEBRIEF_DURATION_SECONDS);
+    debriefIntervalRef.current = setInterval(() => {
+      setDebriefSecondsLeft((s) => (s !== null ? Math.max(0, s - 1) : s));
+    }, 1000);
+    debriefTimeoutRef.current = setTimeout(() => {
+      logStatus("debrief window ended — closing call");
+      endDebrief();
+    }, DEBRIEF_DURATION_SECONDS * 1000);
+  }
+
+  function endDebrief() {
+    clearDebriefTimers();
+    setDebriefSecondsLeft(null);
+    if (isHostRef.current && dailyRoomName) endDailyCallAction(dailyRoomName);
+    leaveDailyCall();
+  }
+
   /**
    * Host-only. Voice call failed to connect for an essential (doctor/patient)
    * participant — abort the whole attempt: refund the credit, delete the
@@ -517,18 +562,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     logStatus("upload starting", { role, sizeKB: Math.round(blob.size / 1024) });
     const t0 = Date.now();
 
-    const fd = new FormData();
-    fd.append("audio", blob, `${role}.webm`);
-
     try {
-      const res = await fetch(`/api/recordings/${rid}/upload?role=${role}`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(body.error ?? "Upload failed");
-      }
+      await uploadRecordingAudio(rid, role, blob);
       logDuration(`upload (${role})`, t0);
     } catch (e: unknown) {
       logError("upload", e, { role, sizeKB: Math.round(blob.size / 1024) });
@@ -653,6 +688,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       return;
     }
 
+    // Starting a new recording always wins — force-end any leftover debrief
+    // call from a previous take immediately, no grace period.
+    endDebrief();
+
     setStartErr("");
     setStarting(true);
     logStatus("host starting recording", { stationId: station.id, doctorId, patientId });
@@ -768,8 +807,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       setPhase("done");
     }
 
-    if (dailyRoomName) endDailyCallAction(dailyRoomName);
-    leaveDailyCall();
+    startDebrief();
   }
 
   // Returns to the lobby for another attempt without leaving the room — so
@@ -782,6 +820,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     roleRef.current = null;
     recorderStartingRef.current = false;
     pendingStopRef.current = false;
+    clearDebriefTimers();
+    setDebriefSecondsLeft(null);
     leaveDailyCall();
     setRecordingStarting(false);
     setPhase("lobby");
@@ -805,6 +845,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     isHostRef.current = false;
     recorderStartingRef.current = false;
     pendingStopRef.current = false;
+    clearDebriefTimers();
+    setDebriefSecondsLeft(null);
     leaveDailyCall();
     setRecordingStarting(false);
     setPhase("setup");
@@ -1308,6 +1350,24 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       className="rounded-2xl border bg-white p-6 flex flex-col gap-5"
       style={{ borderColor: "rgba(51,51,51,0.1)" }}
     >
+      {debriefSecondsLeft !== null && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-[13px]"
+          style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", color: "#1D4ED8" }}
+        >
+          <span>
+            Recording ended — debrief time. Call closes in {Math.floor(debriefSecondsLeft / 60)}:{String(debriefSecondsLeft % 60).padStart(2, "0")}
+          </span>
+          <button
+            onClick={endDebrief}
+            className="text-[12px] font-bold shrink-0"
+            style={{ color: "#1D4ED8", background: "none", border: "none", cursor: "pointer" }}
+          >
+            End Call Now
+          </button>
+        </div>
+      )}
+
       {(phase === "uploading" || phase === "processing") && (
         <div className="flex items-center gap-3">
           <Spinner />
