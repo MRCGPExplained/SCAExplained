@@ -162,6 +162,18 @@ export async function submitExaminerReviewAction(
     return { error: "All three domain grades are required." };
   }
 
+  // An "ai_graded" recording was never submitted for GP review — it lives in
+  // the AI pile of the portal. Grading it here is a manual overwrite: keep it
+  // in the AI pile (status stays "ai_graded") and flag it as manually checked,
+  // rather than moving it into the GP review queue/completed lists.
+  const { data: current } = await admin
+    .from("station_recordings")
+    .select("status")
+    .eq("id", recordingId)
+    .single<{ status: string }>();
+  const isAiPile = current?.status === "ai_graded";
+
+  const now = new Date().toISOString();
   const updatePayload: Record<string, unknown> = {
     examiner_id: examiner.id,
     examiner_data_gathering: dgGrade,
@@ -171,12 +183,17 @@ export async function submitExaminerReviewAction(
     examiner_comment_clinical_management: cmComment || null,
     examiner_comment_relating_to_others: roComment || null,
     examiner_overall_comment: overallComment || null,
-    examiner_reviewed_at: new Date().toISOString(),
-    status: sendNow ? "sent" : "reviewing",
+    examiner_reviewed_at: now,
+    status: isAiPile ? "ai_graded" : sendNow ? "sent" : "reviewing",
   };
 
+  if (isAiPile) {
+    updatePayload.manually_checked_at = now;
+    updatePayload.manually_checked_by = examiner.id;
+  }
+
   if (sendNow) {
-    updatePayload.sent_to_candidate_at = new Date().toISOString();
+    updatePayload.sent_to_candidate_at = now;
   }
 
   const { error: updateErr } = await admin
