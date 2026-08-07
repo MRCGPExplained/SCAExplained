@@ -421,7 +421,7 @@ export function StationPageClient({
   // Timer state
   const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
   const [timeLeft, setTimeLeft] = useState(PHASE_DURATIONS.PREREAD);
-  const [timerRunning, setTimerRunning] = useState(true);
+  const [timerRunning, setTimerRunning] = useState(false);
 
   const handleRoomStatusChange = useCallback(
     (nowInRoom: boolean, nowHost: boolean, nowRoomId: string | null, nowHostName: string | null) => {
@@ -559,8 +559,8 @@ export function StationPageClient({
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     setTimerPhase("PREREAD");
     setTimeLeft(PHASE_DURATIONS.PREREAD);
-    setTimerRunning(true);
-    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, true);
+    setTimerRunning(false);
+    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
   }, [station.number]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer sync received from StudyRoom (guest path — broadcast only)
