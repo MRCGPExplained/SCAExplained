@@ -575,10 +575,13 @@ export async function createCaseBankUser(
   }
 
   if (expiresAtRaw) {
+    const expiry = new Date(expiresAtRaw + "T23:59:59Z").toISOString();
     const { error: accessErr } = await supabase.from("user_access").upsert({
       user_id: userId,
       has_programme: true,
-      expires_at: new Date(expiresAtRaw + "T23:59:59Z").toISOString(),
+      expires_at: expiry,
+      has_case_bank: true,
+      case_bank_expires_at: expiry,
     });
     if (accessErr) {
       return { error: `User created but access grant failed: ${accessErr.message}` };
@@ -607,19 +610,25 @@ export async function grantUserAccess(
 
   const { data: existing } = await supabase
     .from("user_access")
-    .select("expires_at")
+    .select("expires_at, case_bank_expires_at")
     .eq("user_id", userId)
-    .single<{ expires_at: string | null }>();
+    .single<{ expires_at: string | null; case_bank_expires_at: string | null }>();
 
   const newExpiry =
     existing?.expires_at && existing.expires_at > expiresAt
       ? existing.expires_at
+      : expiresAt;
+  const newCaseBankExpiry =
+    existing?.case_bank_expires_at && existing.case_bank_expires_at > expiresAt
+      ? existing.case_bank_expires_at
       : expiresAt;
 
   const { error } = await supabase.from("user_access").upsert({
     user_id: userId,
     has_programme: true,
     expires_at: newExpiry,
+    has_case_bank: true,
+    case_bank_expires_at: newCaseBankExpiry,
     renewal_reminder_sent_at: null,
   });
 
@@ -848,6 +857,8 @@ export async function createExaminerAction(
       user_id: userId,
       has_programme: true,
       expires_at: "2099-12-31T23:59:59Z",
+      has_case_bank: true,
+      case_bank_expires_at: "2099-12-31T23:59:59Z",
       renewal_reminder_sent_at: null,
     });
   }
