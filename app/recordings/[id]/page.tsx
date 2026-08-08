@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
-import DualTrackPlayer from "@/app/components/DualTrackPlayer";
+import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 
 export const dynamic = "force-dynamic";
@@ -363,39 +363,18 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             </summary>
 
             <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
-              {/* Audio */}
               {(doctorAudioUrl || patientAudioUrl) && (
-                <div className="px-5 pt-5 pb-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-                    Consultation Audio
-                  </div>
-                  <DualTrackPlayer doctorUrl={doctorAudioUrl} patientUrl={patientAudioUrl} />
+                <div className="text-[11px] font-bold uppercase tracking-[0.06em] px-5 pt-5" style={{ color: "rgba(51,51,51,0.4)" }}>
+                  Consultation Audio &amp; Transcript
                 </div>
               )}
-
-              {/* Transcript */}
-              {rec.transcript_formatted && (
-                <div
-                  className="px-5 pt-4 pb-5 flex flex-col gap-2.5"
-                  style={doctorAudioUrl || patientAudioUrl ? { borderTop: "1px solid rgba(51,51,51,0.07)" } : {}}
-                >
-                  <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-                    Transcript
-                  </div>
-                  {rec.transcript_formatted.split("\n").filter(Boolean).map((line, i) => {
-                    const m = line.match(/^(\[\d+:\d+\])\s*(Doctor|Patient):\s*(.*)$/);
-                    if (!m) return <p key={i} className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.6)" }}>{line}</p>;
-                    const [, timestamp, speaker, speech] = m;
-                    return (
-                      <div key={i}>
-                        <span className="text-[11px] mr-1.5 font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>{timestamp}</span>
-                        <span className="text-[12.5px] font-bold mr-1" style={{ color: NAVY }}>{speaker}:</span>
-                        <span className="text-[12.5px]" style={{ color: "rgba(51,51,51,0.75)" }}>{speech}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <div className="px-5 pt-4 pb-5">
+                <ConsultationPlayer
+                  doctorUrl={doctorAudioUrl}
+                  patientUrl={patientAudioUrl}
+                  transcript={rec.transcript_formatted}
+                />
+              </div>
             </div>
           </details>
         )}
