@@ -34,19 +34,60 @@ export function Timer({
   onPhaseComplete: () => void;
 }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Wall-clock anchor for the current run: {startMs, startTimeLeft}. The
+  // countdown derives remaining time from real elapsed time rather than
+  // decrementing a counter, so it stays correct even when the tab/screen was
+  // backgrounded and setInterval ticks were throttled or frozen (the cause of
+  // the phone-vs-computer drift). It also re-syncs the instant the tab
+  // becomes visible again.
+  const anchorRef = useRef<{ startMs: number; startTimeLeft: number } | null>(null);
+  const timeLeftRef = useRef(timeLeft);
+  const onTickRef = useRef(onTick);
+  const onCompleteRef = useRef(onPhaseComplete);
+  useEffect(() => {
+    onTickRef.current = onTick;
+    onCompleteRef.current = onPhaseComplete;
+  });
+
+  // Track timeLeft, and re-anchor when an external change (reset / skip /
+  // host re-sync) moves it off the anchored trajectory by more than ~2s. Our
+  // own per-second updates match the prediction, so they never re-anchor.
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+    const a = anchorRef.current;
+    if (running && a) {
+      const predicted = a.startTimeLeft - (Date.now() - a.startMs) / 1000;
+      if (Math.abs(predicted - timeLeft) > 2) {
+        anchorRef.current = { startMs: Date.now(), startTimeLeft: timeLeft };
+      }
+    }
+  }, [timeLeft, running]);
 
   useEffect(() => {
-    if (running && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        onTick(timeLeft - 1);
-      }, 1000);
-    } else if (running && timeLeft === 0) {
-      onPhaseComplete();
+    if (!running) {
+      anchorRef.current = null;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
     }
+    if (!anchorRef.current) {
+      anchorRef.current = { startMs: Date.now(), startTimeLeft: timeLeftRef.current };
+    }
+    const tick = () => {
+      const a = anchorRef.current;
+      if (!a) return;
+      const elapsed = (Date.now() - a.startMs) / 1000;
+      const newTime = Math.max(0, Math.round(a.startTimeLeft - elapsed));
+      if (newTime <= 0) onCompleteRef.current();
+      else onTickRef.current(newTime);
+    };
+    intervalRef.current = setInterval(tick, 1000);
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [running, timeLeft, onTick, onPhaseComplete]);
+  }, [running, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mins = Math.floor(timeLeft / 60).toString().padStart(2, "0");
   const secs = (timeLeft % 60).toString().padStart(2, "0");

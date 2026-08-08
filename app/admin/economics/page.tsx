@@ -12,6 +12,9 @@ export const dynamic = "force-dynamic";
 const NAVY = "#333333";
 
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+// Sub-penny amounts (per-consultation costs are often fractions of a penny)
+// would round to £0.00 at 2dp, so show up to 4dp when the value is tiny.
+const gbpFine = (n: number) => (n !== 0 && Math.abs(n) < 0.01 ? `£${n.toFixed(4)}` : gbp(n));
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const num = (v: unknown) => (v == null ? 0 : Number(v));
 const int = (n: number) => Math.round(n).toLocaleString();
@@ -270,16 +273,16 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
             {breakdown.map((b) => (
               <tr key={b.name} style={{ borderTop: "1px solid rgba(51,51,51,0.06)" }}>
                 <td className="py-2 font-semibold">{b.name}</td>
-                <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{gbp(b.spend)}</td>
+                <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{gbpFine(b.spend)}</td>
                 <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums", color: "rgba(51,51,51,0.55)" }}>{breakdownTotal > 0 ? pct(b.spend / breakdownTotal) : "—"}</td>
-                <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums", color: "rgba(51,51,51,0.55)" }}>{consultations > 0 ? gbp(b.spend / consultations) : "—"}</td>
+                <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums", color: "rgba(51,51,51,0.55)" }}>{consultations > 0 ? gbpFine(b.spend / consultations) : "—"}</td>
               </tr>
             ))}
             <tr style={{ borderTop: "1.5px solid rgba(51,51,51,0.15)" }}>
               <td className="py-2 font-bold">Total variable cost</td>
-              <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{gbp(breakdownTotal)}</td>
+              <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{gbpFine(breakdownTotal)}</td>
               <td className="py-2 text-right">100%</td>
-              <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{consultations > 0 ? gbp(breakdownTotal / consultations) : "—"}</td>
+              <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{consultations > 0 ? gbpFine(breakdownTotal / consultations) : "—"}</td>
             </tr>
           </tbody>
         </table>
