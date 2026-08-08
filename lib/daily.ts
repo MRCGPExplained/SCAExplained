@@ -1,12 +1,13 @@
 import { getSupabaseAdmin } from "./supabase";
-import { PHASE_DURATIONS } from "./case-bank-types";
+import { PHASE_DURATIONS, DEBRIEF_DURATION_SECONDS } from "./case-bank-types";
 
 const DAILY_API_BASE = "https://api.daily.co/v1";
 
-// Small buffer past the 12-minute consult window so Daily's own room/token
-// expiry acts as a third independent hard-cutoff, alongside the client-side
-// MediaRecorder cutoff and the host's broadcast cutoff.
-const ROOM_LIFETIME_SECONDS = PHASE_DURATIONS.CONSULT + 60;
+// Room/token must outlast the whole session: the 12-minute consult PLUS the
+// 3-minute post-recording debrief, with a small buffer. If this were only
+// consult + buffer, Daily would eject everyone (eject_at_room_exp) partway
+// through the debrief and the candidates couldn't talk.
+const ROOM_LIFETIME_SECONDS = PHASE_DURATIONS.CONSULT + DEBRIEF_DURATION_SECONDS + 60;
 
 // Study rooms cap at 4 participants (1 doctor, 1 patient, 2 observers) —
 // mirrors the same hard limit enforced in joinStudyRoomAction.

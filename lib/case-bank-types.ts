@@ -111,6 +111,11 @@ export const PHASE_DURATIONS: Record<TimerPhase, number> = {
   CONSULT: 12 * 60,
 };
 
+// The voice call stays open this long after recording stops so the two
+// candidates can debrief. Shared so the Daily room's expiry can be set to
+// outlast it (consult + debrief + buffer).
+export const DEBRIEF_DURATION_SECONDS = 3 * 60;
+
 export const SUBJECTS = [
   "All",
   "Cardiovascular",

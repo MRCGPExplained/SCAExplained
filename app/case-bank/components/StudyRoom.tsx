@@ -18,7 +18,7 @@ import {
 } from "../actions";
 import type { DailyCall } from "@daily-co/daily-js";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
-import { PHASE_DURATIONS } from "@/lib/case-bank-types";
+import { PHASE_DURATIONS, DEBRIEF_DURATION_SECONDS } from "@/lib/case-bank-types";
 import { createRecordingLogger } from "@/lib/recording-logger";
 import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
 
@@ -144,7 +144,6 @@ export function StudyRoomPanel({
   // Recording stops sharp at 12 minutes, but the voice call stays open a bit
   // longer so the two candidates can talk through the station before the
   // room closes — this window is separate from (and outlives) the recording.
-  const DEBRIEF_DURATION_SECONDS = 3 * 60;
   const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
   const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

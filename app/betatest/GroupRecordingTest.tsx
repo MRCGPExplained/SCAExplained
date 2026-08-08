@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { PHASE_DURATIONS } from "@/lib/case-bank-types";
+import { PHASE_DURATIONS, DEBRIEF_DURATION_SECONDS } from "@/lib/case-bank-types";
 import {
   createStudyRoomAction,
   joinStudyRoomAction,
@@ -107,7 +107,6 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
 
   // Post-recording debrief window — mirrors StudyRoom.tsx: recording stops
   // sharp at 12 minutes, but the call stays open a bit longer for debrief.
-  const DEBRIEF_DURATION_SECONDS = 3 * 60;
   const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
   const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

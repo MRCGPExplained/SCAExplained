@@ -36,11 +36,16 @@ export default function DualTrackPlayer({
       setPlaying(false);
     } else {
       if (patientRef.current) patientRef.current.currentTime = doctor.currentTime;
-      await Promise.all([
-        doctor.play(),
-        patientRef.current ? patientRef.current.play() : Promise.resolve(),
-      ]);
-      setPlaying(true);
+      try {
+        await Promise.all([
+          doctor.play(),
+          patientRef.current ? patientRef.current.play() : Promise.resolve(),
+        ]);
+        setPlaying(true);
+      } catch (err) {
+        console.error("[DualTrackPlayer] play() failed", err);
+        setPlaying(false);
+      }
     }
   }
 
@@ -64,17 +69,49 @@ export default function DualTrackPlayer({
     function onTime() { setCurrentTime(el!.currentTime); }
     function onDuration() { if (el!.duration && isFinite(el!.duration)) setDuration(el!.duration); }
     function onEnded() { setPlaying(false); setCurrentTime(0); if (patientRef.current) patientRef.current.currentTime = 0; }
-    function onCanPlay() { setReady(true); if (el!.duration && isFinite(el!.duration)) setDuration(el!.duration); }
+    // Enable playback as soon as ANY load signal fires — MediaRecorder webm
+    // files often don't report a finite duration up front, so relying on
+    // "canplay" alone can leave the button stuck disabled.
+    function onReadyEvt() { setReady(true); if (el!.duration && isFinite(el!.duration)) setDuration(el!.duration); }
+
+    // Surface media load/decode failures instead of failing silently.
+    function logErr(which: string) {
+      return (ev: Event) => {
+        const media = ev.target as HTMLAudioElement;
+        console.error(`[DualTrackPlayer] ${which} audio error`, {
+          src: media.currentSrc,
+          code: media.error?.code,
+          message: media.error?.message,
+          networkState: media.networkState,
+          readyState: media.readyState,
+        });
+      };
+    }
+    const onDoctorErr = logErr("doctor");
+    const onPatientErr = logErr("patient");
 
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("durationchange", onDuration);
     el.addEventListener("ended", onEnded);
-    el.addEventListener("canplay", onCanPlay);
+    el.addEventListener("canplay", onReadyEvt);
+    el.addEventListener("loadeddata", onReadyEvt);
+    el.addEventListener("loadedmetadata", onReadyEvt);
+    el.addEventListener("error", onDoctorErr);
+    patientRef.current?.addEventListener("error", onPatientErr);
+
+    // If metadata is already loaded by the time this effect runs, unlock now.
+    if (el.readyState >= 1) setReady(true);
+
+    const patientEl = patientRef.current;
     return () => {
       el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("durationchange", onDuration);
       el.removeEventListener("ended", onEnded);
-      el.removeEventListener("canplay", onCanPlay);
+      el.removeEventListener("canplay", onReadyEvt);
+      el.removeEventListener("loadeddata", onReadyEvt);
+      el.removeEventListener("loadedmetadata", onReadyEvt);
+      el.removeEventListener("error", onDoctorErr);
+      patientEl?.removeEventListener("error", onPatientErr);
     };
   }, []);
 
