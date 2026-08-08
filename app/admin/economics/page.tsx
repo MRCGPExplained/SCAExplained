@@ -59,7 +59,7 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
     return range ? q.gte("created_at", range.start).lt("created_at", range.end) : q;
   };
 
-  const [ledgerRes, revenueRes, dailyRes, claudeRes, deepgramRes, allLedgerRes, allRevenueRes, allDailyRes] = await Promise.all([
+  const [ledgerRes, revenueRes, dailyRes, claudeRes, deepgramRes, allLedgerRes, allRevenueRes] = await Promise.all([
     scoped("consultation_costs", "deepgram_cost_gbp, claude_cost_gbp, daily_cost_gbp, gp_cost_gbp, total_cost_gbp, gp_reviewed, participants, created_at"),
     scoped("revenue_events", "amount_gross_gbp, stripe_fee_gbp, user_id, created_at"),
     scoped("daily_usage", "participant_minutes, room_duration_s, max_participants, cost_gbp, created_at"),
@@ -67,10 +67,9 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
     scoped("deepgram_usage", "audio_duration_s, cost_gbp, created_at"),
     admin.from("consultation_costs").select("deepgram_cost_gbp, claude_cost_gbp, daily_cost_gbp, gp_cost_gbp, created_at"),
     admin.from("revenue_events").select("amount_gross_gbp, stripe_fee_gbp, user_id, created_at"),
-    admin.from("daily_usage").select("participant_minutes, created_at"),
   ]);
 
-  for (const [name, res] of Object.entries({ ledgerRes, revenueRes, dailyRes, claudeRes, deepgramRes, allLedgerRes, allRevenueRes, allDailyRes })) {
+  for (const [name, res] of Object.entries({ ledgerRes, revenueRes, dailyRes, claudeRes, deepgramRes, allLedgerRes, allRevenueRes })) {
     if (res.error) logger.error("page", res.error, { query: name });
   }
 
@@ -82,7 +81,6 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   const deepgram = (deepgramRes.data ?? []) as unknown as Row[];
   const allLedger = (allLedgerRes.data ?? []) as unknown as Row[];
   const allRevenue = (allRevenueRes.data ?? []) as unknown as Row[];
-  const allDaily = (allDailyRes.data ?? []) as unknown as Row[];
 
   logger.log("page", "period rows", { ledger: ledger.length, revenue: revenue.length, daily: daily.length, claude: claude.length, deepgram: deepgram.length });
 
@@ -92,11 +90,10 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   const dgCost = ledger.reduce((s, r) => s + num(r.deepgram_cost_gbp), 0);
   const clCost = ledger.reduce((s, r) => s + num(r.claude_cost_gbp), 0);
   const gpCost = ledger.reduce((s, r) => s + num(r.gp_cost_gbp), 0);
-  const dailyGross = ledger.reduce((s, r) => s + num(r.daily_cost_gbp), 0);
   const dailyMinutes = daily.reduce((s, r) => s + num(r.participant_minutes), 0);
-  const freeMin = pricing?.dailyFreeMinutesPerMonth ?? 0;
-  const audioRateGbp = pricing ? pricing.dailyAudioUsdPerMin * pricing.usdToGbp : 0;
-  const dailyCost = Math.max(0, dailyGross - Math.min(dailyMinutes, freeMin) * audioRateGbp);
+  // Conservative: bill every participant-minute at full rate, ignoring Daily's
+  // 10,000 free-minutes/month allowance.
+  const dailyCost = ledger.reduce((s, r) => s + num(r.daily_cost_gbp), 0);
 
   const consultations = ledger.length;
   const gpReviews = ledger.filter((r) => r.gp_reviewed).length;
@@ -159,8 +156,6 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   };
   for (const r of allRevenue) { if (!r.created_at) continue; const m = mb(monthKey(String(r.created_at))); m.revenue += num(r.amount_gross_gbp); m.stripe += num(r.stripe_fee_gbp); }
   for (const r of allLedger) { if (!r.created_at) continue; const m = mb(monthKey(String(r.created_at))); m.deepgram += num(r.deepgram_cost_gbp); m.claude += num(r.claude_cost_gbp); m.daily += num(r.daily_cost_gbp); m.gp += num(r.gp_cost_gbp); m.consultations += 1; }
-  const monthlyMinutes = new Map<string, number>();
-  for (const r of allDaily) { if (!r.created_at) continue; monthlyMinutes.set(monthKey(String(r.created_at)), (monthlyMinutes.get(monthKey(String(r.created_at))) ?? 0) + num(r.participant_minutes)); }
   const sortedKeys = [...months.keys()].sort();
 
   const seriesRevenue: Point[] = [];
@@ -169,8 +164,8 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   const seriesCostPerConsult: Point[] = [];
   for (const k of sortedKeys) {
     const m = months.get(k)!;
-    const dAdj = Math.max(0, m.daily - Math.min(monthlyMinutes.get(k) ?? 0, freeMin) * audioRateGbp);
-    const varCost = m.deepgram + m.claude + dAdj + m.gp + m.stripe;
+    // Conservative: full-rate Daily, no free-minute allowance.
+    const varCost = m.deepgram + m.claude + m.daily + m.gp + m.stripe;
     const profit = m.revenue - varCost;
     const label = monthShort(k);
     seriesRevenue.push({ label, value: m.revenue });
@@ -289,7 +284,7 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
           </tbody>
         </table>
         <p className="text-[11px] mt-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-          Daily shown after the {freeMin.toLocaleString()} free participant-minutes/month allowance ({dailyMinutes.toFixed(0)} used).
+          Daily billed at full rate on every participant-minute — the free-minute allowance is intentionally not applied (conservative). {dailyMinutes.toFixed(0)} participant-minutes this period.
         </p>
       </Card>
 
