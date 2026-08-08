@@ -139,6 +139,29 @@ export function StudyRoomPanel({
   const doctorUserId = room?.doctor_user_id ?? null;
   const patientUserId = room?.patient_user_id ?? null;
   const rolesReady = !!doctorUserId && !!patientUserId;
+  const myAssignedRole = doctorUserId === userId ? "doctor" : patientUserId === userId ? "patient" : null;
+
+  // One-time tip (mobile only): when you're made doctor/patient, recommend a
+  // long screen timeout so the phone doesn't sleep mid-consultation.
+  const [showScreenTip, setShowScreenTip] = useState(false);
+  const [dontShowScreenTip, setDontShowScreenTip] = useState(false);
+  const prevAssignedRoleRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevAssignedRoleRef.current;
+    prevAssignedRoleRef.current = myAssignedRole;
+    if (myAssignedRole && !prev && typeof window !== "undefined") {
+      const dismissed = localStorage.getItem("sca_hide_screentime_tip") === "1";
+      const isMobile = window.matchMedia?.("(pointer: coarse)")?.matches;
+      if (!dismissed && isMobile) setShowScreenTip(true);
+    }
+  }, [myAssignedRole]);
+
+  function dismissScreenTip() {
+    if (dontShowScreenTip && typeof window !== "undefined") {
+      localStorage.setItem("sca_hide_screentime_tip", "1");
+    }
+    setShowScreenTip(false);
+  }
 
   // ── Post-recording debrief window ──────────────────────────────────────────
   // Recording stops sharp at 12 minutes, but the voice call stays open a bit
@@ -1497,6 +1520,36 @@ export function StudyRoomPanel({
               I Understand, Start
             </button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* Screen-timeout tip — shown once to the assigned doctor/patient on mobile */}
+    {showScreenTip && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 px-6" style={{ background: "rgba(26,27,82,0.55)" }}>
+        <div className="w-full max-w-[400px] rounded-2xl p-6" style={{ background: "white", boxShadow: "0 20px 60px rgba(26,27,82,0.25)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span style={{ fontSize: 20 }}>📱</span>
+            <h2 className="font-display font-bold text-[15px]" style={{ color: NAVY }}>
+              You&apos;re the {myAssignedRole === "doctor" ? "Doctor" : "Patient"} for this consultation
+            </h2>
+          </div>
+          <p className="text-[13px] mb-4 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
+            Set your device&apos;s screen timeout to <strong>20 minutes or more</strong> so it doesn&apos;t
+            lock or go to sleep during the consultation. If the screen sleeps, the recording and timer can
+            be interrupted.
+          </p>
+          <label className="flex items-center gap-2 mb-5 text-[12.5px]" style={{ color: "rgba(26,27,82,0.6)", cursor: "pointer" }}>
+            <input type="checkbox" checked={dontShowScreenTip} onChange={(e) => setDontShowScreenTip(e.target.checked)} />
+            Don&apos;t show me this message again
+          </label>
+          <button
+            onClick={dismissScreenTip}
+            className="w-full rounded-lg py-2.5 text-[13px] font-bold"
+            style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
+          >
+            Got it
+          </button>
         </div>
       </div>
     )}
