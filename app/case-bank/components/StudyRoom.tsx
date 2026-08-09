@@ -659,12 +659,44 @@ export function StudyRoomPanel({
     }
   }
 
+  // Recovery net: if a remote participant has a playable audio track that we're
+  // not currently playing (e.g. their producer dropped and came back after a
+  // network blip or the mic resumed), (re)attach it. Covers cases where a
+  // clean "track-started" didn't fire — the situation behind the mid-call
+  // "producer not found" audio drop.
+  function attachRemoteAudio(participant: {
+    local: boolean;
+    session_id: string;
+    tracks?: { audio?: { state?: string; persistentTrack?: MediaStreamTrack } };
+  } | null) {
+    if (!participant || participant.local) return;
+    const audio = participant.tracks?.audio;
+    if (audio?.state !== "playable" || !audio.persistentTrack) return;
+    const key = participant.session_id;
+    const existing = dailyAudioElsRef.current.get(key);
+    const currentId = existing?.srcObject instanceof MediaStream ? existing.srcObject.getTracks()[0]?.id : null;
+    if (existing && currentId === audio.persistentTrack.id) return; // already playing this track
+    existing?.remove();
+    const audioEl = document.createElement("audio");
+    audioEl.autoplay = true;
+    audioEl.srcObject = new MediaStream([audio.persistentTrack]);
+    audioEl.style.display = "none";
+    document.body.appendChild(audioEl);
+    dailyAudioElsRef.current.set(key, audioEl);
+    logStatus("re-attached remote audio", { session: key });
+  }
+
   async function getOrCreateDailyCall(): Promise<DailyCall | null> {
     if (dailyCallRef.current) return dailyCallRef.current;
     const DailyIframe = (await import("@daily-co/daily-js")).default;
     const call = DailyIframe.createCallObject({ subscribeToTracksAutomatically: true });
     call.on("track-started", handleDailyTrackStarted as never);
     call.on("track-stopped", handleDailyTrackStopped as never);
+    // Recovery + observability for mid-call audio drops.
+    call.on("participant-updated", ((ev: { participant: Parameters<typeof attachRemoteAudio>[0] }) => attachRemoteAudio(ev.participant)) as never);
+    call.on("error", ((e: unknown) => logError("DailyCo error", e)) as never);
+    call.on("nonfatal-error", ((e: unknown) => logError("DailyCo nonfatal-error", e)) as never);
+    call.on("network-connection", ((e: unknown) => logStatus("DailyCo network-connection", e as Record<string, unknown>)) as never);
     dailyCallRef.current = call;
     return call;
   }

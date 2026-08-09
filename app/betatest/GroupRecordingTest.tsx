@@ -157,13 +157,33 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   // the instant it becomes ready, instead of being silently dropped.
   const pendingStopRef = useRef(false);
 
-  // Timer via effect so it starts/stops with phase
+  // Consultation clock — wall-clock anchored (not a plain per-second counter),
+  // so it stays accurate even when the tab/screen is throttled/backgrounded,
+  // and it drives the 12-minute hard cutoff from real elapsed time. Re-syncs
+  // the moment the tab becomes visible again.
   useEffect(() => {
     if (phase !== "recording") return;
-    setElapsed(0);
-    const id = setInterval(() => setElapsed((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, [phase]);
+    const startMs = Date.now();
+    let cutoffFired = false;
+    const compute = () => {
+      const e = Math.round((Date.now() - startMs) / 1000);
+      setElapsed(e);
+      if (!cutoffFired && e >= PHASE_DURATIONS.CONSULT) {
+        cutoffFired = true;
+        logStatus("12-minute wall-clock cutoff reached", { elapsed: e });
+        if (isHostRef.current) handleStop();
+        else stopLocalRecording();
+      }
+    };
+    compute();
+    const id = setInterval(compute, 1000);
+    const onVis = () => { if (document.visibilityState === "visible") compute(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-warm mic permission for everyone as soon as they enter the lobby.
   // Stops the tracks immediately — we only need the browser to cache the grant
@@ -350,12 +370,40 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     }
   }
 
+  // Recovery net: re-attach a remote participant's audio if it's playable but
+  // we're not currently playing it (producer dropped/came back mid-call).
+  function attachRemoteAudio(participant: {
+    local: boolean;
+    session_id: string;
+    tracks?: { audio?: { state?: string; persistentTrack?: MediaStreamTrack } };
+  } | null) {
+    if (!participant || participant.local) return;
+    const audio = participant.tracks?.audio;
+    if (audio?.state !== "playable" || !audio.persistentTrack) return;
+    const key = participant.session_id;
+    const existing = dailyAudioElsRef.current.get(key);
+    const currentId = existing?.srcObject instanceof MediaStream ? existing.srcObject.getTracks()[0]?.id : null;
+    if (existing && currentId === audio.persistentTrack.id) return;
+    existing?.remove();
+    const audioEl = document.createElement("audio");
+    audioEl.autoplay = true;
+    audioEl.srcObject = new MediaStream([audio.persistentTrack]);
+    audioEl.style.display = "none";
+    document.body.appendChild(audioEl);
+    dailyAudioElsRef.current.set(key, audioEl);
+    logStatus("re-attached remote audio", { session: key });
+  }
+
   async function getOrCreateDailyCall(): Promise<DailyCall | null> {
     if (dailyCallRef.current) return dailyCallRef.current;
     const DailyIframe = (await import("@daily-co/daily-js")).default;
     const call = DailyIframe.createCallObject({ subscribeToTracksAutomatically: true });
     call.on("track-started", handleDailyTrackStarted as never);
     call.on("track-stopped", handleDailyTrackStopped as never);
+    call.on("participant-updated", ((ev: { participant: Parameters<typeof attachRemoteAudio>[0] }) => attachRemoteAudio(ev.participant)) as never);
+    call.on("error", ((e: unknown) => logError("DailyCo error", e)) as never);
+    call.on("nonfatal-error", ((e: unknown) => logError("DailyCo nonfatal-error", e)) as never);
+    call.on("network-connection", ((e: unknown) => logStatus("DailyCo network-connection", e as Record<string, unknown>)) as never);
     dailyCallRef.current = call;
     return call;
   }
@@ -780,12 +828,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     // Mute observers during the graded consult; debrief unmutes all.
     dailyCallRef.current?.setLocalAudio(role !== null);
 
-    // Hard cutoff — host broadcasts stop to the whole room at 12 minutes,
-    // regardless of whether anyone remembers to click Stop.
-    hostStopCutoffRef.current = setTimeout(() => {
-      logStatus("12-minute host cutoff fired — broadcasting stop");
-      handleStop();
-    }, PHASE_DURATIONS.CONSULT * 1000);
+    // The 12-minute hard cutoff is driven by the wall-clock consultation clock
+    // effect (immune to tab throttling), not a setTimeout.
 
     if (role) launchMediaRecorder(rid, role);
   }
