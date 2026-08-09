@@ -21,6 +21,7 @@ import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
 import { PHASE_DURATIONS, DEBRIEF_DURATION_SECONDS } from "@/lib/case-bank-types";
 import { createRecordingLogger } from "@/lib/recording-logger";
 import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
+import { useWakeLock } from "@/lib/use-wake-lock";
 
 const { logStatus, logError, logDuration } = createRecordingLogger("study-room");
 
@@ -170,6 +171,15 @@ export function StudyRoomPanel({
   const [debriefSecondsLeft, setDebriefSecondsLeft] = useState<number | null>(null);
   const debriefIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debriefTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep the screen awake for the whole active session (recording + debrief),
+  // so a phone doesn't idle out and suspend the mic mid-consultation.
+  useWakeLock(
+    recordingState === "starting" ||
+      recordingState === "recording" ||
+      recordingState === "uploading" ||
+      debriefSecondsLeft !== null
+  );
 
   // Roles can only be changed before a session starts — locked through
   // pre-read, the consultation, and the debrief. The pristine pre-start state

@@ -17,6 +17,7 @@ import {
 } from "@/app/case-bank/actions";
 import type { DailyCall } from "@daily-co/daily-js";
 import { uploadRecordingAudio } from "@/lib/upload-recording-audio";
+import { useWakeLock } from "@/lib/use-wake-lock";
 import { logStatus, logError, logDuration } from "./testLogger";
 
 type Station = { id: string; number: number; title: string; subject: string };
@@ -184,6 +185,10 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the screen awake during recording + debrief so a phone doesn't idle
+  // out and suspend the mic mid-consultation.
+  useWakeLock(phase === "recording" || debriefSecondsLeft !== null);
 
   // Pre-warm mic permission for everyone as soon as they enter the lobby.
   // Stops the tracks immediately — we only need the browser to cache the grant
