@@ -10,6 +10,7 @@ import { Timer } from "./Timer";
 import { StudyRoomPanel } from "./StudyRoom";
 import { FeedbackModal } from "./ReportModal";
 import { HighlightProvider, Highlightable } from "./Highlighter";
+import { AdminEditProvider, EditableField, QAEditableField } from "./InlineEdit";
 import { toggleStarAction, updateLastStationAction } from "../actions";
 
 const NAVY = "#1F2937";
@@ -183,26 +184,34 @@ function DoctorBriefContent({ station }: { station: Station }) {
       {station.pmh.length > 0 && (
         <div>
           <Label>Past Medical History</Label>
-          <BulletList items={station.pmh} listKey="pmh" />
+          <EditableField field="pmh" value={station.pmh}>
+            <BulletList items={station.pmh} listKey="pmh" />
+          </EditableField>
         </div>
       )}
       {station.medications_and_allergies.length > 0 && (
         <div>
           <Label>Drug & Allergy History</Label>
-          <BulletList items={station.medications_and_allergies} listKey="medications_and_allergies" />
+          <EditableField field="medications_and_allergies" value={station.medications_and_allergies}>
+            <BulletList items={station.medications_and_allergies} listKey="medications_and_allergies" />
+          </EditableField>
         </div>
       )}
       {station.recent_notes && (
         <div>
           <Label>Recent Notes</Label>
-          <RecentNotesRenderer text={station.recent_notes} />
+          <EditableField field="recent_notes" value={station.recent_notes}>
+            <RecentNotesRenderer text={station.recent_notes} />
+          </EditableField>
         </div>
       )}
       <div>
         <Label>Reason for Consultation</Label>
-        <p className="text-[16px] leading-[1.6]">
-          <Highlightable unitKey="reason_for_consultation" text={station.reason_for_consultation} style={{ color: "rgba(26,27,82,0.8)" }} />
-        </p>
+        <EditableField field="reason_for_consultation" value={station.reason_for_consultation}>
+          <p className="text-[16px] leading-[1.6]">
+            <Highlightable unitKey="reason_for_consultation" text={station.reason_for_consultation} style={{ color: "rgba(26,27,82,0.8)" }} />
+          </p>
+        </EditableField>
       </div>
       {station.image_urls && station.image_urls.length > 0 && (
         <div className="grid grid-cols-1 gap-4">
@@ -318,9 +327,11 @@ function PatientStoryContent({ station }: { station: Station }) {
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "#C2410C" }}>
             The Dilemma
           </div>
-          <p className="text-[16px] leading-[1.6]">
-            <Highlightable unitKey="dilemma" text={station.dilemma} style={{ color: "rgba(26,27,82,0.8)" }} />
-          </p>
+          <EditableField field="dilemma" value={station.dilemma}>
+            <p className="text-[16px] leading-[1.6]">
+              <Highlightable unitKey="dilemma" text={station.dilemma} style={{ color: "rgba(26,27,82,0.8)" }} />
+            </p>
+          </EditableField>
         </div>
       )}
 
@@ -328,15 +339,19 @@ function PatientStoryContent({ station }: { station: Station }) {
       <div className="rounded-lg p-4 flex flex-col gap-3" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
         <div>
           <Label>Opening Statement</Label>
-          <p className="text-[16px] leading-[1.65] italic">
-            &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: "rgba(26,27,82,0.8)" }} />&rdquo;
-          </p>
+          <EditableField field="opening_statement" value={station.opening_statement}>
+            <p className="text-[16px] leading-[1.65] italic">
+              &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: "rgba(26,27,82,0.8)" }} />&rdquo;
+            </p>
+          </EditableField>
         </div>
         <div>
           <Label>If Asked to Explain Further</Label>
-          <p className="text-[16px] leading-[1.65]">
-            <Highlightable unitKey="if_asked_further" text={station.if_asked_further} style={{ color: "rgba(26,27,82,0.8)" }} />
-          </p>
+          <EditableField field="if_asked_further" value={station.if_asked_further}>
+            <p className="text-[16px] leading-[1.65]">
+              <Highlightable unitKey="if_asked_further" text={station.if_asked_further} style={{ color: "rgba(26,27,82,0.8)" }} />
+            </p>
+          </EditableField>
         </div>
       </div>
 
@@ -355,39 +370,45 @@ function PatientStoryContent({ station }: { station: Station }) {
           >
             ⚠ Only Say Below If Directly Asked
           </div>
-          <ul className="m-0 p-0 list-none flex flex-col gap-2">
-            {station.only_if_asked.map((item, i) => (
-              <li key={i} className="flex gap-2.5 items-start">
-                <span
-                  className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40"
-                  style={{ background: NAVY }}
-                />
-                <Highlightable
-                  unitKey={`only_if_asked-${i}`}
-                  text={item}
-                  className="text-[16px] leading-[1.6]"
-                  style={{ color: "rgba(26,27,82,0.8)" }}
-                />
-              </li>
-            ))}
-          </ul>
+          <EditableField field="only_if_asked" value={station.only_if_asked}>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.only_if_asked.map((item, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span
+                    className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40"
+                    style={{ background: NAVY }}
+                  />
+                  <Highlightable
+                    unitKey={`only_if_asked-${i}`}
+                    text={item}
+                    className="text-[16px] leading-[1.6]"
+                    style={{ color: "rgba(26,27,82,0.8)" }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </EditableField>
         </div>
       )}
 
       {/* ICE — three blue column boxes */}
       <div className="grid grid-cols-3 gap-2.5">
-        {[
-          ["Ideas", "ice_ideas", station.ice_ideas],
-          ["Concerns", "ice_concerns", station.ice_concerns],
-          ["Expectations", "ice_expectations", station.ice_expectations],
-        ].map(([label, key, value]) => (
+        {(
+          [
+            ["Ideas", "ice_ideas", station.ice_ideas],
+            ["Concerns", "ice_concerns", station.ice_concerns],
+            ["Expectations", "ice_expectations", station.ice_expectations],
+          ] as const
+        ).map(([label, key, value]) => (
           <div key={label} className="rounded-lg p-3" style={{ background: "#EFF6FF" }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.5)" }}>
               {label}
             </div>
-            <p className="text-[16px] leading-[1.55]">
-              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.8)" }} />
-            </p>
+            <EditableField field={key} value={value}>
+              <p className="text-[16px] leading-[1.55]">
+                <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.8)" }} />
+              </p>
+            </EditableField>
           </div>
         ))}
       </div>
@@ -396,32 +417,38 @@ function PatientStoryContent({ station }: { station: Station }) {
       <div className="rounded-lg p-4 flex flex-col gap-3.5" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
         <div>
           <Label>Social History</Label>
-          <LabelledText text={station.social_history} unitPrefix="social_history" />
+          <EditableField field="social_history" value={station.social_history}>
+            <LabelledText text={station.social_history} unitPrefix="social_history" />
+          </EditableField>
         </div>
         {station.pmh && station.pmh.length > 0 && (
           <div>
             <Label>Past Medical History</Label>
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {station.pmh.map((item, i) => (
-                <li key={i} className="flex gap-2.5 items-start">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                  <Highlightable unitKey={`story_pmh-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
-                </li>
-              ))}
-            </ul>
+            <EditableField field="pmh" value={station.pmh}>
+              <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                {station.pmh.map((item, i) => (
+                  <li key={i} className="flex gap-2.5 items-start">
+                    <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                    <Highlightable unitKey={`story_pmh-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                  </li>
+                ))}
+              </ul>
+            </EditableField>
           </div>
         )}
         {station.medications_and_allergies && station.medications_and_allergies.length > 0 && (
           <div>
             <Label>Medications &amp; Allergies</Label>
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {station.medications_and_allergies.map((item, i) => (
-                <li key={i} className="flex gap-2.5 items-start">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                  <Highlightable unitKey={`story_meds-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
-                </li>
-              ))}
-            </ul>
+            <EditableField field="medications_and_allergies" value={station.medications_and_allergies}>
+              <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                {station.medications_and_allergies.map((item, i) => (
+                  <li key={i} className="flex gap-2.5 items-start">
+                    <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                    <Highlightable unitKey={`story_meds-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                  </li>
+                ))}
+              </ul>
+            </EditableField>
           </div>
         )}
       </div>
@@ -430,24 +457,26 @@ function PatientStoryContent({ station }: { station: Station }) {
       {station.scenarios && station.scenarios.length > 0 && (
         <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
           <Label>Specific Scenarios</Label>
-          <ul className="m-0 p-0 list-none flex flex-col gap-2">
-            {station.scenarios.map((s, i) => (
-              <li key={i} className="flex gap-2.5 items-start">
-                <span
-                  className="shrink-0 text-[12px] font-bold mt-px"
-                  style={{ color: NAVY }}
-                >
-                  {i + 1}.
-                </span>
-                <Highlightable
-                  unitKey={`scenarios-${i}`}
-                  text={s}
-                  className="text-[16px] leading-[1.6]"
-                  style={{ color: "rgba(26,27,82,0.8)" }}
-                />
-              </li>
-            ))}
-          </ul>
+          <EditableField field="scenarios" value={station.scenarios}>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.scenarios.map((s, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span
+                    className="shrink-0 text-[12px] font-bold mt-px"
+                    style={{ color: NAVY }}
+                  >
+                    {i + 1}.
+                  </span>
+                  <Highlightable
+                    unitKey={`scenarios-${i}`}
+                    text={s}
+                    className="text-[16px] leading-[1.6]"
+                    style={{ color: "rgba(26,27,82,0.8)" }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </EditableField>
         </div>
       )}
 
@@ -455,14 +484,16 @@ function PatientStoryContent({ station }: { station: Station }) {
       {station.question_for_doctor && station.question_for_doctor.length > 0 && (
         <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
           <Label>{station.question_for_doctor.length > 1 ? "Questions for the Doctor" : "Question for the Doctor"}</Label>
-          <ul className="m-0 p-0 list-none flex flex-col gap-2">
-            {station.question_for_doctor.map((q, i) => (
-              <li key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
-              </li>
-            ))}
-          </ul>
+          <EditableField field="question_for_doctor" value={station.question_for_doctor}>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.question_for_doctor.map((q, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                  <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                </li>
+              ))}
+            </ul>
+          </EditableField>
         </div>
       )}
     </div>
@@ -480,6 +511,7 @@ export function StationPageClient({
   initialStarred,
   userDisplayName,
   userInitials,
+  isAdmin = false,
 }: {
   station: Station;
   userId: string;
@@ -489,6 +521,7 @@ export function StationPageClient({
   initialStarred: boolean;
   userDisplayName: string;
   userInitials: string;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
 
@@ -506,8 +539,10 @@ export function StationPageClient({
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "audio") return !!station.audio_url;
-    if (t.key === "explanation") return !!station.example_explanation?.trim();
-    if (t.key === "insight") return (station.message?.length ?? 0) > 0 || (station.trainer_qa?.length ?? 0) > 0;
+    // Admins always see explanation/insight so they have somewhere to add the
+    // first bit of content; subscribers only see them once populated.
+    if (t.key === "explanation") return isAdmin || !!station.example_explanation?.trim();
+    if (t.key === "insight") return isAdmin || (station.message?.length ?? 0) > 0 || (station.trainer_qa?.length ?? 0) > 0;
     return true;
   });
 
@@ -893,20 +928,33 @@ export function StationPageClient({
         >
           {/* Tab content */}
           <div className="rounded-xl bg-white px-6 py-5" style={{ border: "1px solid rgba(31,41,55,0.10)" }}>
+            <AdminEditProvider isAdmin={isAdmin} stationId={station.id}>
             <HighlightProvider stationId={station.id}>
             {activeTab === "brief" && <DoctorBriefContent station={station} />}
             {activeTab === "story" && <PatientStoryContent station={station} />}
-            {activeTab === "data" && <BulletList items={station.data_gathering} listKey="data_gathering" />}
-            {activeTab === "management" && <BulletList items={station.management} listKey="management" />}
+            {activeTab === "data" && (
+              <EditableField field="data_gathering" value={station.data_gathering}>
+                <BulletList items={station.data_gathering} listKey="data_gathering" />
+              </EditableField>
+            )}
+            {activeTab === "management" && (
+              <EditableField field="management" value={station.management}>
+                <BulletList items={station.management} listKey="management" />
+              </EditableField>
+            )}
             {activeTab === "explanation" && (
-              <ExplanationBody text={station.example_explanation} />
+              <EditableField field="example_explanation" value={station.example_explanation}>
+                <ExplanationBody text={station.example_explanation} />
+              </EditableField>
             )}
             {activeTab === "insight" && (
               <div className="flex flex-col gap-6">
-                {(station.message?.length ?? 0) > 0 && (
-                  <BulletList items={station.message ?? []} listKey="message" />
+                {((station.message?.length ?? 0) > 0 || isAdmin) && (
+                  <EditableField field="message" value={station.message ?? []}>
+                    <BulletList items={station.message ?? []} listKey="message" />
+                  </EditableField>
                 )}
-                {(station.trainer_qa?.length ?? 0) > 0 && (
+                {((station.trainer_qa?.length ?? 0) > 0 || isAdmin) && (
                   <div
                     style={
                       (station.message?.length ?? 0) > 0
@@ -915,22 +963,24 @@ export function StationPageClient({
                     }
                   >
                     <Label>Common Questions</Label>
-                    <div className="flex flex-col gap-4">
-                      {station.trainer_qa.map((qa, i) => (
-                        <div
-                          key={i}
-                          className="rounded-lg p-4"
-                          style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
-                        >
-                          <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
-                            <Highlightable unitKey={`trainer_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
-                          </p>
-                          <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
-                            <Highlightable unitKey={`trainer_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                    <QAEditableField value={station.trainer_qa ?? []}>
+                      <div className="flex flex-col gap-4">
+                        {(station.trainer_qa ?? []).map((qa, i) => (
+                          <div
+                            key={i}
+                            className="rounded-lg p-4"
+                            style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
+                          >
+                            <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
+                              <Highlightable unitKey={`trainer_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
+                            </p>
+                            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
+                              <Highlightable unitKey={`trainer_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </QAEditableField>
                   </div>
                 )}
               </div>
@@ -951,6 +1001,7 @@ export function StationPageClient({
               </div>
             )}
             </HighlightProvider>
+            </AdminEditProvider>
           </div>
 
           {/* Timer + study room */}

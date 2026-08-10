@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getCaseBankAccess } from "@/lib/case-bank-access";
+import { isAdmin } from "@/lib/admin-auth";
 import type { Station } from "@/lib/case-bank-types";
 import { StationPageClient } from "../components/StationPageClient";
 
@@ -24,6 +25,8 @@ export default async function StationPage({ params }: PageProps) {
 
   const access = await getCaseBankAccess(supabase, user.id);
   if (!access.hasAccess) redirect("/case-bank/upgrade");
+
+  const admin = await isAdmin();
 
   // Fetch station
   const { data: station } = await supabase
@@ -86,6 +89,7 @@ export default async function StationPage({ params }: PageProps) {
       initialStarred={!!star}
       userDisplayName={profile?.display_name ?? user.email ?? ""}
       userInitials={profile?.initials ?? "?"}
+      isAdmin={admin}
     />
   );
 }
