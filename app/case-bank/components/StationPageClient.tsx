@@ -419,7 +419,7 @@ export function StationPageClient({
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "audio") return !!station.audio_url;
     if (t.key === "explanation") return !!station.example_explanation?.trim();
-    if (t.key === "message") return !!station.message?.trim() || !!station.case_intent?.trim();
+    if (t.key === "message") return !!station.message?.trim();
     if (t.key === "qa") return (station.patient_qa?.length ?? 0) > 0;
     return true;
   });
@@ -817,26 +817,9 @@ export function StationPageClient({
               </p>
             )}
             {activeTab === "message" && (
-              <div className="flex flex-col gap-4">
-                {station.case_intent && (
-                  <div
-                    className="rounded-lg p-4"
-                    style={{ background: "rgba(246,212,75,0.10)", border: "1px solid rgba(246,212,75,0.3)" }}
-                  >
-                    <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: NAVY }}>
-                      What This Case Tests
-                    </div>
-                    <p className="text-[16px] leading-[1.6]">
-                      <Highlightable unitKey="case_intent_debrief" text={station.case_intent} style={{ color: "rgba(26,27,82,0.8)" }} />
-                    </p>
-                  </div>
-                )}
-                {station.message && (
-                  <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
-                    <Highlightable unitKey="message" text={station.message} style={{ color: "rgba(26,27,82,0.82)" }} />
-                  </p>
-                )}
-              </div>
+              <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+                <Highlightable unitKey="message" text={station.message ?? ""} style={{ color: "rgba(26,27,82,0.82)" }} />
+              </p>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}
             {activeTab === "qa" && (
