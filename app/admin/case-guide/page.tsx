@@ -112,7 +112,7 @@ export default function CaseGuidePage() {
           name="1. The Dilemma"
           what="The single most important field: the case's central tension AND how the role-player should act it. Written in the second person (&ldquo;You are…&rdquo;)."
           contains="Identity + presentation + the tension + reveal timing. e.g. &ldquo;You are Rachel, 30, 10 weeks pregnant with light bleeding… you're cooperative until the doctor suggests going to hospital, then you reveal you have no childcare…&rdquo; End with a line on what the case tests."
-          tip="Tell the role-player WHEN to reveal the twist, so they don't blurt it out too early. Also fed to the AI grader as context. Never shown to the candidate."
+          tip="Keep it to 4-5 sentences. Tell the role-player WHEN to reveal the twist, so they don't blurt it out too early. Watch for prior-knowledge errors: don't give the patient knowledge (e.g. that it's a liver result) before the point in the consult where they'd actually learn it. Also fed to the AI grader as context. Never shown to the candidate."
         />
         <Field name="2. Opening Statement" what="The exact first line the patient says." contains="Verbatim, in the patient's own words. This is what they open the consultation with." />
         <Field name="3. If Asked to Explain Further" what="The next layer of detail, given freely once the doctor asks." contains="What the patient elaborates when prompted about the presenting complaint." />
@@ -123,9 +123,24 @@ export default function CaseGuidePage() {
           tip="This is where a lot of the marks live — reward candidates who ask the right questions."
         />
         <Field name="5. ICE (Ideas, Concerns, Expectations)" what="The patient's mindset — it colours the whole performance." contains="Ideas (what they think is going on), Concerns (their main worry), Expectations (what they want from the visit)." />
-        <Field name="6. Social History" what="Home, work, lifestyle — including the circumstances the case hinges on." contains="Living situation, occupation, smoking/alcohol, and any social barrier (childcare, transport, housing, caring role)." />
-        <Field name="7. Past Medical History / 8. Medications & Allergies" what="Also shown here so the role-player can answer accurately." contains="Same content as the Doctor's Brief — the role-player needs to know their own history." />
-        <Field name="9. Specific Scenarios" what="Branching responses — how the patient reacts to what the doctor does." contains="&ldquo;If the doctor suggests X, respond Y.&rdquo; Numbered. Optional." />
+        <Field
+          name="6. Social History"
+          what="Home, work, lifestyle — including the circumstances the case hinges on."
+          contains="Write it as labelled lines — one per line as &ldquo;Label: value&rdquo; — and the labels render in bold. Use whatever labels the case needs: Occupation, Home, Smoking, Alcohol, Diet, Drugs, Family, Carer role."
+          tip="Keep each line a concise fact, not a paragraph. Put any social barrier the case turns on here (childcare, transport, housing)."
+        />
+        <Field
+          name="7. Past Medical History / 8. Medications & Allergies"
+          what="Also shown here so the role-player can answer accurately."
+          contains="Same content as the Doctor's Brief — the role-player needs to know their own history."
+          tip="Documented facts (regular meds, results) belong in the record here, NOT scripted into the patient's speech or Scenarios. The patient's brief is for what they say/reveal; the record is for what's known."
+        />
+        <Field
+          name="9. Specific Scenarios"
+          what="Branching reactions — how the patient responds to what the doctor DOES or SUGGESTS."
+          contains="&ldquo;If the doctor suggests/mentions/reveals X, react this way.&rdquo; Numbered. Optional. Behaviour and reactions only."
+          tip="Facts the patient gives when asked (drinking amount, etc.) do NOT go here — they belong in Only-If-Asked, Social History, or the record."
+        />
         <Field
           name="10. Questions for the Doctor"
           what="The question(s) the patient actively asks."
@@ -150,7 +165,7 @@ export default function CaseGuidePage() {
           name="Example Explanation"
           what="A model answer in the candidate's own words: how to actually explain the diagnosis or manage the situation."
           contains="Write it as a DIALOGUE. Prefix each line with &ldquo;Doctor:&rdquo; or &ldquo;Patient:&rdquo; and it renders as a styled script. Model the interaction, including how the doctor handles the dilemma."
-          tip="Keep speakers alternating — avoid two Doctor lines back to back. Make sure the model doctor demonstrates the competency the case tests (e.g. acknowledging the patient's social barrier)."
+          tip="Keep it brief and easy for a patient to digest: short alternating turns, plain language, and don't recite numbers or stack several points at once (the results already appear in the brief). Avoid two Doctor lines back to back, and make sure the model doctor demonstrates the competency the case tests."
         />
       </Card>
 

@@ -231,6 +231,41 @@ function DoctorBriefContent({ station }: { station: Station }) {
   );
 }
 
+// Renders text where lines written as "Label: value" show the label in bold
+// (used for Social History). Plain text with no such lines renders as a paragraph.
+function LabelledText({ text, unitPrefix }: { text: string; unitPrefix: string }) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const rows = lines.map((line) => {
+    const m = line.match(/^([^:\n]{1,24}):\s+(.+)$/);
+    return m
+      ? { label: m[1].trim() as string | null, value: m[2].trim() }
+      : { label: null as string | null, value: line };
+  });
+
+  if (!rows.some((r) => r.label)) {
+    return (
+      <p className="text-[16px] leading-[1.65]">
+        <Highlightable unitKey={unitPrefix} text={text} style={{ color: "rgba(26,27,82,0.8)" }} />
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {rows.map((r, i) => (
+        <p key={i} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          {r.label && (
+            <span className="font-semibold" style={{ color: "rgba(26,27,82,0.6)" }}>
+              {r.label}:{" "}
+            </span>
+          )}
+          <Highlightable unitKey={`${unitPrefix}-${i}`} text={r.value} style={{ color: "rgba(26,27,82,0.8)" }} />
+        </p>
+      ))}
+    </div>
+  );
+}
+
 // Renders the Example Explanation. If the text is written as a Doctor/Patient
 // dialogue (lines prefixed "Doctor:" / "Patient:") it renders as a styled
 // script; otherwise it falls back to a prose block.
@@ -361,9 +396,7 @@ function PatientStoryContent({ station }: { station: Station }) {
       <div className="rounded-lg p-4 flex flex-col gap-3.5" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
         <div>
           <Label>Social History</Label>
-          <p className="text-[16px] leading-[1.65]">
-            <Highlightable unitKey="social_history" text={station.social_history} style={{ color: "rgba(26,27,82,0.8)" }} />
-          </p>
+          <LabelledText text={station.social_history} unitPrefix="social_history" />
         </div>
         {station.pmh && station.pmh.length > 0 && (
           <div>
