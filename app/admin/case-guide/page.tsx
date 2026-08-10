@@ -94,6 +94,15 @@ export default function CaseGuidePage() {
           <li>PMH and Medications & Allergies are never blank by omission — if genuinely nothing, say so explicitly, and check them before reasoning about any drug choice in Management.</li>
           <li>No em dashes (—) anywhere in case content. Use a period, comma, colon, or semicolon instead. (This guide&rsquo;s own prose is exempt; the rule is for case fields subscribers or candidates see.)</li>
         </ul>
+        <p className="text-[13.5px] leading-[1.7] mt-3 rounded-md px-3 py-2" style={{ background: "rgba(180,83,9,0.06)", color: AMBER }}>
+          <span className="font-bold">Last step, every time: </span>
+          read the whole case front to back as one document, after every field is populated, before presenting it as
+          finished. The bullets above catch rule violations within a field; they don&rsquo;t catch duplication{" "}
+          <em>between</em> fields, since that&rsquo;s a relationship, not a property of any one field. This has already
+          happened once: a fact was moved into Only-If-Asked to fix a categorisation issue, without checking it was
+          already sitting in If Asked to Explain Further two fields up, in the same editing session. A per-field
+          checklist alone won&rsquo;t catch that; a full read-through will.
+        </p>
       </Card>
 
       <Card title="Housekeeping" kicker="Core details">
@@ -147,7 +156,12 @@ export default function CaseGuidePage() {
           tip="Maximum 4 sentences, each direct — no run-ons (don't chain multiple clauses together with commas/&ldquo;so&rdquo;/&ldquo;and&rdquo;). Tell the role-player WHEN to reveal the twist, so they don't blurt it out too early. Watch for prior-knowledge errors: don't give the patient knowledge (e.g. that it's a liver result) before the point in the consult where they'd actually learn it. Don't restate a SECONDARY reaction that's already scripted in Scenarios or Only-If-Asked (e.g. getting alarmed if the doctor says &ldquo;cirrhosis&rdquo;) — that belongs only in Scenarios/Only-If-Asked. But the CORE tension itself belongs in both, at different levels of detail: the Dilemma states the theme (e.g. &ldquo;you worry your drinking caused it&rdquo;), Scenarios own the precise execution (the exact trigger and how to ask). The closing &ldquo;the case tests…&rdquo; sentence can list a few things (gentle reveal, X, Y) — that's fine, it's still one direct sentence, not a fragment. Also fed to the AI grader as context. Never shown to the candidate."
         />
         <Field name="2. Opening Statement" what="The exact first line the patient says." contains="Verbatim, in the patient's own words. This is what they open the consultation with." />
-        <Field name="3. If Asked to Explain Further" what="The next layer of detail, given freely once the doctor asks." contains="What the patient elaborates when prompted about the presenting complaint." />
+        <Field
+          name="3. If Asked to Explain Further"
+          what="The next layer of detail, given freely once the doctor asks."
+          contains="What the patient elaborates when prompted about the presenting complaint."
+          tip="Keep this general (tone, timeline in passing, how they've been explaining it to themselves). If a specific fact is gated behind a particular question in Only Say Below If Directly Asked, don't also give it away for free here, that defeats the gating."
+        />
         <Field
           name="4. Only Say If Directly Asked"
           what="Information the patient withholds unless the doctor specifically asks."
