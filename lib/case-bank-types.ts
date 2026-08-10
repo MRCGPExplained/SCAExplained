@@ -29,7 +29,7 @@ export type Station = {
   data_gathering: string[];
   management: string[];
   example_explanation: string;
-  message: string | null;
+  message: string[] | null;
   key_takeaways: string[];
   trainer_qa: QAPair[];
   audio_url: string | null;

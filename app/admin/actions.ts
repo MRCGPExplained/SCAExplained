@@ -79,8 +79,7 @@ function stationFromForm(formData: FormData) {
     example_explanation: String(
       formData.get("example_explanation") ?? ""
     ).trim(),
-    message: String(formData.get("message") ?? "").trim() || null,
-    key_takeaways: parseLines(String(formData.get("key_takeaways") ?? "")),
+    message: parseLines(String(formData.get("message") ?? "")),
     trainer_qa: trainerQa,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,

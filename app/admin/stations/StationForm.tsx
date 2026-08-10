@@ -532,18 +532,12 @@ export function StationForm({ station }: { station?: Station }) {
             rows={10}
             hint="A model answer in the candidate's own words: how they might actually explain the diagnosis or manage the situation in the exam. Hidden from subscribers if blank."
           />
-          <TextareaField
-            label="Message (optional)"
-            name="message"
-            defaultValue={station?.message ?? ""}
-            rows={5}
-            hint="Trainer / examiner insight for the candidate about this case (not words to say). Hidden if blank."
-          />
           <ArrayField
-            label="Key Takeaways"
-            name="key_takeaways"
-            defaultValue={station?.key_takeaways}
+            label="Message — trainer insight (optional)"
+            name="message"
+            defaultValue={station?.message ?? []}
             rows={5}
+            hint="One bullet per line. Your insight for the candidate about this case (not words to say). Hidden if blank."
           />
         </div>
       </section>
