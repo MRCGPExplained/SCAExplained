@@ -44,32 +44,41 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-const URL_PATTERN = /https?:\/\/\S+/g;
+// Matches either a markdown-style [label](url) link or a bare https:// URL.
+// Two copies: the global one for extracting all matches (matchAll clones it
+// internally, so it's never mutated), and a non-global one for a plain
+// existence check that doesn't touch lastIndex.
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g;
+const LINK_TEST_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/;
 
-// Splits text around bare URLs and renders them as clickable links. Used
-// instead of Highlightable for lines that contain a link, since the
-// highlight system's offsets are computed from plain text and a link would
-// throw them off.
+// Splits text around links (markdown [label](url) or bare URLs) and renders
+// them as clickable anchors. Used instead of Highlightable for lines that
+// contain a link, since the highlight system's offsets are computed from
+// plain text and a link would throw them off.
 function renderWithLinks(text: string) {
-  const parts = text.split(URL_PATTERN);
-  const urls = text.match(URL_PATTERN) ?? [];
   const nodes: React.ReactNode[] = [];
-  parts.forEach((part, i) => {
-    if (part) nodes.push(<span key={`t${i}`}>{part}</span>);
-    if (urls[i]) {
-      nodes.push(
-        <a
-          key={`u${i}`}
-          href={urls[i]}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#2563EB", textDecoration: "underline" }}
-        >
-          {urls[i]}
-        </a>
-      );
-    }
-  });
+  let lastIndex = 0;
+  let i = 0;
+  for (const match of text.matchAll(LINK_PATTERN)) {
+    const [full, label, labelledUrl, bareUrl] = match;
+    const start = match.index ?? 0;
+    if (start > lastIndex) nodes.push(<span key={`t${i}`}>{text.slice(lastIndex, start)}</span>);
+    const href = labelledUrl ?? bareUrl;
+    nodes.push(
+      <a
+        key={`u${i}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "#2563EB", textDecoration: "underline" }}
+      >
+        {label ?? href}
+      </a>
+    );
+    lastIndex = start + full.length;
+    i++;
+  }
+  if (lastIndex < text.length) nodes.push(<span key={`t${i}`}>{text.slice(lastIndex)}</span>);
   return nodes;
 }
 
@@ -77,8 +86,7 @@ function BulletList({ items, listKey }: { items: string[]; listKey?: string }) {
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-2">
       {items.map((item, i) => {
-        const hasLink = URL_PATTERN.test(item);
-        URL_PATTERN.lastIndex = 0; // reset after .test() with the /g flag
+        const hasLink = LINK_TEST_PATTERN.test(item);
         return (
           <li key={i} className="flex gap-3 items-start">
             <span

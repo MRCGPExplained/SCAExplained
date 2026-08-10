@@ -29,7 +29,7 @@ function Field({
 }: {
   name: string;
   what: string;
-  contains: string;
+  contains: ReactNode;
   tip?: string;
 }) {
   return (
@@ -155,7 +155,7 @@ export default function CaseGuidePage() {
           name="Management"
           what="The expected management plan."
           contains="One step per line — reassurance, referrals, prescriptions, safety-netting."
-          tip="Keep it tight. Over-long management lists are common in old cases — merge related points and cut low-value advice (e.g. non-evidence-based rest advice). Check every management step against NICE CKS before finalising — old-course cases sometimes state a threshold or rule confidently but wrong (e.g. gating antibiotics on a duration when the actual trigger is a clinical sign like discharge/perforation). Cite the real trigger, not an invented one. Add the specific NICE CKS page as its own line at the end of Management, e.g. &ldquo;Reference: NICE CKS — Otitis media (acute): https://cks.nice.org.uk/topics/otitis-media-acute/&rdquo; — bare URLs in Management or Trainer Insight render as clickable links, so subscribers can check the source themselves."
+          tip="Keep it tight. Over-long management lists are common in old cases — merge related points and cut low-value advice (e.g. non-evidence-based rest advice). Check every management step against NICE CKS before finalising — old-course cases sometimes state a threshold or rule confidently but wrong (e.g. gating antibiotics on a duration when the actual trigger is a clinical sign like discharge/perforation). Cite the real trigger, not an invented one, and link it inline where you mention it: &ldquo;[NICE guidance](https://cks.nice.org.uk/topics/otitis-media-acute/) supports…&rdquo; renders as a clickable link on that phrase (also works in Trainer Insight), so subscribers can check the source themselves without a separate reference line."
         />
         <Field name="Marking Notes (per domain)" what="Extra examiner notes for Data Gathering, Clinical Management, and Relating to Others." contains="Any domain-specific expectations. Fed to the AI grader as context; not shown to subscribers." />
       </Card>
@@ -166,6 +166,21 @@ export default function CaseGuidePage() {
           what="A model answer in the candidate's own words: how to actually run the consultation, not just explain a result."
           contains="Write it as a DIALOGUE. Prefix each line with &ldquo;Doctor:&rdquo; or &ldquo;Patient:&rdquo; and it renders as a styled script. Model the whole interaction, including how the doctor handles the dilemma."
           tip="Keep it brief and easy for a patient to digest: short alternating turns, plain language, and don't recite numbers or stack several points at once (the results already appear in the brief). Avoid two Doctor lines back to back, and make sure the model doctor demonstrates the competency the case tests. Don't let the Patient's lines go flat — a string of one-word acknowledgements (&ldquo;Okay.&rdquo; &ldquo;I understand.&rdquo;) reads as dull. Give the patient at least one line that shows their actual dilemma-driven reaction (defensiveness, relief, worry, pushback), not just polite agreement."
+        />
+        <Field
+          name="Rule of thumb for a strong conversation"
+          what="Four things the model doctor should visibly do, not just get right."
+          contains={
+            <>
+              <strong>1. Check understanding, then explain simply</strong> — ask what the patient already thinks/knows before explaining, and explain the diagnosis in plain terms, not jargon.
+              <br />
+              <strong>2. Tailor management to the patient</strong> — the plan should visibly respond to their circumstances (their work, their fears, their home situation), not read like a generic leaflet.
+              <br />
+              <strong>3. Chunk and check</strong> — don&rsquo;t deliver everything in one Doctor line. Break it into small pieces and check the patient is following before moving to the next.
+              <br />
+              <strong>4. Let Relating to Others shine where it&rsquo;s the point</strong> — if the case&rsquo;s dilemma is fundamentally an RTO case (a sensitive, non-clinical conversation), the dialogue should make that skill the visible centrepiece, not a rushed add-on after the clinical part.
+            </>
+          }
         />
       </Card>
 
