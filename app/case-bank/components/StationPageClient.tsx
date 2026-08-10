@@ -233,6 +233,48 @@ function DoctorBriefContent({ station }: { station: Station }) {
   );
 }
 
+// Renders the Example Explanation. If the text is written as a Doctor/Patient
+// dialogue (lines prefixed "Doctor:" / "Patient:") it renders as a styled
+// script; otherwise it falls back to a prose block.
+function ExplanationBody({ text }: { text: string }) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const turns: { speaker: "Doctor" | "Patient"; text: string }[] = [];
+  for (const line of lines) {
+    const m = line.match(/^(Doctor|Patient)\s*:\s*(.*)$/i);
+    if (m) {
+      turns.push({ speaker: /^d/i.test(m[1]) ? "Doctor" : "Patient", text: m[2] });
+    } else if (turns.length) {
+      turns[turns.length - 1].text += " " + line;
+    }
+  }
+
+  if (turns.length < 2) {
+    return (
+      <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+        <Highlightable unitKey="example_explanation" text={text} style={{ color: "rgba(26,27,82,0.82)" }} />
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3.5">
+      {turns.map((t, i) => (
+        <div key={i}>
+          <div
+            className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1"
+            style={{ color: t.speaker === "Doctor" ? "rgba(26,27,82,0.6)" : "#2563EB" }}
+          >
+            {t.speaker}
+          </div>
+          <p className="text-[16px] leading-[1.7]">
+            <Highlightable unitKey={`example_explanation-${i}`} text={t.text} style={{ color: "rgba(26,27,82,0.82)" }} />
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PatientStoryContent({ station }: { station: Station }) {
   return (
     <div className="flex flex-col gap-4">
@@ -829,9 +871,7 @@ export function StationPageClient({
             {activeTab === "data" && <BulletList items={station.data_gathering} listKey="data_gathering" />}
             {activeTab === "management" && <BulletList items={station.management} listKey="management" />}
             {activeTab === "explanation" && (
-              <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
-                <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
-              </p>
+              <ExplanationBody text={station.example_explanation} />
             )}
             {activeTab === "message" && (
               <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
