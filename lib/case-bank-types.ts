@@ -31,7 +31,7 @@ export type Station = {
   example_explanation: string;
   message: string | null;
   key_takeaways: string[];
-  patient_qa: QAPair[];
+  trainer_qa: QAPair[];
   audio_url: string | null;
   audio_notes: string | null;
   image_urls: string[] | null;

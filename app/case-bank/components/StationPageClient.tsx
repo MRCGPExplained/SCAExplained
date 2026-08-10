@@ -240,9 +240,9 @@ function PatientStoryContent({ station }: { station: Station }) {
       {station.dilemma && (
         <div
           className="rounded-lg p-4"
-          style={{ background: "rgba(246,212,75,0.10)", border: "1px solid rgba(246,212,75,0.3)" }}
+          style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.35)" }}
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: NAVY }}>
+          <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "#C2410C" }}>
             The Dilemma
           </div>
           <p className="text-[16px] leading-[1.6]">
@@ -420,7 +420,7 @@ export function StationPageClient({
     if (t.key === "audio") return !!station.audio_url;
     if (t.key === "explanation") return !!station.example_explanation?.trim();
     if (t.key === "message") return !!station.message?.trim();
-    if (t.key === "qa") return (station.patient_qa?.length ?? 0) > 0;
+    if (t.key === "qa") return (station.trainer_qa?.length ?? 0) > 0;
     return true;
   });
 
@@ -824,17 +824,17 @@ export function StationPageClient({
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}
             {activeTab === "qa" && (
               <div className="flex flex-col gap-4">
-                {station.patient_qa.map((qa, i) => (
+                {station.trainer_qa.map((qa, i) => (
                   <div
                     key={i}
                     className="rounded-lg p-4"
                     style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
                   >
                     <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
-                      <Highlightable unitKey={`patient_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
+                      <Highlightable unitKey={`trainer_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
                     </p>
                     <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
-                      <Highlightable unitKey={`patient_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
+                      <Highlightable unitKey={`trainer_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
                     </p>
                   </div>
                 ))}

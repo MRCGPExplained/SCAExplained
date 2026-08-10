@@ -129,7 +129,7 @@ function QAField({ defaultValue }: { defaultValue?: QAPair[] }) {
     <div className="flex flex-col gap-3">
       <input
         type="hidden"
-        name="patient_qa"
+        name="trainer_qa"
         value={JSON.stringify(
           rows.filter((r) => r.question.trim() && r.answer.trim())
         )}
@@ -159,13 +159,13 @@ function QAField({ defaultValue }: { defaultValue?: QAPair[] }) {
           <input
             value={r.question}
             onChange={(e) => update(i, { question: e.target.value })}
-            placeholder="Question the patient might ask…"
+            placeholder="A question candidates often ask you about this case…"
             className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition"
           />
           <textarea
             value={r.answer}
             onChange={(e) => update(i, { answer: e.target.value })}
-            placeholder="How the doctor might answer…"
+            placeholder="Your answer as the trainer…"
             rows={3}
             className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition resize-y"
           />
@@ -549,13 +549,13 @@ export function StationForm({ station }: { station?: Station }) {
         </div>
       </section>
 
-      {/* ── Patient Q&A ── */}
+      {/* ── Trainer Q&A ── */}
       <section className="bg-white rounded-xl border border-navy/10 p-6 mb-6">
-        <h2 className="font-display font-bold text-[15px] text-navy mb-1">Patient Q&amp;A</h2>
+        <h2 className="font-display font-bold text-[15px] text-navy mb-1">Trainer Q&amp;A</h2>
         <p className="text-[11px] text-navy/40 mb-4">
-          Common questions a patient might ask in this scenario, and how to answer them. Shown in the debrief; hidden if empty.
+          Questions candidates commonly ask you (as their trainer) about this case, and your answers. Shown in the debrief; hidden if empty.
         </p>
-        <QAField defaultValue={station?.patient_qa} />
+        <QAField defaultValue={station?.trainer_qa} />
       </section>
 
       {/* ── Sample Consultation ── */}

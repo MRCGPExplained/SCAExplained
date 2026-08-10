@@ -29,13 +29,13 @@ function stationFromForm(formData: FormData) {
   // two underlying booleans. Archived always implies unpublished.
   const status = String(formData.get("status") ?? "draft");
 
-  // Patient Q&A is submitted as a JSON array of {question, answer}. Keep only
+  // Trainer Q&A is submitted as a JSON array of {question, answer}. Keep only
   // rows where both sides have content.
-  let patientQa: { question: string; answer: string }[] = [];
+  let trainerQa: { question: string; answer: string }[] = [];
   try {
-    const parsed = JSON.parse(String(formData.get("patient_qa") ?? "[]"));
+    const parsed = JSON.parse(String(formData.get("trainer_qa") ?? "[]"));
     if (Array.isArray(parsed)) {
-      patientQa = parsed
+      trainerQa = parsed
         .map((r) => ({
           question: String(r?.question ?? "").trim(),
           answer: String(r?.answer ?? "").trim(),
@@ -43,7 +43,7 @@ function stationFromForm(formData: FormData) {
         .filter((r) => r.question && r.answer);
     }
   } catch {
-    patientQa = [];
+    trainerQa = [];
   }
 
   return {
@@ -84,7 +84,7 @@ function stationFromForm(formData: FormData) {
     ).trim(),
     message: String(formData.get("message") ?? "").trim() || null,
     key_takeaways: parseLines(String(formData.get("key_takeaways") ?? "")),
-    patient_qa: patientQa,
+    trainer_qa: trainerQa,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,
     image_urls: imageUrls.length > 0 ? imageUrls : null,
