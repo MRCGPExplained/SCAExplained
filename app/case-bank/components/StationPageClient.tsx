@@ -112,89 +112,140 @@ function BulletList({ items, listKey }: { items: string[]; listKey?: string }) {
   );
 }
 
-function RecentNotesRenderer({ text }: { text: string }) {
-  type Segment = { type: "text"; lines: string[] } | { type: "table"; rows: string[][] };
-  const segments: Segment[] = [];
+type NoteSegment =
+  | { type: "text"; lines: string[] }
+  | { type: "table"; rows: string[][] }
+  | { type: "heading"; text: string };
+
+// Parses a block of Recent Notes lines into headings ("## Heading"),
+// pipe-delimited tables, and plain-text paragraphs.
+function parseNoteSegments(lines: string[]): NoteSegment[] {
+  const segments: NoteSegment[] = [];
   let currentType: "text" | "table" | null = null;
   let currentLines: string[] = [];
 
-  for (const line of text.split("\n")) {
+  function flush() {
+    if (currentType === "table") segments.push({ type: "table", rows: currentLines.map(l => l.split(" | ").map(c => c.trim())) });
+    else if (currentType === "text") segments.push({ type: "text", lines: currentLines });
+    currentLines = [];
+    currentType = null;
+  }
+
+  for (const line of lines) {
+    if (line.trim().startsWith("## ")) {
+      flush();
+      segments.push({ type: "heading", text: line.trim().slice(3).trim() });
+      continue;
+    }
     const isTableRow = line.includes(" | ");
-    if (isTableRow) {
-      if (currentType !== "table") {
-        if (currentType !== null) segments.push({ type: currentType, lines: currentLines });
-        currentLines = [];
-        currentType = "table";
-      }
-      currentLines.push(line);
+    const wantType = isTableRow ? "table" : "text";
+    if (currentType !== wantType) {
+      flush();
+      currentType = wantType;
+    }
+    currentLines.push(line);
+  }
+  flush();
+  return segments;
+}
+
+function renderNoteSegment(seg: NoteSegment, key: string) {
+  if (seg.type === "heading") {
+    return (
+      <div
+        key={key}
+        className="text-[11px] font-bold uppercase tracking-[0.06em] mt-1"
+        style={{ color: "rgba(26,27,82,0.5)" }}
+      >
+        {seg.text}
+      </div>
+    );
+  }
+  if (seg.type === "table") {
+    const [header, ...body] = seg.rows;
+    return (
+      <div key={key} className="overflow-x-auto rounded-lg" style={{ border: "1px solid rgba(26,27,82,0.08)" }}>
+        <table className="w-full" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "rgba(26,27,82,0.04)" }}>
+              {header.map((cell, j) => (
+                <th key={j} className="text-left py-2 px-3 font-bold" style={{ color: "rgba(26,27,82,0.45)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid rgba(26,27,82,0.10)" }}>
+                  {cell}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((row, ri) => (
+              <tr key={ri} style={{ background: ri % 2 === 0 ? "transparent" : "rgba(26,27,82,0.015)" }}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="py-2 px-3" style={{ color: "rgba(26,27,82,0.8)", fontSize: "13.5px", borderBottom: ri < body.length - 1 ? "1px solid rgba(26,27,82,0.06)" : "none" }}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Text segment — split on blank lines into paragraphs
+  const paragraphs: string[] = [];
+  let current: string[] = [];
+  for (const line of seg.lines) {
+    if (line.trim() === "") {
+      if (current.length > 0) { paragraphs.push(current.join("\n")); current = []; }
     } else {
-      if (currentType !== "text") {
-        if (currentType !== null) segments.push({ type: currentType as "table", rows: currentLines.map(l => l.split(" | ").map(c => c.trim())) });
-        currentLines = [];
-        currentType = "text";
-      }
-      currentLines.push(line);
+      current.push(line);
     }
   }
-  if (currentType === "table") segments.push({ type: "table", rows: currentLines.map(l => l.split(" | ").map(c => c.trim())) });
-  if (currentType === "text") segments.push({ type: "text", lines: currentLines });
+  if (current.length > 0) paragraphs.push(current.join("\n"));
+
+  return (
+    <div key={key} className="flex flex-col gap-2">
+      {paragraphs.map((para, pi) => (
+        <p key={pi} className="m-0 text-[15px] leading-[1.65]" style={{ whiteSpace: "pre-line" }}>
+          <Highlightable
+            unitKey={`recent_notes-${key}-${pi}`}
+            text={para}
+            style={{ color: "rgba(26,27,82,0.8)" }}
+          />
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function RecentNotesRenderer({ text }: { text: string }) {
+  // Lines prefixed with "> " (markdown-style blockquote) are grouped into
+  // shaded, bordered blocks — used to set an older colleague's note apart
+  // from today's information. Consecutive quoted/unquoted lines each form
+  // their own chunk, parsed and rendered independently.
+  type Chunk = { quoted: boolean; lines: string[] };
+  const chunks: Chunk[] = [];
+  for (const rawLine of text.split("\n")) {
+    const quoted = rawLine.trimStart().startsWith(">");
+    const line = quoted ? rawLine.trimStart().replace(/^>\s?/, "") : rawLine;
+    const last = chunks[chunks.length - 1];
+    if (last && last.quoted === quoted) last.lines.push(line);
+    else chunks.push({ quoted, lines: [line] });
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      {segments.map((seg, i) => {
-        if (seg.type === "table") {
-          const [header, ...body] = seg.rows;
-          return (
-            <div key={i} className="overflow-x-auto rounded-lg" style={{ border: "1px solid rgba(26,27,82,0.08)" }}>
-              <table className="w-full" style={{ borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "rgba(26,27,82,0.04)" }}>
-                    {header.map((cell, j) => (
-                      <th key={j} className="text-left py-2 px-3 font-bold" style={{ color: "rgba(26,27,82,0.45)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid rgba(26,27,82,0.10)" }}>
-                        {cell}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {body.map((row, ri) => (
-                    <tr key={ri} style={{ background: ri % 2 === 0 ? "transparent" : "rgba(26,27,82,0.015)" }}>
-                      {row.map((cell, ci) => (
-                        <td key={ci} className="py-2 px-3" style={{ color: "rgba(26,27,82,0.8)", fontSize: "13.5px", borderBottom: ri < body.length - 1 ? "1px solid rgba(26,27,82,0.06)" : "none" }}>
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        }
-
-        // Text segment — split on blank lines into paragraphs
-        const paragraphs: string[] = [];
-        let current: string[] = [];
-        for (const line of seg.lines) {
-          if (line.trim() === "") {
-            if (current.length > 0) { paragraphs.push(current.join("\n")); current = []; }
-          } else {
-            current.push(line);
-          }
-        }
-        if (current.length > 0) paragraphs.push(current.join("\n"));
-
+      {chunks.map((chunk, ci) => {
+        const segments = parseNoteSegments(chunk.lines);
+        const rendered = segments.map((seg, si) => renderNoteSegment(seg, `${ci}-${si}`));
+        if (!chunk.quoted) return rendered;
         return (
-          <div key={i} className="flex flex-col gap-2">
-            {paragraphs.map((para, pi) => (
-              <p key={pi} className="m-0 text-[15px] leading-[1.65]" style={{ whiteSpace: "pre-line" }}>
-                <Highlightable
-                  unitKey={`recent_notes-${i}-${pi}`}
-                  text={para}
-                  style={{ color: "rgba(26,27,82,0.8)" }}
-                />
-              </p>
-            ))}
+          <div
+            key={ci}
+            className="flex flex-col gap-3 rounded-lg px-4 py-3"
+            style={{ background: "rgba(26,27,82,0.035)", borderLeft: "3px solid rgba(26,27,82,0.15)" }}
+          >
+            {rendered}
           </div>
         );
       })}

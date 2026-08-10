@@ -79,6 +79,21 @@ export default function CaseGuidePage() {
         </p>
       </Card>
 
+      <Card title="Before you finalise a case" kicker="Checklist">
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.8)" }}>
+          It&rsquo;s easy to polish the field you&rsquo;re actively rewriting while an old-course problem sits untouched two
+          fields over — e.g. a fact wrongly living in Scenarios instead of Only-If-Asked, from before this guide existed.
+          Before calling a case done, re-check <strong>every</strong> field against the rules on this page, not just the
+          ones you touched this session:
+        </p>
+        <ul className="text-[13.5px] leading-[1.7] pl-5 m-0" style={{ color: "rgba(51,51,51,0.8)" }}>
+          <li>Scenarios contain reactions only — any fact snuck in there belongs in Only-If-Asked, Social History, or the record.</li>
+          <li>Management steps are checked against NICE CKS, and any source is linked inline with &ldquo;[label](url)&rdquo;.</li>
+          <li>The Example Conversation follows the four-point rule of thumb (below).</li>
+          <li>No continuity errors across fields — dates, prior knowledge, and reveal timing all agree with each other.</li>
+        </ul>
+      </Card>
+
       <Card title="Housekeeping" kicker="Core details">
         <Field
           name="Status — Draft / Published / Archived"
@@ -104,7 +119,7 @@ export default function CaseGuidePage() {
           name="Recent Notes"
           what="Recent consultation notes, results, or letters."
           contains="Free text or pipe-delimited rows (A | B | C) to render a table. Include lab/result values here."
-          tip="Don't bury vitals or exam findings in a run-on sentence (&ldquo;BP 138/82, Pulse 78, no focal deficit, spinal tenderness…&rdquo;). Put vitals in their own small pipe-table (e.g. &ldquo;Observation | Result&rdquo; then &ldquo;BP | 138/82 mmHg&rdquo;) and give descriptive exam findings their own short paragraph, separate from the presenting complaint and plan."
+          tip="Don't bury vitals or exam findings in a run-on sentence (&ldquo;BP 138/82, Pulse 78, no focal deficit, spinal tenderness…&rdquo;). Give each its own labelled table: start a line with &ldquo;## Heading&rdquo; (e.g. &ldquo;## Observations&rdquo;) to get a small bold section heading, then a pipe-table underneath it — &ldquo;Observation | Result&rdquo; / &ldquo;BP | 138/82 mmHg&rdquo; for vitals, &ldquo;System | Finding&rdquo; / &ldquo;Neurological | No focal deficit&rdquo; for exam findings. Keep Impression and Plan as their own plain paragraphs below. If Recent Notes includes an older colleague's entry, set it apart by prefixing every line of that entry (including its blank lines) with &ldquo;&gt; &rdquo; — it renders as a shaded, bordered block, distinct from today's information."
         />
         <Field name="Images" what="Any images the candidate should see (rash, ECG, results)." contains="Upload and attribute the source. Optional." tip="Check images and lab values as you go — make sure they match the clinical story." />
       </Card>
