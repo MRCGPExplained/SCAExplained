@@ -236,17 +236,17 @@ function DoctorBriefContent({ station }: { station: Station }) {
 function PatientStoryContent({ station }: { station: Station }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Case intent — what this station is designed to test */}
-      {station.case_intent && (
+      {/* The dilemma — the case's central tension and how the patient should play it */}
+      {station.dilemma && (
         <div
           className="rounded-lg p-4"
           style={{ background: "rgba(246,212,75,0.10)", border: "1px solid rgba(246,212,75,0.3)" }}
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: NAVY }}>
-            What This Case Tests
+            The Dilemma
           </div>
           <p className="text-[16px] leading-[1.6]">
-            <Highlightable unitKey="case_intent" text={station.case_intent} style={{ color: "rgba(26,27,82,0.8)" }} />
+            <Highlightable unitKey="dilemma" text={station.dilemma} style={{ color: "rgba(26,27,82,0.8)" }} />
           </p>
         </div>
       )}

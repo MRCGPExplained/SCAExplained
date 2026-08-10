@@ -25,7 +25,7 @@ export type Station = {
   scenarios: string[] | null;
   question_for_doctor: string | null;
   role_player_instruction: string | null;
-  case_intent: string | null;
+  dilemma: string | null;
   data_gathering: string[];
   management: string[];
   example_explanation: string;

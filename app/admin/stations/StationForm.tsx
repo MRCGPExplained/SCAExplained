@@ -463,11 +463,11 @@ export function StationForm({ station }: { station?: Station }) {
           <TextareaField label="Question for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? ""} rows={2} />
           <TextareaField label="Role-Player Instruction" name="role_player_instruction" defaultValue={station?.role_player_instruction ?? ""} rows={2} />
           <TextareaField
-            label="What This Case Tests (examiner focus)"
-            name="case_intent"
-            defaultValue={station?.case_intent ?? ""}
-            rows={3}
-            hint="The core competency this station is designed to assess (e.g. 'safety-netting an atypical chest pain', 'exploring hidden agenda behind a request for antibiotics'). Shown to the role-player and in the debrief, and always given to the AI grader as context. Never shown in the candidate's pre-consultation brief."
+            label="The Dilemma — how the patient should play this case"
+            name="dilemma"
+            defaultValue={station?.dilemma ?? ""}
+            rows={4}
+            hint="The central tension of the case AND how the role-player should act it, including reveal timing (e.g. 'stay cooperative until the doctor suggests admission, then reveal the childcare problem'). Shown at the top of the role-player's Patient's Story brief and given to the AI grader as context. Never shown to the candidate."
           />
         </div>
       </section>

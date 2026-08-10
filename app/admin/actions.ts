@@ -76,7 +76,7 @@ function stationFromForm(formData: FormData) {
       String(formData.get("question_for_doctor") ?? "").trim() || null,
     role_player_instruction:
       String(formData.get("role_player_instruction") ?? "").trim() || null,
-    case_intent: String(formData.get("case_intent") ?? "").trim() || null,
+    dilemma: String(formData.get("dilemma") ?? "").trim() || null,
     data_gathering: parseLines(String(formData.get("data_gathering") ?? "")),
     management: parseLines(String(formData.get("management") ?? "")),
     example_explanation: String(

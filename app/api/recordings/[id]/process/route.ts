@@ -286,12 +286,12 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { data: station } = await admin
       .from("stations")
       .select(
-        "title, case_intent, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
       )
       .eq("number", recording.station_number)
       .single<{
         title: string;
-        case_intent: string | null;
+        dilemma: string | null;
         reason_for_consultation: string;
         pmh: string[];
         medications_and_allergies: string[];
@@ -393,7 +393,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       // Build station context for the grading prompt
       const stationContext = [
         `Station: ${station?.title ?? `Station ${recording.station_number}`}`,
-        station?.case_intent ? `What this case is designed to test: ${station.case_intent}` : null,
+        station?.dilemma ? `The dilemma at the heart of this case (what the doctor must navigate): ${station.dilemma}` : null,
         station?.reason_for_consultation ? `Reason for consultation: ${station.reason_for_consultation}` : null,
         station?.pmh?.length ? `Past medical history: ${station.pmh.join("; ")}` : null,
         station?.medications_and_allergies?.length
