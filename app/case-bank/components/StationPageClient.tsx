@@ -242,7 +242,12 @@ function ExplanationBody({ text }: { text: string }) {
   for (const line of lines) {
     const m = line.match(/^(Doctor|Patient)\s*:\s*(.*)$/i);
     if (m) {
-      turns.push({ speaker: /^d/i.test(m[1]) ? "Doctor" : "Patient", text: m[2] });
+      const speaker: "Doctor" | "Patient" = /^d/i.test(m[1]) ? "Doctor" : "Patient";
+      const last = turns[turns.length - 1];
+      // Merge consecutive lines from the same speaker so a run never renders
+      // as two back-to-back labels.
+      if (last && last.speaker === speaker) last.text += " " + m[2];
+      else turns.push({ speaker, text: m[2] });
     } else if (turns.length) {
       turns[turns.length - 1].text += " " + line;
     }
@@ -250,26 +255,19 @@ function ExplanationBody({ text }: { text: string }) {
 
   if (turns.length < 2) {
     return (
-      <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
-        <Highlightable unitKey="example_explanation" text={text} style={{ color: "rgba(26,27,82,0.82)" }} />
+      <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line", color: "#1a1a1a" }}>
+        <Highlightable unitKey="example_explanation" text={text} style={{ color: "#1a1a1a" }} />
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-3">
       {turns.map((t, i) => (
-        <div key={i}>
-          <div
-            className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1"
-            style={{ color: t.speaker === "Doctor" ? "rgba(26,27,82,0.6)" : "#2563EB" }}
-          >
-            {t.speaker}
-          </div>
-          <p className="text-[16px] leading-[1.7]">
-            <Highlightable unitKey={`example_explanation-${i}`} text={t.text} style={{ color: "rgba(26,27,82,0.82)" }} />
-          </p>
-        </div>
+        <p key={i} className="text-[16px] leading-[1.75]" style={{ color: "#1a1a1a" }}>
+          <span style={{ fontWeight: 700 }}>{t.speaker}:</span>{" "}
+          <Highlightable unitKey={`example_explanation-${i}`} text={t.text} style={{ color: "#1a1a1a" }} />
+        </p>
       ))}
     </div>
   );
