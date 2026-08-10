@@ -234,6 +234,21 @@ function DoctorBriefContent({ station }: { station: Station }) {
 function PatientStoryContent({ station }: { station: Station }) {
   return (
     <div className="flex flex-col gap-4">
+      {/* Case intent — what this station is designed to test */}
+      {station.case_intent && (
+        <div
+          className="rounded-lg p-4"
+          style={{ background: "rgba(246,212,75,0.10)", border: "1px solid rgba(246,212,75,0.3)" }}
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: NAVY }}>
+            What This Case Tests
+          </div>
+          <p className="text-[16px] leading-[1.6]">
+            <Highlightable unitKey="case_intent" text={station.case_intent} style={{ color: "rgba(26,27,82,0.8)" }} />
+          </p>
+        </div>
+      )}
+
       {/* Opening statement */}
       <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
@@ -789,9 +804,24 @@ export function StationPageClient({
             {activeTab === "data" && <BulletList items={station.data_gathering} listKey="data_gathering" />}
             {activeTab === "management" && <BulletList items={station.management} listKey="management" />}
             {activeTab === "explanation" && (
-              <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
-                <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
-              </p>
+              <div className="flex flex-col gap-4">
+                {station.case_intent && (
+                  <div
+                    className="rounded-lg p-4"
+                    style={{ background: "rgba(246,212,75,0.10)", border: "1px solid rgba(246,212,75,0.3)" }}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: NAVY }}>
+                      What This Case Tests
+                    </div>
+                    <p className="text-[16px] leading-[1.6]">
+                      <Highlightable unitKey="case_intent_debrief" text={station.case_intent} style={{ color: "rgba(26,27,82,0.8)" }} />
+                    </p>
+                  </div>
+                )}
+                <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+                  <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
+                </p>
+              </div>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}
             {activeTab === "audio" && station.audio_url && (

@@ -285,15 +285,24 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { data: station } = await admin
       .from("stations")
       .select(
-        "title, opening_statement, ice_ideas, ice_concerns, ice_expectations, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+        "title, case_intent, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
       )
       .eq("number", recording.station_number)
       .single<{
         title: string;
+        case_intent: string | null;
+        reason_for_consultation: string;
+        pmh: string[];
+        medications_and_allergies: string[];
+        recent_notes: string | null;
         opening_statement: string;
+        if_asked_further: string;
+        only_if_asked: string[];
+        social_history: string;
         ice_ideas: string;
         ice_concerns: string;
         ice_expectations: string;
+        question_for_doctor: string | null;
         role_player_instruction: string | null;
         data_gathering: string[];
         management: string[];
@@ -383,10 +392,23 @@ export async function POST(req: Request, { params }: RouteParams) {
       // Build station context for the grading prompt
       const stationContext = [
         `Station: ${station?.title ?? `Station ${recording.station_number}`}`,
+        station?.case_intent ? `What this case is designed to test: ${station.case_intent}` : null,
+        station?.reason_for_consultation ? `Reason for consultation: ${station.reason_for_consultation}` : null,
+        station?.pmh?.length ? `Past medical history: ${station.pmh.join("; ")}` : null,
+        station?.medications_and_allergies?.length
+          ? `Medications and allergies: ${station.medications_and_allergies.join("; ")}`
+          : null,
+        station?.recent_notes ? `Recent notes: ${station.recent_notes}` : null,
         station?.opening_statement ? `Opening: ${station.opening_statement}` : null,
+        station?.if_asked_further ? `Further detail the patient can give if asked: ${station.if_asked_further}` : null,
+        station?.only_if_asked?.length
+          ? `Details the patient shares only if directly asked: ${station.only_if_asked.join("; ")}`
+          : null,
+        station?.social_history ? `Social history: ${station.social_history}` : null,
         station?.ice_ideas ? `Patient's ideas: ${station.ice_ideas}` : null,
         station?.ice_concerns ? `Patient's concerns: ${station.ice_concerns}` : null,
         station?.ice_expectations ? `Patient's expectations: ${station.ice_expectations}` : null,
+        station?.question_for_doctor ? `Question the patient may ask the doctor: ${station.question_for_doctor}` : null,
         station?.data_gathering?.length
           ? `Key data gathering: ${station.data_gathering.join("; ")}`
           : null,

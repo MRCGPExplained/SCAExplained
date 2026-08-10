@@ -387,6 +387,13 @@ export function StationForm({ station }: { station?: Station }) {
           <ArrayField label="Specific Scenarios" name="scenarios" defaultValue={station?.scenarios ?? []} rows={4} />
           <TextareaField label="Question for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? ""} rows={2} />
           <TextareaField label="Role-Player Instruction" name="role_player_instruction" defaultValue={station?.role_player_instruction ?? ""} rows={2} />
+          <TextareaField
+            label="What This Case Tests (examiner focus)"
+            name="case_intent"
+            defaultValue={station?.case_intent ?? ""}
+            rows={3}
+            hint="The core competency this station is designed to assess (e.g. 'safety-netting an atypical chest pain', 'exploring hidden agenda behind a request for antibiotics'). Shown to the role-player and in the debrief, and always given to the AI grader as context. Never shown in the candidate's pre-consultation brief."
+          />
         </div>
       </section>
 
