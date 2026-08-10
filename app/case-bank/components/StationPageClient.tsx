@@ -44,29 +44,62 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
+const URL_PATTERN = /https?:\/\/\S+/g;
+
+// Splits text around bare URLs and renders them as clickable links. Used
+// instead of Highlightable for lines that contain a link, since the
+// highlight system's offsets are computed from plain text and a link would
+// throw them off.
+function renderWithLinks(text: string) {
+  const parts = text.split(URL_PATTERN);
+  const urls = text.match(URL_PATTERN) ?? [];
+  const nodes: React.ReactNode[] = [];
+  parts.forEach((part, i) => {
+    if (part) nodes.push(<span key={`t${i}`}>{part}</span>);
+    if (urls[i]) {
+      nodes.push(
+        <a
+          key={`u${i}`}
+          href={urls[i]}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#2563EB", textDecoration: "underline" }}
+        >
+          {urls[i]}
+        </a>
+      );
+    }
+  });
+  return nodes;
+}
+
 function BulletList({ items, listKey }: { items: string[]; listKey?: string }) {
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-2">
-      {items.map((item, i) => (
-        <li key={i} className="flex gap-3 items-start">
-          <span
-            className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
-            style={{ background: "rgba(31,41,55,0.25)" }}
-          />
-          {listKey ? (
-            <Highlightable
-              unitKey={`${listKey}-${i}`}
-              text={item}
-              className="text-[16px] leading-[1.65]"
-              style={{ color: "rgba(26,27,82,0.8)" }}
+      {items.map((item, i) => {
+        const hasLink = URL_PATTERN.test(item);
+        URL_PATTERN.lastIndex = 0; // reset after .test() with the /g flag
+        return (
+          <li key={i} className="flex gap-3 items-start">
+            <span
+              className="shrink-0 w-1.5 h-1.5 rounded-full mt-2"
+              style={{ background: "rgba(31,41,55,0.25)" }}
             />
-          ) : (
-            <span className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
-              {item}
-            </span>
-          )}
-        </li>
-      ))}
+            {listKey && !hasLink ? (
+              <Highlightable
+                unitKey={`${listKey}-${i}`}
+                text={item}
+                className="text-[16px] leading-[1.65]"
+                style={{ color: "rgba(26,27,82,0.8)" }}
+              />
+            ) : (
+              <span className="text-[16px] leading-[1.65]" style={{ color: "rgba(26,27,82,0.8)" }}>
+                {hasLink ? renderWithLinks(item) : item}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

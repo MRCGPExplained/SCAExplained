@@ -88,7 +88,7 @@ export default function CaseGuidePage() {
         <Field
           name="Admin Note"
           what="Internal only — never shown to subscribers."
-          contains="Why a case is archived, or any editorial note to your future self. Also the home for NICE CKS source links (see Management, below) — one line per topic, e.g. &ldquo;Antibiotics: cks.nice.org.uk/topics/otitis-media-acute/&rdquo;."
+          contains="Why a case is archived, or any editorial note to your future self."
         />
       </Card>
 
@@ -155,7 +155,7 @@ export default function CaseGuidePage() {
           name="Management"
           what="The expected management plan."
           contains="One step per line — reassurance, referrals, prescriptions, safety-netting."
-          tip="Keep it tight. Over-long management lists are common in old cases — merge related points and cut low-value advice (e.g. non-evidence-based rest advice). Check every management step against NICE CKS before finalising — old-course cases sometimes state a threshold or rule confidently but wrong (e.g. gating antibiotics on a duration when the actual trigger is a clinical sign like discharge/perforation). Cite the real trigger, not an invented one. Drop the specific NICE CKS page you checked into Admin Note, so it's a one-click re-check later rather than a re-search."
+          tip="Keep it tight. Over-long management lists are common in old cases — merge related points and cut low-value advice (e.g. non-evidence-based rest advice). Check every management step against NICE CKS before finalising — old-course cases sometimes state a threshold or rule confidently but wrong (e.g. gating antibiotics on a duration when the actual trigger is a clinical sign like discharge/perforation). Cite the real trigger, not an invented one. Add the specific NICE CKS page as its own line at the end of Management, e.g. &ldquo;Reference: NICE CKS — Otitis media (acute): https://cks.nice.org.uk/topics/otitis-media-acute/&rdquo; — bare URLs in Management or Trainer Insight render as clickable links, so subscribers can check the source themselves."
         />
         <Field name="Marking Notes (per domain)" what="Extra examiner notes for Data Gathering, Clinical Management, and Relating to Others." contains="Any domain-specific expectations. Fed to the AI grader as context; not shown to subscribers." />
       </Card>
