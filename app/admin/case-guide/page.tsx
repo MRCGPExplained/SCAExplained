@@ -92,6 +92,7 @@ export default function CaseGuidePage() {
           <li>The Example Conversation follows the four-point rule of thumb (below).</li>
           <li>No continuity errors across fields — dates, prior knowledge, and reveal timing all agree with each other.</li>
           <li>PMH and Medications & Allergies are never blank by omission — if genuinely nothing, say so explicitly, and check them before reasoning about any drug choice in Management.</li>
+          <li>No em dashes (—) anywhere in case content. Use a period, comma, colon, or semicolon instead. (This guide&rsquo;s own prose is exempt; the rule is for case fields subscribers or candidates see.)</li>
         </ul>
       </Card>
 
