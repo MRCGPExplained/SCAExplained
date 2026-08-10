@@ -91,6 +91,7 @@ export default function CaseGuidePage() {
           <li>Management steps are checked against NICE CKS, and any source is linked inline with &ldquo;[label](url)&rdquo;.</li>
           <li>The Example Conversation follows the four-point rule of thumb (below).</li>
           <li>No continuity errors across fields — dates, prior knowledge, and reveal timing all agree with each other.</li>
+          <li>PMH and Medications & Allergies are never blank by omission — if genuinely nothing, say so explicitly, and check them before reasoning about any drug choice in Management.</li>
         </ul>
       </Card>
 
@@ -113,8 +114,18 @@ export default function CaseGuidePage() {
         </p>
         <Field name="Patient Name & Age" what="Who the candidate is seeing." contains="Name and age/sex, e.g. &ldquo;30-year-old female&rdquo;." />
         <Field name="Reason for Consultation" what="The booking reason." contains="One line, as it would appear on the appointment list." />
-        <Field name="Past Medical History" what="Relevant prior history." contains="One item per line. Shown to the candidate AND, in lay terms, to the role-player." />
-        <Field name="Medications & Allergies" what="Current meds and allergy status." contains="One item per line. Include &ldquo;No known drug allergies&rdquo; explicitly if that's the case." />
+        <Field
+          name="Past Medical History"
+          what="Relevant prior history."
+          contains="One item per line. Shown to the candidate AND, in lay terms, to the role-player."
+          tip="Never leave this blank by omission — old-course cases sometimes just forgot to fill it in. If there's genuinely nothing relevant, say so explicitly: &ldquo;No significant past medical history.&rdquo;"
+        />
+        <Field
+          name="Medications & Allergies"
+          what="Current meds and allergy status."
+          contains="One item per line. Include &ldquo;No known drug allergies&rdquo; explicitly if that's the case."
+          tip="Same rule as PMH — an empty field usually means it was never filled in, not that there's nothing to say. State &ldquo;No other regular prescribed medication&rdquo; explicitly if that's true, and check it before reasoning about analgesic choices in Management (interactions, renal-cleared drugs, etc.)."
+        />
         <Field
           name="Recent Notes"
           what="Recent consultation notes, results, or letters."
