@@ -84,7 +84,7 @@ export function CaseBankMockup() {
             { label: "Patient's Story", active: false },
             { label: "Data Gathering", active: false },
             { label: "Management", active: false },
-            { label: "Example Explanation", active: false },
+            { label: "Example Conversation", active: false },
           ].map(({ label, active }) => (
             <div
               key={label}

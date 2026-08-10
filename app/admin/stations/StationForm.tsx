@@ -526,7 +526,7 @@ export function StationForm({ station }: { station?: Station }) {
         <h2 className="font-display font-bold text-[15px] text-navy mb-4">Post-Consultation</h2>
         <div className="flex flex-col gap-4">
           <TextareaField
-            label="Example Explanation (optional)"
+            label="Example Conversation (optional)"
             name="example_explanation"
             defaultValue={station?.example_explanation}
             rows={10}

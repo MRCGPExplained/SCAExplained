@@ -17,7 +17,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "story",       label: "Patient's Story" },
   { key: "data",        label: "Data Gathering" },
   { key: "management",  label: "Management" },
-  { key: "explanation", label: "Example Explanation" },
+  { key: "explanation", label: "Example Conversation" },
   { key: "takeaways",   label: "Key Takeaways" },
 ];
 
