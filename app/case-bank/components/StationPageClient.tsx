@@ -18,14 +18,15 @@ const LIGHT_BG = "#F3F2FB";
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "qa" | "audio";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "message" | "takeaways" | "qa" | "audio";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief", label: "Doctor's Brief" },
   { key: "story", label: "Patient's Story" },
   { key: "data", label: "Data Gathering" },
   { key: "management", label: "Management" },
-  { key: "explanation", label: "Message" },
+  { key: "explanation", label: "Example Explanation" },
+  { key: "message", label: "Message" },
   { key: "takeaways", label: "Key Takeaways" },
   { key: "qa", label: "Q&A" },
   { key: "audio", label: "Sample Consultation" },
@@ -418,6 +419,7 @@ export function StationPageClient({
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "audio") return !!station.audio_url;
     if (t.key === "explanation") return !!station.example_explanation?.trim();
+    if (t.key === "message") return !!station.message?.trim() || !!station.case_intent?.trim();
     if (t.key === "qa") return (station.patient_qa?.length ?? 0) > 0;
     return true;
   });
@@ -810,6 +812,11 @@ export function StationPageClient({
             {activeTab === "data" && <BulletList items={station.data_gathering} listKey="data_gathering" />}
             {activeTab === "management" && <BulletList items={station.management} listKey="management" />}
             {activeTab === "explanation" && (
+              <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+                <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
+              </p>
+            )}
+            {activeTab === "message" && (
               <div className="flex flex-col gap-4">
                 {station.case_intent && (
                   <div
@@ -824,9 +831,11 @@ export function StationPageClient({
                     </p>
                   </div>
                 )}
-                <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
-                  <Highlightable unitKey="example_explanation" text={station.example_explanation} style={{ color: "rgba(26,27,82,0.82)" }} />
-                </p>
+                {station.message && (
+                  <p className="text-[16px] leading-[1.85]" style={{ whiteSpace: "pre-line" }}>
+                    <Highlightable unitKey="message" text={station.message} style={{ color: "rgba(26,27,82,0.82)" }} />
+                  </p>
+                )}
               </div>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}

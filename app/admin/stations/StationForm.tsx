@@ -527,11 +527,18 @@ export function StationForm({ station }: { station?: Station }) {
         <h2 className="font-display font-bold text-[15px] text-navy mb-4">Post-Consultation</h2>
         <div className="flex flex-col gap-4">
           <TextareaField
-            label="Message (optional)"
+            label="Example Explanation (optional)"
             name="example_explanation"
             defaultValue={station?.example_explanation}
             rows={10}
-            hint="Editor's written debrief. Left blank, this section is hidden from subscribers."
+            hint="A model answer in the candidate's own words: how they might actually explain the diagnosis or manage the situation in the exam. Hidden from subscribers if blank."
+          />
+          <TextareaField
+            label="Message (optional)"
+            name="message"
+            defaultValue={station?.message ?? ""}
+            rows={5}
+            hint="Trainer / examiner insight for the candidate about this case (not words to say). Hidden if blank."
           />
           <ArrayField
             label="Key Takeaways"
