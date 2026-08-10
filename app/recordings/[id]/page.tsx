@@ -58,6 +58,7 @@ type RecordingDetail = {
   ai_comment_data_gathering: string | null;
   ai_comment_clinical_management: string | null;
   ai_comment_relating_to_others: string | null;
+  ai_focus_for_next_time: string | null;
   examiner_data_gathering: string | null;
   examiner_clinical_management: string | null;
   examiner_relating_to_others: string | null;
@@ -309,6 +310,18 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                     <audio src={voiceNoteUrl} controls className="w-full" style={{ height: 40 }} />
                   </div>
                 )}
+              </div>
+            ) : !showExaminerGrades && rec.ai_focus_for_next_time ? (
+              <div
+                className="rounded-2xl p-6"
+                style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+              >
+                <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: NAVY }}>
+                  Focus for Next Time
+                </div>
+                <p className="text-[13.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.75)" }}>
+                  {rec.ai_focus_for_next_time}
+                </p>
               </div>
             ) : (
               /* placeholder keeps the grid balanced when there's no overall comment yet */

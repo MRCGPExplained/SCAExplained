@@ -22,6 +22,8 @@ For every domain, write exactly 3 sentences of feedback regardless of grade:
 
 When referencing a moment from the transcript, it must be something actually said, not a paraphrase of what you'd expect a good registrar to say. Never leave a comment empty. Never use em dashes (—); use a comma or rewrite the sentence instead.
 
+FOCUS FOR NEXT TIME. After the domain comments, write a single "focus for next time" of one or two sentences naming the most valuable next step for this candidate, grounded in what the transcript actually shows. Usually there is something to improve, so name the highest-impact thing (a real gap, a safety issue, or the weakest domain) and what they should do differently. Only when the consultation was genuinely strong across the board with nothing significant to develop, name the key strength to maintain instead (e.g. "Maintain the clear, structured safety-netting you gave here"). Never invent a weakness to fill this line, and never leave it empty.
+
 Respond ONLY with valid JSON — no markdown, no explanation:
 {
   "data_gathering": "P",
@@ -29,5 +31,6 @@ Respond ONLY with valid JSON — no markdown, no explanation:
   "relating_to_others": "CP",
   "comment_data_gathering": "Three sentence comment here.",
   "comment_clinical_management": "Three sentence comment here.",
-  "comment_relating_to_others": "Three sentence comment here."
+  "comment_relating_to_others": "Three sentence comment here.",
+  "focus_for_next_time": "One or two sentence next step here."
 }`;

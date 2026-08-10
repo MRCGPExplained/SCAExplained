@@ -32,6 +32,7 @@ interface GradeResult {
   comment_data_gathering: string;
   comment_clinical_management: string;
   comment_relating_to_others: string;
+  focus_for_next_time: string;
 }
 
 interface ClaudeUsageRaw {
@@ -142,7 +143,7 @@ async function gradeWithClaude(
     },
     body: JSON.stringify({
       model: GRADING_MODEL,
-      max_tokens: 600,
+      max_tokens: 700,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     }),
@@ -469,6 +470,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_comment_data_gathering: grades.comment_data_gathering,
         ai_comment_clinical_management: grades.comment_clinical_management,
         ai_comment_relating_to_others: grades.comment_relating_to_others,
+        ai_focus_for_next_time: grades.focus_for_next_time,
         ai_graded_at: new Date().toISOString(),
         status: "ai_graded",
       }).eq("id", recordingId);
