@@ -251,20 +251,20 @@ function PatientStoryContent({ station }: { station: Station }) {
         </div>
       )}
 
-      {/* Opening statement */}
-      <div>
-        <Label>Opening Statement</Label>
-        <p className="text-[16px] leading-[1.65] italic">
-          &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: NAVY }} />&rdquo;
-        </p>
-      </div>
-
-      {/* If asked further */}
-      <div>
-        <Label>If Asked to Explain Further</Label>
-        <p className="text-[16px] leading-[1.65]">
-          <Highlightable unitKey="if_asked_further" text={station.if_asked_further} style={{ color: "rgba(26,27,82,0.8)" }} />
-        </p>
+      {/* Presenting complaint — opening statement + if asked further (grey box) */}
+      <div className="rounded-lg p-4 flex flex-col gap-3" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
+        <div>
+          <Label>Opening Statement</Label>
+          <p className="text-[16px] leading-[1.65] italic">
+            &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: NAVY }} />&rdquo;
+          </p>
+        </div>
+        <div>
+          <Label>If Asked to Explain Further</Label>
+          <p className="text-[16px] leading-[1.65]">
+            <Highlightable unitKey="if_asked_further" text={station.if_asked_further} style={{ color: "rgba(26,27,82,0.8)" }} />
+          </p>
+        </div>
       </div>
 
       {/* Only if directly asked */}
@@ -301,68 +301,63 @@ function PatientStoryContent({ station }: { station: Station }) {
         </div>
       )}
 
-      {/* ICE — the patient's mindset */}
-      <div>
-        <Label>Ideas, Concerns &amp; Expectations</Label>
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            ["Ideas", "ice_ideas", station.ice_ideas],
-            ["Concerns", "ice_concerns", station.ice_concerns],
-            ["Expectations", "ice_expectations", station.ice_expectations],
-          ].map(([label, key, value]) => (
-            <div key={label}>
-              <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.45)" }}>
-                {label}
-              </div>
-              <p className="text-[15px] leading-[1.55]">
-                <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.8)" }} />
-              </p>
+      {/* ICE — three blue column boxes */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          ["Ideas", "ice_ideas", station.ice_ideas],
+          ["Concerns", "ice_concerns", station.ice_concerns],
+          ["Expectations", "ice_expectations", station.ice_expectations],
+        ].map(([label, key, value]) => (
+          <div key={label} className="rounded-lg p-3" style={{ background: "#EFF6FF" }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
+              {label}
             </div>
-          ))}
-        </div>
+            <p className="text-[16px] leading-[1.55]">
+              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.75)" }} />
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Social history */}
-      <div>
-        <Label>Social History</Label>
-        <p className="text-[16px] leading-[1.65]">
-          <Highlightable unitKey="social_history" text={station.social_history} style={{ color: "rgba(26,27,82,0.8)" }} />
-        </p>
+      {/* Background — social history + PMH + medications & allergies (grey box) */}
+      <div className="rounded-lg p-4 flex flex-col gap-3.5" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
+        <div>
+          <Label>Social History</Label>
+          <p className="text-[16px] leading-[1.65]">
+            <Highlightable unitKey="social_history" text={station.social_history} style={{ color: "rgba(26,27,82,0.8)" }} />
+          </p>
+        </div>
+        {station.pmh && station.pmh.length > 0 && (
+          <div>
+            <Label>Past Medical History</Label>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.pmh.map((item, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                  <Highlightable unitKey={`story_pmh-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {station.medications_and_allergies && station.medications_and_allergies.length > 0 && (
+          <div>
+            <Label>Medications &amp; Allergies</Label>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.medications_and_allergies.map((item, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                  <Highlightable unitKey={`story_meds-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* Past medical history */}
-      {station.pmh && station.pmh.length > 0 && (
-        <div>
-          <Label>Past Medical History</Label>
-          <ul className="m-0 p-0 list-none flex flex-col gap-2">
-            {station.pmh.map((item, i) => (
-              <li key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                <Highlightable unitKey={`story_pmh-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Medications & allergies */}
-      {station.medications_and_allergies && station.medications_and_allergies.length > 0 && (
-        <div>
-          <Label>Medications &amp; Allergies</Label>
-          <ul className="m-0 p-0 list-none flex flex-col gap-2">
-            {station.medications_and_allergies.map((item, i) => (
-              <li key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                <Highlightable unitKey={`story_meds-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Scenarios */}
+      {/* Scenarios — own grey box */}
       {station.scenarios && station.scenarios.length > 0 && (
-        <div>
+        <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
           <Label>Specific Scenarios</Label>
           <ul className="m-0 p-0 list-none flex flex-col gap-2">
             {station.scenarios.map((s, i) => (
@@ -385,9 +380,9 @@ function PatientStoryContent({ station }: { station: Station }) {
         </div>
       )}
 
-      {/* Questions for the doctor */}
+      {/* Questions for the doctor — own grey box */}
       {station.question_for_doctor && station.question_for_doctor.length > 0 && (
-        <div>
+        <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
           <Label>{station.question_for_doctor.length > 1 ? "Questions for the Doctor" : "Question for the Doctor"}</Label>
           <ul className="m-0 p-0 list-none flex flex-col gap-2">
             {station.question_for_doctor.map((q, i) => (
