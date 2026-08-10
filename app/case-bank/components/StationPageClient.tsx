@@ -18,7 +18,7 @@ const LIGHT_BG = "#F3F2FB";
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "message" | "qa" | "audio";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "insight" | "audio";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief", label: "Doctor's Brief" },
@@ -26,8 +26,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "data", label: "Data Gathering" },
   { key: "management", label: "Management" },
   { key: "explanation", label: "Example Explanation" },
-  { key: "message", label: "Message" },
-  { key: "qa", label: "Q&A" },
+  { key: "insight", label: "Trainer Insight" },
   { key: "audio", label: "Sample Consultation" },
 ];
 
@@ -475,8 +474,7 @@ export function StationPageClient({
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "audio") return !!station.audio_url;
     if (t.key === "explanation") return !!station.example_explanation?.trim();
-    if (t.key === "message") return (station.message?.length ?? 0) > 0;
-    if (t.key === "qa") return (station.trainer_qa?.length ?? 0) > 0;
+    if (t.key === "insight") return (station.message?.length ?? 0) > 0 || (station.trainer_qa?.length ?? 0) > 0;
     return true;
   });
 
@@ -870,23 +868,38 @@ export function StationPageClient({
             {activeTab === "explanation" && (
               <ExplanationBody text={station.example_explanation} />
             )}
-            {activeTab === "message" && <BulletList items={station.message ?? []} listKey="message" />}
-            {activeTab === "qa" && (
-              <div className="flex flex-col gap-4">
-                {station.trainer_qa.map((qa, i) => (
+            {activeTab === "insight" && (
+              <div className="flex flex-col gap-6">
+                {(station.message?.length ?? 0) > 0 && (
+                  <BulletList items={station.message ?? []} listKey="message" />
+                )}
+                {(station.trainer_qa?.length ?? 0) > 0 && (
                   <div
-                    key={i}
-                    className="rounded-lg p-4"
-                    style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
+                    style={
+                      (station.message?.length ?? 0) > 0
+                        ? { borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }
+                        : undefined
+                    }
                   >
-                    <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
-                      <Highlightable unitKey={`trainer_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
-                    </p>
-                    <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
-                      <Highlightable unitKey={`trainer_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
-                    </p>
+                    <Label>Common Questions</Label>
+                    <div className="flex flex-col gap-4">
+                      {station.trainer_qa.map((qa, i) => (
+                        <div
+                          key={i}
+                          className="rounded-lg p-4"
+                          style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
+                        >
+                          <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
+                            <Highlightable unitKey={`trainer_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
+                          </p>
+                          <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
+                            <Highlightable unitKey={`trainer_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             )}
             {activeTab === "audio" && station.audio_url && (
