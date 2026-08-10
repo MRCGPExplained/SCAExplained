@@ -1,0 +1,194 @@
+import type { ReactNode } from "react";
+
+export const dynamic = "force-dynamic";
+
+const NAVY = "#333333";
+const AMBER = "#B45309";
+
+function Card({ title, kicker, children }: { title: string; kicker?: string; children: ReactNode }) {
+  return (
+    <section className="bg-white rounded-xl border border-black/10 p-6 mb-5">
+      {kicker && (
+        <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: AMBER }}>
+          {kicker}
+        </div>
+      )}
+      <h2 className="font-display font-bold text-[17px] mb-4" style={{ color: NAVY }}>
+        {title}
+      </h2>
+      <div className="flex flex-col gap-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  name,
+  what,
+  contains,
+  tip,
+}: {
+  name: string;
+  what: string;
+  contains: string;
+  tip?: string;
+}) {
+  return (
+    <div className="border-l-2 pl-4" style={{ borderColor: "rgba(51,51,51,0.12)" }}>
+      <div className="text-[14px] font-bold mb-1" style={{ color: NAVY }}>
+        {name}
+      </div>
+      <p className="text-[13.5px] leading-[1.6] mb-1" style={{ color: "rgba(51,51,51,0.75)" }}>
+        <span className="font-semibold">What it is: </span>
+        {what}
+      </p>
+      <p className="text-[13.5px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.75)" }}>
+        <span className="font-semibold">What to write: </span>
+        {contains}
+      </p>
+      {tip && (
+        <p className="text-[12.5px] leading-[1.6] mt-1.5 rounded-md px-3 py-2" style={{ background: "rgba(180,83,9,0.06)", color: AMBER }}>
+          <span className="font-bold">Tip: </span>
+          {tip}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function CaseGuidePage() {
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="font-display font-bold text-[22px] mb-1" style={{ color: NAVY }}>
+          Case Authoring Guide
+        </h1>
+        <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>
+          What every tab and field means, and what it should contain. Reference this when writing or refining a station.
+        </p>
+      </div>
+
+      <Card title="Philosophy — what a good case tests" kicker="Start here">
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.8)" }}>
+          The SCA is won and lost on <strong>nuance</strong>, not clinical recall: hidden agendas, ethical dilemmas,
+          confidentiality, and real-world circumstances (childcare, transport, homelessness, caring responsibilities).
+          A purely clinical vignette does not prepare candidates for that. <strong>Most cases should have a dilemma.</strong>
+        </p>
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.8)" }}>
+          When triaging a case: keep it if it has (or can be given) genuine nuance; if it is purely clinical with no way to
+          add nuance, set it to <strong>Archived</strong> with an Admin Note explaining why, rather than deleting it.
+        </p>
+      </Card>
+
+      <Card title="Housekeeping" kicker="Core details">
+        <Field
+          name="Status — Draft / Published / Archived"
+          what="Controls visibility. Draft = work in progress (hidden). Published = live to subscribers. Archived = deliberately retired (hidden), distinct from a draft."
+          contains="Set Archived for a case you've decided not to use (e.g. purely clinical, no nuance)."
+        />
+        <Field
+          name="Admin Note"
+          what="Internal only — never shown to subscribers."
+          contains="Why a case is archived, or any editorial note to your future self."
+        />
+      </Card>
+
+      <Card title="Doctor's Brief" kicker="Candidate sees this — before the consult">
+        <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>
+          The clinical record the candidate is given before the consultation begins. Keep it to what a GP would actually see on the screen.
+        </p>
+        <Field name="Patient Name & Age" what="Who the candidate is seeing." contains="Name and age/sex, e.g. &ldquo;30-year-old female&rdquo;." />
+        <Field name="Reason for Consultation" what="The booking reason." contains="One line, as it would appear on the appointment list." />
+        <Field name="Past Medical History" what="Relevant prior history." contains="One item per line. Shown to the candidate AND, in lay terms, to the role-player." />
+        <Field name="Medications & Allergies" what="Current meds and allergy status." contains="One item per line. Include &ldquo;No known drug allergies&rdquo; explicitly if that's the case." />
+        <Field name="Recent Notes" what="Recent consultation notes, results, or letters." contains="Free text or pipe-delimited rows (A | B | C) to render a table. Include lab/result values here." />
+        <Field name="Images" what="Any images the candidate should see (rash, ECG, results)." contains="Upload and attribute the source. Optional." tip="Check images and lab values as you go — make sure they match the clinical story." />
+      </Card>
+
+      <Card title="Patient's Story" kicker="Role-player sees this — the acting brief">
+        <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>
+          The brief for whoever plays the patient. The candidate never sees this. Sections render top to bottom in the order below.
+        </p>
+        <Field
+          name="1. The Dilemma"
+          what="The single most important field: the case's central tension AND how the role-player should act it. Written in the second person (&ldquo;You are…&rdquo;)."
+          contains="Identity + presentation + the tension + reveal timing. e.g. &ldquo;You are Rachel, 30, 10 weeks pregnant with light bleeding… you're cooperative until the doctor suggests going to hospital, then you reveal you have no childcare…&rdquo; End with a line on what the case tests."
+          tip="Tell the role-player WHEN to reveal the twist, so they don't blurt it out too early. Also fed to the AI grader as context. Never shown to the candidate."
+        />
+        <Field name="2. Opening Statement" what="The exact first line the patient says." contains="Verbatim, in the patient's own words. This is what they open the consultation with." />
+        <Field name="3. If Asked to Explain Further" what="The next layer of detail, given freely once the doctor asks." contains="What the patient elaborates when prompted about the presenting complaint." />
+        <Field
+          name="4. Only Say If Directly Asked"
+          what="Information the patient withholds unless the doctor specifically asks."
+          contains="One item per line. Hidden agenda, sensitive details, red-flag negatives. The heart of many cases."
+          tip="This is where a lot of the marks live — reward candidates who ask the right questions."
+        />
+        <Field name="5. ICE (Ideas, Concerns, Expectations)" what="The patient's mindset — it colours the whole performance." contains="Ideas (what they think is going on), Concerns (their main worry), Expectations (what they want from the visit)." />
+        <Field name="6. Social History" what="Home, work, lifestyle — including the circumstances the case hinges on." contains="Living situation, occupation, smoking/alcohol, and any social barrier (childcare, transport, housing, caring role)." />
+        <Field name="7. Past Medical History / 8. Medications & Allergies" what="Also shown here so the role-player can answer accurately." contains="Same content as the Doctor's Brief — the role-player needs to know their own history." />
+        <Field name="9. Specific Scenarios" what="Branching responses — how the patient reacts to what the doctor does." contains="&ldquo;If the doctor suggests X, respond Y.&rdquo; Numbered. Optional." />
+        <Field
+          name="10. Questions for the Doctor"
+          what="The question(s) the patient actively asks."
+          contains="One question per line. These are things the role-player should raise during the consult."
+          tip="If a question is important enough that it should always come up, put it here (not just in Trainer Q&A) so the role-player actually asks it."
+        />
+      </Card>
+
+      <Card title="Data Gathering & Management" kicker="Assessment scaffolding">
+        <Field name="Data Gathering" what="The key things a competent candidate should elicit." contains="One point per line — questions to ask, red flags to screen for, the working diagnosis to reach." />
+        <Field
+          name="Management"
+          what="The expected management plan."
+          contains="One step per line — reassurance, referrals, prescriptions, safety-netting."
+          tip="Keep it tight. Over-long management lists are common in old cases — merge related points and cut low-value advice (e.g. non-evidence-based rest advice)."
+        />
+        <Field name="Marking Notes (per domain)" what="Extra examiner notes for Data Gathering, Clinical Management, and Relating to Others." contains="Any domain-specific expectations. Fed to the AI grader as context; not shown to subscribers." />
+      </Card>
+
+      <Card title="Example Explanation" kicker="Debrief — the model answer">
+        <Field
+          name="Example Explanation"
+          what="A model answer in the candidate's own words: how to actually explain the diagnosis or manage the situation."
+          contains="Write it as a DIALOGUE. Prefix each line with &ldquo;Doctor:&rdquo; or &ldquo;Patient:&rdquo; and it renders as a styled script. Model the interaction, including how the doctor handles the dilemma."
+          tip="Keep speakers alternating — avoid two Doctor lines back to back. Make sure the model doctor demonstrates the competency the case tests (e.g. acknowledging the patient's social barrier)."
+        />
+      </Card>
+
+      <Card title="Trainer Insight" kicker="Debrief — your teaching">
+        <Field
+          name="Message (bullets)"
+          what="Your insight to the candidate about the case — NOT words to say."
+          contains="One bullet per line: what the case really tests, common pitfalls, and what strong candidates do differently."
+        />
+        <Field
+          name="Trainer Q&A"
+          what="Questions candidates commonly ask you (as their trainer) about this case, and your answers."
+          contains="Question + answer pairs. Shown below the Message in the same tab."
+          tip="This is YOUR voice as the trainer — not questions the patient asks (those go in the Patient's Story)."
+        />
+      </Card>
+
+      <Card title="Sample Consultation" kicker="Debrief — audio">
+        <Field name="Sample Consultation (audio)" what="An audio recording of a good consultation for this case." contains="Upload an audio file. Optional — the tab is hidden if there's no audio." />
+      </Card>
+
+      <Card title="How the AI grader uses the case" kicker="Grading">
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.8)" }}>
+          The grader (currently Claude Haiku) is given the case facts as <strong>context, not a checklist</strong>: the Dilemma,
+          reason for consultation, PMH, meds, recent notes, opening statement, if-asked / only-if-asked detail, social history,
+          ICE, the patient&rsquo;s questions, data gathering, management, and the marking notes.
+        </p>
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.8)" }}>
+          It credits the competency the candidate actually demonstrates, however it comes up, and does not penalise them for a
+          question the patient never posed — with a safety carve-out (unsafe management given known meds/allergies/PMH lowers the
+          Clinical Management mark). It grades only from the transcript and never fabricates. It also returns a single
+          &ldquo;Focus for next time&rdquo; line.
+        </p>
+        <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.6)" }}>
+          Not fed to the grader (these are teaching material only): Example Explanation, Trainer Insight (Message + Q&A),
+          Specific Scenarios, images.
+        </p>
+      </Card>
+    </div>
+  );
+}

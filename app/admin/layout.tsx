@@ -18,6 +18,7 @@ export default function AdminLayout({
           </Link>
           <div className="flex gap-6">
             <Link href="/admin/stations" className="text-[13px] text-white/60 hover:text-white transition no-underline">Stations</Link>
+            <Link href="/admin/case-guide" className="text-[13px] text-white/60 hover:text-white transition no-underline">Guide</Link>
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/examiners" className="text-[13px] text-white/60 hover:text-white transition no-underline">Examiners</Link>
             <Link href="/admin/webinar" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar</Link>
