@@ -18,16 +18,17 @@ const LIGHT_BG = "#F3F2FB";
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "audio";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways" | "qa" | "audio";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief", label: "Doctor's Brief" },
   { key: "story", label: "Patient's Story" },
   { key: "data", label: "Data Gathering" },
   { key: "management", label: "Management" },
-  { key: "explanation", label: "Example Explanation" },
+  { key: "explanation", label: "Message" },
   { key: "takeaways", label: "Key Takeaways" },
-  { key: "audio", label: "Audio Lesson" },
+  { key: "qa", label: "Q&A" },
+  { key: "audio", label: "Sample Consultation" },
 ];
 
 // ── Content helpers ────────────────────────────────────────────────────────────
@@ -414,7 +415,12 @@ export function StationPageClient({
   const [showFeedback, setShowFeedback] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
-  const visibleTabs = TABS.filter((t) => t.key !== "audio" || !!station.audio_url);
+  const visibleTabs = TABS.filter((t) => {
+    if (t.key === "audio") return !!station.audio_url;
+    if (t.key === "explanation") return !!station.example_explanation?.trim();
+    if (t.key === "qa") return (station.patient_qa?.length ?? 0) > 0;
+    return true;
+  });
 
   // Room state (exposed from StudyRoomPanel)
   const [inRoom, setInRoom] = useState(false);
@@ -824,6 +830,24 @@ export function StationPageClient({
               </div>
             )}
             {activeTab === "takeaways" && <BulletList items={station.key_takeaways} listKey="key_takeaways" />}
+            {activeTab === "qa" && (
+              <div className="flex flex-col gap-4">
+                {station.patient_qa.map((qa, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg p-4"
+                    style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
+                  >
+                    <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
+                      <Highlightable unitKey={`patient_qa_q-${i}`} text={qa.question} style={{ color: NAVY }} />
+                    </p>
+                    <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
+                      <Highlightable unitKey={`patient_qa_a-${i}`} text={qa.answer} style={{ color: "rgba(26,27,82,0.8)" }} />
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
             {activeTab === "audio" && station.audio_url && (
               <div className="flex flex-col gap-5">
                 <audio

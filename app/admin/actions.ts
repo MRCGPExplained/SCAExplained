@@ -25,6 +25,27 @@ function stationFromForm(formData: FormData) {
     .map((line) => line.trim())
     .filter(Boolean);
 
+  // Status is a single 3-way control (draft/published/archived) mapped onto the
+  // two underlying booleans. Archived always implies unpublished.
+  const status = String(formData.get("status") ?? "draft");
+
+  // Patient Q&A is submitted as a JSON array of {question, answer}. Keep only
+  // rows where both sides have content.
+  let patientQa: { question: string; answer: string }[] = [];
+  try {
+    const parsed = JSON.parse(String(formData.get("patient_qa") ?? "[]"));
+    if (Array.isArray(parsed)) {
+      patientQa = parsed
+        .map((r) => ({
+          question: String(r?.question ?? "").trim(),
+          answer: String(r?.answer ?? "").trim(),
+        }))
+        .filter((r) => r.question && r.answer);
+    }
+  } catch {
+    patientQa = [];
+  }
+
   return {
     number: parseInt(String(formData.get("number") ?? "0"), 10),
     title: String(formData.get("title") ?? "").trim(),
@@ -32,7 +53,9 @@ function stationFromForm(formData: FormData) {
     consultation_type: String(
       formData.get("consultation_type") ?? "Video Consultation"
     ),
-    published: formData.get("published") === "true",
+    published: status === "published",
+    archived: status === "archived",
+    admin_note: String(formData.get("admin_note") ?? "").trim() || null,
     patient_name: String(formData.get("patient_name") ?? "").trim(),
     patient_age: String(formData.get("patient_age") ?? "").trim(),
     pmh: parseLines(String(formData.get("pmh") ?? "")),
@@ -60,8 +83,7 @@ function stationFromForm(formData: FormData) {
       formData.get("example_explanation") ?? ""
     ).trim(),
     key_takeaways: parseLines(String(formData.get("key_takeaways") ?? "")),
-    editor_video_url:
-      String(formData.get("editor_video_url") ?? "").trim() || null,
+    patient_qa: patientQa,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,
     image_urls: imageUrls.length > 0 ? imageUrls : null,

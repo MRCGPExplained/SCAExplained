@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import type { Station } from "@/lib/case-bank-types";
+import type { Station, QAPair } from "@/lib/case-bank-types";
 import {
   createStationAction,
   updateStationAction,
@@ -115,6 +115,71 @@ function ArrayField({
       hint={hint ?? "One item per line"}
       rows={rows}
     />
+  );
+}
+
+function QAField({ defaultValue }: { defaultValue?: QAPair[] }) {
+  const [rows, setRows] = useState<QAPair[]>(defaultValue ?? []);
+  const update = (i: number, patch: Partial<QAPair>) =>
+    setRows(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const add = () => setRows([...rows, { question: "", answer: "" }]);
+  const remove = (i: number) => setRows(rows.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <input
+        type="hidden"
+        name="patient_qa"
+        value={JSON.stringify(
+          rows.filter((r) => r.question.trim() && r.answer.trim())
+        )}
+      />
+      {rows.length === 0 && (
+        <p className="text-[12px] text-navy/40">No questions yet.</p>
+      )}
+      {rows.map((r, i) => (
+        <div
+          key={i}
+          className="rounded-lg border border-navy/12 p-3 flex flex-col gap-2"
+          style={{ background: "rgba(26,27,82,0.02)" }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-navy/40">
+              Q&amp;A #{i + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              className="text-[11px] font-medium text-red-600/70 hover:text-red-700"
+              style={{ background: "none", border: "none", cursor: "pointer" }}
+            >
+              Remove
+            </button>
+          </div>
+          <input
+            value={r.question}
+            onChange={(e) => update(i, { question: e.target.value })}
+            placeholder="Question the patient might ask…"
+            className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition"
+          />
+          <textarea
+            value={r.answer}
+            onChange={(e) => update(i, { answer: e.target.value })}
+            placeholder="How the doctor might answer…"
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition resize-y"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        className="self-start px-4 py-2 rounded-lg text-[13px] font-semibold"
+        style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: "pointer" }}
+      >
+        + Add Q&amp;A
+      </button>
+    </div>
   );
 }
 
@@ -311,17 +376,27 @@ export function StationForm({ station }: { station?: Station }) {
           </div>
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
-              Published
+              Status
             </label>
             <select
-              name="published"
-              defaultValue={station?.published ? "true" : "false"}
+              name="status"
+              defaultValue={station?.archived ? "archived" : station?.published ? "published" : "draft"}
               className="w-full px-3 py-2 rounded-lg border border-navy/15 text-[13.5px] text-navy bg-[#F3F2FB] outline-none"
             >
-              <option value="false">Draft — hidden from subscribers</option>
-              <option value="true">Published — visible to subscribers</option>
+              <option value="draft">Draft — work in progress, hidden</option>
+              <option value="published">Published — visible to subscribers</option>
+              <option value="archived">Archived — retired case, hidden</option>
             </select>
           </div>
+        </div>
+        <div className="mb-4">
+          <TextareaField
+            label="Admin Note (internal only)"
+            name="admin_note"
+            defaultValue={station?.admin_note ?? ""}
+            rows={2}
+            hint="Never shown to subscribers. Use it to record why a case is archived (e.g. 'purely clinical, no nuance') or any editorial note."
+          />
         </div>
       </section>
 
@@ -452,11 +527,11 @@ export function StationForm({ station }: { station?: Station }) {
         <h2 className="font-display font-bold text-[15px] text-navy mb-4">Post-Consultation</h2>
         <div className="flex flex-col gap-4">
           <TextareaField
-            label="Example Explanation"
+            label="Message (optional)"
             name="example_explanation"
             defaultValue={station?.example_explanation}
-            required
             rows={10}
+            hint="Editor's written debrief. Left blank, this section is hidden from subscribers."
           />
           <ArrayField
             label="Key Takeaways"
@@ -467,10 +542,19 @@ export function StationForm({ station }: { station?: Station }) {
         </div>
       </section>
 
-      {/* ── Audio Lesson ── */}
+      {/* ── Patient Q&A ── */}
+      <section className="bg-white rounded-xl border border-navy/10 p-6 mb-6">
+        <h2 className="font-display font-bold text-[15px] text-navy mb-1">Patient Q&amp;A</h2>
+        <p className="text-[11px] text-navy/40 mb-4">
+          Common questions a patient might ask in this scenario, and how to answer them. Shown in the debrief; hidden if empty.
+        </p>
+        <QAField defaultValue={station?.patient_qa} />
+      </section>
+
+      {/* ── Sample Consultation ── */}
       {station && (
         <section className="bg-white rounded-xl border border-navy/10 p-6 mb-4">
-          <h2 className="font-display font-bold text-[15px] text-navy mb-4">Audio Lesson</h2>
+          <h2 className="font-display font-bold text-[15px] text-navy mb-4">Sample Consultation</h2>
 
           {audioError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">

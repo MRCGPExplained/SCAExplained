@@ -10,12 +10,14 @@ export default async function AdminStationsPage() {
 
   const { data: stations } = await supabase
     ?.from("stations")
-    .select("id,number,title,subject,consultation_type,published")
+    .select("id,number,title,subject,consultation_type,published,archived,admin_note")
     .order("number", { ascending: true })
-    .returns<StationListRow[]>() ?? { data: [] };
+    .returns<(StationListRow & { admin_note: string | null })[]>() ?? { data: [] };
 
+  const total = (stations ?? []).length;
   const published = (stations ?? []).filter((s) => s.published).length;
-  const draft = (stations ?? []).length - published;
+  const archived = (stations ?? []).filter((s) => s.archived).length;
+  const draft = total - published - archived;
 
   return (
     <div>
@@ -23,7 +25,7 @@ export default async function AdminStationsPage() {
         <div>
           <h1 className="font-display font-bold text-[22px] text-navy mb-1">Stations</h1>
           <p className="text-[13px] text-navy/50">
-            {published} published · {draft} draft · {(stations ?? []).length} total
+            {published} published · {draft} draft · {archived} archived · {total} total
           </p>
         </div>
         <Link
@@ -64,32 +66,50 @@ export default async function AdminStationsPage() {
                 <td className="px-5 py-3 font-bold text-navy/60 w-12">{s.number}</td>
                 <td className="px-5 py-3 font-semibold text-navy max-w-[340px]">
                   <span className="line-clamp-1">{s.title}</span>
+                  {s.admin_note && (
+                    <span className="block text-[11px] font-normal text-navy/40 line-clamp-1 mt-0.5">
+                      {s.admin_note}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3 text-navy/65">{s.subject}</td>
                 <td className="px-5 py-3">
-                  <form action={toggleStationPublishedAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <input type="hidden" name="published" value={String(!s.published)} />
-                    <button
-                      type="submit"
-                      className="px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer border"
-                      style={
-                        s.published
-                          ? {
-                              background: "rgba(34,197,94,0.1)",
-                              color: "#15803D",
-                              borderColor: "rgba(34,197,94,0.2)",
-                            }
-                          : {
-                              background: "rgba(26,27,82,0.07)",
-                              color: "rgba(26,27,82,0.5)",
-                              borderColor: "rgba(26,27,82,0.12)",
-                            }
-                      }
+                  {s.archived ? (
+                    <span
+                      className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                      style={{
+                        background: "rgba(217,119,6,0.1)",
+                        color: "#B45309",
+                        borderColor: "rgba(217,119,6,0.2)",
+                      }}
                     >
-                      {s.published ? "Published" : "Draft"}
-                    </button>
-                  </form>
+                      Archived
+                    </span>
+                  ) : (
+                    <form action={toggleStationPublishedAction}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <input type="hidden" name="published" value={String(!s.published)} />
+                      <button
+                        type="submit"
+                        className="px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer border"
+                        style={
+                          s.published
+                            ? {
+                                background: "rgba(34,197,94,0.1)",
+                                color: "#15803D",
+                                borderColor: "rgba(34,197,94,0.2)",
+                              }
+                            : {
+                                background: "rgba(26,27,82,0.07)",
+                                color: "rgba(26,27,82,0.5)",
+                                borderColor: "rgba(26,27,82,0.12)",
+                              }
+                        }
+                      >
+                        {s.published ? "Published" : "Draft"}
+                      </button>
+                    </form>
+                  )}
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex gap-3">

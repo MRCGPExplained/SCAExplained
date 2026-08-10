@@ -1,3 +1,5 @@
+export type QAPair = { question: string; answer: string };
+
 export type Station = {
   id: string;
   number: number;
@@ -5,6 +7,8 @@ export type Station = {
   subject: string;
   consultation_type: string;
   published: boolean;
+  archived: boolean;
+  admin_note: string | null;
   patient_name: string;
   patient_age: string;
   pmh: string[];
@@ -26,7 +30,7 @@ export type Station = {
   management: string[];
   example_explanation: string;
   key_takeaways: string[];
-  editor_video_url: string | null;
+  patient_qa: QAPair[];
   audio_url: string | null;
   audio_notes: string | null;
   image_urls: string[] | null;
@@ -44,7 +48,7 @@ export type StationListRow = {
   subject: string;
   consultation_type: string;
   published: boolean;
-  editor_video_url: string | null;
+  archived: boolean;
 };
 
 export type StudyRoom = {

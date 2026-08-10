@@ -10,14 +10,6 @@ const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
 
-function PlayIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ flexShrink: 0 }}>
-      <path d="M2 1.5L9 5L2 8.5V1.5Z" />
-    </svg>
-  );
-}
-
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
     <button
@@ -55,7 +47,6 @@ export function StationListClient({
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [showStarred, setShowStarred] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
   const [showTitles, setShowTitles] = useState(true);
   const [lastStation, setLastStation] = useState<number | null>(initialLastStation);
 
@@ -72,7 +63,6 @@ export function StationListClient({
     return stations.filter((s) => {
       if (activeSubject !== "All" && s.subject !== activeSubject) return false;
       if (showStarred && !starredSet.has(s.id)) return false;
-      if (showVideo && !s.editor_video_url) return false;
       if (
         search &&
         !s.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -81,7 +71,7 @@ export function StationListClient({
         return false;
       return true;
     });
-  }, [stations, activeSubject, showStarred, showVideo, search, starredSet]);
+  }, [stations, activeSubject, showStarred, search, starredSet]);
 
   const subjectCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -170,21 +160,6 @@ export function StationListClient({
               }}
             >
               <span style={{ color: showStarred ? "#B8960A" : "inherit" }}>★</span> Starred
-            </button>
-
-            <button
-              onClick={() => setShowVideo((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all"
-              style={{
-                background: showVideo ? "rgba(59,130,246,0.12)" : LIGHT_BG,
-                border: `1.5px solid ${showVideo ? "rgba(59,130,246,0.4)" : "rgba(51,51,51,0.10)"}`,
-                color: showVideo ? "#1D4ED8" : "rgba(51,51,51,0.6)",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              <PlayIcon />
-              Video lesson
             </button>
 
             {/* Show Titles toggle — pushed to the right */}
