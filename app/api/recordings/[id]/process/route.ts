@@ -386,6 +386,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         station?.opening_statement ? `Opening: ${station.opening_statement}` : null,
         station?.ice_ideas ? `Patient's ideas: ${station.ice_ideas}` : null,
         station?.ice_concerns ? `Patient's concerns: ${station.ice_concerns}` : null,
+        station?.ice_expectations ? `Patient's expectations: ${station.ice_expectations}` : null,
         station?.data_gathering?.length
           ? `Key data gathering: ${station.data_gathering.join("; ")}`
           : null,
