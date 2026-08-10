@@ -100,7 +100,12 @@ export default function CaseGuidePage() {
         <Field name="Reason for Consultation" what="The booking reason." contains="One line, as it would appear on the appointment list." />
         <Field name="Past Medical History" what="Relevant prior history." contains="One item per line. Shown to the candidate AND, in lay terms, to the role-player." />
         <Field name="Medications & Allergies" what="Current meds and allergy status." contains="One item per line. Include &ldquo;No known drug allergies&rdquo; explicitly if that's the case." />
-        <Field name="Recent Notes" what="Recent consultation notes, results, or letters." contains="Free text or pipe-delimited rows (A | B | C) to render a table. Include lab/result values here." />
+        <Field
+          name="Recent Notes"
+          what="Recent consultation notes, results, or letters."
+          contains="Free text or pipe-delimited rows (A | B | C) to render a table. Include lab/result values here."
+          tip="Don't bury vitals or exam findings in a run-on sentence (&ldquo;BP 138/82, Pulse 78, no focal deficit, spinal tenderness…&rdquo;). Put vitals in their own small pipe-table (e.g. &ldquo;Observation | Result&rdquo; then &ldquo;BP | 138/82 mmHg&rdquo;) and give descriptive exam findings their own short paragraph, separate from the presenting complaint and plan."
+        />
         <Field name="Images" what="Any images the candidate should see (rash, ECG, results)." contains="Upload and attribute the source. Optional." tip="Check images and lab values as you go — make sure they match the clinical story." />
       </Card>
 
