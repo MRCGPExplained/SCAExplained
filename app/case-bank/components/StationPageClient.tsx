@@ -243,7 +243,7 @@ function RecentNotesRenderer({ text }: { text: string }) {
           <div
             key={ci}
             className="flex flex-col gap-3 rounded-lg px-4 py-3"
-            style={{ background: "rgba(26,27,82,0.035)", borderLeft: "3px solid rgba(26,27,82,0.15)" }}
+            style={{ background: "rgba(26,27,82,0.035)", borderLeft: "3px solid #2563EB" }}
           >
             {rendered}
           </div>
