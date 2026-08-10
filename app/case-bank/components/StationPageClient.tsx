@@ -177,7 +177,7 @@ function DoctorBriefContent({ station }: { station: Station }) {
         </div>
         <div>
           <Label>Type</Label>
-          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.75)" }}>
+          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.8)" }}>
             {station.consultation_type}
           </div>
         </div>
@@ -256,7 +256,7 @@ function PatientStoryContent({ station }: { station: Station }) {
         <div>
           <Label>Opening Statement</Label>
           <p className="text-[16px] leading-[1.65] italic">
-            &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: NAVY }} />&rdquo;
+            &ldquo;<Highlightable unitKey="opening_statement" text={station.opening_statement} style={{ color: "rgba(26,27,82,0.8)" }} />&rdquo;
           </p>
         </div>
         <div>
@@ -278,7 +278,7 @@ function PatientStoryContent({ station }: { station: Station }) {
         >
           <div
             className="text-[10px] font-bold uppercase tracking-[0.08em] mb-2.5"
-            style={{ color: NAVY }}
+            style={{ color: "#854D0E" }}
           >
             ⚠ Only Say Below If Directly Asked
           </div>
@@ -293,7 +293,7 @@ function PatientStoryContent({ station }: { station: Station }) {
                   unitKey={`only_if_asked-${i}`}
                   text={item}
                   className="text-[16px] leading-[1.6]"
-                  style={{ color: "rgba(26,27,82,0.75)" }}
+                  style={{ color: "rgba(26,27,82,0.8)" }}
                 />
               </li>
             ))}
@@ -309,11 +309,11 @@ function PatientStoryContent({ station }: { station: Station }) {
           ["Expectations", "ice_expectations", station.ice_expectations],
         ].map(([label, key, value]) => (
           <div key={label} className="rounded-lg p-3" style={{ background: "#EFF6FF" }}>
-            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.5)" }}>
               {label}
             </div>
             <p className="text-[16px] leading-[1.55]">
-              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.75)" }} />
+              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.8)" }} />
             </p>
           </div>
         ))}
@@ -388,7 +388,7 @@ function PatientStoryContent({ station }: { station: Station }) {
             {station.question_for_doctor.map((q, i) => (
               <li key={i} className="flex gap-2.5 items-start">
                 <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: NAVY }} />
+                <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
               </li>
             ))}
           </ul>
@@ -866,7 +866,7 @@ export function StationPageClient({
                   style={{ borderRadius: "8px", outline: "none" }}
                 />
                 {station.audio_notes && (
-                  <p className="text-[16px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.75)", whiteSpace: "pre-line" }}>
+                  <p className="text-[16px] leading-[1.8]" style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}>
                     {station.audio_notes}
                   </p>
                 )}
