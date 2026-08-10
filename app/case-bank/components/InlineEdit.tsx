@@ -43,7 +43,7 @@ function PencilButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       title="Edit (admin only)"
       className="absolute -top-2 -right-2 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"
-      style={{ width: 22, height: 22, background: "#2563EB", color: "white", border: "none", cursor: "pointer", zIndex: 5 }}
+      style={{ width: 22, height: 22, background: "rgba(26,27,82,0.55)", color: "white", border: "none", cursor: "pointer", zIndex: 5 }}
     >
       <PencilIcon />
     </button>
