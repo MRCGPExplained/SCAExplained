@@ -23,7 +23,7 @@ export type Station = {
   ice_concerns: string;
   ice_expectations: string;
   scenarios: string[] | null;
-  question_for_doctor: string | null;
+  question_for_doctor: string[] | null;
   role_player_instruction: string | null;
   dilemma: string | null;
   data_gathering: string[];

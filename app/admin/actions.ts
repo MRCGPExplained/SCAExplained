@@ -72,10 +72,7 @@ function stationFromForm(formData: FormData) {
     ice_concerns: String(formData.get("ice_concerns") ?? "").trim(),
     ice_expectations: String(formData.get("ice_expectations") ?? "").trim(),
     scenarios: parseLines(String(formData.get("scenarios") ?? "")),
-    question_for_doctor:
-      String(formData.get("question_for_doctor") ?? "").trim() || null,
-    role_player_instruction:
-      String(formData.get("role_player_instruction") ?? "").trim() || null,
+    question_for_doctor: parseLines(String(formData.get("question_for_doctor") ?? "")),
     dilemma: String(formData.get("dilemma") ?? "").trim() || null,
     data_gathering: parseLines(String(formData.get("data_gathering") ?? "")),
     management: parseLines(String(formData.get("management") ?? "")),

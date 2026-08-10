@@ -286,7 +286,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { data: station } = await admin
       .from("stations")
       .select(
-        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, role_player_instruction, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
       )
       .eq("number", recording.station_number)
       .single<{
@@ -303,8 +303,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         ice_ideas: string;
         ice_concerns: string;
         ice_expectations: string;
-        question_for_doctor: string | null;
-        role_player_instruction: string | null;
+        question_for_doctor: string[] | null;
         data_gathering: string[];
         management: string[];
         marking_notes_data_gathering: string | null;
@@ -409,15 +408,12 @@ export async function POST(req: Request, { params }: RouteParams) {
         station?.ice_ideas ? `Patient's ideas: ${station.ice_ideas}` : null,
         station?.ice_concerns ? `Patient's concerns: ${station.ice_concerns}` : null,
         station?.ice_expectations ? `Patient's expectations: ${station.ice_expectations}` : null,
-        station?.question_for_doctor ? `Question the patient may ask the doctor: ${station.question_for_doctor}` : null,
+        station?.question_for_doctor?.length ? `Questions the patient may ask the doctor: ${station.question_for_doctor.join("; ")}` : null,
         station?.data_gathering?.length
           ? `Key data gathering: ${station.data_gathering.join("; ")}`
           : null,
         station?.management?.length
           ? `Expected management: ${station.management.join("; ")}`
-          : null,
-        station?.role_player_instruction
-          ? `Role player notes: ${station.role_player_instruction}`
           : null,
         station?.marking_notes_data_gathering
           ? `Examiner notes (data gathering): ${station.marking_notes_data_gathering}`

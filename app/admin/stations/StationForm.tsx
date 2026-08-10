@@ -460,8 +460,7 @@ export function StationForm({ station }: { station?: Station }) {
             <TextareaField label="ICE — Expectations" name="ice_expectations" defaultValue={station?.ice_expectations} required rows={3} />
           </div>
           <ArrayField label="Specific Scenarios" name="scenarios" defaultValue={station?.scenarios ?? []} rows={4} />
-          <TextareaField label="Question for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? ""} rows={2} />
-          <TextareaField label="Role-Player Instruction" name="role_player_instruction" defaultValue={station?.role_player_instruction ?? ""} rows={2} />
+          <ArrayField label="Questions for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? []} rows={3} hint="One question per line — the question(s) the patient actively asks the doctor." />
           <TextareaField
             label="The Dilemma — how the patient should play this case"
             name="dilemma"

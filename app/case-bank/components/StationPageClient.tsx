@@ -261,6 +261,24 @@ function PatientStoryContent({ station }: { station: Station }) {
         </p>
       </div>
 
+      {/* ICE — the patient's mindset; read early, it drives the whole performance */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          ["Ideas", "ice_ideas", station.ice_ideas],
+          ["Concerns", "ice_concerns", station.ice_concerns],
+          ["Expectations", "ice_expectations", station.ice_expectations],
+        ].map(([label, key, value]) => (
+          <div key={label} className="rounded-lg p-3" style={{ background: LIGHT_BG }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
+              {label}
+            </div>
+            <p className="text-[16px] leading-[1.55]">
+              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.75)" }} />
+            </p>
+          </div>
+        ))}
+      </div>
+
       {/* If asked further */}
       <div>
         <Label>If Asked to Explain Further</Label>
@@ -311,23 +329,35 @@ function PatientStoryContent({ station }: { station: Station }) {
         </p>
       </div>
 
-      {/* ICE */}
-      <div className="grid grid-cols-3 gap-2.5">
-        {[
-          ["Ideas", "ice_ideas", station.ice_ideas],
-          ["Concerns", "ice_concerns", station.ice_concerns],
-          ["Expectations", "ice_expectations", station.ice_expectations],
-        ].map(([label, key, value]) => (
-          <div key={label} className="rounded-lg p-3" style={{ background: LIGHT_BG }}>
-            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: NAVY }}>
-              {label}
-            </div>
-            <p className="text-[16px] leading-[1.55]">
-              <Highlightable unitKey={key} text={value} style={{ color: "rgba(26,27,82,0.75)" }} />
-            </p>
-          </div>
-        ))}
-      </div>
+      {/* Past medical history */}
+      {station.pmh && station.pmh.length > 0 && (
+        <div>
+          <Label>Past Medical History</Label>
+          <ul className="m-0 p-0 list-none flex flex-col gap-2">
+            {station.pmh.map((item, i) => (
+              <li key={i} className="flex gap-2.5 items-start">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                <Highlightable unitKey={`story_pmh-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Medications & allergies */}
+      {station.medications_and_allergies && station.medications_and_allergies.length > 0 && (
+        <div>
+          <Label>Medications &amp; Allergies</Label>
+          <ul className="m-0 p-0 list-none flex flex-col gap-2">
+            {station.medications_and_allergies.map((item, i) => (
+              <li key={i} className="flex gap-2.5 items-start">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                <Highlightable unitKey={`story_meds-${i}`} text={item} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Scenarios */}
       {station.scenarios && station.scenarios.length > 0 && (
@@ -354,27 +384,20 @@ function PatientStoryContent({ station }: { station: Station }) {
         </div>
       )}
 
-      {/* Question for doctor */}
-      {station.question_for_doctor && (
+      {/* Questions for the doctor */}
+      {station.question_for_doctor && station.question_for_doctor.length > 0 && (
         <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>
-            Question for the Doctor
+            {station.question_for_doctor.length > 1 ? "Questions for the Doctor" : "Question for the Doctor"}
           </div>
-          <p className="text-[16px] leading-[1.6]">
-            <Highlightable unitKey="question_for_doctor" text={station.question_for_doctor} style={{ color: NAVY }} />
-          </p>
-        </div>
-      )}
-
-      {/* Role player instruction */}
-      {station.role_player_instruction && (
-        <div
-          className="pt-3 border-t"
-          style={{ borderColor: "rgba(26,27,82,0.08)" }}
-        >
-          <p className="text-[16px] italic">
-            <Highlightable unitKey="role_player_instruction" text={station.role_player_instruction} style={{ color: "rgba(26,27,82,0.5)" }} />
-          </p>
+          <ul className="m-0 p-0 list-none flex flex-col gap-2">
+            {station.question_for_doctor.map((q, i) => (
+              <li key={i} className="flex gap-2.5 items-start">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: NAVY }} />
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
