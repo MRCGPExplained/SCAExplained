@@ -545,6 +545,23 @@ function PatientStoryContent({ station }: { station: Station }) {
         )}
       </div>
 
+      {/* Questions for the doctor — own grey box */}
+      {station.question_for_doctor && station.question_for_doctor.length > 0 && (
+        <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
+          <Label>{station.question_for_doctor.length > 1 ? "Questions for the Doctor" : "Question for the Doctor"}</Label>
+          <EditableField field="question_for_doctor" value={station.question_for_doctor}>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {station.question_for_doctor.map((q, i) => (
+                <li key={i} className="flex gap-2.5 items-start">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
+                  <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
+                </li>
+              ))}
+            </ul>
+          </EditableField>
+        </div>
+      )}
+
       {/* Scenarios — own grey box */}
       {station.scenarios && station.scenarios.length > 0 && (
         <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
@@ -565,23 +582,6 @@ function PatientStoryContent({ station }: { station: Station }) {
                     className="text-[16px] leading-[1.6]"
                     style={{ color: "rgba(26,27,82,0.8)" }}
                   />
-                </li>
-              ))}
-            </ul>
-          </EditableField>
-        </div>
-      )}
-
-      {/* Questions for the doctor — own grey box */}
-      {station.question_for_doctor && station.question_for_doctor.length > 0 && (
-        <div className="rounded-lg p-4" style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}>
-          <Label>{station.question_for_doctor.length > 1 ? "Questions for the Doctor" : "Question for the Doctor"}</Label>
-          <EditableField field="question_for_doctor" value={station.question_for_doctor}>
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {station.question_for_doctor.map((q, i) => (
-                <li key={i} className="flex gap-2.5 items-start">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full mt-2 opacity-40" style={{ background: NAVY }} />
-                  <Highlightable unitKey={`question_for_doctor-${i}`} text={q} className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }} />
                 </li>
               ))}
             </ul>

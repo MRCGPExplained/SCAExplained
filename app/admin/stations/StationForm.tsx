@@ -459,8 +459,8 @@ export function StationForm({ station }: { station?: Station }) {
             <TextareaField label="ICE — Concerns" name="ice_concerns" defaultValue={station?.ice_concerns} required rows={3} />
             <TextareaField label="ICE — Expectations" name="ice_expectations" defaultValue={station?.ice_expectations} required rows={3} />
           </div>
-          <ArrayField label="Specific Scenarios" name="scenarios" defaultValue={station?.scenarios ?? []} rows={4} />
-          <ArrayField label="Questions for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? []} rows={3} hint="One question per line — the question(s) the patient actively asks the doctor." />
+          <ArrayField label="Questions for the Doctor" name="question_for_doctor" defaultValue={station?.question_for_doctor ?? []} rows={3} hint="Questions asked BEFORE the doctor gives a management plan — about diagnosis, causes, or possible options." />
+          <ArrayField label="Specific Scenarios" name="scenarios" defaultValue={station?.scenarios ?? []} rows={4} hint="Reactions AFTER the doctor proposes something specific in management — gated on what the doctor does, not on history questions (those go in Only Say If Directly Asked)." />
           <TextareaField
             label="The Dilemma — how the patient should play this case"
             name="dilemma"

@@ -164,9 +164,9 @@ export default function CaseGuidePage() {
         />
         <Field
           name="4. Only Say If Directly Asked"
-          what="Information the patient withholds unless the doctor specifically asks."
+          what="Fixed, unchangeable facts about the patient's history — elicited by the doctor's history-taking, not affected by anything the doctor later decides to do."
           contains="One item per line. Hidden agenda, sensitive details, red-flag negatives. The heart of many cases."
-          tip="This is where a lot of the marks live — reward candidates who ask the right questions."
+          tip="This is where a lot of the marks live — reward candidates who ask the right questions. Write each line as a direct second-person statement of the fact itself (&ldquo;You don&rsquo;t have any chest pain.&rdquo; / &ldquo;Your bowels alternate between constipation and loose stools.&rdquo;) — don&rsquo;t prefix it with &ldquo;If the doctor asks about X, say…&rdquo;. The section header already establishes the gating; repeating it on every line is redundant and wastes space. Reserve the &ldquo;if the doctor asks/suggests X&rdquo; phrasing for Scenarios, where the condition is a management action, not a history question, and is the actual point of the line."
         />
         <Field name="5. ICE (Ideas, Concerns, Expectations)" what="The patient's mindset — it colours the whole performance." contains="Ideas (what they think is going on), Concerns (their main worry), Expectations (what they want from the visit)." />
         <Field
@@ -182,16 +182,16 @@ export default function CaseGuidePage() {
           tip="Documented facts (regular meds, results) belong in the record here, NOT scripted into the patient's speech or Scenarios. The patient's brief is for what they say/reveal; the record is for what's known."
         />
         <Field
-          name="9. Specific Scenarios"
-          what="Branching reactions — how the patient responds to what the doctor DOES or SUGGESTS."
-          contains="&ldquo;If the doctor suggests/mentions/reveals X, react this way.&rdquo; Numbered. Optional. Behaviour and reactions only."
-          tip="Facts the patient gives when asked (drinking amount, etc.) do NOT go here — they belong in Only-If-Asked, Social History, or the record."
+          name="9. Questions for the Doctor"
+          what="Questions the patient asks BEFORE the doctor has laid out a management plan — about diagnosis, possible causes, or possible options."
+          contains="One question per line. These are things the role-player should raise during the consult, while they're still trying to understand what's going on (&ldquo;what could be causing this?&rdquo;, &ldquo;could this be serious?&rdquo;, &ldquo;what tests might I need?&rdquo;)."
+          tip="If a question is important enough that it should always come up, put it here (not just in Trainer Q&A) so the role-player actually asks it. These can absolutely be about diagnosis, not just management — the dividing line with Scenarios is timing (before vs. after the doctor proposes a plan), not topic."
         />
         <Field
-          name="10. Questions for the Doctor"
-          what="The question(s) the patient actively asks."
-          contains="One question per line. These are things the role-player should raise during the consult."
-          tip="If a question is important enough that it should always come up, put it here (not just in Trainer Q&A) so the role-player actually asks it."
+          name="10. Specific Scenarios"
+          what="Branching reactions — how the patient responds AFTER the doctor proposes something specific in management."
+          contains="&ldquo;If the doctor suggests/mentions/reveals X [a management action], react this way.&rdquo; Numbered. Optional. Behaviour and reactions only."
+          tip="Facts the patient gives when asked (drinking amount, etc.) do NOT go here — they belong in Only-If-Asked, Social History, or the record. Scenarios are gated on what the doctor DOES (proposes stopping a drug, offers a referral, suggests an option) — not on what the doctor asks about history. A conditional history reveal (&ldquo;if the doctor asks about smoking, say…&rdquo;) belongs in Only-If-Asked instead, written as a plain fact, not here."
         />
       </Card>
 
