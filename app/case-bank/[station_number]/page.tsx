@@ -28,13 +28,11 @@ export default async function StationPage({ params }: PageProps) {
 
   const admin = await isAdmin();
 
-  // Fetch station
-  const { data: station } = await supabase
-    .from("stations")
-    .select("*")
-    .eq("number", num)
-    .eq("published", true)
-    .single<Station>();
+  // Fetch station. Admins can view hidden (unpublished) stations directly so
+  // they can find their way back to the publish toggle after hiding one.
+  let stationQuery = supabase.from("stations").select("*").eq("number", num);
+  if (!admin) stationQuery = stationQuery.eq("published", true);
+  const { data: station } = await stationQuery.single<Station>();
 
   if (!station) notFound();
 

@@ -85,3 +85,21 @@ export async function updateStationFieldAction(
   if (error) return { error: error.message };
   return {};
 }
+
+export async function toggleStationPublishedAction(
+  stationId: string,
+  publish: boolean
+): Promise<UpdateResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ published: publish })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+  return {};
+}

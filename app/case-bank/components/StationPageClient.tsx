@@ -12,6 +12,7 @@ import { FeedbackModal } from "./ReportModal";
 import { HighlightProvider, Highlightable } from "./Highlighter";
 import { AdminEditProvider, EditableField, QAEditableField } from "./InlineEdit";
 import { toggleStarAction, updateLastStationAction } from "../actions";
+import { toggleStationPublishedAction } from "../inline-edit-actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -620,6 +621,8 @@ export function StationPageClient({
   const supabase = createSupabaseBrowserClient();
 
   const [starred, setStarred] = useState(initialStarred);
+  const [published, setPublished] = useState(station.published);
+  const [publishPending, setPublishPending] = useState(false);
   const [showRoom, setShowRoom] = useState(false);
   // Initialise from sessionStorage after hydration (useState initialiser runs on
   // the server where window is undefined, so we use an effect instead)
@@ -676,6 +679,17 @@ export function StationPageClient({
     setStarred((v) => !v);
     await toggleStarAction(station.id, starred);
     setStarPending(false);
+  }
+
+  async function handleTogglePublished() {
+    if (publishPending) return;
+    const next = !published;
+    if (!next && !window.confirm("Hide this station from the case bank? Only admins will still be able to view it.")) return;
+    setPublishPending(true);
+    setPublished(next);
+    const result = await toggleStationPublishedAction(station.id, next);
+    if (result?.error) setPublished(!next);
+    setPublishPending(false);
   }
 
   async function handleTimerStart() {
@@ -965,6 +979,36 @@ export function StationPageClient({
             </svg>
             {starred ? "Starred" : "Star"}
           </button>
+
+          {isAdmin && (
+            <button
+              onClick={handleTogglePublished}
+              disabled={publishPending}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+              style={{
+                background: published ? "transparent" : "rgba(217,119,6,0.15)",
+                border: `1.5px solid ${published ? "rgba(255,255,255,0.25)" : "rgba(217,119,6,0.4)"}`,
+                color: published ? "rgba(255,255,255,0.6)" : "#F6C453",
+                cursor: publishPending ? "default" : "pointer",
+                opacity: publishPending ? 0.6 : 1,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {published ? (
+                  <>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.4 18.4 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </>
+                )}
+              </svg>
+              {published ? "Published" : "Hidden"}
+            </button>
+          )}
 
           <button
             onClick={() => setShowFeedback(true)}
