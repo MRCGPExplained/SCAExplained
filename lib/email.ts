@@ -498,6 +498,76 @@ export async function sendExaminerReportEmail(args: {
   }
 }
 
+export async function sendReportFeedbackDisagreeEmail(args: {
+  to: string;
+  candidateName: string;
+  stationNumber: number;
+  stationTitle: string;
+  comment: string;
+  recordingId: string;
+}): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
+          A candidate disagreed with an AI report</p>
+        <p style="font-size:14px;line-height:1.6;color:#3a3b66;margin:0;">
+          ${escapeHtml(args.candidateName)} said they don&rsquo;t agree with their provisional AI-graded report.</p>
+      </td></tr>
+      <tr><td style="padding:16px 28px;">
+        <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
+          <tr><td style="padding:14px 16px;">
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:16px 28px 8px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Their comment</p>
+        <p style="margin:0;font-size:14px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.comment)}</p>
+      </td></tr>
+      <tr><td style="padding:8px 28px 28px;">
+        <a href="${origin}/admin/report-feedback"
+           style="display:inline-block;background:${NAVY};color:#ffffff;
+           font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">
+          Review in Admin Portal
+        </a>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          SCA Explained — AI Report Feedback</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `Report feedback: disagreement on Station ${args.stationNumber} — ${args.stationTitle}`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

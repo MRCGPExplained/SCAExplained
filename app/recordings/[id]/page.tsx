@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminerFromCookie } from "@/lib/examiner-auth";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
+import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,17 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   }
 
   if (!rec) notFound();
+
+  const isRealCandidate = !examiner && isDoctor;
+  let hasAiReportFeedback = false;
+  if (isRealCandidate && rec.status === "ai_graded") {
+    const { data: feedback } = await admin
+      .from("ai_report_feedback")
+      .select("id")
+      .eq("recording_id", rec.id)
+      .maybeSingle();
+    hasAiReportFeedback = !!feedback;
+  }
 
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
@@ -226,13 +238,20 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {/* Ready to submit — AI-graded but not yet sent for GP review */}
         {isDoctor && rec.status === "ai_graded" && (
           <div
-            className="rounded-xl px-4 py-3 mb-5 text-[12.5px] flex items-center justify-between gap-3 flex-wrap"
+            className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
             style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", color: "#1D4ED8" }}
           >
-            <span>
-              <strong>AI review complete.</strong> This is provisional — submit it to get GP-reviewed feedback (uses 1 of your credits).
-            </span>
-            <SubmitForReviewButton recordingId={rec.id} />
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span>
+                <strong>AI review complete.</strong> This is provisional — submit it to get GP-reviewed feedback (uses 1 of your credits).
+              </span>
+              <SubmitForReviewButton recordingId={rec.id} />
+            </div>
+            {isRealCandidate && (
+              <div className="mt-2">
+                <AiReportFeedbackLink recordingId={rec.id} alreadySubmitted={hasAiReportFeedback} />
+              </div>
+            )}
           </div>
         )}
 

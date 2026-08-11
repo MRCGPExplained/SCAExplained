@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail, sendExaminerNotificationEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail, sendExaminerNotificationEmail, sendReportFeedbackDisagreeEmail } from "@/lib/email";
 import type { Highlight, HighlightColor } from "@/lib/case-bank-types";
 import { isDailyCoEnabled, createDailyRoom, createDailyMeetingToken, deleteDailyRoom } from "@/lib/daily";
 
@@ -851,6 +851,68 @@ export async function submitForReviewAction(recordingId: string): Promise<Action
       })
     )
   );
+
+  return { success: true };
+}
+
+export async function submitAiReportFeedbackAction(
+  recordingId: string,
+  agrees: boolean,
+  comment: string
+): Promise<ActionResult> {
+  if (!agrees && !comment.trim()) return { error: "Please add a comment explaining what you disagree with." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const { data: recording } = await admin
+    .from("station_recordings")
+    .select("id, doctor_user_id, status, station_number, station_title, doctor_display_name")
+    .eq("id", recordingId)
+    .single<{
+      id: string;
+      doctor_user_id: string;
+      status: string;
+      station_number: number;
+      station_title: string;
+      doctor_display_name: string;
+    }>();
+
+  if (!recording) return { error: "Recording not found." };
+  if (recording.doctor_user_id !== user.id) return { error: "Not authorised." };
+  if (recording.status !== "ai_graded") return { error: "Feedback is only for the provisional AI report." };
+
+  const { error: insertErr } = await admin.from("ai_report_feedback").insert({
+    recording_id: recordingId,
+    user_id: user.id,
+    agrees,
+    comment: comment.trim() || null,
+  });
+
+  if (insertErr) {
+    if (insertErr.code === "23505") return { error: "Feedback has already been submitted for this report." };
+    return { error: "Could not save feedback. Please try again." };
+  }
+
+  if (!agrees) {
+    const { data: admins } = await admin.from("examiners").select("name, email").eq("is_admin", true);
+    await Promise.all(
+      (admins ?? []).map((a: { name: string; email: string }) =>
+        sendReportFeedbackDisagreeEmail({
+          to: a.email,
+          candidateName: recording.doctor_display_name,
+          stationNumber: recording.station_number,
+          stationTitle: recording.station_title,
+          comment: comment.trim(),
+          recordingId,
+        })
+      )
+    );
+  }
 
   return { success: true };
 }
