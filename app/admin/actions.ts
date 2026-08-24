@@ -1144,3 +1144,78 @@ export async function bulkMarkExaminerPaidAction(ids: string[]): Promise<ActionR
   revalidatePath("/admin/examiners");
   return { success: true };
 }
+
+// ── Testimonials ─────────────────────────────────────────────────────────────
+
+function testimonialFromForm(formData: FormData) {
+  return {
+    quote: String(formData.get("quote") ?? "").trim(),
+    name: String(formData.get("name") ?? "").trim(),
+    vts: String(formData.get("vts") ?? "").trim() || null,
+    sca_date: String(formData.get("sca_date") ?? "").trim() || null,
+    display_order: parseInt(String(formData.get("display_order") ?? "1"), 10) || 1,
+    published: formData.get("published") === "true",
+  };
+}
+
+export async function createTestimonialAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const payload = testimonialFromForm(formData);
+  if (!payload.quote) return { error: "Quote is required." };
+  if (!payload.name) return { error: "Name is required." };
+
+  const { error } = await supabase.from("testimonials").insert(payload);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/testimonials");
+  revalidatePath("/");
+  redirect("/admin/testimonials");
+}
+
+export async function updateTestimonialAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "");
+  const payload = testimonialFromForm(formData);
+  if (!payload.quote) return { error: "Quote is required." };
+  if (!payload.name) return { error: "Name is required." };
+
+  const { error } = await supabase.from("testimonials").update(payload).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/testimonials");
+  revalidatePath("/");
+  redirect("/admin/testimonials");
+}
+
+export async function toggleTestimonialPublishedAction(formData: FormData) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const id = String(formData.get("id"));
+  const published = formData.get("published") === "true";
+  await supabase.from("testimonials").update({ published }).eq("id", id);
+  revalidatePath("/admin/testimonials");
+  revalidatePath("/");
+}
+
+export async function deleteTestimonialAction(id: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("testimonials").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/testimonials");
+  revalidatePath("/");
+  return {};
+}
