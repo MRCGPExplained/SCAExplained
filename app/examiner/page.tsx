@@ -23,7 +23,7 @@ export default async function ExaminerPage({ searchParams }: { searchParams: Pro
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#FAFAF8" }}>
         <div className="w-full max-w-[360px] rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-            SCA Explained
+            SCA Focus
           </div>
           <h1 className="font-display font-extrabold text-[22px] mb-1" style={{ color: NAVY }}>
             Examiner Portal

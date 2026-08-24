@@ -58,7 +58,7 @@ const STEPS = [
     id: "record",
     label: "Record",
     title: "Record Consultation",
-    description: "Record directly on SCA Explained with your study partner. No downloads. No Zoom. No third-party software.",
+    description: "Record directly on SCA Focus with your study partner. No downloads. No Zoom. No third-party software.",
     icon: MicOutline,
   },
   {

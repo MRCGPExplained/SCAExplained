@@ -35,7 +35,7 @@ export async function POST() {
     return NextResponse.json({ error: "Payment system not configured." }, { status: 500 });
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",

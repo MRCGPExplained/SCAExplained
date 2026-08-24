@@ -1,5 +1,5 @@
 -- ============================================================================
--- SCA Explained — sample seed data (optional)
+-- SCA Focus — sample seed data (optional)
 -- Mirrors the dates from the original homepage mockup so the live site has
 -- something to render. Safe to delete / replace with real sessions.
 -- Times are stored in UTC; adjust to taste. Prices are in pence.

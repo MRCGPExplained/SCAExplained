@@ -1,8 +1,8 @@
 import { ContentPage, H2, H3, P, UL, LI, Divider } from "@/app/components/ContentPage";
 
 export const metadata = {
-  title: "Privacy Policy — SCA Explained",
-  description: "How SCA Explained collects, uses, and protects your personal data.",
+  title: "Privacy Policy — SCA Focus",
+  description: "How SCA Focus collects, uses, and protects your personal data.",
 };
 
 export default function PrivacyPage() {
@@ -12,14 +12,14 @@ export default function PrivacyPage() {
       subtitle="Last updated: 30 June 2026"
     >
       <P>
-        This policy explains what personal data SCA Explained collects, why,
+        This policy explains what personal data SCA Focus collects, why,
         how it is used, and your rights under UK data protection law (UK GDPR
         and the Data Protection Act 2018).
       </P>
 
       <H2>Who we are</H2>
       <P>
-        SCA Explained is the data controller for the personal data described in
+        SCA Focus is the data controller for the personal data described in
         this policy. If you have any questions, you can contact us at{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"

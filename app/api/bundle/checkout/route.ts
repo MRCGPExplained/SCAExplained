@@ -20,7 +20,7 @@ export async function POST() {
     return NextResponse.json({ error: "Payment system not configured." }, { status: 500 });
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -30,7 +30,7 @@ export async function POST() {
           currency: "gbp",
           unit_amount: 5000,
           product_data: {
-            name: "SCA Explained Bundle — Video Course + Case Bank",
+            name: "SCA Focus Bundle — Video Course + Case Bank",
             description: "Complete SCA preparation package. Save £10 vs buying separately. 90-day access.",
           },
         },

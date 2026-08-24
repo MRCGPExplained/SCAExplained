@@ -21,7 +21,7 @@ export async function POST() {
         price_data: {
           currency: "gbp",
           unit_amount: 6000,
-          product_data: { name: "The SCA Explained Programme — 90-Day Access" },
+          product_data: { name: "The SCA Focus Programme — 90-Day Access" },
         },
         quantity: 1,
       },

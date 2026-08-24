@@ -13,7 +13,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-[380px]">
         <div className="mb-8">
           <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-navy/40 mb-1">
-            SCA Explained
+            SCA Focus
           </p>
           <h1 className="font-display font-extrabold text-[28px] text-navy">
             Admin

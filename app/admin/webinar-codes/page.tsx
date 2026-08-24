@@ -18,7 +18,7 @@ export default async function WebinarCodesPage() {
       <div className="mb-8">
         <h1 className="font-display font-extrabold text-[26px] text-navy">Webinar Codes</h1>
         <p className="text-[13px] text-navy/50 mt-0.5">
-          Share one code per webinar. Attendees redeem it at scaexplained.com/redeem for bonus GP review credits.
+          Share one code per webinar. Attendees redeem it at scafocus.com/redeem for bonus GP review credits.
         </p>
       </div>
       <WebinarCodesClient codes={(data ?? []) as WebinarCode[]} />

@@ -8,8 +8,8 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "sw
 const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight: ["700", "800"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "SCA Explained — Learn What Scores Marks in the SCA",
-  description: "Premium SCA coaching for GP trainees. Free training, live practice sessions, and the SCA Explained Programme.",
+  title: "SCA Focus — Learn What Scores Marks in the SCA",
+  description: "Premium SCA coaching for GP trainees. Free training, live practice sessions, and the SCA Focus Programme.",
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

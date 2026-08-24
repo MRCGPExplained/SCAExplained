@@ -1,8 +1,8 @@
 import { ContentPage, H2, H3, P, UL, LI, Divider } from "@/app/components/ContentPage";
 
 export const metadata = {
-  title: "Terms & Conditions — SCA Explained",
-  description: "Booking terms and conditions for SCA Explained sessions.",
+  title: "Terms & Conditions — SCA Focus",
+  description: "Booking terms and conditions for SCA Focus sessions.",
 };
 
 export default function TermsPage() {
@@ -12,15 +12,15 @@ export default function TermsPage() {
       subtitle="Last updated: 3 August 2026"
     >
       <P>
-        These terms govern your use of the SCA Explained website
-        (scaexplained.com) and your booking of any session offered through it.
+        These terms govern your use of the SCA Focus website
+        (scafocus.com) and your booking of any session offered through it.
         By completing a booking you agree to these terms. Please read them
         before booking.
       </P>
 
       <H2>1. About us</H2>
       <P>
-        SCA Explained provides online training and coaching for GP trainees
+        SCA Focus provides online training and coaching for GP trainees
         preparing for the Simulated Consultation Assessment. Contact:{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"
@@ -114,7 +114,7 @@ export default function TermsPage() {
       <P>
         All content delivered in our sessions — including materials, feedback
         frameworks, case structures, and improvement plans — is the intellectual
-        property of SCA Explained. You may use it for your own personal exam
+        property of SCA Focus. You may use it for your own personal exam
         preparation only. You may not reproduce, distribute, or resell any part
         of our content without our written permission.
       </P>
@@ -122,7 +122,7 @@ export default function TermsPage() {
       <Divider />
       <H2>6. Disclaimer</H2>
       <P>
-        SCA Explained provides coaching and educational content to support your
+        SCA Focus provides coaching and educational content to support your
         SCA preparation. Our sessions are designed to help you develop skills
         and understand examiner expectations — they are not a guarantee of any
         particular exam outcome.
@@ -137,7 +137,7 @@ export default function TermsPage() {
       <Divider />
       <H2>7. Limitation of liability</H2>
       <P>
-        To the fullest extent permitted by law, SCA Explained shall not be
+        To the fullest extent permitted by law, SCA Focus shall not be
         liable for any indirect, incidental, or consequential losses arising
         from your use of our services, including (without limitation) any loss
         of income, exam fees, or opportunity costs. Our total liability for any

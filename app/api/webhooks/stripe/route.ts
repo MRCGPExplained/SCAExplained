@@ -188,7 +188,7 @@ async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
     await sendConfirmationEmail({
       to: userEmail,
       customerName: userEmail,
-      eventTitle: "The SCA Explained Programme — 90-Day Access",
+      eventTitle: "The SCA Focus Programme — 90-Day Access",
       ticketName: "Access granted",
       startTime: now.toISOString(),
       endTime: newExpiry,

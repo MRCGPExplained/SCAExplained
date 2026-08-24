@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import { ContentPage, H2, H3, P, UL, LI, Divider } from "@/app/components/ContentPage";
 
 export const metadata: Metadata = {
-  title: "About — SCA Explained",
+  title: "About — SCA Focus",
   description:
-    "SCA Explained was built by a GP with a passion for medical education — grounded in RCGP guidance, designed to be high-yield and respect your time.",
+    "SCA Focus was built by a GP with a passion for medical education — grounded in RCGP guidance, designed to be high-yield and respect your time.",
 };
 
 export default function AboutPage() {
   return (
     <ContentPage
-      title="About SCA Explained"
+      title="About SCA Focus"
       subtitle="Built by a GP, for GP trainees."
     >
-      <H2 underline>Why SCA Explained exists</H2>
+      <H2 underline>Why SCA Focus exists</H2>
 
       <H3>Most preparation is based on assumption, not what RCGP examiners are actually looking for</H3>
       <P>
@@ -28,7 +28,7 @@ export default function AboutPage() {
       <P>
         You&apos;re a GP trainee. You have clinics, e-learning, supervision, portfolio
         entries, and a life. The last thing you need is a course that pads its
-        content to justify its price. SCA Explained is designed to give you the
+        content to justify its price. SCA Focus is designed to give you the
         highest-yield insight in the least time. The free How To Get A Clear Pass
         webinar covers the essentials clearly. The Intensive gives you coached,
         realistic practice with genuine individual feedback. Nothing is there to

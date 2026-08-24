@@ -1,4 +1,4 @@
-# SCA Explained
+# SCA Focus
 
 Premium SCA coaching site for GP trainees. Sells a **free webinar** ("What Makes
 a Clear Pass") as the funnel and a paid **SCA Intensive** workshop. Built with
@@ -18,7 +18,7 @@ Checkout, and Resend for email.
 | DB schema + atomic reservation RPC | `supabase/schema.sql` |
 | Sample dates | `supabase/seed.sql` |
 
-Key design decisions live in `SCA_EXPLAINED_BUILD_BRIEF.md` (on the Desktop).
+Key design decisions live in `SCA_FOCUS_BUILD_BRIEF.md` (on the Desktop).
 
 ## Local setup
 
@@ -87,4 +87,4 @@ confirmation only — never shown on a public page.
 - FAQ / **Privacy** / **Terms** pages — Privacy & Terms are not optional once
   the site takes payments and stores personal data (UK GDPR).
 - SEO/OG metadata, accessibility/contrast pass, mobile QA.
-- Point the `scaexplained` domain at Vercel.
+- Point the `scafocus` domain at Vercel.

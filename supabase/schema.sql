@@ -1,5 +1,5 @@
 -- ============================================================================
--- SCA Explained — database schema
+-- SCA Focus — database schema
 -- Run this in the Supabase SQL editor (or via `supabase db push`).
 --
 -- Deviation from the build brief: events has an `event_type` column

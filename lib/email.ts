@@ -59,7 +59,7 @@ export async function sendConfirmationEmail(
   if (!resend) return false;
 
   const from =
-    process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+    process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
 
   const when = `${longDate(args.startTime)}, ${timeRange(
     args.startTime,
@@ -89,7 +89,7 @@ export async function sendConfirmationEmail(
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
@@ -115,7 +115,7 @@ export async function sendConfirmationEmail(
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          For educational purposes only. © 2026 SCA Explained.</p>
+          For educational purposes only. © 2026 SCA Focus.</p>
       </td></tr>
     </table>
   </div>`;
@@ -148,7 +148,7 @@ export async function sendFeedbackEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
@@ -156,7 +156,7 @@ export async function sendFeedbackEmail(args: {
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">Feedback received</p>
@@ -178,7 +178,7 @@ export async function sendFeedbackEmail(args: {
         <p style="margin:0;font-size:14px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
-        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Explained Case Bank — Feedback</p>
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Focus Case Bank — Feedback</p>
       </td></tr>
     </table>
   </div>`;
@@ -209,7 +209,7 @@ export async function sendVideoRequestEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
@@ -217,7 +217,7 @@ export async function sendVideoRequestEmail(args: {
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
@@ -242,7 +242,7 @@ export async function sendVideoRequestEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          SCA Explained Case Bank — Video Request</p>
+          SCA Focus Case Bank — Video Request</p>
       </td></tr>
     </table>
   </div>`;
@@ -271,7 +271,7 @@ export async function sendAccessExpiryEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
   const expiry = new Date(args.expiresAt).toLocaleDateString("en-GB", {
     day: "numeric", month: "long", year: "numeric",
   });
@@ -282,7 +282,7 @@ export async function sendAccessExpiryEmail(args: {
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(51,51,51,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:#333333;font-weight:700;margin:0 0 8px;">
@@ -293,7 +293,7 @@ export async function sendAccessExpiryEmail(args: {
         </p>
       </td></tr>
       <tr><td style="padding:20px 28px;">
-        <a href="https://www.scaexplained.com/register"
+        <a href="https://www.scafocus.com/register"
            style="display:inline-block;background:${YELLOW};color:#333333;
            font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;
            font-size:15px;">
@@ -308,7 +308,7 @@ export async function sendAccessExpiryEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          For educational purposes only. © 2026 SCA Explained.</p>
+          For educational purposes only. © 2026 SCA Focus.</p>
       </td></tr>
     </table>
   </div>`;
@@ -317,7 +317,7 @@ export async function sendAccessExpiryEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `Your SCA Explained access expires on ${expiry}`,
+      subject: `Your SCA Focus access expires on ${expiry}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -339,8 +339,8 @@ export async function sendExaminerNotificationEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
@@ -348,7 +348,7 @@ export async function sendExaminerNotificationEmail(args: {
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
@@ -374,7 +374,7 @@ export async function sendExaminerNotificationEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          For educational purposes only. © 2026 SCA Explained.</p>
+          For educational purposes only. © 2026 SCA Focus.</p>
       </td></tr>
     </table>
   </div>`;
@@ -412,8 +412,8 @@ export async function sendExaminerReportEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   function gradeBadge(g: string): string {
     const styles: Record<string, string> = {
@@ -441,7 +441,7 @@ export async function sendExaminerReportEmail(args: {
       style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 6px;">
@@ -478,7 +478,7 @@ export async function sendExaminerReportEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          For educational purposes only. © 2026 SCA Explained.</p>
+          For educational purposes only. © 2026 SCA Focus.</p>
       </td></tr>
     </table>
   </div>`;
@@ -510,8 +510,8 @@ export async function sendReportFeedbackDisagreeEmail(args: {
   const resend = getResend();
   if (!resend) return false;
 
-  const from = process.env.EMAIL_FROM ?? "SCA Explained <bookings@scaexplained.com>";
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scaexplained.com";
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
@@ -519,7 +519,7 @@ export async function sendReportFeedbackDisagreeEmail(args: {
       style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
       overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
       <tr><td style="background:${NAVY};padding:24px 28px;">
-        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Explained</p>
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
@@ -548,7 +548,7 @@ export async function sendReportFeedbackDisagreeEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          SCA Explained — AI Report Feedback</p>
+          SCA Focus — AI Report Feedback</p>
       </td></tr>
     </table>
   </div>`;

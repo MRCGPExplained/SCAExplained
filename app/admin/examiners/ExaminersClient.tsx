@@ -208,7 +208,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     const periodLine = (from || to) ? `Period: ${from || "—"} to ${to || "—"}<br>` : "";
     const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-    const html = `<!DOCTYPE html><html><head><title>SCA Explained — Examiner Invoice</title>
+    const html = `<!DOCTYPE html><html><head><title>SCA Focus — Examiner Invoice</title>
 <meta charset="utf-8">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -338,11 +338,11 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     <div class="footer">
       <div class="footer-left">
         <div class="footer-badge"><span>SCA</span></div>
-        <div class="footer-text">SCA Explained &middot; scaexplained.com &middot; mrcgpexplained@outlook.com</div>
+        <div class="footer-text">SCA Focus &middot; scafocus.com &middot; mrcgpexplained@outlook.com</div>
       </div>
       <div class="footer-right">
         For educational purposes only<br>
-        © ${new Date().getFullYear()} SCA Explained
+        © ${new Date().getFullYear()} SCA Focus
       </div>
     </div>
 

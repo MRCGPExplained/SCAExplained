@@ -37,7 +37,7 @@ export function ContentPage({
       {/* Footer */}
       <footer className="border-t px-6 md:px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
         <p className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>
-          For educational purposes only. © 2026 SCA Explained.
+          For educational purposes only. © 2026 SCA Focus.
         </p>
         <div className="flex gap-5 flex-wrap">
           <Link href="/privacy" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Privacy</Link>
