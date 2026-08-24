@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 
 export type ExaminerRecord = {
   id: string;
@@ -7,10 +7,12 @@ export type ExaminerRecord = {
   email: string;
 };
 
-export async function getExaminerFromCookie(): Promise<ExaminerRecord | null> {
-  const cookieStore = await cookies();
-  const examinerId = cookieStore.get("examiner_session")?.value ?? "";
-  if (!examinerId) return null;
+// An "examiner" is anyone logged into a normal site account (Supabase auth)
+// whose email is listed on the examiners table — no separate passcode needed.
+export async function getExaminer(): Promise<ExaminerRecord | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  if (!user?.email) return null;
 
   const admin = getSupabaseAdmin();
   if (!admin) return null;
@@ -18,8 +20,8 @@ export async function getExaminerFromCookie(): Promise<ExaminerRecord | null> {
   const { data } = await admin
     .from("examiners")
     .select("id, name, email")
-    .eq("id", examinerId)
-    .single<ExaminerRecord>();
+    .ilike("email", user.email)
+    .maybeSingle<ExaminerRecord>();
 
   return data ?? null;
 }

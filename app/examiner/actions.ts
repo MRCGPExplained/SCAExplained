@@ -1,8 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getExaminerFromCookie } from "@/lib/examiner-auth";
+import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
@@ -59,7 +59,7 @@ export async function generateOverallCommentAction(args: {
   stationTitle: string;
   recordingId?: string;
 }): Promise<{ text?: string; error?: string }> {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -94,7 +94,7 @@ Write a brief overall comment that summarises performance and highlights the sin
 }
 
 export async function grammarCheckAction(args: { text: string; recordingId?: string }): Promise<{ text?: string; error?: string }> {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
   if (!args.text.trim()) return { error: "Nothing to check." };
 
@@ -121,7 +121,7 @@ export async function grammarCheckAction(args: { text: string; recordingId?: str
 }
 
 export async function retryAiPipelineAction(recordingId: string): Promise<{ error?: string }> {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
   const admin = getSupabaseAdmin();
@@ -138,7 +138,7 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
 }
 
 export async function checkRetryStatusAction(recordingId: string): Promise<{ status?: string; error?: string }> {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
   const admin = getSupabaseAdmin();
@@ -153,36 +153,9 @@ export async function checkRetryStatusAction(recordingId: string): Promise<{ sta
   return { status: data?.status };
 }
 
-export async function examinerLoginAction(formData: FormData): Promise<void> {
-  const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!passcode) redirect("/examiner?error=required");
-
-  const admin = getSupabaseAdmin();
-  if (!admin) redirect("/examiner?error=server");
-
-  const { data: examiner } = await admin
-    .from("examiners")
-    .select("id")
-    .eq("passcode", passcode)
-    .single<{ id: string }>();
-
-  if (!examiner) redirect("/examiner?error=incorrect");
-
-  const cookieStore = await cookies();
-  cookieStore.set("examiner_session", examiner.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-
-  redirect("/examiner");
-}
-
 export async function examinerLogoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete("examiner_session");
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
   redirect("/examiner");
 }
 
@@ -190,7 +163,7 @@ export async function submitExaminerReviewAction(
   _prevState: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
   const admin = getSupabaseAdmin();

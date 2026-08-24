@@ -11,7 +11,10 @@ const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/register", "/case-bank
 const VIDEO_COURSE_PUBLIC = ["/video-course/purchase"];
 const BUNDLE_PUBLIC = ["/bundle/purchase"];
 
-async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<NextResponse> {
+// Reads the current Supabase-authenticated user (if any) and returns the
+// response carrying any refreshed session cookies, so callers can either
+// `return` it directly (auth passed) or inspect `user` before redirecting.
+async function getSupabaseUser(req: NextRequest): Promise<{ user: { email?: string } | null; response: NextResponse }> {
   let supabaseResponse = NextResponse.next({ request: req });
 
   const supabase = createServerClient(
@@ -30,6 +33,11 @@ async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<N
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  return { user, response: supabaseResponse };
+}
+
+async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<NextResponse> {
+  const { user, response } = await getSupabaseUser(req);
 
   if (!user) {
     const url = req.nextUrl.clone();
@@ -38,7 +46,27 @@ async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<N
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  return response;
+}
+
+// Looks up whether an email is a registered admin (examiners.is_admin = true).
+// Uses a direct REST call since middleware runs on the Edge runtime.
+async function isAdminEmail(email: string): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return false;
+
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/examiners?select=id&is_admin=eq.true&email=ilike.${encodeURIComponent(email)}`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, cache: "no-store" }
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as unknown[];
+    return Array.isArray(rows) && rows.length > 0;
+  } catch {
+    return false; // Fail closed
+  }
 }
 
 export async function middleware(req: NextRequest) {
@@ -47,38 +75,19 @@ export async function middleware(req: NextRequest) {
   // ── Admin auth ────────────────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") return NextResponse.next();
-    const session = req.cookies.get("admin_session")?.value ?? "";
 
-    // Check primary ADMIN_PASSWORD env var
+    // 1. /master fail-safe passcode — independent of Supabase auth entirely.
+    const masterSession = req.cookies.get("master_session")?.value ?? "";
     const pw = process.env.ADMIN_PASSWORD ?? "";
     if (pw) {
-      const expected = await sha256hex(pw);
-      if (session === expected) return NextResponse.next();
+      if (masterSession === (await sha256hex(pw))) return NextResponse.next();
     } else if (process.env.NODE_ENV !== "production") {
       return NextResponse.next();
     }
 
-    // Check examiners with is_admin = true
-    if (session) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (supabaseUrl && serviceKey) {
-        try {
-          const res = await fetch(`${supabaseUrl}/rest/v1/examiners?select=passcode&is_admin=eq.true`, {
-            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-            cache: "no-store",
-          });
-          if (res.ok) {
-            const rows = (await res.json()) as { passcode: string }[];
-            for (const row of rows) {
-              if (session === await sha256hex(row.passcode)) return NextResponse.next();
-            }
-          }
-        } catch {
-          // Fail closed — fall through to redirect
-        }
-      }
-    }
+    // 2. Normal path — logged in with an email on the admin list.
+    const { user, response } = await getSupabaseUser(req);
+    if (user?.email && (await isAdminEmail(user.email))) return response;
 
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
@@ -119,16 +128,10 @@ export async function middleware(req: NextRequest) {
   }
 
   // ── Examiner ──────────────────────────────────────────────────────────────
+  // Just requires a logged-in account; the page itself checks whether that
+  // account's email is on the examiners list and shows "not authorised" if not.
   if (pathname === "/examiner" || pathname.startsWith("/examiner/")) {
-    // /examiner itself handles both login form and queue based on cookie presence
-    if (pathname === "/examiner") return NextResponse.next();
-    const examinerId = req.cookies.get("examiner_session")?.value ?? "";
-    if (!examinerId) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/examiner";
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
+    return supabaseAuthCheck(req, "/login");
   }
 
   return NextResponse.next();

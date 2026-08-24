@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getExaminerFromCookie } from "@/lib/examiner-auth";
+import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import ExaminerReviewClient from "./ExaminerReviewClient";
 
@@ -40,7 +40,7 @@ interface PageProps {
 export default async function ExaminerReviewPage({ params }: PageProps) {
   const { id } = await params;
 
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) redirect("/examiner");
 
   const admin = getSupabaseAdmin();

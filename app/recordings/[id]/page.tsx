@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getExaminerFromCookie } from "@/lib/examiner-auth";
+import { getExaminer } from "@/lib/examiner-auth";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
@@ -86,7 +86,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const admin = getSupabaseAdmin();
   if (!admin) notFound();
 
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
 
   let rec: RecordingDetail | null = null;
   let isDoctor = false;

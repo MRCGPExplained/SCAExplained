@@ -1,57 +1,44 @@
-import { getExaminerFromCookie } from "@/lib/examiner-auth";
+import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { examinerLoginAction, examinerLogoutAction } from "./actions";
+import { examinerLogoutAction } from "./actions";
 import ExaminerPortalClient, { type QueueRow } from "./ExaminerPortalClient";
 
 export const dynamic = "force-dynamic";
 
 const NAVY = "#333333";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  required: "Passcode required.",
-  incorrect: "Incorrect passcode.",
-  server: "Server error — please try again.",
-};
+export default async function ExaminerPage() {
+  const examiner = await getExaminer();
 
-export default async function ExaminerPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
-  const examiner = await getExaminerFromCookie();
-
-  // ── Not logged in: show passcode form ────────────────────────────────────
+  // ── Logged in, but this email isn't on the examiners list ────────────────
   if (!examiner) {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#FAFAF8" }}>
         <div className="w-full max-w-[360px] rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
             SCA Focus
           </div>
-          <h1 className="font-display font-extrabold text-[22px] mb-1" style={{ color: NAVY }}>
+          <h1 className="font-display font-extrabold text-[22px] mb-3" style={{ color: NAVY }}>
             Examiner Portal
           </h1>
-          <p className="text-[13px] mb-7" style={{ color: "rgba(51,51,51,0.5)" }}>
-            Enter your passcode to continue.
+          <p className="text-[13.5px] mb-1" style={{ color: "rgba(51,51,51,0.65)" }}>
+            Signed in as <strong>{user?.email}</strong>.
           </p>
-          <form action={examinerLoginAction} className="flex flex-col gap-4">
-            <input
-              name="passcode"
-              type="password"
-              placeholder="Passcode"
-              autoComplete="current-password"
-              required
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
-              style={{ border: `1.5px solid ${error ? "rgba(220,38,38,0.4)" : "rgba(51,51,51,0.15)"}`, background: "#FAFAF8", color: NAVY, fontFamily: "inherit" }}
-            />
-            {error && (
-              <p className="text-[12px]" style={{ color: "#B91C1C", marginTop: -8 }}>
-                {ERROR_MESSAGES[error] ?? "Incorrect passcode."}
-              </p>
-            )}
+          <p className="text-[13.5px] mb-7 leading-relaxed" style={{ color: "rgba(51,51,51,0.5)" }}>
+            This account isn&apos;t registered as an examiner. Ask an admin to add
+            your email under Examiners, or sign out and try a different account.
+          </p>
+          <form action={examinerLogoutAction}>
             <button
               type="submit"
               className="w-full py-3 rounded-xl text-[14px] font-bold"
               style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
             >
-              Enter
+              Sign out
             </button>
           </form>
         </div>

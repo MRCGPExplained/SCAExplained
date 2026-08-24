@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getExaminerFromCookie } from "@/lib/examiner-auth";
+import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
   const admin = getSupabaseAdmin();
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const examiner = await getExaminerFromCookie();
+  const examiner = await getExaminer();
   if (!examiner) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
   const admin = getSupabaseAdmin();
