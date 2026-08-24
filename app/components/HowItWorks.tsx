@@ -146,7 +146,7 @@ export function HowItWorks() {
         {STEPS.map((step, i) => {
           const isActive = active === i;
           const Icon = step.icon;
-          const connectorHighlighted = i < STEPS.length - 1 && (active === i || active === i + 1);
+          const connectorHighlighted = i < STEPS.length - 1 && active === i + 1;
           return (
             <div key={step.id} className="flex items-start min-w-0">
               <button
