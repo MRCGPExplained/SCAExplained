@@ -137,8 +137,37 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* EXAMPLES: full sample report, straight from /recordings/sample */}
+      {/* WHY HUMAN REVIEW MATTERS */}
       <section className="px-10 pb-16 pt-16 max-md:px-6">
+        <div className="max-w-[900px] mx-auto">
+          <h2 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
+            Why Human Review Matters
+          </h2>
+          <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
+            AI is excellent for speed — it gives you a provisional score within minutes of finishing
+            your consultation. But exam feedback needs judgement AI can&apos;t fully replace, so every
+            single consultation is reviewed by an experienced GP before your feedback is finalised.
+          </p>
+          <ul className="flex flex-col gap-2.5">
+            {(
+              [
+                "Instant AI feedback",
+                "Every consultation reviewed by an experienced GP",
+                "Personalised comments",
+                "Feedback you can trust",
+              ] as const
+            ).map((item) => (
+              <li key={item} className="flex items-center gap-2.5 text-[14.5px]" style={{ color: DARK }}>
+                <span className="shrink-0"><TickIcon /></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* EXAMPLES: full sample report, straight from /recordings/sample */}
+      <section className="px-10 pb-16 max-md:px-6">
         <div className="max-w-[1250px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
             Everything Included In Your Programme
@@ -187,35 +216,6 @@ export default async function HomePage() {
               })}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* WHY HUMAN REVIEW MATTERS */}
-      <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[900px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
-            Why Human Review Matters
-          </h2>
-          <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
-            AI is excellent for speed — it gives you a provisional score within minutes of finishing
-            your consultation. But exam feedback needs judgement AI can&apos;t fully replace, so every
-            single consultation is reviewed by an experienced GP before your feedback is finalised.
-          </p>
-          <ul className="flex flex-col gap-2.5">
-            {(
-              [
-                "Instant AI feedback",
-                "Every consultation reviewed by an experienced GP",
-                "Personalised comments",
-                "Feedback you can trust",
-              ] as const
-            ).map((item) => (
-              <li key={item} className="flex items-center gap-2.5 text-[14.5px]" style={{ color: DARK }}>
-                <span className="shrink-0"><TickIcon /></span>
-                {item}
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
