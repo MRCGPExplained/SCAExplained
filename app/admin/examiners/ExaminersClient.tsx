@@ -288,7 +288,7 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
     <div class="logo">
       <div class="logo-badge"><span>SCA</span></div>
       <div class="logo-text">
-        <div class="name">Explained<em>.</em></div>
+        <div class="name">Focus<em>.</em></div>
         <div class="tagline">GP SCA Preparation</div>
       </div>
     </div>

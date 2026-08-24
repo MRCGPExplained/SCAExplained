@@ -13,7 +13,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block no-underline">
             <span className="font-display font-extrabold text-[22px]" style={{ color: "#1A1B52" }}>
-              SCA <span style={{ color: "#F6D44B" }}>Explained</span>
+              SCA <span style={{ color: "#F6D44B" }}>Focus</span>
             </span>
           </Link>
           <p className="text-[13px] mt-1" style={{ color: "rgba(26,27,82,0.5)" }}>

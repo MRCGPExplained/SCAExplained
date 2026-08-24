@@ -58,7 +58,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block no-underline">
             <span className="font-display font-extrabold text-[22px]" style={{ color: "#333333" }}>
-              SCA <span style={{ color: "#F6D44B" }}>Explained</span>
+              SCA <span style={{ color: "#F6D44B" }}>Focus</span>
             </span>
           </Link>
         </div>

@@ -33,7 +33,7 @@ export default async function BetatestPage() {
         <div className="max-w-[680px] mx-auto flex items-center justify-between">
           <Link href="/" className="no-underline">
             <span className="font-display font-extrabold text-[18px]" style={{ color: DARK }}>
-              SCA <span style={{ color: YELLOW }}>Explained</span>
+              SCA <span style={{ color: YELLOW }}>Focus</span>
             </span>
           </Link>
           <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: YELLOW, color: DARK }}>

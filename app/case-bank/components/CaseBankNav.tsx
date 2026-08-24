@@ -39,7 +39,7 @@ export function CaseBankNav({
           className="font-display font-extrabold text-[15px] no-underline"
           style={{ color: "white" }}
         >
-          SCA <span style={{ color: YELLOW }}>Explained</span>
+          SCA <span style={{ color: YELLOW }}>Focus</span>
         </Link>
         <span style={{ color: "rgba(255,255,255,0.2)" }}>|</span>
         <Link

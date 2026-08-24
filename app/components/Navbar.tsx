@@ -31,7 +31,7 @@ export function Navbar({
             <SpeechIcon />
           </span>
           <span className="font-display font-bold text-[14px] tracking-[-0.01em] text-white">
-            SCA <span style={{ color: YELLOW }}>Explained</span>
+            SCA <span style={{ color: YELLOW }}>Focus</span>
           </span>
         </Link>
 
