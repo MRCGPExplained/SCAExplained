@@ -1474,6 +1474,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
             {recordingId && (
               <a
                 href={`/recordings/${recordingId}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline"
                 style={{ background: "rgba(51,51,51,0.08)", color: DARK }}
               >
@@ -1516,6 +1518,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           {recordingId && (
             <a
               href={`/recordings/${recordingId}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline"
               style={{ background: YELLOW, color: DARK }}
             >

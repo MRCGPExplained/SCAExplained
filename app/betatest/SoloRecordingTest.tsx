@@ -306,6 +306,8 @@ export default function SoloRecordingTest({ stations }: { stations: Station[] })
             </span>
             <a
               href={`/recordings/${phase.recordingId}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-4 py-2 rounded-xl text-[13px] font-bold no-underline transition"
               style={{ background: YELLOW, color: DARK }}
             >

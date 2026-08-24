@@ -88,7 +88,7 @@ export default async function ReportFeedbackPage() {
                     {row.comment ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-[12.5px] whitespace-nowrap">
-                    <Link href={`/recordings/${row.recording_id}`} style={{ color: "#1D4ED8", textDecoration: "none", fontWeight: 600 }}>
+                    <Link href={`/recordings/${row.recording_id}`} target="_blank" rel="noopener noreferrer" style={{ color: "#1D4ED8", textDecoration: "none", fontWeight: 600 }}>
                       View report →
                     </Link>
                   </td>

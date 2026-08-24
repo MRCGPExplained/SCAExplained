@@ -21,6 +21,7 @@ export default function AdminLayout({
             <Link href="/admin/case-guide" className="text-[13px] text-white/60 hover:text-white transition no-underline">Guide</Link>
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/examiners" className="text-[13px] text-white/60 hover:text-white transition no-underline">Examiners</Link>
+            <Link href="/admin/api-settings" className="text-[13px] text-white/60 hover:text-white transition no-underline">API Settings</Link>
             <Link href="/admin/report-feedback" className="text-[13px] text-white/60 hover:text-white transition no-underline">Report Feedback</Link>
             <Link href="/admin/webinar" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar</Link>
             <Link href="/admin/economics" className="text-[13px] text-white/60 hover:text-white transition no-underline">Economics</Link>
