@@ -53,6 +53,21 @@ function FileTextOutline({ size = 22 }: { size?: number }) {
   );
 }
 
+function ArrowIcon({ highlighted }: { highlighted: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 12h15M13 6l6 6-6 6"
+        stroke={highlighted ? YELLOW : "rgba(51,51,51,0.28)"}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ transition: "stroke 0.25s ease-out" }}
+      />
+    </svg>
+  );
+}
+
 const STEPS = [
   {
     id: "record",
@@ -84,8 +99,8 @@ const STEPS = [
   },
 ] as const;
 
-const DESKTOP_CIRCLE = 120;
-const DESKTOP_ICON = 44;
+const DESKTOP_CIRCLE = 56;
+const DESKTOP_ICON = 22;
 const MOBILE_CIRCLE = 76;
 const MOBILE_ICON = 32;
 
@@ -127,19 +142,19 @@ export function HowItWorks() {
       style={{ background: "white", boxShadow: "0 8px 40px rgba(51,51,51,0.07)", border: "1px solid rgba(51,51,51,0.04)" }}
     >
       {/* Desktop / tablet: horizontal timeline */}
-      <div className="hidden sm:flex items-start">
+      <div className="hidden sm:flex items-start justify-between">
         {STEPS.map((step, i) => {
           const isActive = active === i;
           const Icon = step.icon;
           const connectorHighlighted = i < STEPS.length - 1 && (active === i || active === i + 1);
           return (
-            <div key={step.id} className={i < STEPS.length - 1 ? "flex items-start flex-1" : "flex items-start"}>
+            <div key={step.id} className="flex items-start min-w-0">
               <button
                 type="button"
                 onClick={() => selectStep(i)}
                 aria-current={isActive ? "step" : undefined}
                 aria-label={step.title}
-                className="flex flex-col items-center gap-4 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+                className="flex flex-col items-center gap-2 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
                 style={{ background: "none", border: "none", cursor: "pointer", outlineColor: YELLOW }}
               >
                 <motion.div
@@ -167,7 +182,7 @@ export function HowItWorks() {
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={inView ? { opacity: 1 } : {}}
                   transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.15 + 0.1 }}
-                  className="font-display font-bold whitespace-nowrap text-[30px] leading-none"
+                  className="font-display font-bold whitespace-nowrap text-[11.5px] leading-none"
                   style={{ color: isActive ? DARK : "rgba(51,51,51,0.4)" }}
                 >
                   {step.label}
@@ -175,22 +190,15 @@ export function HowItWorks() {
               </button>
 
               {i < STEPS.length - 1 && (
-                <div className="relative flex-1 mx-2" style={{ marginTop: DESKTOP_CIRCLE / 2 - 2 }}>
-                  <div className="absolute inset-0 rounded-full" style={{ height: 4, background: "rgba(51,51,51,0.22)" }} />
-                  <motion.div
-                    className="absolute inset-0 origin-left rounded-full"
-                    style={{ height: 4, background: YELLOW }}
-                    initial={reduceMotion ? { scaleX: 1 } : { scaleX: 0 }}
-                    animate={{
-                      scaleX: inView ? 1 : 0,
-                      opacity: connectorHighlighted ? 1 : 0.7,
-                    }}
-                    transition={{
-                      scaleX: { duration: 0.5, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" },
-                      opacity: { duration: 0.3, ease: "easeOut" },
-                    }}
-                  />
-                </div>
+                <motion.div
+                  className="flex items-center justify-center shrink-0"
+                  style={{ width: 20, height: DESKTOP_CIRCLE }}
+                  initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: connectorHighlighted ? 1 : inView ? 0.6 : 0 }}
+                  transition={{ duration: 0.3, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" }}
+                >
+                  <ArrowIcon highlighted={connectorHighlighted} />
+                </motion.div>
               )}
             </div>
           );
