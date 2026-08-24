@@ -29,6 +29,24 @@ function SmallCheck() {
   );
 }
 
+function ChatIcon({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 5.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H10l-4.5 4V17H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z" fill={YELLOW} />
+      <path d="M7.5 9.5h9M7.5 13h6" stroke={DARK} strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.5l7.5 3v6c0 5-3.2 8.6-7.5 10-4.3-1.4-7.5-5-7.5-10v-6l7.5-3z" fill={YELLOW} />
+      <path d="M8.5 12.2l2.4 2.4 4.6-5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 
 export default async function HomePage() {
   const supabaseAdmin = getSupabaseAdmin();
@@ -147,32 +165,42 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-9">
             {/* Why Human Review Matters */}
             <div
-              className="rounded-[28px] p-7 sm:p-9 flex flex-col justify-center"
+              className="rounded-[28px] p-7 sm:p-9"
               style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
             >
               <h3 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
                 Why Human Review Matters
               </h3>
-              <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
+              <p className="text-[14.5px] leading-[1.7] mb-2" style={{ color: "rgba(51,51,51,0.65)" }}>
                 AI is excellent for speed — it gives you a provisional score within minutes of finishing
                 your consultation. But exam feedback needs judgement AI can&apos;t fully replace, so every
                 single consultation is reviewed by an experienced GP before your feedback is finalised.
               </p>
-              <ul className="flex flex-col gap-2.5">
-                {(
-                  [
-                    "Instant AI feedback",
-                    "Every consultation reviewed by an experienced GP",
-                    "Personalised comments",
-                    "Feedback you can trust",
-                  ] as const
-                ).map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-[14.5px]" style={{ color: DARK }}>
-                    <span className="shrink-0"><TickIcon /></span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              {(
+                [
+                  { icon: SparklesIcon, title: "Instant AI Feedback", body: "A provisional score lands within minutes of finishing your consultation." },
+                  { icon: StethoscopeIcon, title: "Reviewed by an Experienced GP", body: "Every single consultation is checked by a GP before it's marked final." },
+                  { icon: ChatIcon, title: "Personalised Comments", body: "Feedback speaks to what actually happened in your consultation." },
+                  { icon: ShieldCheckIcon, title: "Feedback You Can Trust", body: "Verified judgement, not just an algorithm's best guess." },
+                ] as const
+              ).map(({ icon: Icon, title, body }, i) => (
+                <div
+                  key={title}
+                  className="flex items-start gap-4 py-4"
+                  style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
+                >
+                  <span
+                    className="shrink-0 flex items-center justify-center rounded-full"
+                    style={{ width: 44, height: 44, background: "white" }}
+                  >
+                    <Icon size={22} />
+                  </span>
+                  <div>
+                    <h4 className="font-display font-extrabold mb-0.5 text-[15px]" style={{ color: DARK }}>{title}</h4>
+                    <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Value props */}
