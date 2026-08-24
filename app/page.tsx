@@ -162,7 +162,39 @@ export default async function HomePage() {
             Everything Included In Your Programme
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-9">
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_5fr] gap-9">
+            {/* Value props */}
+            <div className="rounded-[28px] p-7 sm:p-8" style={{ background: "rgba(246,212,75,0.14)" }}>
+              {(
+                [
+                  { icon: AwardIcon, title: "Built by Experienced GP Educators", body: "Built by experienced GP educators who understand the SCA inside out." },
+                  { icon: SparklesIcon, title: "AI Feedback Attuned to the SCA", body: "Instant feedback aligned with the RCGP SCA marking domains." },
+                  { icon: StethoscopeIcon, title: "Every Consultation Expertly Reviewed", body: "Every submitted consultation reviewed by an experienced GP." },
+                  { icon: BooksIcon, title: "Complete Case Bank", body: "256 consultations covering every SCA clinical domain." },
+                ] as const
+              ).map(({ icon: Icon, title, body }, i) => {
+                const isBadge = i === 0;
+                return (
+                  <div
+                    key={title}
+                    className="flex items-start gap-4 py-5"
+                    style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
+                  >
+                    <span
+                      className="shrink-0 flex items-center justify-center rounded-full"
+                      style={{ width: isBadge ? 60 : 48, height: isBadge ? 60 : 48, background: "white" }}
+                    >
+                      <Icon size={isBadge ? 32 : 26} />
+                    </span>
+                    <div>
+                      <h3 className="font-display font-extrabold mb-1" style={{ color: DARK, fontSize: isBadge ? 18 : 16 }}>{title}</h3>
+                      <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Why Human Review Matters */}
             <div
               className="rounded-[28px] p-7 sm:p-9"
@@ -201,38 +233,6 @@ export default async function HomePage() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Value props */}
-            <div className="rounded-[28px] p-7 sm:p-8" style={{ background: "rgba(246,212,75,0.14)" }}>
-              {(
-                [
-                  { icon: AwardIcon, title: "Built by Experienced GP Educators", body: "Built by experienced GP educators who understand the SCA inside out." },
-                  { icon: SparklesIcon, title: "AI Feedback Attuned to the SCA", body: "Instant feedback aligned with the RCGP SCA marking domains." },
-                  { icon: StethoscopeIcon, title: "Every Consultation Expertly Reviewed", body: "Every submitted consultation reviewed by an experienced GP." },
-                  { icon: BooksIcon, title: "Complete Case Bank", body: "256 consultations covering every SCA clinical domain." },
-                ] as const
-              ).map(({ icon: Icon, title, body }, i) => {
-                const isBadge = i === 0;
-                return (
-                  <div
-                    key={title}
-                    className="flex items-start gap-4 py-5"
-                    style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
-                  >
-                    <span
-                      className="shrink-0 flex items-center justify-center rounded-full"
-                      style={{ width: isBadge ? 60 : 48, height: isBadge ? 60 : 48, background: "white" }}
-                    >
-                      <Icon size={isBadge ? 32 : 26} />
-                    </span>
-                    <div>
-                      <h3 className="font-display font-extrabold mb-1" style={{ color: DARK, fontSize: isBadge ? 18 : 16 }}>{title}</h3>
-                      <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -298,67 +298,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="px-10 pb-16 max-md:px-6">
-        <div className="max-w-[900px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-5" style={{ color: DARK }}>
-            Frequently Asked Questions
-          </h2>
-          <div className="flex flex-col gap-2.5">
-            {(
-              [
-                {
-                  q: "Who reviews consultations?",
-                  a: "Every consultation is reviewed by a qualified, experienced GP — the same kind of examiner who marks the real SCA.",
-                },
-                {
-                  q: "How quickly is feedback returned?",
-                  a: "AI analysis is available within minutes of submitting. Full, GP-reviewed feedback is usually returned within 5 working days.",
-                },
-                {
-                  q: "How does recording work?",
-                  a: "You record directly in your browser with a study partner — no downloads or extra software. One of you plays the doctor, the other the patient, for a fixed 12-minute consultation, just like the real exam.",
-                },
-                {
-                  q: "Do I need Zoom?",
-                  a: "No — consultations are recorded directly in your browser. Our free monthly teaching session is hosted on Zoom separately.",
-                },
-                {
-                  q: "How long are consultations?",
-                  a: "12 minutes, fixed, matching the real SCA exam timing.",
-                },
-                {
-                  q: "Is AI used?",
-                  a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback. A GP examiner then reviews it, verifies the scoring and finalises your feedback.",
-                },
-                {
-                  q: "What's included in the programme?",
-                  a: "A one-off £295 payment gives you access to 250+ cases, unlimited AI review, and 20 GP reviews, valid for 4 months.",
-                },
-              ] as const
-            ).map(({ q, a }) => (
-              <details
-                key={q}
-                className="rounded-xl px-5 py-4 bg-white"
-                style={{ border: "1px solid rgba(51,51,51,0.08)" }}
-              >
-                <summary className="cursor-pointer select-none font-display font-bold text-[14.5px]" style={{ color: DARK }}>
-                  {q}
-                </summary>
-                <p className="text-[13.5px] leading-[1.65] mt-2.5" style={{ color: "rgba(51,51,51,0.65)" }}>
-                  {a}
-                </p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CONTACT LINE */}
       <section className="px-10 pb-12 max-md:px-6">
         <div className="max-w-[900px] mx-auto text-center">
           <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.45)" }}>
-            Questions?{" "}
+            Have questions?{" "}
+            <Link href="/faq" className="font-semibold no-underline" style={{ color: DARK }}>
+              Read our FAQ
+            </Link>{" "}
+            or email{" "}
             <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: DARK }}>
               mrcgpexplained@outlook.com
             </a>
@@ -370,6 +318,7 @@ export default async function HomePage() {
       <footer className="border-t px-10 py-[18px] flex items-center justify-between flex-wrap gap-2.5 max-md:px-6" style={{ background: DARK, borderColor: "rgba(255,255,255,0.08)" }}>
         <p className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>For educational purposes only. © 2026 SCA Focus.</p>
         <div className="flex gap-5">
+          <Link href="/faq" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>FAQ</Link>
           <Link href="/privacy" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Privacy</Link>
           <Link href="/terms" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Terms</Link>
         </div>

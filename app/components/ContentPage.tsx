@@ -40,6 +40,7 @@ export function ContentPage({
           For educational purposes only. © 2026 SCA Focus.
         </p>
         <div className="flex gap-5 flex-wrap">
+          <Link href="/faq" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>FAQ</Link>
           <Link href="/privacy" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Privacy</Link>
           <Link href="/terms" className="text-[11px] no-underline" style={{ color: "rgba(255,255,255,0.40)" }}>Terms</Link>
         </div>
