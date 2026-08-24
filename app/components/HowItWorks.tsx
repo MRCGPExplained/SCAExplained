@@ -143,65 +143,70 @@ export function HowItWorks() {
     >
       {/* Desktop / tablet: horizontal timeline */}
       <div className="hidden sm:flex items-start justify-between">
-        {STEPS.map((step, i) => {
+        {STEPS.flatMap((step, i) => {
           const isActive = active === i;
           const Icon = step.icon;
           const connectorHighlighted = i < STEPS.length - 1 && active === i + 1;
-          return (
-            <div key={step.id} className="flex items-start min-w-0">
-              <button
-                type="button"
-                onClick={() => selectStep(i)}
-                aria-current={isActive ? "step" : undefined}
-                aria-label={step.title}
-                className="flex flex-col items-center gap-2 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
-                style={{ background: "none", border: "none", cursor: "pointer", outlineColor: YELLOW }}
+
+          const buttonEl = (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => selectStep(i)}
+              aria-current={isActive ? "step" : undefined}
+              aria-label={step.title}
+              className="flex flex-col items-center gap-2 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+              style={{ background: "none", border: "none", cursor: "pointer", outlineColor: YELLOW }}
+            >
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: reduceMotion ? 0 : i * 0.15, ease: "easeOut" }}
               >
                 <motion.div
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: reduceMotion ? 0 : i * 0.15, ease: "easeOut" }}
+                  animate={{ scale: isActive ? 1.04 : 1 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: DESKTOP_CIRCLE,
+                    height: DESKTOP_CIRCLE,
+                    background: isActive ? YELLOW : "white",
+                    border: `2px solid ${isActive ? YELLOW : "rgba(51,51,51,0.15)"}`,
+                    boxShadow: isActive ? "0 14px 32px rgba(246,212,75,0.4), 0 3px 8px rgba(51,51,51,0.08)" : "none",
+                    transition: "background 0.25s ease-out, border-color 0.25s ease-out, box-shadow 0.25s ease-out",
+                  }}
                 >
-                  <motion.div
-                    animate={{ scale: isActive ? 1.04 : 1 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                    className="flex items-center justify-center rounded-full"
-                    style={{
-                      width: DESKTOP_CIRCLE,
-                      height: DESKTOP_CIRCLE,
-                      background: isActive ? YELLOW : "white",
-                      border: `2px solid ${isActive ? YELLOW : "rgba(51,51,51,0.15)"}`,
-                      boxShadow: isActive ? "0 14px 32px rgba(246,212,75,0.4), 0 3px 8px rgba(51,51,51,0.08)" : "none",
-                      transition: "background 0.25s ease-out, border-color 0.25s ease-out, box-shadow 0.25s ease-out",
-                    }}
-                  >
-                    <Icon size={DESKTOP_ICON} />
-                  </motion.div>
+                  <Icon size={DESKTOP_ICON} />
                 </motion.div>
-                <motion.span
-                  initial={reduceMotion ? false : { opacity: 0 }}
-                  animate={inView ? { opacity: 1 } : {}}
-                  transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.15 + 0.1 }}
-                  className="font-display font-bold whitespace-nowrap text-[11.5px] leading-none"
-                  style={{ color: isActive ? DARK : "rgba(51,51,51,0.4)" }}
-                >
-                  {step.label}
-                </motion.span>
-              </button>
-
-              {i < STEPS.length - 1 && (
-                <motion.div
-                  className="flex items-center justify-center shrink-0"
-                  style={{ width: 20, height: DESKTOP_CIRCLE }}
-                  initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
-                  animate={{ opacity: connectorHighlighted ? 1 : inView ? 0.6 : 0 }}
-                  transition={{ duration: 0.3, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" }}
-                >
-                  <ArrowIcon highlighted={connectorHighlighted} />
-                </motion.div>
-              )}
-            </div>
+              </motion.div>
+              <motion.span
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={inView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.15 + 0.1 }}
+                className="font-display font-bold whitespace-nowrap text-[11.5px] leading-none"
+                style={{ color: isActive ? DARK : "rgba(51,51,51,0.4)" }}
+              >
+                {step.label}
+              </motion.span>
+            </button>
           );
+
+          if (i === STEPS.length - 1) return [buttonEl];
+
+          const arrowEl = (
+            <motion.div
+              key={`${step.id}-arrow`}
+              className="flex items-center justify-center shrink-0"
+              style={{ width: 20, height: DESKTOP_CIRCLE }}
+              initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: connectorHighlighted ? 1 : inView ? 0.6 : 0 }}
+              transition={{ duration: 0.3, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" }}
+            >
+              <ArrowIcon highlighted={connectorHighlighted} />
+            </motion.div>
+          );
+
+          return [buttonEl, arrowEl];
         })}
       </div>
 
