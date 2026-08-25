@@ -4,6 +4,7 @@ import { HowItWorks } from "./components/HowItWorks";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
 import { AwardIcon, SparklesIcon, StethoscopeIcon, BooksIcon } from "./components/TrustIcons";
+import { TestimonialsSection } from "./components/TestimonialsSection";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -251,37 +252,7 @@ export default async function HomePage() {
       </section>
 
       {/* TESTIMONIALS */}
-      {testimonials.length > 0 && (
-        <section className="px-10 pb-16 max-md:px-6">
-          <div className="max-w-[1250px] mx-auto">
-            <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
-              What Candidates Are Saying
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {testimonials.map((t) => (
-                <div
-                  key={t.id}
-                  className="rounded-[20px] p-6 flex flex-col bg-white"
-                  style={{ border: "1px solid rgba(51,51,51,0.08)" }}
-                >
-                  <span className="font-display font-extrabold text-[32px] leading-none mb-2" style={{ color: YELLOW }}>&ldquo;</span>
-                  <p className="text-[14px] leading-[1.65] mb-5 grow" style={{ color: "rgba(51,51,51,0.75)" }}>
-                    {t.quote}
-                  </p>
-                  <div style={{ borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: 14 }}>
-                    <p className="font-display font-bold text-[13.5px]" style={{ color: DARK }}>{t.name}</p>
-                    {(t.vts || t.sca_date) && (
-                      <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
-                        {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <TestimonialsSection testimonials={testimonials} />
 
       {/* PRICING */}
       <section className="px-10 pb-16 max-md:px-6">

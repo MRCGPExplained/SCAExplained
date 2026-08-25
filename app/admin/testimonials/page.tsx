@@ -19,7 +19,7 @@ export default async function AdminTestimonialsPage() {
         <div>
           <h1 className="font-display font-extrabold text-[26px] text-navy">Testimonials</h1>
           <p className="text-[13px] text-navy/50 mt-0.5">
-            {testimonials?.length ?? 0} testimonials · shown on the homepage in display order
+            {testimonials?.length ?? 0} testimonials · drag rows to reorder · first 3 shown on the homepage
           </p>
         </div>
         <Link

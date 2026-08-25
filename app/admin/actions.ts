@@ -1153,7 +1153,6 @@ function testimonialFromForm(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     vts: String(formData.get("vts") ?? "").trim() || null,
     sca_date: String(formData.get("sca_date") ?? "").trim() || null,
-    display_order: parseInt(String(formData.get("display_order") ?? "1"), 10) || 1,
     published: formData.get("published") === "true",
   };
 }
@@ -1169,7 +1168,15 @@ export async function createTestimonialAction(
   if (!payload.quote) return { error: "Quote is required." };
   if (!payload.name) return { error: "Name is required." };
 
-  const { error } = await supabase.from("testimonials").insert(payload);
+  const { data: last } = await supabase
+    .from("testimonials")
+    .select("display_order")
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const display_order = (last?.display_order ?? 0) + 1;
+
+  const { error } = await supabase.from("testimonials").insert({ ...payload, display_order });
   if (error) return { error: error.message };
 
   revalidatePath("/admin/testimonials");
@@ -1214,6 +1221,25 @@ export async function deleteTestimonialAction(id: string): Promise<ActionResult>
 
   const { error } = await supabase.from("testimonials").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  revalidatePath("/admin/testimonials");
+  revalidatePath("/");
+  return {};
+}
+
+export async function reorderTestimonialsAction(
+  items: { id: string; display_order: number }[]
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  for (const item of items) {
+    const { error } = await supabase
+      .from("testimonials")
+      .update({ display_order: item.display_order })
+      .eq("id", item.id);
+    if (error) return { error: error.message };
+  }
 
   revalidatePath("/admin/testimonials");
   revalidatePath("/");

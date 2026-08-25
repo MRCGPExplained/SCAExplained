@@ -13,7 +13,6 @@ type TestimonialFormProps = {
     name?: string;
     vts?: string;
     sca_date?: string;
-    display_order?: number;
     published?: boolean;
   };
   submitLabel?: string;
@@ -79,18 +78,6 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
             className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
           />
         </div>
-      </div>
-
-      <div className="w-48">
-        <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Display Order</label>
-        <input
-          name="display_order"
-          type="number"
-          required
-          min={1}
-          defaultValue={initial?.display_order ?? 1}
-          className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
-        />
       </div>
 
       <div>
