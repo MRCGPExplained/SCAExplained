@@ -49,7 +49,7 @@ function ShieldCheckIcon({ size = 26 }: { size?: number }) {
 }
 
 
-type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null };
+type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
 export default async function HomePage() {
   const supabaseAdmin = getSupabaseAdmin();
@@ -68,7 +68,7 @@ export default async function HomePage() {
   const testimonialsResult = supabaseAdmin
     ? await supabaseAdmin
         .from("testimonials")
-        .select("id, quote, name, vts, sca_date, photo_url")
+        .select("id, quote, name, vts, sca_date, photo_url, initials")
         .eq("published", true)
         .order("display_order", { ascending: true })
     : { data: [] };

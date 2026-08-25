@@ -12,6 +12,7 @@ type Testimonial = {
   vts: string | null;
   sca_date: string | null;
   photo_url: string | null;
+  initials: string | null;
   display_order: number;
   published: boolean;
 };
@@ -73,7 +74,7 @@ export function TestimonialTable({ testimonials: initial }: { testimonials: Test
               <td className="px-3 py-3 text-navy/20 text-[14px] select-none">⠿</td>
               <td className="px-5 py-3 text-navy/30 text-[12px]">{i + 1}</td>
               <td className="px-3 py-3">
-                <Avatar name={t.name} photoUrl={t.photo_url} size={32} />
+                <Avatar name={t.name} photoUrl={t.photo_url} initials={t.initials} size={32} />
               </td>
               <td className="px-5 py-3 max-w-[320px]">
                 <div className="text-navy line-clamp-2">&ldquo;{t.quote}&rdquo;</div>

@@ -9,7 +9,7 @@ const YELLOW = "#F6D44B";
 const AUTO_ADVANCE_MS = 6000;
 const VISIBLE = 3;
 
-type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null };
+type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
 function ArrowIcon({ direction }: { direction: "left" | "right" }) {
   return (
@@ -87,7 +87,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                     className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white"
                     style={{ border: "1px solid rgba(51,51,51,0.08)" }}
                   >
-                    <Avatar name={t.name} photoUrl={t.photo_url} size={56} />
+                    <Avatar name={t.name} photoUrl={t.photo_url} initials={t.initials} size={56} />
                     <p className="font-display font-bold text-[13.5px] mt-3" style={{ color: DARK }}>{t.name}</p>
                     {(t.vts || t.sca_date) && (
                       <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>

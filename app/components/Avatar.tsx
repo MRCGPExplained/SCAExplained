@@ -11,10 +11,12 @@ export function initialsFor(name: string): string {
 export function Avatar({
   name,
   photoUrl,
+  initials,
   size = 44,
 }: {
   name: string;
   photoUrl?: string | null;
+  initials?: string | null;
   size?: number;
 }) {
   if (photoUrl) {
@@ -42,7 +44,7 @@ export function Avatar({
         fontSize: size * 0.38,
       }}
     >
-      {initialsFor(name)}
+      {(initials?.trim() || initialsFor(name)).toUpperCase()}
     </span>
   );
 }

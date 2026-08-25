@@ -14,6 +14,7 @@ type TestimonialFormProps = {
     vts?: string;
     sca_date?: string;
     photo_url?: string;
+    initials?: string;
     published?: boolean;
   };
   submitLabel?: string;
@@ -81,16 +82,32 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
         </div>
       </div>
 
-      <div>
-        <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Photo URL <span className="normal-case font-normal">(optional — shows initials if left blank)</span></label>
-        <input
-          name="photo_url"
-          type="text"
-          defaultValue={initial?.photo_url ?? ""}
-          placeholder="https://…"
-          className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
-        />
+      <div className="grid grid-cols-[1fr_120px] gap-4">
+        <div>
+          <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Photo URL <span className="normal-case font-normal">(optional)</span></label>
+          <input
+            name="photo_url"
+            type="text"
+            defaultValue={initial?.photo_url ?? ""}
+            placeholder="https://…"
+            className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Initials <span className="normal-case font-normal">(optional)</span></label>
+          <input
+            name="initials"
+            type="text"
+            maxLength={2}
+            defaultValue={initial?.initials ?? ""}
+            placeholder="e.g. JS"
+            className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50 uppercase"
+          />
+        </div>
       </div>
+      <p className="text-[11.5px] text-navy/40 -mt-3">
+        No photo? Shows these initials, or auto-generated ones from the name if left blank.
+      </p>
 
       <div>
         <label className="flex items-center gap-2 text-[13px] text-navy cursor-pointer">
