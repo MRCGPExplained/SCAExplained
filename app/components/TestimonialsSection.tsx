@@ -59,7 +59,9 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
     const el = containerRef.current;
     if (!el) return;
     const update = () => {
-      setContainerWidth(el.offsetWidth);
+      // Guard against spurious 0-width reports (e.g. a backgrounded tab
+      // briefly reporting no layout) collapsing an already-measured carousel.
+      if (el.offsetWidth > 0) setContainerWidth(el.offsetWidth);
       setVisibleCount(window.innerWidth < 768 ? 1 : 3);
     };
     update();
