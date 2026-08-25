@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { Avatar } from "./Avatar";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 const AUTO_ADVANCE_MS = 6000;
 const GAP = 24;
+const TRANSITION_MS = 400;
 
 type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
@@ -53,6 +53,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const [visibleCount, setVisibleCount] = useState(3);
   const [pos, setPos] = useState(0);
   const [instant, setInstant] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -76,6 +77,20 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
     return () => clearInterval(id);
   }, [canCycle, pos]);
 
+  // Safety net: if the transition never fires transitionend for any reason
+  // (e.g. the tab was backgrounded mid-slide), still correct the position
+  // shortly after so it can never drift unbounded.
+  useEffect(() => {
+    if (Math.abs(pos) < n || n === 0) return;
+    resetTimer.current = setTimeout(() => {
+      setInstant(true);
+      setPos((p) => p - Math.sign(p) * n);
+    }, TRANSITION_MS + 100);
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, [pos, n]);
+
   useEffect(() => {
     if (instant) {
       const id = requestAnimationFrame(() => setInstant(false));
@@ -95,13 +110,6 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   // content, so it's invisible) instead of ever hitting the array edge.
   const extended = canCycle ? [...testimonials, ...testimonials, ...testimonials] : testimonials;
   const trackX = canCycle ? -(n + pos) * step : 0;
-
-  function handleAnimationComplete() {
-    if (Math.abs(pos) >= n) {
-      setInstant(true);
-      setPos((p) => p - Math.sign(p) * n);
-    }
-  }
 
   const goTo = (delta: 1 | -1) => setPos((p) => p + delta);
 
@@ -125,25 +133,18 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
           )}
 
           <div ref={containerRef} className="grow overflow-hidden">
-            {canCycle ? (
-              <motion.div
-                className="flex"
-                style={{ gap: GAP }}
-                animate={{ x: trackX }}
-                transition={{ duration: instant ? 0 : 0.4, ease: "easeInOut" }}
-                onAnimationComplete={handleAnimationComplete}
-              >
-                {extended.map((t, i) => (
-                  <TestimonialCard key={`${t.id}-${i}`} t={t} widthPx={cardWidth} />
-                ))}
-              </motion.div>
-            ) : (
-              <div className="flex" style={{ gap: GAP }}>
-                {testimonials.map((t) => (
-                  <TestimonialCard key={t.id} t={t} widthPx={cardWidth} />
-                ))}
-              </div>
-            )}
+            <div
+              className="flex"
+              style={{
+                gap: GAP,
+                transform: `translateX(${trackX}px)`,
+                transition: instant ? "none" : `transform ${TRANSITION_MS}ms ease-in-out`,
+              }}
+            >
+              {(canCycle ? extended : testimonials).map((t, i) => (
+                <TestimonialCard key={canCycle ? `${t.id}-${i}` : t.id} t={t} widthPx={cardWidth} />
+              ))}
+            </div>
           </div>
 
           {canCycle && (
