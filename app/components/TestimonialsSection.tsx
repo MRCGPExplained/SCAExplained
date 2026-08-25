@@ -70,11 +70,10 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
             </button>
           )}
 
-          <div className="grow overflow-hidden">
-            <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+          <div className="grow overflow-hidden relative">
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={start}
-                custom={direction}
                 initial={{ x: direction * 60 }}
                 animate={{ x: 0 }}
                 exit={{ x: -direction * 60 }}
@@ -84,7 +83,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                 {visible.map((t) => (
                   <div
                     key={t.id}
-                    className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white"
+                    className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white min-h-[280px]"
                     style={{ border: "1px solid rgba(51,51,51,0.08)" }}
                   >
                     <Avatar name={t.name} photoUrl={t.photo_url} initials={t.initials} size={56} />
