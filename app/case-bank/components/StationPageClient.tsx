@@ -682,7 +682,6 @@ export function StationPageClient({
   const [showFeedback, setShowFeedback] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [starPending, setStarPending] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("brief");
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "audio") return !!station.audio_url;
     // Admins always see explanation/insight so they have somewhere to add the
@@ -691,6 +690,17 @@ export function StationPageClient({
     if (t.key === "insight") return isAdmin || !!station.trainer_insight_audio_url || (station.trainer_qa?.length ?? 0) > 0;
     return true;
   });
+  // Remember the open tab per station so a refresh lands back where you were.
+  // A lazy initialiser (not an effect) avoids a hydration flash to "brief"
+  // before snapping to the saved tab.
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (typeof window === "undefined") return "brief";
+    const saved = sessionStorage.getItem(`stationTab:${station.id}`) as TabKey | null;
+    return saved && visibleTabs.some((t) => t.key === saved) ? saved : "brief";
+  });
+  useEffect(() => {
+    sessionStorage.setItem(`stationTab:${station.id}`, activeTab);
+  }, [station.id, activeTab]);
 
   // Room state (exposed from StudyRoomPanel)
   const [inRoom, setInRoom] = useState(false);
