@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ActionResult } from "../actions";
+import { uploadTestimonialPhotoAction, deleteTestimonialPhotoAction } from "../actions";
+import { Avatar } from "@/app/components/Avatar";
 
 type TestimonialFormProps = {
   action: (state: ActionResult, fd: FormData) => Promise<ActionResult>;
@@ -24,6 +26,12 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
   const router = useRouter();
   const [state, formAction, isPending] = useActionState<ActionResult, FormData>(action, {});
 
+  const [name, setName] = useState(initial?.name ?? "");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initial?.photo_url ?? null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!state?.error && Object.keys(state ?? {}).length > 0) {
       router.push("/admin/testimonials");
@@ -31,9 +39,35 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
     }
   }, [state, router]);
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUploading(true);
+    setPhotoError("");
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const result = await uploadTestimonialPhotoAction(fd);
+      if (result.error) { setPhotoError(result.error); return; }
+      setPhotoUrl(result.url ?? null);
+    } finally {
+      setPhotoUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handlePhotoRemove() {
+    if (!photoUrl) return;
+    setPhotoUploading(true);
+    await deleteTestimonialPhotoAction(photoUrl);
+    setPhotoUrl(null);
+    setPhotoUploading(false);
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-5 max-w-[640px]">
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
+      <input type="hidden" name="photo_url" value={photoUrl ?? ""} />
 
       <div>
         <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Quote</label>
@@ -53,7 +87,8 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
           name="name"
           type="text"
           required
-          defaultValue={initial?.name ?? ""}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Dr Jane Smith"
           className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
         />
@@ -82,32 +117,56 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_120px] gap-4">
-        <div>
-          <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Photo URL <span className="normal-case font-normal">(optional)</span></label>
+      <div>
+        <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Photo <span className="normal-case font-normal">(optional)</span></label>
+        <div className="flex items-center gap-4">
+          <Avatar name={name || "?"} photoUrl={photoUrl} initials={initial?.initials} size={56} />
           <input
-            name="photo_url"
-            type="text"
-            defaultValue={initial?.photo_url ?? ""}
-            placeholder="https://…"
-            className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handlePhotoUpload}
           />
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={photoUploading}
+              className="px-4 py-2 rounded-lg text-[12.5px] font-semibold transition-opacity self-start"
+              style={{ background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.7)", border: "none", cursor: photoUploading ? "not-allowed" : "pointer", opacity: photoUploading ? 0.6 : 1 }}
+            >
+              {photoUploading ? "Uploading…" : photoUrl ? "Replace photo" : "Upload photo"}
+            </button>
+            {photoUrl && (
+              <button
+                type="button"
+                onClick={handlePhotoRemove}
+                disabled={photoUploading}
+                className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition self-start"
+                style={{ background: "none", border: "none", cursor: photoUploading ? "not-allowed" : "pointer" }}
+              >
+                Remove photo
+              </button>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Initials <span className="normal-case font-normal">(optional)</span></label>
-          <input
-            name="initials"
-            type="text"
-            maxLength={2}
-            defaultValue={initial?.initials ?? ""}
-            placeholder="e.g. JS"
-            className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50 uppercase"
-          />
-        </div>
+        {photoError && <p className="text-[12px] text-red-600 mt-1.5">{photoError}</p>}
       </div>
-      <p className="text-[11.5px] text-navy/40 -mt-3">
-        No photo? Shows these initials, or auto-generated ones from the name if left blank.
-      </p>
+
+      <div className="w-32">
+        <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Initials</label>
+        <input
+          name="initials"
+          type="text"
+          required
+          maxLength={2}
+          defaultValue={initial?.initials ?? ""}
+          placeholder="e.g. JS"
+          className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50 uppercase"
+        />
+        <p className="text-[11.5px] text-navy/40 mt-1">Shown when there&apos;s no photo — this is the fallback, not optional.</p>
+      </div>
 
       <div>
         <label className="flex items-center gap-2 text-[13px] text-navy cursor-pointer">

@@ -1169,6 +1169,7 @@ export async function createTestimonialAction(
   const payload = testimonialFromForm(formData);
   if (!payload.quote) return { error: "Quote is required." };
   if (!payload.name) return { error: "Name is required." };
+  if (!payload.initials) return { error: "Initials are required — they're the fallback shown when there's no photo." };
 
   const { data: last } = await supabase
     .from("testimonials")
@@ -1197,6 +1198,7 @@ export async function updateTestimonialAction(
   const payload = testimonialFromForm(formData);
   if (!payload.quote) return { error: "Quote is required." };
   if (!payload.name) return { error: "Name is required." };
+  if (!payload.initials) return { error: "Initials are required — they're the fallback shown when there's no photo." };
 
   const { error } = await supabase.from("testimonials").update(payload).eq("id", id);
   if (error) return { error: error.message };
@@ -1245,5 +1247,37 @@ export async function reorderTestimonialsAction(
 
   revalidatePath("/admin/testimonials");
   revalidatePath("/");
+  return {};
+}
+
+export async function uploadTestimonialPhotoAction(
+  formData: FormData
+): Promise<{ url?: string; error?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "No file provided." };
+  if (!file.type.startsWith("image/")) return { error: "File must be an image." };
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("testimonial-photos")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) return { error: error.message };
+
+  const { data } = supabase.storage.from("testimonial-photos").getPublicUrl(path);
+  return { url: data.publicUrl };
+}
+
+export async function deleteTestimonialPhotoAction(url: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const path = url.split("/testimonial-photos/")[1];
+  if (path) await supabase.storage.from("testimonial-photos").remove([decodeURIComponent(path)]);
+
   return {};
 }

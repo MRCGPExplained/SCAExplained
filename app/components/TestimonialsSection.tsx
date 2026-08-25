@@ -75,10 +75,10 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
               <motion.div
                 key={start}
                 custom={direction}
-                initial={{ x: direction * 36, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -direction * 36, opacity: 0 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
+                initial={{ x: direction * 60 }}
+                animate={{ x: 0 }}
+                exit={{ x: -direction * 60 }}
+                transition={{ duration: 0.35, ease: "easeInOut" }}
                 className="grid grid-cols-1 md:grid-cols-3 gap-6"
               >
                 {visible.map((t) => (
