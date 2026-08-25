@@ -181,7 +181,8 @@ export async function submitReportAction(
   stationId: string,
   stationNumber: number,
   stationTitle: string,
-  content: string
+  content: string,
+  type: "feedback" | "help" = "feedback"
 ): Promise<ActionResult> {
   if (!content.trim()) return { error: "Report text is required." };
 
@@ -191,33 +192,48 @@ export async function submitReportAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated." };
 
-  // Fetch profile and send email first — DB insert is secondary
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("display_name")
     .eq("id", user.id)
     .single<{ display_name: string }>();
 
-  const emailSent = await sendFeedbackEmail({
-    stationNumber,
-    stationTitle,
-    userName: profile?.display_name ?? user.email ?? "Unknown",
-    message: content.trim(),
-  });
-  if (!emailSent) {
-    console.error(`[feedback] Email failed to send for station #${stationNumber}`);
-  }
+  const userName = profile?.display_name ?? user.email ?? "Unknown";
 
-  // Best-effort DB record — don't block on failure
+  // Best-effort DB record — the centralised source of truth admins reply from.
   try {
     await supabase.from("station_reports").insert({
       station_id: stationId,
       user_id: user.id,
+      user_email: user.email ?? null,
+      user_name: userName,
+      station_number: stationNumber,
+      station_title: stationTitle,
       content: content.trim(),
+      type,
     });
   } catch {
-    console.error("[feedback] DB insert failed");
+    console.error(`[${type}] DB insert failed`);
   }
+
+  // Notify every admin — informational only, they reply from the admin portal.
+  const admin = getSupabaseAdmin();
+  const { data: admins } = admin
+    ? await admin.from("examiners").select("email").eq("is_admin", true)
+    : { data: [] };
+
+  await Promise.all(
+    (admins ?? []).map((a: { email: string }) =>
+      sendFeedbackEmail({
+        to: a.email,
+        kind: type,
+        stationNumber,
+        stationTitle,
+        userName,
+        message: content.trim(),
+      })
+    )
+  );
 
   return { success: true };
 }

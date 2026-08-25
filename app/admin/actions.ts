@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isAdmin, getCurrentAdminName } from "@/lib/admin-auth";
+import { sendFeedbackReplyEmail } from "@/lib/email";
 
 export interface ActionResult {
   error?: string;
@@ -1361,4 +1363,65 @@ export async function deleteTestimonialPhotoAction(url: string): Promise<ActionR
   if (path) await supabase.storage.from("testimonial-photos").remove([decodeURIComponent(path)]);
 
   return {};
+}
+
+// ── Station Feedback / Help replies ───────────────────────────────────────────
+// Centralises candidate Feedback and Help submissions: the notification email
+// admins get is read-only, this action is the actual reply — it emails the
+// submitter, signed with the replying admin's name, and records who/when.
+
+export async function replyToStationReportAction(
+  reportId: string,
+  replyText: string
+): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  if (!replyText.trim()) return { error: "Reply can't be empty." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: report, error: fetchErr } = await supabase
+    .from("station_reports")
+    .select("user_email, user_name, station_number, station_title, content, type")
+    .eq("id", reportId)
+    .single<{
+      user_email: string | null;
+      user_name: string | null;
+      station_number: number | null;
+      station_title: string | null;
+      content: string;
+      type: "feedback" | "help";
+    }>();
+
+  if (fetchErr || !report) return { error: "Report not found." };
+  if (!report.user_email) return { error: "No email on file for this submission." };
+
+  const adminName = await getCurrentAdminName();
+
+  const emailSent = await sendFeedbackReplyEmail({
+    to: report.user_email,
+    kind: report.type,
+    userName: report.user_name ?? "there",
+    stationNumber: report.station_number ?? 0,
+    stationTitle: report.station_title ?? "",
+    originalMessage: report.content,
+    replyText: replyText.trim(),
+    adminName,
+  });
+  if (!emailSent) return { error: "Reply email failed to send. Try again." };
+
+  const { error } = await supabase
+    .from("station_reports")
+    .update({
+      reply_text: replyText.trim(),
+      replied_at: new Date().toISOString(),
+      replied_by_name: adminName,
+      resolved: true,
+    })
+    .eq("id", reportId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/feedback");
+  return { success: true };
 }

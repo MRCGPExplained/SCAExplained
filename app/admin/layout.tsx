@@ -23,6 +23,7 @@ export default function AdminLayout({
             <Link href="/admin/examiners" className="text-[13px] text-white/60 hover:text-white transition no-underline">Examiners</Link>
             <Link href="/admin/api-settings" className="text-[13px] text-white/60 hover:text-white transition no-underline">API Settings</Link>
             <Link href="/admin/report-feedback" className="text-[13px] text-white/60 hover:text-white transition no-underline">Report Feedback</Link>
+            <Link href="/admin/feedback" className="text-[13px] text-white/60 hover:text-white transition no-underline">Feedback &amp; Help</Link>
             <Link href="/admin/webinar" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar</Link>
             <Link href="/admin/testimonials" className="text-[13px] text-white/60 hover:text-white transition no-underline">Testimonials</Link>
             <Link href="/admin/economics" className="text-[13px] text-white/60 hover:text-white transition no-underline">Economics</Link>

@@ -139,6 +139,8 @@ export async function sendConfirmationEmail(
 }
 
 export async function sendFeedbackEmail(args: {
+  to: string;
+  kind: "feedback" | "help";
   stationNumber: number;
   stationTitle: string;
   userName: string;
@@ -149,6 +151,8 @@ export async function sendFeedbackEmail(args: {
   if (!resend) return false;
 
   const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
+  const label = args.kind === "help" ? "Help request" : "Feedback";
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
@@ -159,9 +163,11 @@ export async function sendFeedbackEmail(args: {
         <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
-        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">Feedback received</p>
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">${label} received</p>
+        <p style="font-size:13px;line-height:1.6;color:#6b6c85;margin:0;">
+          This is a notification only — reply from the admin portal, not this email.</p>
       </td></tr>
-      <tr><td style="padding:8px 28px;">
+      <tr><td style="padding:16px 28px;">
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:14px 16px;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
@@ -173,12 +179,19 @@ export async function sendFeedbackEmail(args: {
         <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">From</p>
         <p style="margin:0;font-size:14px;color:${NAVY};">${escapeHtml(args.userName)}</p>
       </td></tr>
-      <tr><td style="padding:8px 28px 28px;">
+      <tr><td style="padding:8px 28px 24px;">
         <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Message</p>
         <p style="margin:0;font-size:14px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
       </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <a href="${origin}/admin/feedback"
+           style="display:inline-block;background:${NAVY};color:#ffffff;
+           font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">
+          Reply in Admin Portal
+        </a>
+      </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
-        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Focus Case Bank — Feedback</p>
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Focus Case Bank — ${label}</p>
       </td></tr>
     </table>
   </div>`;
@@ -186,8 +199,79 @@ export async function sendFeedbackEmail(args: {
   try {
     const { error } = await resend.emails.send({
       from,
-      to: "mrcgpexplained@outlook.com",
-      subject: `Feedback: Station #${args.stationNumber} — ${args.stationTitle}`,
+      to: args.to,
+      subject: `${label}: Station #${args.stationNumber} — ${args.stationTitle}`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
+export async function sendFeedbackReplyEmail(args: {
+  to: string;
+  kind: "feedback" | "help";
+  userName: string;
+  stationNumber: number;
+  stationTitle: string;
+  originalMessage: string;
+  replyText: string;
+  adminName: string;
+}): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const label = args.kind === "help" ? "help request" : "feedback";
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
+          Reply to your ${label}, ${escapeHtml(args.userName)}</p>
+        <p style="font-size:13px;line-height:1.6;color:#6b6c85;margin:0;">
+          On Station #${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+      </td></tr>
+      <tr><td style="padding:16px 28px 8px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Your message</p>
+        <p style="margin:0;font-size:13.5px;line-height:1.6;color:#6b6c85;white-space:pre-wrap;font-style:italic;">${escapeHtml(args.originalMessage)}</p>
+      </td></tr>
+      <tr><td style="padding:16px 28px 28px;">
+        <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
+          <tr><td style="padding:16px;">
+            <p style="margin:0;font-size:14px;line-height:1.65;color:${NAVY};white-space:pre-wrap;">${escapeHtml(args.replyText)}</p>
+            <p style="margin:12px 0 0;font-size:12.5px;color:#6b6c85;">— ${escapeHtml(args.adminName)}, SCA Focus</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <p style="font-size:12px;color:#9a9ab0;margin:0;">
+          Questions? Reply to this email or contact us at
+          <a href="mailto:mrcgpexplained@outlook.com" style="color:#9a9ab0;">mrcgpexplained@outlook.com</a>.
+        </p>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          For educational purposes only. © 2026 SCA Focus.</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `Re: ${args.kind === "help" ? "Help" : "Feedback"} — Station #${args.stationNumber}: ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }

@@ -34,3 +34,23 @@ export async function isAdmin(): Promise<boolean> {
 
   return !!data;
 }
+
+// Best-effort display name for the currently signed-in admin, used to sign
+// outgoing reply emails. Falls back to a generic name for the /master
+// passcode fail-safe, which has no associated examiner record.
+export async function getCurrentAdminName(): Promise<string> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  if (!user?.email) return "SCA Focus Team";
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return "SCA Focus Team";
+
+  const { data } = await admin
+    .from("examiners")
+    .select("name")
+    .ilike("email", user.email)
+    .maybeSingle<{ name: string }>();
+
+  return data?.name ?? "SCA Focus Team";
+}

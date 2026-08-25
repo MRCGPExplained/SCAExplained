@@ -11,22 +11,26 @@ export function FeedbackModal({
   stationNumber,
   stationTitle,
   onClose,
+  kind = "feedback",
 }: {
   stationId: string;
   stationNumber: number;
   stationTitle: string;
   onClose: () => void;
+  kind?: "feedback" | "help";
 }) {
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isHelp = kind === "help";
+
   async function submit() {
     if (!text.trim()) return;
     setLoading(true);
     setError("");
-    const result = await submitReportAction(stationId, stationNumber, stationTitle, text);
+    const result = await submitReportAction(stationId, stationNumber, stationTitle, text, kind);
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -53,16 +57,16 @@ export function FeedbackModal({
           <div className="text-center py-5">
             <div className="text-[32px] mb-3">✓</div>
             <div className="font-display font-bold text-[15px] mb-1" style={{ color: NAVY }}>
-              Feedback sent
+              {isHelp ? "Help request sent" : "Feedback sent"}
             </div>
             <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Thanks — I&apos;ll look into it shortly.
+              Thanks — we&apos;ll reply by email shortly.
             </div>
           </div>
         ) : (
           <>
             <h2 className="font-display font-bold text-[16px] mb-1" style={{ color: NAVY }}>
-              Share Feedback
+              {isHelp ? "Get Help" : "Share Feedback"}
             </h2>
             <p className="text-[12.5px] mb-4" style={{ color: "rgba(26,27,82,0.55)" }}>
               Station {stationNumber} — {stationTitle}
@@ -80,7 +84,7 @@ export function FeedbackModal({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="A typo, a clinical concern, a suggestion — anything helpful…"
+              placeholder={isHelp ? "What's not working, or what do you need help with?" : "A typo, a clinical concern, a suggestion — anything helpful…"}
               className="w-full rounded-lg px-4 py-3 text-[13px] leading-relaxed resize-y min-h-[120px]"
               style={{
                 border: "1px solid rgba(26,27,82,0.15)",
@@ -110,7 +114,7 @@ export function FeedbackModal({
                   opacity: loading || !text.trim() ? 0.6 : 1,
                 }}
               >
-                {loading ? "Sending…" : "Send Feedback"}
+                {loading ? "Sending…" : isHelp ? "Send Request" : "Send Feedback"}
               </button>
             </div>
           </>

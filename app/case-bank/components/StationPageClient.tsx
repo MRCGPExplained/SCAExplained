@@ -680,6 +680,7 @@ export function StationPageClient({
     if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
   }, []);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [starPending, setStarPending] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("brief");
   const visibleTabs = TABS.filter((t) => {
@@ -1059,6 +1060,27 @@ export function StationPageClient({
             Feedback
           </button>
 
+          <button
+            onClick={() => setShowHelp(true)}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+            style={{
+              background: "transparent",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.6)",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/>
+              <line x1="19.07" y1="4.93" x2="14.83" y2="9.17"/>
+              <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>
+              <line x1="19.07" y1="19.07" x2="14.83" y2="14.83"/>
+            </svg>
+            Help
+          </button>
+
         </div>
       </div>
 
@@ -1228,6 +1250,16 @@ export function StationPageClient({
           stationNumber={station.number}
           stationTitle={station.title}
           onClose={() => setShowFeedback(false)}
+        />
+      )}
+
+      {showHelp && (
+        <FeedbackModal
+          stationId={station.id}
+          stationNumber={station.number}
+          stationTitle={station.title}
+          onClose={() => setShowHelp(false)}
+          kind="help"
         />
       )}
 
