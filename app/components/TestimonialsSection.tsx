@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Avatar } from "./Avatar";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 const AUTO_ADVANCE_MS = 6000;
-const VISIBLE = 3;
+const GAP = 24;
 
 type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
@@ -25,31 +25,85 @@ function ArrowIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+function TestimonialCard({ t, widthPx }: { t: Testimonial; widthPx: number }) {
+  return (
+    <div
+      className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white min-h-[280px] shrink-0"
+      style={{ border: "1px solid rgba(51,51,51,0.08)", width: widthPx || undefined, flexBasis: widthPx || undefined }}
+    >
+      <Avatar name={t.name} photoUrl={t.photo_url} initials={t.initials} size={56} />
+      <p className="font-display font-bold text-[13.5px] mt-3" style={{ color: DARK }}>{t.name}</p>
+      {(t.vts || t.sca_date) && (
+        <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
+          {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
+        </p>
+      )}
+      <span className="font-display font-extrabold text-[28px] leading-none mt-4 mb-1" style={{ color: YELLOW }}>&ldquo;</span>
+      <p className="text-[14px] leading-[1.65] grow" style={{ color: "rgba(51,51,51,0.75)" }}>
+        {t.quote}
+      </p>
+    </div>
+  );
+}
+
 export function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) {
   const n = testimonials.length;
-  const canCycle = n > VISIBLE;
-  const [start, setStart] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(3);
+  const [pos, setPos] = useState(0);
+  const [instant, setInstant] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      setContainerWidth(el.offsetWidth);
+      setVisibleCount(window.innerWidth < 768 ? 1 : 3);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
+
+  const canCycle = n > visibleCount;
 
   useEffect(() => {
     if (!canCycle) return;
-    const id = setInterval(() => {
-      setDirection(1);
-      setStart((s) => (s + 1) % n);
-    }, AUTO_ADVANCE_MS);
+    const id = setInterval(() => setPos((p) => p + 1), AUTO_ADVANCE_MS);
     return () => clearInterval(id);
-  }, [canCycle, n, start]);
+  }, [canCycle, pos]);
+
+  useEffect(() => {
+    if (instant) {
+      const id = requestAnimationFrame(() => setInstant(false));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [instant]);
 
   if (n === 0) return null;
 
-  const visible = canCycle
-    ? Array.from({ length: VISIBLE }, (_, i) => testimonials[(start + i) % n])
-    : testimonials;
+  const cardWidth = containerWidth > 0 && visibleCount > 0
+    ? (containerWidth - (visibleCount - 1) * GAP) / visibleCount
+    : 0;
+  const step = cardWidth + GAP;
 
-  const goTo = (delta: 1 | -1) => {
-    setDirection(delta);
-    setStart((s) => (s + delta + n) % n);
-  };
+  // Three copies laid end to end so the window can slide continuously in
+  // either direction; landing on a copy boundary snaps back by n (identical
+  // content, so it's invisible) instead of ever hitting the array edge.
+  const extended = canCycle ? [...testimonials, ...testimonials, ...testimonials] : testimonials;
+  const trackX = canCycle ? -(n + pos) * step : 0;
+
+  function handleAnimationComplete() {
+    if (Math.abs(pos) >= n) {
+      setInstant(true);
+      setPos((p) => p - Math.sign(p) * n);
+    }
+  }
+
+  const goTo = (delta: 1 | -1) => setPos((p) => p + delta);
 
   return (
     <section className="px-10 pb-16 max-md:px-6">
@@ -70,37 +124,26 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
             </button>
           )}
 
-          <div className="grow overflow-hidden relative">
-            <AnimatePresence mode="popLayout" initial={false}>
+          <div ref={containerRef} className="grow overflow-hidden">
+            {canCycle ? (
               <motion.div
-                key={start}
-                initial={{ x: direction * 60 }}
-                animate={{ x: 0 }}
-                exit={{ x: -direction * 60 }}
-                transition={{ duration: 0.35, ease: "easeInOut" }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                className="flex"
+                style={{ gap: GAP }}
+                animate={{ x: trackX }}
+                transition={{ duration: instant ? 0 : 0.4, ease: "easeInOut" }}
+                onAnimationComplete={handleAnimationComplete}
               >
-                {visible.map((t) => (
-                  <div
-                    key={t.id}
-                    className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white min-h-[280px]"
-                    style={{ border: "1px solid rgba(51,51,51,0.08)" }}
-                  >
-                    <Avatar name={t.name} photoUrl={t.photo_url} initials={t.initials} size={56} />
-                    <p className="font-display font-bold text-[13.5px] mt-3" style={{ color: DARK }}>{t.name}</p>
-                    {(t.vts || t.sca_date) && (
-                      <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
-                        {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
-                    <span className="font-display font-extrabold text-[28px] leading-none mt-4 mb-1" style={{ color: YELLOW }}>&ldquo;</span>
-                    <p className="text-[14px] leading-[1.65] grow" style={{ color: "rgba(51,51,51,0.75)" }}>
-                      {t.quote}
-                    </p>
-                  </div>
+                {extended.map((t, i) => (
+                  <TestimonialCard key={`${t.id}-${i}`} t={t} widthPx={cardWidth} />
                 ))}
               </motion.div>
-            </AnimatePresence>
+            ) : (
+              <div className="flex" style={{ gap: GAP }}>
+                {testimonials.map((t) => (
+                  <TestimonialCard key={t.id} t={t} widthPx={cardWidth} />
+                ))}
+              </div>
+            )}
           </div>
 
           {canCycle && (
