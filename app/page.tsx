@@ -185,33 +185,30 @@ export default async function HomePage() {
                   { icon: StethoscopeIcon, title: "Every Consultation Expertly Reviewed", body: "Every submitted consultation reviewed by an experienced GP." },
                   { icon: BooksIcon, title: "Complete Case Bank", body: "256 consultations covering every SCA clinical domain." },
                 ] as const
-              ).map(({ icon: Icon, title, body }, i) => {
-                const isBadge = i === 0;
-                return (
-                  <div
-                    key={title}
-                    className="flex items-start gap-4 py-5"
-                    style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
+              ).map(({ icon: Icon, title, body }, i) => (
+                <div
+                  key={title}
+                  className="flex items-start gap-4 py-5"
+                  style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
+                >
+                  <span
+                    className="shrink-0 flex items-center justify-center rounded-full"
+                    style={{ width: 48, height: 48, background: "white" }}
                   >
-                    <span
-                      className="shrink-0 flex items-center justify-center rounded-full"
-                      style={{ width: isBadge ? 60 : 48, height: isBadge ? 60 : 48, background: "white" }}
-                    >
-                      <Icon size={isBadge ? 32 : 26} />
-                    </span>
-                    <div>
-                      <h3 className="font-display font-extrabold mb-1" style={{ color: DARK, fontSize: isBadge ? 18 : 16 }}>{title}</h3>
-                      <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
-                    </div>
+                    <Icon size={26} />
+                  </span>
+                  <div>
+                    <h3 className="font-display font-extrabold mb-1 text-[16px]" style={{ color: DARK }}>{title}</h3>
+                    <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
 
             {/* Why Human Review Matters */}
             <div
               className="rounded-[28px] p-7 sm:p-9"
-              style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
+              style={{ background: "#F4F4F2", border: "1px solid rgba(51,51,51,0.10)" }}
             >
               <h3 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
                 Why Human Review Matters
@@ -223,8 +220,6 @@ export default async function HomePage() {
               </p>
               {(
                 [
-                  { icon: SparklesIcon, title: "Instant AI Feedback", body: "A provisional score lands within minutes of finishing your consultation." },
-                  { icon: StethoscopeIcon, title: "Reviewed by an Experienced GP", body: "Every single consultation is checked by a GP before it's marked final." },
                   { icon: ChatIcon, title: "Personalised Comments", body: "Feedback speaks to what actually happened in your consultation." },
                   { icon: ShieldCheckIcon, title: "Feedback You Can Trust", body: "Verified judgement, not just an algorithm's best guess." },
                 ] as const
