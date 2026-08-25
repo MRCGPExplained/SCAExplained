@@ -18,6 +18,7 @@ import {
   confirmTrainerInsightAudioUploadAction,
   deleteTrainerInsightAudioAction,
 } from "@/app/admin/actions";
+import { AudioRecordUpload } from "@/app/components/AudioRecordUpload";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -63,83 +64,35 @@ function TrainerInsightAudio({
   isAdmin: boolean;
 }) {
   const router = useRouter();
-  const [currentUrl, setCurrentUrl] = useState(audioUrl);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setError(null);
-    try {
-      const urlResult = await getTrainerInsightAudioUploadUrlAction(stationId, file.name);
-      if ("error" in urlResult) { setError(urlResult.error); return; }
-      const uploadRes = await fetch(urlResult.signedUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "audio/mpeg" },
-      });
-      if (!uploadRes.ok) { setError("Upload failed — try again."); return; }
-      const confirmResult = await confirmTrainerInsightAudioUploadAction(stationId, urlResult.path);
-      if ("error" in confirmResult) { setError(confirmResult.error); return; }
-      setCurrentUrl(confirmResult.audioUrl);
-      router.refresh();
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
+  async function handleUpload(file: File): Promise<{ url?: string; error?: string }> {
+    const urlResult = await getTrainerInsightAudioUploadUrlAction(stationId, file.name);
+    if ("error" in urlResult) return { error: urlResult.error };
+    const uploadRes = await fetch(urlResult.signedUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "audio/webm" },
+    });
+    if (!uploadRes.ok) return { error: "Upload failed — try again." };
+    const confirmResult = await confirmTrainerInsightAudioUploadAction(stationId, urlResult.path);
+    if ("error" in confirmResult) return { error: confirmResult.error };
+    router.refresh();
+    return { url: confirmResult.audioUrl };
   }
 
-  async function handleDelete() {
-    setUploading(true);
+  async function handleDelete(): Promise<{ error?: string }> {
     const result = await deleteTrainerInsightAudioAction(stationId);
-    if (result.error) { setError(result.error); } else { setCurrentUrl(null); router.refresh(); }
-    setUploading(false);
+    if (!result.error) router.refresh();
+    return result;
   }
 
-  if (!isAdmin && !currentUrl) return null;
+  if (!isAdmin && !audioUrl) return null;
 
-  return (
-    <div className="flex flex-col gap-2">
-      {currentUrl && (
-        <audio controls src={currentUrl} className="w-full" style={{ borderRadius: 8, outline: "none" }} />
-      )}
-      {isAdmin && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            type="file"
-            accept="audio/*"
-            ref={fileRef}
-            style={{ display: "none" }}
-            onChange={handleUpload}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-opacity"
-            style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.6 : 1 }}
-          >
-            {uploading ? "Uploading…" : currentUrl ? "Replace audio" : "Upload audio"}
-          </button>
-          {currentUrl && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={uploading}
-              className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
-              style={{ background: "none", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
-            >
-              Remove
-            </button>
-          )}
-          {error && <span className="text-[12px] text-red-600">{error}</span>}
-        </div>
-      )}
-    </div>
-  );
+  if (!isAdmin) {
+    return <audio controls src={audioUrl!} className="w-full" style={{ borderRadius: 8, outline: "none" }} />;
+  }
+
+  return <AudioRecordUpload currentUrl={audioUrl} onUpload={handleUpload} onDelete={handleDelete} />;
 }
 
 // Matches either a markdown-style [label](url) link or a bare https:// URL.
