@@ -9,6 +9,9 @@ import {
   getAudioUploadUrlAction,
   confirmAudioUploadAction,
   deleteAudioAction,
+  getTrainerInsightAudioUploadUrlAction,
+  confirmTrainerInsightAudioUploadAction,
+  deleteTrainerInsightAudioAction,
   uploadImageAction,
   deleteImageAction,
 } from "../actions";
@@ -192,6 +195,11 @@ export function StationForm({ station }: { station?: Station }) {
   const [audioError, setAudioError] = useState<string | null>(null);
   const audioFileRef = useRef<HTMLInputElement>(null);
 
+  const [currentInsightAudioUrl, setCurrentInsightAudioUrl] = useState<string | null>(station?.trainer_insight_audio_url ?? null);
+  const [insightAudioUploading, setInsightAudioUploading] = useState(false);
+  const [insightAudioError, setInsightAudioError] = useState<string | null>(null);
+  const insightAudioFileRef = useRef<HTMLInputElement>(null);
+
   interface ImageRecord {
     supabaseUrl: string;
     originalUrl?: string;
@@ -244,6 +252,37 @@ export function StationForm({ station }: { station?: Station }) {
     const result = await deleteAudioAction(station.id);
     if (result.error) { setAudioError(result.error); } else { setCurrentAudioUrl(null); }
     setAudioUploading(false);
+  }
+
+  async function handleInsightAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !station?.id) return;
+    setInsightAudioUploading(true);
+    setInsightAudioError(null);
+    try {
+      const urlResult = await getTrainerInsightAudioUploadUrlAction(station.id, file.name);
+      if ("error" in urlResult) { setInsightAudioError(urlResult.error); return; }
+      const uploadRes = await fetch(urlResult.signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "audio/mpeg" },
+      });
+      if (!uploadRes.ok) { setInsightAudioError("Upload failed — try again."); return; }
+      const confirmResult = await confirmTrainerInsightAudioUploadAction(station.id, urlResult.path);
+      if ("error" in confirmResult) { setInsightAudioError(confirmResult.error); return; }
+      setCurrentInsightAudioUrl(confirmResult.audioUrl);
+    } finally {
+      setInsightAudioUploading(false);
+      if (insightAudioFileRef.current) insightAudioFileRef.current.value = "";
+    }
+  }
+
+  async function handleInsightAudioDelete() {
+    if (!station?.id) return;
+    setInsightAudioUploading(true);
+    const result = await deleteTrainerInsightAudioAction(station.id);
+    if (result.error) { setInsightAudioError(result.error); } else { setCurrentInsightAudioUrl(null); }
+    setInsightAudioUploading(false);
   }
 
   async function uploadImage(file: File) {
@@ -532,13 +571,79 @@ export function StationForm({ station }: { station?: Station }) {
             rows={10}
             hint="A model answer in the candidate's own words: how they might actually explain the diagnosis or manage the situation in the exam. Hidden from subscribers if blank."
           />
-          <ArrayField
-            label="Message — trainer insight (optional)"
-            name="message"
-            defaultValue={station?.message ?? []}
-            rows={5}
-            hint="One bullet per line. Your insight for the candidate about this case (not words to say). Hidden if blank."
-          />
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
+              Trainer Insight (audio, optional)
+            </label>
+            <p className="text-[11px] text-navy/40 mb-2">
+              A short recording of your insight for the candidate about this case (not words to say). Shown above Trainer Q&amp;A in the debrief; hidden if no audio.
+            </p>
+
+            {!station ? (
+              <p className="text-[12px] text-navy/40">Save the station first, then add trainer insight audio.</p>
+            ) : (
+              <>
+                {insightAudioError && (
+                  <div className="mb-3 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+                    {insightAudioError}
+                  </div>
+                )}
+
+                {currentInsightAudioUrl ? (
+                  <div className="mb-3 flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "rgba(26,27,82,0.04)", border: "1px solid rgba(26,27,82,0.08)" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 opacity-50">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                    </svg>
+                    <span className="text-[13px] text-navy/70 flex-1 truncate">
+                      {currentInsightAudioUrl.split("/").pop()}
+                    </span>
+                    <a
+                      href={currentInsightAudioUrl}
+                      download
+                      className="text-[12px] font-medium no-underline text-navy/50 hover:text-navy transition"
+                    >
+                      Download
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleInsightAudioDelete}
+                      disabled={insightAudioUploading}
+                      className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
+                      style={{ background: "none", border: "none", cursor: insightAudioUploading ? "not-allowed" : "pointer" }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-navy/40 mb-3">No audio uploaded yet.</p>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    ref={insightAudioFileRef}
+                    style={{ display: "none" }}
+                    onChange={handleInsightAudioUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => insightAudioFileRef.current?.click()}
+                    disabled={insightAudioUploading}
+                    className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-opacity"
+                    style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: insightAudioUploading ? "not-allowed" : "pointer", opacity: insightAudioUploading ? 0.6 : 1 }}
+                  >
+                    {insightAudioUploading ? "Uploading…" : currentInsightAudioUrl ? "Replace audio" : "Upload audio"}
+                  </button>
+                  {insightAudioUploading && (
+                    <span className="text-[12px] text-navy/40">Uploading directly to storage…</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </section>
 

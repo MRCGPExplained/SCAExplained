@@ -32,6 +32,7 @@ export type Station = {
   message: string[] | null;
   key_takeaways: string[];
   trainer_qa: QAPair[];
+  trainer_insight_audio_url: string | null;
   audio_url: string | null;
   audio_notes: string | null;
   image_urls: string[] | null;

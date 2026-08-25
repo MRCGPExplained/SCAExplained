@@ -79,7 +79,6 @@ function stationFromForm(formData: FormData) {
     example_explanation: String(
       formData.get("example_explanation") ?? ""
     ).trim(),
-    message: parseLines(String(formData.get("message") ?? "")),
     trainer_qa: trainerQa,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,
@@ -313,6 +312,88 @@ export async function deleteAudioAction(stationId: string): Promise<ActionResult
   const { error } = await supabase
     .from("stations")
     .update({ audio_url: null })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  if (station?.number) revalidatePath(`/case-bank/${station.number}`);
+  return { success: true };
+}
+
+// ── Trainer Insight Audio ─────────────────────────────────────────────────────
+// Same storage bucket as the Sample Consultation audio above, different path
+// so the two recordings never collide.
+
+export async function getTrainerInsightAudioUploadUrlAction(
+  stationId: string,
+  filename: string
+): Promise<{ signedUrl: string; path: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "mp3";
+  const path = `${stationId}/trainer-insight.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from("audio-lessons")
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { error: error?.message ?? "Failed to create upload URL." };
+  return { signedUrl: data.signedUrl, path: data.path };
+}
+
+export async function confirmTrainerInsightAudioUploadAction(
+  stationId: string,
+  path: string
+): Promise<{ audioUrl: string } | { error: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("audio-lessons")
+    .getPublicUrl(path);
+
+  const { data: station, error: fetchErr } = await supabase
+    .from("stations")
+    .select("number")
+    .eq("id", stationId)
+    .single<{ number: number }>();
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ trainer_insight_audio_url: publicUrl })
+    .eq("id", stationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/case-bank/${station.number}`);
+  return { audioUrl: publicUrl };
+}
+
+export async function deleteTrainerInsightAudioAction(stationId: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: station } = await supabase
+    .from("stations")
+    .select("trainer_insight_audio_url, number")
+    .eq("id", stationId)
+    .single<{ trainer_insight_audio_url: string | null; number: number }>();
+
+  if (station?.trainer_insight_audio_url) {
+    const marker = "/object/public/audio-lessons/";
+    const idx = station.trainer_insight_audio_url.indexOf(marker);
+    if (idx !== -1) {
+      const storagePath = station.trainer_insight_audio_url.slice(idx + marker.length);
+      await supabase.storage.from("audio-lessons").remove([storagePath]);
+    }
+  }
+
+  const { error } = await supabase
+    .from("stations")
+    .update({ trainer_insight_audio_url: null })
     .eq("id", stationId);
 
   if (error) return { error: error.message };

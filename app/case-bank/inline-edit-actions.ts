@@ -27,7 +27,6 @@ const EDITABLE_FIELDS = {
   data_gathering: "lines",
   management: "lines",
   example_explanation: "text",
-  message: "lines",
   trainer_qa: "qa",
   admin_note: "text",
 } as const;

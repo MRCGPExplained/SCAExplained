@@ -13,6 +13,11 @@ import { HighlightProvider, Highlightable } from "./Highlighter";
 import { AdminEditProvider, EditableField, QAEditableField } from "./InlineEdit";
 import { toggleStarAction, updateLastStationAction } from "../actions";
 import { toggleStationPublishedAction } from "../inline-edit-actions";
+import {
+  getTrainerInsightAudioUploadUrlAction,
+  confirmTrainerInsightAudioUploadAction,
+  deleteTrainerInsightAudioAction,
+} from "@/app/admin/actions";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -41,6 +46,98 @@ function Label({ children }: { children: React.ReactNode }) {
       style={{ color: "rgba(26,27,82,0.5)" }}
     >
       {children}
+    </div>
+  );
+}
+
+// Trainer Insight audio: a short recording shown above Trainer Q&A. Admins
+// get inline upload/replace/remove controls right here on the case page, in
+// addition to the same controls on the /admin station form.
+function TrainerInsightAudio({
+  stationId,
+  audioUrl,
+  isAdmin,
+}: {
+  stationId: string;
+  audioUrl: string | null;
+  isAdmin: boolean;
+}) {
+  const router = useRouter();
+  const [currentUrl, setCurrentUrl] = useState(audioUrl);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const urlResult = await getTrainerInsightAudioUploadUrlAction(stationId, file.name);
+      if ("error" in urlResult) { setError(urlResult.error); return; }
+      const uploadRes = await fetch(urlResult.signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "audio/mpeg" },
+      });
+      if (!uploadRes.ok) { setError("Upload failed — try again."); return; }
+      const confirmResult = await confirmTrainerInsightAudioUploadAction(stationId, urlResult.path);
+      if ("error" in confirmResult) { setError(confirmResult.error); return; }
+      setCurrentUrl(confirmResult.audioUrl);
+      router.refresh();
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handleDelete() {
+    setUploading(true);
+    const result = await deleteTrainerInsightAudioAction(stationId);
+    if (result.error) { setError(result.error); } else { setCurrentUrl(null); router.refresh(); }
+    setUploading(false);
+  }
+
+  if (!isAdmin && !currentUrl) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {currentUrl && (
+        <audio controls src={currentUrl} className="w-full" style={{ borderRadius: 8, outline: "none" }} />
+      )}
+      {isAdmin && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="file"
+            accept="audio/*"
+            ref={fileRef}
+            style={{ display: "none" }}
+            onChange={handleUpload}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-opacity"
+            style={{ background: "rgba(26,27,82,0.08)", color: "rgba(26,27,82,0.7)", border: "none", cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.6 : 1 }}
+          >
+            {uploading ? "Uploading…" : currentUrl ? "Replace audio" : "Upload audio"}
+          </button>
+          {currentUrl && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={uploading}
+              className="text-[12px] font-medium text-red-600/70 hover:text-red-700 transition"
+              style={{ background: "none", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
+            >
+              Remove
+            </button>
+          )}
+          {error && <span className="text-[12px] text-red-600">{error}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -637,7 +734,7 @@ export function StationPageClient({
     // Admins always see explanation/insight so they have somewhere to add the
     // first bit of content; subscribers only see them once populated.
     if (t.key === "explanation") return isAdmin || !!station.example_explanation?.trim();
-    if (t.key === "insight") return isAdmin || (station.message?.length ?? 0) > 0 || (station.trainer_qa?.length ?? 0) > 0;
+    if (t.key === "insight") return isAdmin || !!station.trainer_insight_audio_url || (station.trainer_qa?.length ?? 0) > 0;
     return true;
   });
 
@@ -1085,15 +1182,17 @@ export function StationPageClient({
             )}
             {activeTab === "insight" && (
               <div className="flex flex-col gap-6">
-                {((station.message?.length ?? 0) > 0 || isAdmin) && (
-                  <EditableField field="message" value={station.message ?? []}>
-                    <BulletList items={station.message ?? []} listKey="message" />
-                  </EditableField>
+                {(!!station.trainer_insight_audio_url || isAdmin) && (
+                  <TrainerInsightAudio
+                    stationId={station.id}
+                    audioUrl={station.trainer_insight_audio_url}
+                    isAdmin={isAdmin}
+                  />
                 )}
                 {((station.trainer_qa?.length ?? 0) > 0 || isAdmin) && (
                   <div
                     style={
-                      (station.message?.length ?? 0) > 0
+                      station.trainer_insight_audio_url
                         ? { borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }
                         : undefined
                     }

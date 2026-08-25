@@ -232,14 +232,15 @@ export default function CaseGuidePage() {
 
       <Card title="Trainer Insight" kicker="Debrief — your teaching">
         <Field
-          name="Message (bullets)"
-          what="Your insight to the candidate about the case — NOT words to say."
-          contains="One bullet per line: what the case really tests, common pitfalls, and what strong candidates do differently."
+          name="Message (audio)"
+          what="A short recording of your insight to the candidate about the case — NOT words to say."
+          contains="What the case really tests, common pitfalls, and what strong candidates do differently, in your own voice."
+          tip="Upload/replace/remove it inline right on the case page (admin view), or on the /admin station form — same audio either way."
         />
         <Field
           name="Trainer Q&A"
           what="Questions candidates commonly ask you (as their trainer) about this case, and your answers."
-          contains="Question + answer pairs. Shown below the Message in the same tab."
+          contains="Question + answer pairs. Shown below the audio in the same tab."
           tip="This is YOUR voice as the trainer — not questions the patient asks (those go in the Patient's Story)."
         />
       </Card>
