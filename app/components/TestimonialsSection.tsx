@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Avatar } from "./Avatar";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 const AUTO_ADVANCE_MS = 6000;
 const VISIBLE = 3;
 
-type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null };
+type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null };
 
 function ArrowIcon({ direction }: { direction: "left" | "right" }) {
   return (
@@ -27,10 +29,12 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const n = testimonials.length;
   const canCycle = n > VISIBLE;
   const [start, setStart] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
 
   useEffect(() => {
     if (!canCycle) return;
     const id = setInterval(() => {
+      setDirection(1);
       setStart((s) => (s + 1) % n);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
@@ -43,6 +47,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
     : testimonials;
 
   const goTo = (delta: 1 | -1) => {
+    setDirection(delta);
     setStart((s) => (s + delta + n) % n);
   };
 
@@ -65,27 +70,42 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
             </button>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 grow">
-            {visible.map((t) => (
-              <div
-                key={t.id}
-                className="rounded-[20px] p-6 flex flex-col bg-white"
-                style={{ border: "1px solid rgba(51,51,51,0.08)" }}
+          <div className="grow overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+              <motion.div
+                key={start}
+                custom={direction}
+                initial={{ x: direction * 36, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -direction * 36, opacity: 0 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
               >
-                <span className="font-display font-extrabold text-[32px] leading-none mb-2" style={{ color: YELLOW }}>&ldquo;</span>
-                <p className="text-[14px] leading-[1.65] mb-5 grow" style={{ color: "rgba(51,51,51,0.75)" }}>
-                  {t.quote}
-                </p>
-                <div style={{ borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: 14 }}>
-                  <p className="font-display font-bold text-[13.5px]" style={{ color: DARK }}>{t.name}</p>
-                  {(t.vts || t.sca_date) && (
-                    <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
-                      {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
+                {visible.map((t) => (
+                  <div
+                    key={t.id}
+                    className="rounded-[20px] p-6 flex flex-col bg-white"
+                    style={{ border: "1px solid rgba(51,51,51,0.08)" }}
+                  >
+                    <span className="font-display font-extrabold text-[32px] leading-none mb-2" style={{ color: YELLOW }}>&ldquo;</span>
+                    <p className="text-[14px] leading-[1.65] mb-5 grow" style={{ color: "rgba(51,51,51,0.75)" }}>
+                      {t.quote}
                     </p>
-                  )}
-                </div>
-              </div>
-            ))}
+                    <div className="flex items-center gap-3" style={{ borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: 14 }}>
+                      <Avatar name={t.name} photoUrl={t.photo_url} size={40} />
+                      <div>
+                        <p className="font-display font-bold text-[13.5px]" style={{ color: DARK }}>{t.name}</p>
+                        {(t.vts || t.sca_date) && (
+                          <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
+                            {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {canCycle && (

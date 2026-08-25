@@ -13,7 +13,7 @@ export default async function EditTestimonialPage({ params }: { params: Promise<
 
   const { data: testimonial } = await supabase
     .from("testimonials")
-    .select("id, quote, name, vts, sca_date, display_order, published")
+    .select("id, quote, name, vts, sca_date, photo_url, display_order, published")
     .eq("id", id)
     .single();
 

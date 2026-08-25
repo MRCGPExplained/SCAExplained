@@ -13,6 +13,7 @@ type TestimonialFormProps = {
     name?: string;
     vts?: string;
     sca_date?: string;
+    photo_url?: string;
     published?: boolean;
   };
   submitLabel?: string;
@@ -78,6 +79,17 @@ export default function TestimonialForm({ action, initial, submitLabel = "Save" 
             className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Photo URL <span className="normal-case font-normal">(optional — shows initials if left blank)</span></label>
+        <input
+          name="photo_url"
+          type="text"
+          defaultValue={initial?.photo_url ?? ""}
+          placeholder="https://…"
+          className="w-full border border-navy/20 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-navy/50"
+        />
       </div>
 
       <div>

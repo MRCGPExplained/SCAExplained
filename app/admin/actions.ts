@@ -1153,6 +1153,7 @@ function testimonialFromForm(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     vts: String(formData.get("vts") ?? "").trim() || null,
     sca_date: String(formData.get("sca_date") ?? "").trim() || null,
+    photo_url: String(formData.get("photo_url") ?? "").trim() || null,
     published: formData.get("published") === "true",
   };
 }

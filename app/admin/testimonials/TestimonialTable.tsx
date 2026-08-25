@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { reorderTestimonialsAction } from "../actions";
 import { TestimonialRowActions } from "./TestimonialRowActions";
+import { Avatar } from "@/app/components/Avatar";
 
 type Testimonial = {
   id: string;
@@ -10,6 +11,7 @@ type Testimonial = {
   name: string;
   vts: string | null;
   sca_date: string | null;
+  photo_url: string | null;
   display_order: number;
   published: boolean;
 };
@@ -49,6 +51,7 @@ export function TestimonialTable({ testimonials: initial }: { testimonials: Test
           <tr className="border-b border-navy/10 bg-navy/[0.03]">
             <th className="text-left px-3 py-3 w-8"></th>
             <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50 w-8">#</th>
+            <th className="text-left px-3 py-3 w-8"></th>
             <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Quote</th>
             <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">Name</th>
             <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.06em] uppercase text-navy/50">VTS</th>
@@ -69,6 +72,9 @@ export function TestimonialTable({ testimonials: initial }: { testimonials: Test
             >
               <td className="px-3 py-3 text-navy/20 text-[14px] select-none">⠿</td>
               <td className="px-5 py-3 text-navy/30 text-[12px]">{i + 1}</td>
+              <td className="px-3 py-3">
+                <Avatar name={t.name} photoUrl={t.photo_url} size={32} />
+              </td>
               <td className="px-5 py-3 max-w-[320px]">
                 <div className="text-navy line-clamp-2">&ldquo;{t.quote}&rdquo;</div>
               </td>

@@ -9,7 +9,7 @@ export default async function AdminTestimonialsPage() {
   const { data: testimonials } = supabase
     ? await supabase
         .from("testimonials")
-        .select("id, quote, name, vts, sca_date, display_order, published")
+        .select("id, quote, name, vts, sca_date, photo_url, display_order, published")
         .order("display_order", { ascending: true })
     : { data: [] };
 
