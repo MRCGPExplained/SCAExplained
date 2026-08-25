@@ -979,25 +979,6 @@ export function StationPageClient({
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setShowRoom(true)}
-            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
-            style={{
-              background: "transparent",
-              border: "1.5px solid rgba(255,255,255,0.25)",
-              color: "rgba(255,255,255,0.6)",
-              cursor: "pointer",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="9" y="2" width="6" height="11" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-              <line x1="9" y1="21" x2="15" y2="21"/>
-            </svg>
-            Record
-          </button>
-
-          <button
             onClick={() => setShowRoom((v) => !v)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
@@ -1007,9 +988,11 @@ export function StationPageClient({
               cursor: "pointer",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={showRoom ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill={showRoom ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="11" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+              <line x1="9" y1="21" x2="15" y2="21"/>
             </svg>
             Study Room
           </button>
