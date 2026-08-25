@@ -84,24 +84,20 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                 {visible.map((t) => (
                   <div
                     key={t.id}
-                    className="rounded-[20px] p-6 flex flex-col bg-white"
+                    className="rounded-[20px] p-6 flex flex-col items-center text-center bg-white"
                     style={{ border: "1px solid rgba(51,51,51,0.08)" }}
                   >
-                    <span className="font-display font-extrabold text-[32px] leading-none mb-2" style={{ color: YELLOW }}>&ldquo;</span>
-                    <p className="text-[14px] leading-[1.65] mb-5 grow" style={{ color: "rgba(51,51,51,0.75)" }}>
+                    <Avatar name={t.name} photoUrl={t.photo_url} size={56} />
+                    <p className="font-display font-bold text-[13.5px] mt-3" style={{ color: DARK }}>{t.name}</p>
+                    {(t.vts || t.sca_date) && (
+                      <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
+                        {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                    <span className="font-display font-extrabold text-[28px] leading-none mt-4 mb-1" style={{ color: YELLOW }}>&ldquo;</span>
+                    <p className="text-[14px] leading-[1.65] grow" style={{ color: "rgba(51,51,51,0.75)" }}>
                       {t.quote}
                     </p>
-                    <div className="flex items-center gap-3" style={{ borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: 14 }}>
-                      <Avatar name={t.name} photoUrl={t.photo_url} size={40} />
-                      <div>
-                        <p className="font-display font-bold text-[13.5px]" style={{ color: DARK }}>{t.name}</p>
-                        {(t.vts || t.sca_date) && (
-                          <p className="text-[12px] mt-0.5" style={{ color: "rgba(51,51,51,0.45)" }}>
-                            {[t.vts, t.sca_date].filter(Boolean).join(" · ")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 ))}
               </motion.div>
