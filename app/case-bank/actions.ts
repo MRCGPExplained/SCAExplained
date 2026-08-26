@@ -364,9 +364,9 @@ export async function joinStudyRoomAction(
 
   const { data: room } = await supabase
     .from("study_rooms")
-    .select("id")
+    .select("id, host_user_id")
     .eq("room_code", roomCode.toUpperCase())
-    .single<{ id: string }>();
+    .single<{ id: string; host_user_id: string }>();
 
   if (!room) return { error: "Room not found. Check the code and try again." };
 
@@ -378,6 +378,18 @@ export async function joinStudyRoomAction(
     .maybeSingle();
 
   if (!existing) {
+    // Anyone but the host themselves needs the host to actually be present —
+    // stops a stale/abandoned room code being used once its owner has left.
+    if (user.id !== room.host_user_id) {
+      const { data: hostRow } = await supabase
+        .from("room_participants")
+        .select("user_id")
+        .eq("room_id", room.id)
+        .eq("user_id", room.host_user_id)
+        .maybeSingle();
+      if (!hostRow) return { error: "This room's host isn't in it anymore. Ask them to start a new session." };
+    }
+
     const { count } = await supabase
       .from("room_participants")
       .select("user_id", { count: "exact", head: true })
@@ -421,11 +433,21 @@ export async function guestJoinRoomAction(
 
   const { data: room } = await admin
     .from("study_rooms")
-    .select("id, current_station_number")
+    .select("id, current_station_number, host_user_id")
     .eq("room_code", roomCode.toUpperCase())
-    .single<{ id: string; current_station_number: number | null }>();
+    .single<{ id: string; current_station_number: number | null; host_user_id: string }>();
 
   if (!room) return { error: "Room not found. Check the link and try again." };
+
+  // Stops a stale/abandoned room link being used once its owner has left —
+  // a guest can only join a room whose host is actually still in it.
+  const { data: hostRow } = await admin
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", room.id)
+    .eq("user_id", room.host_user_id)
+    .maybeSingle();
+  if (!hostRow) return { error: "This room's host isn't in it anymore. Ask them to start a new session." };
 
   const { count } = await admin
     .from("room_participants")

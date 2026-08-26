@@ -12,10 +12,10 @@ import {
 
 const NAVY = "#333333";
 
-function todayMinus(days: number): string {
+function isoDaysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return d.toISOString();
 }
 
 function ConfirmDeleteBar({
@@ -142,7 +142,7 @@ export function CleanupClient({
   const [guestsLoading, setGuestsLoading] = useState(false);
   const [guestsResult, setGuestsResult] = useState("");
 
-  const [audioDate, setAudioDate] = useState(todayMinus(90));
+  const [audioDays, setAudioDays] = useState(90);
   const [audioCount, setAudioCount] = useState<number | null>(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioResult, setAudioResult] = useState("");
@@ -182,15 +182,13 @@ export function CleanupClient({
   async function refreshAudio() {
     setAudioLoading(true);
     setAudioResult("");
-    const iso = new Date(audioDate).toISOString();
-    setAudioCount(await countOldCandidateAudioAction(iso));
+    setAudioCount(await countOldCandidateAudioAction(isoDaysAgo(audioDays)));
     setAudioLoading(false);
   }
 
   async function deleteAudio() {
     setAudioLoading(true);
-    const iso = new Date(audioDate).toISOString();
-    const result = await deleteOldCandidateAudioAction(iso);
+    const result = await deleteOldCandidateAudioAction(isoDaysAgo(audioDays));
     setAudioLoading(false);
     if (result.error) { setAudioResult(""); return; }
     setAudioResult(`Deleted audio for ${result.deleted} recording${result.deleted === 1 ? "" : "s"} (reports kept).`);
@@ -223,7 +221,7 @@ export function CleanupClient({
 
       <CleanupCard
         title="Old Candidate Audio"
-        description="Deletes doctor/patient/examiner-voice-note audio for recordings created before the date below — the transcript, AI grade, and GP review stay. Trainer Insight and Sample Consultation audio are never affected."
+        description="Deletes doctor/patient/examiner-voice-note audio for recordings older than the cutoff below — the transcript, AI grade, and GP review stay. Trainer Insight and Sample Consultation audio are never affected."
         count={audioCount}
         loading={audioLoading}
         onRefresh={refreshAudio}
@@ -233,14 +231,18 @@ export function CleanupClient({
         extraControls={
           <div className="mb-4">
             <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5 text-navy/50">
-              Recordings created before
+              Older than
             </label>
-            <input
-              type="date"
-              value={audioDate}
-              onChange={(e) => { setAudioDate(e.target.value); setAudioCount(null); setAudioResult(""); }}
-              className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={audioDays}
+                onChange={(e) => { setAudioDays(Math.max(1, parseInt(e.target.value, 10) || 1)); setAudioCount(null); setAudioResult(""); }}
+                className="w-24 border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50"
+              />
+              <span className="text-[13px] text-navy/60">days</span>
+            </div>
           </div>
         }
       />

@@ -17,9 +17,9 @@ export default async function RoomGatewayPage({ params }: PageProps) {
   const { data: room } = admin
     ? await admin
         .from("study_rooms")
-        .select("id, current_station_number")
+        .select("id, current_station_number, host_user_id")
         .eq("room_code", roomCode)
-        .maybeSingle<{ id: string; current_station_number: number | null }>()
+        .maybeSingle<{ id: string; current_station_number: number | null; host_user_id: string }>()
     : { data: null };
 
   if (!room) {
@@ -49,6 +49,31 @@ export default async function RoomGatewayPage({ params }: PageProps) {
       .eq("user_id", user.id);
 
     if (!count) {
+      // Stops a stale/abandoned room link being used once its owner has
+      // left — only the host themselves can "revive" their own room.
+      if (user.id !== room.host_user_id) {
+        const { count: hostPresent } = await admin!
+          .from("room_participants")
+          .select("user_id", { count: "exact", head: true })
+          .eq("room_id", room.id)
+          .eq("user_id", room.host_user_id);
+
+        if (!hostPresent) {
+          return (
+            <main className="min-h-screen flex items-center justify-center px-6" style={{ background: "#FAFAF8" }}>
+              <div className="text-center max-w-[380px]">
+                <h1 className="font-display font-extrabold text-[22px] mb-2" style={{ color: "#333333" }}>
+                  Room no longer active
+                </h1>
+                <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.6)" }}>
+                  This room&apos;s host isn&apos;t in it anymore. Ask them to start a new session and share the new link.
+                </p>
+              </div>
+            </main>
+          );
+        }
+      }
+
       const { count: total } = await supabase
         .from("room_participants")
         .select("user_id", { count: "exact", head: true })
