@@ -419,7 +419,7 @@ export async function joinStudyRoomAction(
 export async function guestJoinRoomAction(
   roomCode: string,
   name: string
-): Promise<ActionResult & { stationNumber?: number | null }> {
+): Promise<ActionResult & { stationNumber?: number | null; roomId?: string }> {
   const trimmedName = name.trim();
   if (!trimmedName) return { error: "Please enter a name." };
   if (trimmedName.length > 60) return { error: "Name is too long." };
@@ -484,7 +484,7 @@ export async function guestJoinRoomAction(
     .upsert({ room_id: room.id, user_id: guestId }, { onConflict: "room_id,user_id" });
   if (joinErr) return { error: joinErr.message };
 
-  return { success: true, stationNumber: room.current_station_number };
+  return { success: true, stationNumber: room.current_station_number, roomId: room.id };
 }
 
 export async function leaveStudyRoomAction(

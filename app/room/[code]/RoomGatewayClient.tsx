@@ -25,7 +25,11 @@ export function RoomGatewayClient({ roomCode }: { roomCode: string }) {
       setJoining(false);
       return;
     }
-    router.push(result.stationNumber ? `/case-bank/${result.stationNumber}` : "/case-bank");
+    // joinRoom tells the station page to auto-open the study room panel
+    // already synced to this room (station, timer, other participants) —
+    // only meaningful once there's an actual station to land on.
+    const joinParam = result.roomId ? `?joinRoom=${result.roomId}` : "";
+    router.push(result.stationNumber ? `/case-bank/${result.stationNumber}${joinParam}` : "/case-bank");
   }
 
   return (

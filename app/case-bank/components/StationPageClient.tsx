@@ -679,6 +679,20 @@ export function StationPageClient({
   useEffect(() => {
     if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
   }, []);
+  // Landed here via a room invite link (?joinRoom=<id>) — the join itself
+  // already happened server-side, this just opens the panel already pointed
+  // at that room so it syncs station/timer/participants immediately instead
+  // of requiring a manual "Study Room" click.
+  useEffect(() => {
+    const joinRoomId = new URLSearchParams(window.location.search).get("joinRoom");
+    if (!joinRoomId) return;
+    sessionStorage.setItem("studyRoomId", joinRoomId);
+    setShowRoom(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("joinRoom");
+    router.replace(url.pathname + url.search, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [starPending, setStarPending] = useState(false);

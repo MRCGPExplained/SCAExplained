@@ -86,7 +86,13 @@ export default async function RoomGatewayPage({ params }: PageProps) {
       }
     }
 
-    redirect(room.current_station_number ? `/case-bank/${room.current_station_number}` : "/case-bank");
+    // joinRoom tells the station page to auto-open the study room panel
+    // already synced to this room (station, timer, other participants).
+    redirect(
+      room.current_station_number
+        ? `/case-bank/${room.current_station_number}?joinRoom=${room.id}`
+        : "/case-bank"
+    );
   }
 
   return <RoomGatewayClient roomCode={roomCode} />;
