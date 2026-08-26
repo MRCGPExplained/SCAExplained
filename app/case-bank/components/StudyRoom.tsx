@@ -51,6 +51,7 @@ interface Participant {
   initials: string;
   isHost: boolean;
   isSelf: boolean;
+  isGuest: boolean;
   muted: boolean;
   joinedAt: string;
 }
@@ -103,6 +104,7 @@ export function StudyRoomPanel({
   const [joinError, setJoinError] = useState("");
   const [loading, setLoading] = useState(false);
   const [hostNameState, setHostNameState] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [hostStation, setHostStation] = useState<number | null>(null);
   // userIds currently connected to the realtime channel (presence) — used to
   // flag a doctor/patient who has dropped out as "(disconnected)".
@@ -275,9 +277,9 @@ export function StudyRoomPanel({
     const profileIds = data.map((p) => p.user_id);
     const { data: profiles } = await supabase
       .from("user_profiles")
-      .select("id,display_name,initials")
+      .select("id,display_name,initials,is_guest")
       .in("id", profileIds)
-      .returns<{ id: string; display_name: string; initials: string }[]>();
+      .returns<{ id: string; display_name: string; initials: string; is_guest: boolean }[]>();
 
     const profileMap = new Map(
       (profiles ?? []).map((p) => [p.id, p])
@@ -294,6 +296,7 @@ export function StudyRoomPanel({
         initials: prof?.initials ?? "?",
         isHost: hostId ? p.user_id === hostId : false,
         isSelf: p.user_id === userId,
+        isGuest: prof?.is_guest ?? false,
         muted: p.muted,
         joinedAt: p.joined_at,
       };
@@ -1398,8 +1401,9 @@ export function StudyRoomPanel({
               >
                 <option value="">— None —</option>
                 {participants.map((p) => (
-                  <option key={p.userId} value={p.userId}>
+                  <option key={p.userId} value={p.userId} disabled={role === "doctor" && p.isGuest}>
                     {p.isSelf ? `You (${p.displayName})` : p.displayName}
+                    {role === "doctor" && p.isGuest ? " (guest — can't be doctor)" : ""}
                   </option>
                 ))}
               </select>
@@ -1508,15 +1512,29 @@ export function StudyRoomPanel({
         </div>
       </div>
 
-      {/* Room code */}
+      {/* Room code / invite link */}
       <div
         className="flex items-center justify-between px-3.5 py-2.5"
         style={{ background: "white", borderTop: "1px solid rgba(26,27,82,0.07)" }}
       >
-        <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>Room code</span>
-        <span className="font-mono font-bold text-[12px] tracking-[0.08em]" style={{ color: NAVY }}>
-          {room.room_code}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>Room code</span>
+          <span className="font-mono font-bold text-[12px] tracking-[0.08em]" style={{ color: NAVY }}>
+            {room.room_code}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/room/${room.room_code}`);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+          }}
+          className="text-[11px] font-semibold rounded-md px-2.5 py-1.5"
+          style={{ background: linkCopied ? "rgba(34,197,94,0.12)" : LIGHT_BG, color: linkCopied ? "#166534" : NAVY, border: "none", cursor: "pointer" }}
+        >
+          {linkCopied ? "Copied!" : "Copy Invite Link"}
+        </button>
       </div>
 
     </div>

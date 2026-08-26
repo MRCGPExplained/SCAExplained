@@ -14,6 +14,8 @@ const BUNDLE_PUBLIC = ["/bundle/purchase"];
 // Reads the current Supabase-authenticated user (if any) and returns the
 // response carrying any refreshed session cookies, so callers can either
 // `return` it directly (auth passed) or inspect `user` before redirecting.
+const GUEST_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 async function getSupabaseUser(req: NextRequest): Promise<{ user: { email?: string } | null; response: NextResponse }> {
   let supabaseResponse = NextResponse.next({ request: req });
 
@@ -33,6 +35,18 @@ async function getSupabaseUser(req: NextRequest): Promise<{ user: { email?: stri
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Guest (anonymous) sessions are a 24-hour pass, not a real account — past
+  // that, sign them out so they land back on the room's login-or-guest choice
+  // instead of staying in indefinitely.
+  if (user?.is_anonymous) {
+    const ageMs = Date.now() - new Date(user.created_at).getTime();
+    if (ageMs > GUEST_SESSION_MAX_AGE_MS) {
+      await supabase.auth.signOut();
+      return { user: null, response: supabaseResponse };
+    }
+  }
+
   return { user, response: supabaseResponse };
 }
 

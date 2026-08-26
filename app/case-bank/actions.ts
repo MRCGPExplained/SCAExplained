@@ -395,6 +395,76 @@ export async function joinStudyRoomAction(
   return { success: true, roomId: room.id };
 }
 
+/**
+ * Guest entry point for a shared room link (/room/[code]): creates a fresh
+ * Supabase anonymous session (no email/password — a real auth.users row
+ * flagged is_anonymous), a matching guest-flagged profile so they show up
+ * with a name in the room, then joins them into it. Kept as one action using
+ * a single client instance so the just-created session is guaranteed visible
+ * for the room join, rather than re-fetching auth.getUser() from a second
+ * client instance in the same request.
+ */
+export async function guestJoinRoomAction(
+  roomCode: string,
+  name: string
+): Promise<ActionResult & { stationNumber?: number | null }> {
+  const trimmedName = name.trim();
+  if (!trimmedName) return { error: "Please enter a name." };
+  if (trimmedName.length > 60) return { error: "Name is too long." };
+
+  // Looked up with the service-role client, not the session client below —
+  // study_rooms/room_participants SELECT policies require auth.uid() IS NOT
+  // NULL, and there's no session yet at this point (signInAnonymously hasn't
+  // run). Read-only existence/capacity check, safe before any session exists.
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Database not available." };
+
+  const { data: room } = await admin
+    .from("study_rooms")
+    .select("id, current_station_number")
+    .eq("room_code", roomCode.toUpperCase())
+    .single<{ id: string; current_station_number: number | null }>();
+
+  if (!room) return { error: "Room not found. Check the link and try again." };
+
+  const { count } = await admin
+    .from("room_participants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("room_id", room.id);
+  if ((count ?? 0) >= 4) {
+    return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
+  if (signInError || !signInData.user) {
+    return { error: signInError?.message ?? "Could not create a guest session." };
+  }
+  const guestId = signInData.user.id;
+
+  const initials = trimmedName
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "G";
+
+  const { error: profileErr } = await supabase.from("user_profiles").insert({
+    id: guestId,
+    display_name: trimmedName,
+    initials,
+    is_guest: true,
+  });
+  if (profileErr) return { error: "Could not set up your guest profile." };
+
+  const { error: joinErr } = await supabase
+    .from("room_participants")
+    .upsert({ room_id: room.id, user_id: guestId }, { onConflict: "room_id,user_id" });
+  if (joinErr) return { error: joinErr.message };
+
+  return { success: true, stationNumber: room.current_station_number };
+}
+
 export async function leaveStudyRoomAction(
   roomId: string
 ): Promise<ActionResult> {
@@ -542,6 +612,15 @@ export async function setRoomRolesAction(
   const ids = new Set((parts ?? []).map((p) => p.user_id as string));
   if (!ids.has(doctorUserId)) return { error: "Selected doctor is not in the room." };
   if (patientUserId && !ids.has(patientUserId)) return { error: "Selected patient is not in the room." };
+
+  const { data: doctorProfile } = await supabase
+    .from("user_profiles")
+    .select("is_guest")
+    .eq("id", doctorUserId)
+    .maybeSingle<{ is_guest: boolean }>();
+  if (doctorProfile?.is_guest) {
+    return { error: "Guest accounts can only be the patient." };
+  }
 
   const { error } = await supabase
     .from("study_rooms")

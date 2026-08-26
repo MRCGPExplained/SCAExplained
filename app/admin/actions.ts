@@ -1425,3 +1425,132 @@ export async function replyToStationReportAction(
   revalidatePath("/admin/feedback");
   return { success: true };
 }
+
+// ── Cleanup ────────────────────────────────────────────────────────────────────
+
+async function findEmptyStudyRoomIds(): Promise<string[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  const [{ data: rooms }, { data: participants }] = await Promise.all([
+    supabase.from("study_rooms").select("id"),
+    supabase.from("room_participants").select("room_id"),
+  ]);
+  const occupied = new Set((participants ?? []).map((p: { room_id: string }) => p.room_id));
+  return (rooms ?? []).filter((r: { id: string }) => !occupied.has(r.id)).map((r: { id: string }) => r.id);
+}
+
+export async function countEmptyStudyRoomsAction(): Promise<number> {
+  return (await findEmptyStudyRoomIds()).length;
+}
+
+export async function deleteEmptyStudyRoomsAction(): Promise<ActionResult & { deleted?: number }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const emptyIds = await findEmptyStudyRoomIds();
+  if (emptyIds.length === 0) return { success: true, deleted: 0 };
+
+  const { error } = await supabase.from("study_rooms").delete().in("id", emptyIds);
+  if (error) return { error: error.message };
+
+  return { success: true, deleted: emptyIds.length };
+}
+
+const GUEST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+// Guest accounts are Supabase anonymous auth users past their 24h pass.
+// Paginates the admin user list looking for is_anonymous + stale created_at;
+// capped at 10k users as a sanity limit for a single cleanup pass.
+async function findExpiredGuestIds(): Promise<string[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  const cutoff = Date.now() - GUEST_MAX_AGE_MS;
+  const expired: string[] = [];
+  const perPage = 1000;
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error || !data) break;
+    for (const u of data.users) {
+      if (u.is_anonymous && new Date(u.created_at).getTime() < cutoff) expired.push(u.id);
+    }
+    if (data.users.length < perPage) break;
+  }
+  return expired;
+}
+
+export async function countExpiredGuestAccountsAction(): Promise<number> {
+  return (await findExpiredGuestIds()).length;
+}
+
+export async function deleteExpiredGuestAccountsAction(): Promise<ActionResult & { deleted?: number }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const ids = await findExpiredGuestIds();
+  if (ids.length === 0) return { success: true, deleted: 0 };
+
+  // Clear the rows that reference the guest before deleting the auth user
+  // itself — most of these FKs are NO ACTION, not CASCADE.
+  await supabase.from("room_participants").delete().in("user_id", ids);
+  await supabase.from("station_reports").delete().in("user_id", ids);
+  await supabase.from("station_stars").delete().in("user_id", ids);
+  await supabase.from("user_profiles").delete().in("id", ids);
+
+  let deleted = 0;
+  for (const id of ids) {
+    const { error } = await supabase.auth.admin.deleteUser(id);
+    if (!error) deleted++;
+  }
+  return { success: true, deleted };
+}
+
+async function findOldCandidateAudioRows(beforeDate: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("station_recordings")
+    .select("id, doctor_audio_path, patient_audio_path, examiner_voice_note_path")
+    .is("audio_deleted_at", null)
+    .lt("created_at", beforeDate)
+    .or("doctor_audio_path.not.is.null,patient_audio_path.not.is.null,examiner_voice_note_path.not.is.null")
+    .returns<{ id: string; doctor_audio_path: string | null; patient_audio_path: string | null; examiner_voice_note_path: string | null }[]>();
+  return data ?? [];
+}
+
+export async function countOldCandidateAudioAction(beforeDate: string): Promise<number> {
+  return (await findOldCandidateAudioRows(beforeDate)).length;
+}
+
+// Deletes the audio files only — the transcript, AI grade, and GP review stay
+// intact. Trainer Insight and Sample Consultation audio (curated content, a
+// separate storage bucket) are never touched by this.
+export async function deleteOldCandidateAudioAction(beforeDate: string): Promise<ActionResult & { deleted?: number }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const rows = await findOldCandidateAudioRows(beforeDate);
+  if (rows.length === 0) return { success: true, deleted: 0 };
+
+  const paths = rows.flatMap((r) =>
+    [r.doctor_audio_path, r.patient_audio_path, r.examiner_voice_note_path].filter((p): p is string => !!p)
+  );
+  if (paths.length > 0) {
+    await supabase.storage.from("consultation-recordings").remove(paths);
+  }
+
+  const { error } = await supabase
+    .from("station_recordings")
+    .update({
+      doctor_audio_path: null,
+      patient_audio_path: null,
+      examiner_voice_note_path: null,
+      audio_deleted_at: new Date().toISOString(),
+    })
+    .in("id", rows.map((r) => r.id));
+
+  if (error) return { error: error.message };
+  return { success: true, deleted: rows.length };
+}
