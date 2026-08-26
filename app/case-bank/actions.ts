@@ -508,6 +508,49 @@ export async function leaveStudyRoomAction(
   return { success: true };
 }
 
+// Host-only: removes another participant from the room. Uses the service-role
+// client for the actual delete — "Participants manage own rows" RLS only lets
+// someone manage their own row, not remove someone else's, so this has to
+// verify host status in application code first, same pattern as admin actions.
+export async function removeParticipantAction(
+  roomId: string,
+  targetUserId: string
+): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+  if (user.id === targetUserId) return { error: "Can't remove yourself — use Leave instead." };
+
+  const { data: room } = await supabase
+    .from("study_rooms")
+    .select("host_user_id, doctor_user_id, patient_user_id")
+    .eq("id", roomId)
+    .single<{ host_user_id: string; doctor_user_id: string | null; patient_user_id: string | null }>();
+
+  if (!room) return { error: "Room not found." };
+  if (room.host_user_id !== user.id) return { error: "Only the host can remove participants." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Database not available." };
+
+  const { error } = await admin
+    .from("room_participants")
+    .delete()
+    .eq("room_id", roomId)
+    .eq("user_id", targetUserId);
+  if (error) return { error: error.message };
+
+  // Clear the removed person's role rather than leaving a dangling reference.
+  const roleUpdate: Record<string, null> = {};
+  if (room.doctor_user_id === targetUserId) roleUpdate.doctor_user_id = null;
+  if (room.patient_user_id === targetUserId) roleUpdate.patient_user_id = null;
+  if (Object.keys(roleUpdate).length > 0) {
+    await admin.from("study_rooms").update(roleUpdate).eq("id", roomId);
+  }
+
+  return { success: true };
+}
+
 export async function claimHostAction(roomId: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();

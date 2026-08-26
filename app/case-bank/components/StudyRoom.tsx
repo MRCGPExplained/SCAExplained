@@ -15,6 +15,7 @@ import {
   createDailyCallAction,
   getDailyTokenAction,
   endDailyCallAction,
+  removeParticipantAction,
 } from "../actions";
 import type { DailyCall } from "@daily-co/daily-js";
 import type { StudyRoom, ChatMessage, TimerPhase } from "@/lib/case-bank-types";
@@ -209,6 +210,17 @@ export function StudyRoomPanel({
       setRecordingError(result.error);
       refreshParticipants(room.id);
     }
+  }
+
+  async function handleRemoveParticipant(targetUserId: string, targetName: string) {
+    if (!room) return;
+    if (!confirm(`Remove ${targetName} from the room?`)) return;
+    const result = await removeParticipantAction(room.id, targetUserId);
+    if (result.error) {
+      setRecordingError(result.error);
+      return;
+    }
+    refreshParticipants(room.id);
   }
 
   // ── DailyCo live audio (headless — no visible UI, audio plays in the background) ──
@@ -1397,7 +1409,7 @@ export function StudyRoomPanel({
                     handleSetRoles(doctorUserId ?? userId, val);
                   }
                 }}
-                className="flex-1 rounded-lg px-2.5 py-1.5 text-[12.5px]"
+                className="flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-[12.5px]"
                 style={{
                   border: "1.5px solid rgba(26,27,82,0.15)",
                   color: NAVY,
@@ -1437,9 +1449,19 @@ export function StudyRoomPanel({
           const role =
             p.userId === doctorUserId ? "Doctor" : p.userId === patientUserId ? "Patient" : null;
           const disconnected = connectedIds.size > 0 && !connectedIds.has(p.userId);
+          const removable = iAmHost && !p.isSelf;
           return (
             <div
               key={p.userId}
+              onContextMenu={
+                removable
+                  ? (e) => {
+                      e.preventDefault();
+                      handleRemoveParticipant(p.userId, p.displayName);
+                    }
+                  : undefined
+              }
+              title={removable ? "Right-click to remove from room" : undefined}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
               style={{
                 background: p.isHost
@@ -1447,6 +1469,7 @@ export function StudyRoomPanel({
                   : p.isSelf
                   ? "rgba(59,130,246,0.08)"
                   : "transparent",
+                cursor: removable ? "context-menu" : undefined,
               }}
             >
               <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: NAVY }}>
@@ -1523,11 +1546,11 @@ export function StudyRoomPanel({
 
       {/* Room code / invite link */}
       <div
-        className="flex items-center justify-between px-3.5 py-2.5"
+        className="flex items-center justify-between gap-2 flex-wrap px-3.5 py-2.5"
         style={{ background: "white", borderTop: "1px solid rgba(26,27,82,0.07)" }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.4)" }}>Room code</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] shrink-0" style={{ color: "rgba(26,27,82,0.4)" }}>Room code</span>
           <span className="font-mono font-bold text-[12px] tracking-[0.08em]" style={{ color: NAVY }}>
             {room.room_code}
           </span>
@@ -1539,10 +1562,10 @@ export function StudyRoomPanel({
             setLinkCopied(true);
             setTimeout(() => setLinkCopied(false), 2000);
           }}
-          className="text-[11px] font-semibold rounded-md px-2.5 py-1.5"
-          style={{ background: linkCopied ? "rgba(34,197,94,0.12)" : LIGHT_BG, color: linkCopied ? "#166534" : NAVY, border: "none", cursor: "pointer" }}
+          className="text-[11px] font-medium shrink-0"
+          style={{ background: "none", border: "none", color: linkCopied ? "#166534" : "rgba(26,27,82,0.45)", cursor: "pointer", textDecoration: linkCopied ? "none" : "underline" }}
         >
-          {linkCopied ? "Copied!" : "Copy Invite Link"}
+          {linkCopied ? "Copied!" : "Copy link"}
         </button>
       </div>
 
