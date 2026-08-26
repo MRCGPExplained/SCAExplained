@@ -23,8 +23,13 @@ export default async function StationPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/case-bank/login");
 
-  const access = await getCaseBankAccess(supabase, user.id);
-  if (!access.hasAccess) redirect("/case-bank/upgrade");
+  // Guests (anonymous auth, joined via a room invite) never had anything to
+  // buy — they can't be doctor so they never touch AI grading or GP review,
+  // the whole reason the paywall exists. Let them browse freely.
+  if (!user.is_anonymous) {
+    const access = await getCaseBankAccess(supabase, user.id);
+    if (!access.hasAccess) redirect("/case-bank/upgrade");
+  }
 
   const admin = await isAdmin();
 
