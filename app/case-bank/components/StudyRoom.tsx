@@ -277,6 +277,23 @@ export function StudyRoomPanel({
     stationNumberRef.current = stationNumber;
   }, [stationNumber]);
 
+  // Guest-follows-host station syncing navigates via router.push, which fully
+  // remounts this panel (fresh room fetch, fresh channel). If that fresh fetch
+  // reads a room row that hasn't caught up to the host's latest write yet, it
+  // can point the guest right back at the station they just left, causing a
+  // bounce-back-and-forth loop. sessionStorage (not a ref — it must survive
+  // the remount) records the station we just navigated away from so a stale
+  // read pointing back there can be ignored instead of acted on.
+  function shouldFollowStation(target: number): boolean {
+    if (target === stationNumberRef.current) return false;
+    const justLeft = sessionStorage.getItem("studyRoomJustLeftStation");
+    return justLeft === null || Number(justLeft) !== target;
+  }
+  function followStation(target: number) {
+    sessionStorage.setItem("studyRoomJustLeftStation", String(stationNumberRef.current));
+    onStationChange?.(target);
+  }
+
   const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("room_participants")
@@ -332,8 +349,13 @@ export function StudyRoomPanel({
     if (!room) return;
     currentHostIdRef.current = room.host_user_id;
     if (room.current_station_number) setHostStation(room.current_station_number);
-    if (!iAmHost && room.current_station_number && room.current_station_number !== stationNumberRef.current) {
-      onStationChange?.(room.current_station_number);
+    if (!iAmHost && room.current_station_number && shouldFollowStation(room.current_station_number)) {
+      followStation(room.current_station_number);
+    } else if (room.current_station_number === stationNumberRef.current) {
+      // Confirmed settled on the right station — the anti-bounce guard has
+      // done its job, clear it so a genuine future move back to the station
+      // we once left isn't wrongly suppressed.
+      sessionStorage.removeItem("studyRoomJustLeftStation");
     }
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -385,8 +407,8 @@ export function StudyRoomPanel({
 
         // Station: guests follow host
         const isGuest = updated.host_user_id !== userId;
-        if (isGuest && updated.current_station_number && updated.current_station_number !== stationNumberRef.current) {
-          onStationChange?.(updated.current_station_number);
+        if (isGuest && updated.current_station_number && shouldFollowStation(updated.current_station_number)) {
+          followStation(updated.current_station_number);
         }
       }
     );
@@ -538,8 +560,8 @@ export function StudyRoomPanel({
     channel.on("broadcast", { event: "navigate" }, ({ payload }) => {
       const { stationNumber: target } = payload as { stationNumber: number };
       if (target) setHostStation(target);
-      if (!iAmHost && target && target !== stationNumberRef.current) {
-        onStationChange?.(target);
+      if (!iAmHost && target && shouldFollowStation(target)) {
+        followStation(target);
       }
     });
 
