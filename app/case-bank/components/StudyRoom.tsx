@@ -633,10 +633,19 @@ export function StudyRoomPanel({
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-rejoin saved room on mount (survives navigation and panel toggle)
+  // Auto-rejoin saved room on mount (survives navigation and panel toggle).
+  // Falls back to the ?joinRoom= URL param (a fresh landing from a room
+  // invite link) rather than sessionStorage alone — this component's mount
+  // effect runs before its parent's (React flushes child effects first), so
+  // it can't rely on the parent having written sessionStorage yet; the URL
+  // param is present immediately since the server redirect already put it
+  // there, no ordering dependency.
   useEffect(() => {
-    const savedId = sessionStorage.getItem("studyRoomId");
+    const savedId =
+      sessionStorage.getItem("studyRoomId") ??
+      new URLSearchParams(window.location.search).get("joinRoom");
     if (!savedId || room) return;
+    sessionStorage.setItem("studyRoomId", savedId);
     supabase
       .from("study_rooms")
       .select("*")
