@@ -694,7 +694,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
   async function handleCreate() {
     setBusy(true);
     setJoinErr("");
-    const result = await createStudyRoomAction();
+    const result = await createStudyRoomAction(stations.find((s) => s.id === stationId)?.number ?? 1);
     setBusy(false);
     if (result.error || !result.roomId) {
       logError("createStudyRoomAction", result.error);

@@ -324,7 +324,7 @@ function generateRoomCode(): string {
   ).join("");
 }
 
-export async function createStudyRoomAction(): Promise<
+export async function createStudyRoomAction(stationNumber: number): Promise<
   ActionResult & { roomId?: string; roomCode?: string }
 > {
   const supabase = await createSupabaseServerClient();
@@ -338,7 +338,10 @@ export async function createStudyRoomAction(): Promise<
   const { data: room, error } = await supabase
     .from("study_rooms")
     // The creator starts as the doctor, and the doctor is always the host.
-    .insert({ room_code: roomCode, host_user_id: user.id, doctor_user_id: user.id })
+    // current_station_number is set here (not left to the client-side sync
+    // effect) so an invite link copied right after creation always has
+    // somewhere to send a guest, instead of a brief window where it's null.
+    .insert({ room_code: roomCode, host_user_id: user.id, doctor_user_id: user.id, current_station_number: stationNumber })
     .select("id,room_code")
     .single<{ id: string; room_code: string }>();
 

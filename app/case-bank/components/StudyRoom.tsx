@@ -1094,7 +1094,7 @@ export function StudyRoomPanel({
 
   async function handleCreate() {
     setLoading(true);
-    const result = await createStudyRoomAction();
+    const result = await createStudyRoomAction(stationNumber);
     if (result.error) {
       logError("createStudyRoomAction", result.error);
       setJoinError(result.error);
