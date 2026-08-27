@@ -1,3 +1,5 @@
+import { getBetatestAccess } from "@/app/betatest/access";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -100,6 +102,12 @@ async function askClaude(transcript: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    // This endpoint spends ElevenLabs/Deepgram and Claude credit on every call
+    // and was previously open to anyone who knew the URL — the page's access
+    // code never covered it, since the route can be posted to directly.
+    const { allowed } = await getBetatestAccess();
+    if (!allowed) return Response.json({ error: "Not authorised." }, { status: 403 });
+
     const formData = await request.formData();
     const audioFile = formData.get("audio");
     if (!audioFile || !(audioFile instanceof Blob)) {

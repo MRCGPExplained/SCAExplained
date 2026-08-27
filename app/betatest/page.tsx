@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import PasswordForm from "./PasswordForm";
 import BetatestTabs from "./BetatestTabs";
+import { getBetatestAccess } from "./access";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +11,10 @@ const YELLOW = "#F6D44B";
 type StationRow = { id: string; number: number; title: string; subject: string };
 
 export default async function BetatestPage() {
-  const cookieStore = await cookies();
-  const unlocked = cookieStore.get("betatest_unlocked")?.value === "1";
+  const { allowed, loggedIn } = await getBetatestAccess();
 
   let stations: StationRow[] = [];
-  if (unlocked) {
+  if (allowed) {
     const supabase = await createSupabaseServerClient();
     const { data } = await supabase
       .from("stations")
@@ -44,10 +42,33 @@ export default async function BetatestPage() {
       </div>
 
       <div className="max-w-[680px] mx-auto px-6 pt-8">
-        {unlocked ? (
+        {allowed ? (
           <BetatestTabs stations={stations} />
         ) : (
-          <PasswordForm />
+          <div className="flex flex-col items-center justify-center pt-20">
+            <div
+              className="w-full max-w-[380px] rounded-2xl p-8 bg-white text-center"
+              style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}
+            >
+              <h1 className="font-display font-bold text-[20px] mb-2" style={{ color: DARK }}>
+                Beta tools
+              </h1>
+              <p className="text-[13px] leading-[1.6] mb-6" style={{ color: "rgba(51,51,51,0.55)" }}>
+                {loggedIn
+                  ? "This account doesn't have beta access. Ask an admin to switch it on for you."
+                  : "Log in with an account that has beta access to continue."}
+              </p>
+              {!loggedIn && (
+                <Link
+                  href="/login?next=/betatest"
+                  className="inline-block no-underline rounded-lg px-5 py-2.5 font-display font-bold text-[14px]"
+                  style={{ background: DARK, color: "white" }}
+                >
+                  Log in
+                </Link>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
