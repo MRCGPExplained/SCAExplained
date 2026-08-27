@@ -17,8 +17,24 @@ const GUEST_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 // and every server action POST — so a single stalled Supabase call here takes
 // the entire site down with a 504 (MIDDLEWARE_INVOCATION_TIMEOUT), not just one
 // page. Every network call below is therefore bounded by an explicit timeout.
-const AUTH_TIMEOUT_MS = 3000;
-const ADMIN_LOOKUP_TIMEOUT_MS = 3000;
+// Generous enough that only a genuine stall trips them, still far below the
+// ~25s ceiling at which Vercel kills the middleware and 504s the whole site.
+// 3s was too tight: an admin page prefetches its whole nav, so one visit fires
+// a burst of middleware invocations doing two network calls each, and the
+// slowest of those tripped the timeout — which on /admin means failing closed
+// and bouncing a real admin to the login page.
+const AUTH_TIMEOUT_MS = 8000;
+const ADMIN_LOOKUP_TIMEOUT_MS = 8000;
+
+/**
+ * Admin status by email, cached in the Edge instance for a short window.
+ *
+ * Without this, every prefetch in the admin nav re-queries PostgREST for the
+ * same answer. Revoking an admin takes up to TTL to take effect, which is an
+ * acceptable trade for not hammering the API on every hover.
+ */
+const ADMIN_CACHE_TTL_MS = 60_000;
+const adminCache = new Map<string, { isAdmin: boolean; at: number }>();
 
 type SessionUser = { email?: string; is_anonymous?: boolean; created_at?: string };
 type AuthOutcome = { ok: true; user: SessionUser | null } | { ok: false };
@@ -123,6 +139,10 @@ async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<N
 // Looks up whether an email is a registered admin (examiners.is_admin = true).
 // Uses a direct REST call since middleware runs on the Edge runtime.
 async function isAdminEmail(email: string): Promise<boolean> {
+  const key = email.toLowerCase();
+  const hit = adminCache.get(key);
+  if (hit && Date.now() - hit.at < ADMIN_CACHE_TTL_MS) return hit.isAdmin;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) return false;
@@ -136,11 +156,20 @@ async function isAdminEmail(email: string): Promise<boolean> {
         signal: AbortSignal.timeout(ADMIN_LOOKUP_TIMEOUT_MS),
       }
     );
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.error("[middleware] admin lookup failed", res.status);
+      return hit?.isAdmin ?? false;
+    }
     const rows = (await res.json()) as unknown[];
-    return Array.isArray(rows) && rows.length > 0;
-  } catch {
-    return false; // Fail closed (includes the timeout abort)
+    const isAdminNow = Array.isArray(rows) && rows.length > 0;
+    adminCache.set(key, { isAdmin: isAdminNow, at: Date.now() });
+    return isAdminNow;
+  } catch (err) {
+    // Fail closed, but prefer a recently-confirmed answer over bouncing a real
+    // admin because one lookup stalled. Logged because a silent catch here is
+    // indistinguishable from "you are not an admin".
+    console.error("[middleware] admin lookup error", err instanceof Error ? err.message : err);
+    return hit?.isAdmin ?? false;
   }
 }
 
@@ -165,6 +194,14 @@ export async function middleware(req: NextRequest) {
     // so this is the only gate and a degraded lookup must fail closed.
     const { user, response, degraded } = await getSupabaseUser(req);
     if (!degraded && user?.email && (await isAdminEmail(user.email))) return response;
+
+    // Denials here are otherwise indistinguishable from "not an admin" — which
+    // is exactly how a stalled lookup came to look like a permissions problem.
+    console.error("[middleware] admin denied", {
+      path: pathname,
+      degraded,
+      hasEmail: !!user?.email,
+    });
 
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
