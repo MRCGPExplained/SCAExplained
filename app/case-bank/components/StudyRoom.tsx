@@ -617,12 +617,19 @@ export function StudyRoomPanel({
 
   // Host: write current station to DB whenever room loads or station changes.
   // Guests receive it via the postgres_changes UPDATE subscription below.
+  // The result MUST be consumed — a Supabase query builder is lazy and never
+  // issues the request unless it's awaited or .then()'d. Without this the row
+  // stayed frozen at whatever station the room was created on, so every guest
+  // remount re-read that stale value and navigated back to it mid-journey.
   useEffect(() => {
     if (!room || !iAmHost) return;
     supabase
       .from("study_rooms")
-      .update({ current_station_number: stationNumber })
-      .eq("id", room.id);
+      .update({ current_station_number: stationNumber, last_activity_at: new Date().toISOString() })
+      .eq("id", room.id)
+      .then(({ error }) => {
+        if (error) logError("update current_station_number", error, { stationNumber });
+      });
   }, [room?.id, stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Host: broadcast station change via the existing channel whenever stationNumber changes.
