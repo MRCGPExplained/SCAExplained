@@ -223,18 +223,13 @@ export async function middleware(req: NextRequest) {
     }
 
     // 2. Normal path — logged in with an email on the admin list.
-    // Unlike the other protected areas, no admin page re-checks auth itself,
-    // so this is the only gate and a degraded lookup must fail closed.
+    // app/admin/layout.tsx now runs this same check on the Node runtime and is
+    // the authoritative gate, so a degraded lookup here fails OPEN like every
+    // other protected area. It used to fail closed, which turned an Edge
+    // problem into "This account isn't listed as an admin" for real admins.
     const { user, response, degraded } = await getSupabaseUser(req);
-    if (!degraded && user?.email && (await isAdminEmail(user.email))) return response;
-
-    // Denials here are otherwise indistinguishable from "not an admin" — which
-    // is exactly how a stalled lookup came to look like a permissions problem.
-    console.error("[middleware] admin denied", {
-      path: pathname,
-      degraded,
-      hasEmail: !!user?.email,
-    });
+    if (degraded) return NextResponse.next({ request: req });
+    if (user?.email && (await isAdminEmail(user.email))) return response;
 
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
