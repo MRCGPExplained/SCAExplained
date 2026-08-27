@@ -29,6 +29,7 @@ type RecordingFull = {
   examiner_overall_comment: string | null;
   examiner_voice_note_path: string | null;
   sent_to_candidate_at: string | null;
+  ai_error: string | null;
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
 };

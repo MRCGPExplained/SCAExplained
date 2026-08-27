@@ -123,6 +123,7 @@ type RecordingFull = {
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
   sent_to_candidate_at: string | null;
+  ai_error?: string | null;
 };
 
 interface Props {
@@ -258,7 +259,16 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           {/* No AI notice */}
           {!hasAi && (
             <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
-              <span>No AI pre-assessment — transcription was disabled or the pipeline did not complete.</span>
+              <span>
+                {rec.ai_error
+                  ? "AI grading did not complete for this consultation. Retrying will reuse the existing transcript, so it goes straight to grading."
+                  : "No AI pre-assessment — transcription was disabled or the pipeline did not complete."}
+              </span>
+              {rec.ai_error && (
+                <span className="text-[11px] font-mono px-2.5 py-2 rounded-lg" style={{ background: "rgba(185,28,28,0.06)", color: "#B91C1C", wordBreak: "break-word" }}>
+                  {rec.ai_error}
+                </span>
+              )}
               {canRetryPipeline && <RetryPipelineButton recordingId={rec.id} />}
             </div>
           )}

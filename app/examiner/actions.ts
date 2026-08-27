@@ -127,30 +127,73 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
+  // Any status except "processing" can be retried. The previous allow-list
+  // left out "ai_graded", which is precisely the state a failed grading run
+  // lands in (the pipeline rolls back to it so the candidate can still submit
+  // for GP review), so the most common failure was the one case Retry
+  // silently refused to act on — it matched no rows and reported no error.
+  const { data: current } = await admin
+    .from("station_recordings")
+    .select("status")
+    .eq("id", recordingId)
+    .single<{ status: string }>();
+
+  if (!current) return { error: "Recording not found." };
+  if (current.status === "processing") return { error: "Already processing — give it a minute." };
+
   const { error } = await admin
     .from("station_recordings")
-    .update({ status: "processing" })
-    .eq("id", recordingId)
-    .in("status", ["pending_examiner", "reviewing", "sent", "failed"]);
+    .update({ status: "processing", ai_error: null, ai_failed_at: null })
+    .eq("id", recordingId);
 
   if (error) return { error: error.message };
+
+  // Trigger the pipeline server-side rather than from the browser: only the
+  // server holds INTERNAL_API_KEY, so a browser-issued POST is rejected as
+  // soon as that key is set. Fire-and-forget — the route acknowledges
+  // immediately and does the real work in its own after().
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
+  try {
+    const res = await fetch(`${origin}/api/recordings/${recordingId}/process`, {
+      method: "POST",
+      headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      await admin.from("station_recordings").update({ status: current.status }).eq("id", recordingId);
+      return { error: `Could not start the pipeline (${res.status}). ${body.slice(0, 120)}` };
+    }
+  } catch (err) {
+    await admin.from("station_recordings").update({ status: current.status }).eq("id", recordingId);
+    return { error: err instanceof Error ? err.message : "Could not reach the processing service." };
+  }
+
   return {};
 }
 
-export async function checkRetryStatusAction(recordingId: string): Promise<{ status?: string; error?: string }> {
+export async function checkRetryStatusAction(
+  recordingId: string
+): Promise<{ status?: string; hasGrades?: boolean; aiError?: string | null; error?: string }> {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
+  // Status alone can't distinguish success from failure — the pipeline lands
+  // on "ai_graded" either way — so the presence of grades is what actually
+  // says whether the run worked.
   const { data } = await admin
     .from("station_recordings")
-    .select("status")
+    .select("status, ai_data_gathering, ai_error")
     .eq("id", recordingId)
-    .single<{ status: string }>();
+    .single<{ status: string; ai_data_gathering: string | null; ai_error: string | null }>();
 
-  return { status: data?.status };
+  return {
+    status: data?.status,
+    hasGrades: !!data?.ai_data_gathering,
+    aiError: data?.ai_error ?? null,
+  };
 }
 
 export async function examinerLogoutAction() {

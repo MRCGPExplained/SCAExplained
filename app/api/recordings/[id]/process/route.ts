@@ -117,6 +117,14 @@ function buildTranscript(
 
 const GRADING_MODEL = "claude-haiku-4-5-20251001";
 
+// The prompt asks for three sentences on each of three domains plus a focus
+// line, with quotes from the transcript, so output scales with consultation
+// length. Real runs have come in at 303-644 tokens, and a 644-token run was
+// only 8% under the old 700 ceiling: anything past it truncates the JSON
+// mid-string and the whole grading fails. Output is billed per token
+// generated, not per token allowed, so the headroom is free.
+const GRADING_MAX_TOKENS = 2000;
+
 interface GradeWithUsage {
   grades: GradeResult;
   model: string;
@@ -143,7 +151,7 @@ async function gradeWithClaude(
     },
     body: JSON.stringify({
       model: GRADING_MODEL,
-      max_tokens: 700,
+      max_tokens: GRADING_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     }),
@@ -155,6 +163,16 @@ async function gradeWithClaude(
   }
 
   const data = await res.json();
+
+  // Hitting the token ceiling truncates the JSON mid-string, so JSON.parse
+  // fails with a confusing "invalid JSON" further down. Name it precisely
+  // instead — this is what silently broke grading on long consultations.
+  if (data.stop_reason === "max_tokens") {
+    throw new Error(
+      `Claude response hit the ${GRADING_MAX_TOKENS}-token ceiling and was truncated (${data.usage?.output_tokens ?? "?"} output tokens). Raise GRADING_MAX_TOKENS.`
+    );
+  }
+
   const raw = (data.content?.[0]?.text ?? "").trim();
   // Strip markdown code fences Claude sometimes adds despite instructions
   const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
@@ -469,6 +487,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_focus_for_next_time: grades.focus_for_next_time,
         ai_graded_at: new Date().toISOString(),
         status: "ai_graded",
+        // Clear any failure recorded by a previous attempt.
+        ai_error: null,
+        ai_failed_at: null,
       }).eq("id", recordingId);
 
       // Count this toward the candidate's unlimited-but-soft-capped AI usage.
@@ -486,7 +507,13 @@ export async function POST(req: Request, { params }: RouteParams) {
       console.error("[recordings/process]", msg);
       // Don't leave it stuck in processing — roll back so the candidate can
       // still choose to submit, even with no AI pre-assessment to show.
-      await admin.from("station_recordings").update({ status: "ai_graded" }).eq("id", recordingId);
+      // The failure reason is persisted alongside it: console logs are
+      // per-deployment and short-lived, so without this a failed run is
+      // indistinguishable from a successful one after the fact.
+      await admin
+        .from("station_recordings")
+        .update({ status: "ai_graded", ai_error: msg.slice(0, 2000), ai_failed_at: new Date().toISOString() })
+        .eq("id", recordingId);
     } finally {
       // Record Daily live-audio usage (group consultations only) and build the
       // immutable cost ledger — runs even if grading failed, since Deepgram and

@@ -42,28 +42,30 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
       setError(result.error);
       return;
     }
-    logStatus("status reset to processing — triggering pipeline", { recordingId });
-
-    fetch(`/api/recordings/${recordingId}/process`, { method: "POST" }).catch((err) =>
-      logError("process trigger (fire-and-forget)", err, { recordingId })
-    );
+    // The action itself starts the pipeline server-side (it holds the internal
+    // key); nothing to trigger from here.
+    logStatus("pipeline started — polling for grades", { recordingId });
 
     const deadline = Date.now() + 300_000; // 5 min
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 4000));
-      const { status } = await checkRetryStatusAction(recordingId);
-      logStatus("poll tick", { recordingId, status });
-      if (status === "pending_examiner" || status === "reviewing" || status === "sent") {
-        logDuration("retry completed", t0);
-        logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);
-        setPhase("done");
-        setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
-        return;
-      }
-      if (status === "failed") {
-        logError("pipeline status", "failed", { recordingId });
+      const { status, hasGrades, aiError } = await checkRetryStatusAction(recordingId);
+      logStatus("poll tick", { recordingId, status, hasGrades });
+
+      // Wait for the run to leave "processing", then judge it by whether
+      // grades actually landed — status is "ai_graded" on success and on
+      // failure alike, so it can't be the success signal on its own.
+      if (status && status !== "processing") {
+        if (hasGrades) {
+          logDuration("retry completed", t0);
+          logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);
+          setPhase("done");
+          setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
+          return;
+        }
+        logError("pipeline finished without grades", aiError ?? "no reason recorded", { recordingId });
         setPhase("error");
-        setError("Pipeline failed — check Vercel logs.");
+        setError(aiError ? `Grading failed: ${aiError.slice(0, 160)}` : "Finished but produced no grades.");
         return;
       }
     }
