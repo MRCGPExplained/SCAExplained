@@ -1,13 +1,12 @@
 ﻿"use client";
 
-import { useState, useCallback, useEffect, useRef, useTransition } from "react";
+import { useState, useCallback, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Station, TimerPhase } from "@/lib/case-bank-types";
-import { PHASE_DURATIONS } from "@/lib/case-bank-types";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { Timer } from "./Timer";
+import type { Station } from "@/lib/case-bank-types";
 import { StudyRoomPanel } from "./StudyRoom";
+import { StudyRoomTimer } from "./study-room/StudyRoomTimer";
+import { useStudyRoomStatus } from "./study-room/context";
 import { FeedbackModal } from "./ReportModal";
 import { HighlightProvider, Highlightable } from "./Highlighter";
 import { AdminEditProvider, EditableField, QAEditableField } from "./InlineEdit";
@@ -647,50 +646,34 @@ function PatientStoryContent({ station }: { station: Station }) {
 
 export function StationPageClient({
   station,
-  userId,
   totalStations,
   prevStationNumber,
   nextStationNumber,
   initialStarred,
-  userDisplayName,
-  userInitials,
   isAdmin = false,
 }: {
   station: Station;
-  userId: string;
   totalStations: number;
   prevStationNumber: number | null;
   nextStationNumber: number | null;
   initialStarred: boolean;
-  userDisplayName: string;
-  userInitials: string;
   isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [isStationNavPending, startStationNav] = useTransition();
   const [stationNavDirection, setStationNavDirection] = useState<"prev" | "next" | null>(null);
 
-  const supabase = createSupabaseBrowserClient();
 
   const [starred, setStarred] = useState(initialStarred);
   const [published, setPublished] = useState(station.published);
   const [publishPending, setPublishPending] = useState(false);
-  const [showRoom, setShowRoom] = useState(false);
-  // Initialise from sessionStorage after hydration (useState initialiser runs on
-  // the server where window is undefined, so we use an effect instead)
-  useEffect(() => {
-    if (sessionStorage.getItem("studyRoomId")) setShowRoom(true);
-  }, []);
+  const [manualRoomOpen, setManualRoomOpen] = useState(false);
   // Landed here via a room invite link (?joinRoom=<id>) — the join itself
-  // already happened server-side, this just opens the panel already pointed
-  // at that room so it syncs station/timer/participants immediately instead
-  // of requiring a manual "Study Room" click.
+  // already happened server-side, and the provider reads the param directly.
+  // This only strips it from the URL so a refresh doesn't re-trigger it.
   useEffect(() => {
-    const joinRoomId = new URLSearchParams(window.location.search).get("joinRoom");
-    if (!joinRoomId) return;
-    sessionStorage.setItem("studyRoomId", joinRoomId);
-    setShowRoom(true);
     const url = new URL(window.location.href);
+    if (!url.searchParams.has("joinRoom")) return;
     url.searchParams.delete("joinRoom");
     router.replace(url.pathname + url.search, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -718,37 +701,28 @@ export function StationPageClient({
     sessionStorage.setItem(`stationTab:${station.id}`, activeTab);
   }, [station.id, activeTab]);
 
-  // Room state (exposed from StudyRoomPanel)
-  const [inRoom, setInRoom] = useState(false);
-  const [iAmHost, setIAmHost] = useState(false);
-  const [roomId, setRoomId] = useState<string | null>(null);
-  const [roomHostName, setRoomHostName] = useState<string | null>(null);
-  const [isRecordingActive, setIsRecordingActive] = useState(false);
-  const broadcastTimerRef = useRef<((phase: TimerPhase, timeLeft: number, running: boolean) => void) | null>(null);
-  const timerStateRef = useRef<{ phase: TimerPhase; timeLeft: number; running: boolean }>({
-    phase: "PREREAD",
-    timeLeft: PHASE_DURATIONS.PREREAD,
-    running: false,
-  });
+  // Room state now lives in the study-room session, which outlives this page.
+  const { inRoom, iAmHost, hostName: roomHostName, isRecordingActive, registerStation } =
+    useStudyRoomStatus();
+
+  // Tell the session which station is on screen. The number comes from the URL
+  // on the provider's side; this supplies the title, which only the page knows.
+  useEffect(() => {
+    registerStation(station.number, station.title);
+  }, [station.number, station.title, registerStation]);
+
+  // The panel opens itself whenever you're in a room, and can also be toggled
+  // open manually while you're not.
+  const showRoom = manualRoomOpen || inRoom;
+
+  // Guests follow the host, so only the host navigates. Nobody navigates during
+  // a recording: the voice call now survives it, but changing the case under a
+  // live consultation should not be possible.
+  const canNavigateStations = (!inRoom || iAmHost) && !isRecordingActive;
 
   // Station jump
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpValue, setJumpValue] = useState("");
-
-  // Timer state
-  const [timerPhase, setTimerPhase] = useState<TimerPhase>("PREREAD");
-  const [timeLeft, setTimeLeft] = useState(PHASE_DURATIONS.PREREAD);
-  const [timerRunning, setTimerRunning] = useState(false);
-
-  const handleRoomStatusChange = useCallback(
-    (nowInRoom: boolean, nowHost: boolean, nowRoomId: string | null, nowHostName: string | null) => {
-      setInRoom(nowInRoom);
-      setIAmHost(nowHost);
-      setRoomId(nowRoomId);
-      setRoomHostName(nowHostName);
-    },
-    []
-  );
 
   async function handleToggleStar() {
     if (starPending) return;
@@ -769,97 +743,6 @@ export function StationPageClient({
     setPublishPending(false);
   }
 
-  async function handleTimerStart() {
-    setTimerRunning(true);
-    broadcastTimerRef.current?.(timerPhase, timeLeft, true);
-    if (roomId && iAmHost) {
-      // Compute started_at so elapsed = already-consumed time, preserving remaining
-      const startedAt = new Date(
-        Date.now() - (PHASE_DURATIONS[timerPhase] - timeLeft) * 1000
-      ).toISOString();
-      await supabase
-        .from("study_rooms")
-        .update({ timer_started_at: startedAt, timer_paused_at: null, timer_paused_remaining: null })
-        .eq("id", roomId);
-    }
-  }
-
-  async function handleTimerPause() {
-    setTimerRunning(false);
-    broadcastTimerRef.current?.(timerPhase, timeLeft, false);
-    if (roomId && iAmHost) {
-      await supabase
-        .from("study_rooms")
-        .update({ timer_paused_at: new Date().toISOString(), timer_paused_remaining: timeLeft })
-        .eq("id", roomId);
-    }
-  }
-
-  async function handleSkipPreread() {
-    setTimerPhase("CONSULT");
-    setTimeLeft(PHASE_DURATIONS.CONSULT);
-    setTimerRunning(true);
-    broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, true);
-    if (roomId && iAmHost) {
-      await supabase
-        .from("study_rooms")
-        .update({
-          timer_phase: "CONSULT",
-          timer_started_at: null,
-          timer_paused_at: null,
-          timer_paused_remaining: null,
-          timer_skipped_preread: true,
-        })
-        .eq("id", roomId);
-    }
-  }
-
-  async function handleTimerReset() {
-    setTimerPhase("PREREAD");
-    setTimeLeft(PHASE_DURATIONS.PREREAD);
-    setTimerRunning(false);
-    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
-    if (roomId && iAmHost) {
-      await supabase
-        .from("study_rooms")
-        .update({
-          timer_phase: "PREREAD",
-          timer_started_at: null,
-          timer_paused_at: null,
-          timer_paused_remaining: null,
-          timer_skipped_preread: false,
-        })
-        .eq("id", roomId);
-    }
-  }
-
-  const handleTick = useCallback((newTime: number) => {
-    setTimeLeft(newTime);
-  }, []);
-
-  async function handlePhaseComplete() {
-    if (timerPhase === "PREREAD") {
-      const startedAt = new Date().toISOString();
-      setTimerPhase("CONSULT");
-      setTimeLeft(PHASE_DURATIONS.CONSULT);
-      setTimerRunning(true);
-      broadcastTimerRef.current?.("CONSULT", PHASE_DURATIONS.CONSULT, true);
-      if (roomId && iAmHost) {
-        await supabase
-          .from("study_rooms")
-          .update({
-            timer_phase: "CONSULT",
-            timer_started_at: startedAt,
-            timer_paused_at: null,
-            timer_paused_remaining: null,
-          })
-          .eq("id", roomId);
-      }
-    } else {
-      setTimerRunning(false);
-    }
-  }
-
   // Persist last-visited station — Supabase for cross-device, localStorage as immediate fallback
   useEffect(() => {
     localStorage.setItem("lastCaseBankStation", String(station.number));
@@ -875,46 +758,12 @@ export function StationPageClient({
     }
   }
 
-  // Keep timerStateRef in sync so presence-join re-announcements have current values
-  useEffect(() => {
-    timerStateRef.current = { phase: timerPhase, timeLeft, running: timerRunning };
-  }, [timerPhase, timeLeft, timerRunning]);
-
-  // Reset timer to PREREAD whenever the station changes (desired behavior).
-  // Skip the very first render — useState already initialises to PREREAD.
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    setTimerPhase("PREREAD");
-    setTimeLeft(PHASE_DURATIONS.PREREAD);
-    setTimerRunning(false);
-    broadcastTimerRef.current?.("PREREAD", PHASE_DURATIONS.PREREAD, false);
-  }, [station.number]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Timer sync received from StudyRoom (guest path — broadcast only)
-  const handleTimerSync = useCallback(
-    (phase: TimerPhase, time: number, running: boolean) => {
-      setTimerPhase(phase);
-      setTimeLeft(time);
-      setTimerRunning(running);
-    },
-    []
-  );
-
   const goToStation = useCallback(
     (stationNumber: number, direction: "prev" | "next") => {
       setStationNavDirection(direction);
       startStationNav(() => {
         router.push(`/case-bank/${stationNumber}`);
       });
-    },
-    [router]
-  );
-
-  // Guest navigation: follow host to a different station
-  const handleStationChange = useCallback(
-    (stationNumber: number) => {
-      router.push(`/case-bank/${stationNumber}`);
     },
     [router]
   );
@@ -937,7 +786,7 @@ export function StationPageClient({
           </Link>
           <span style={{ color: "rgba(255,255,255,0.2)" }}>|</span>
           <div className="flex items-center gap-1">
-            {(!inRoom || iAmHost) && prevStationNumber && (
+            {canNavigateStations && prevStationNumber && (
               <button
                 onClick={() => goToStation(prevStationNumber, "prev")}
                 disabled={isStationNavPending}
@@ -955,7 +804,7 @@ export function StationPageClient({
                 ←
               </button>
             )}
-            {inRoom && !iAmHost ? (
+            {!canNavigateStations ? (
               <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>
                 Station {station.number} / {totalStations}
               </span>
@@ -1008,7 +857,7 @@ export function StationPageClient({
                 Station {station.number} / {totalStations}
               </button>
             )}
-            {(!inRoom || iAmHost) && nextStationNumber && (
+            {canNavigateStations && nextStationNumber && (
               <button
                 onClick={() => goToStation(nextStationNumber, "next")}
                 disabled={isStationNavPending}
@@ -1041,7 +890,7 @@ export function StationPageClient({
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setShowRoom((v) => !v)}
+            onClick={() => setManualRoomOpen((v: boolean) => !v)}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             style={{
               background: "transparent",
@@ -1261,19 +1110,7 @@ export function StationPageClient({
           {/* Timer + study room */}
           <div className="sticky top-4 flex flex-col gap-3">
             <div>
-              <Timer
-                phase={timerPhase}
-                timeLeft={timeLeft}
-                running={timerRunning}
-                isHost={!inRoom || iAmHost}
-                locked={isRecordingActive}
-                onStart={handleTimerStart}
-                onPause={handleTimerPause}
-                onSkipPreread={handleSkipPreread}
-                onReset={handleTimerReset}
-                onTick={handleTick}
-                onPhaseComplete={handlePhaseComplete}
-              />
+              <StudyRoomTimer />
               {inRoom && !iAmHost && (
                 <p className="text-center text-[11px] mt-1.5" style={{ color: "rgba(31,41,55,0.4)" }}>
                   Timer controlled by {roomHostName ?? "host"}
@@ -1282,24 +1119,7 @@ export function StationPageClient({
             </div>
 
             <div style={{ display: showRoom ? undefined : "none" }}>
-              <StudyRoomPanel
-                stationId={station.id}
-                stationNumber={station.number}
-                stationTitle={station.title}
-                userId={userId}
-                displayName={userDisplayName}
-                initials={userInitials}
-                onTimerSync={handleTimerSync}
-                onStationChange={handleStationChange}
-                onRoomStatusChange={handleRoomStatusChange}
-                onRecordingStateChange={setIsRecordingActive}
-                broadcastTimerRef={broadcastTimerRef}
-                timerStateRef={timerStateRef}
-                onTimerReset={handleTimerReset}
-                timerPhase={timerPhase}
-                timerRunning={timerRunning}
-                timeLeft={timeLeft}
-              />
+              <StudyRoomPanel />
             </div>
           </div>
         </div>

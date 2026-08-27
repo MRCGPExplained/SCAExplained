@@ -67,31 +67,23 @@ export default async function StationPage({ params }: PageProps) {
     .select("id", { count: "exact", head: true })
     .eq("published", true);
 
-  const [{ data: star }, { data: profile }] =
-    await Promise.all([
-      supabase
-        .from("station_stars")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("station_id", station.id)
-        .single<{ id: string }>(),
-      supabase
-        .from("user_profiles")
-        .select("display_name,initials")
-        .eq("id", user.id)
-        .single<{ display_name: string; initials: string }>(),
-    ]);
+  // The user's display name and initials are no longer fetched here — the
+  // case-bank layout loads them once for the study-room session that outlives
+  // this page.
+  const { data: star } = await supabase
+    .from("station_stars")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("station_id", station.id)
+    .single<{ id: string }>();
 
   return (
     <StationPageClient
       station={station}
-      userId={user.id}
       totalStations={totalCount ?? 246}
       prevStationNumber={prevStation?.number ?? null}
       nextStationNumber={nextStation?.number ?? null}
       initialStarred={!!star}
-      userDisplayName={profile?.display_name ?? user.email ?? ""}
-      userInitials={profile?.initials ?? "?"}
       isAdmin={admin}
     />
   );
