@@ -69,7 +69,7 @@ export default function WebinarCodesClient({ codes }: { codes: WebinarCode[] }) 
                           const expired = new Date(c.expires_at) < new Date();
                           return (
                             <span style={expired ? { color: "#B91C1C" } : undefined}>
-                              {new Date(c.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              {new Date(c.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" })}
                               {expired ? " (expired)" : ""}
                             </span>
                           );

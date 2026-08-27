@@ -23,8 +23,15 @@ type Report = {
   created_at: string;
 };
 
+// The timezone must be pinned, not left to the runtime: this renders on the
+// server (UTC) and again on the client (Europe/London), so through BST the two
+// differ by an hour and React throws a hydration mismatch on every load.
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+    timeZone: "Europe/London",
+  });
 }
 
 function ReplyRow({ report }: { report: Report }) {

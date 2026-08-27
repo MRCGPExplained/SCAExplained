@@ -140,7 +140,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                         ) : <span className="text-navy/40 italic text-[12px]">No profile</span>}
                       </td>
                       <td className="px-5 py-3 text-navy/70"><a href={`mailto:${user.email}`} className="no-underline hover:underline text-navy/70">{user.email}</a></td>
-                      <td className="px-5 py-3 text-navy/50 whitespace-nowrap text-[12px]">{new Date(user.created_at).toLocaleDateString("en-GB")}</td>
+                      <td className="px-5 py-3 text-navy/50 whitespace-nowrap text-[12px]">{new Date(user.created_at).toLocaleDateString("en-GB", { timeZone: "Europe/London" })}</td>
                       <td className="px-5 py-3">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${active ? "bg-green-50 text-green-700" : "bg-navy/10 text-navy/40"}`}>
                           {active ? "Active" : "—"}
