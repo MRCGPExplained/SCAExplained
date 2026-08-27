@@ -11,13 +11,48 @@ const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/register", "/case-bank
 const VIDEO_COURSE_PUBLIC = ["/video-course/purchase"];
 const BUNDLE_PUBLIC = ["/bundle/purchase"];
 
+const GUEST_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+// This middleware runs on every matched request — page loads, link prefetches,
+// and every server action POST — so a single stalled Supabase call here takes
+// the entire site down with a 504 (MIDDLEWARE_INVOCATION_TIMEOUT), not just one
+// page. Every network call below is therefore bounded by an explicit timeout.
+const AUTH_TIMEOUT_MS = 3000;
+const ADMIN_LOOKUP_TIMEOUT_MS = 3000;
+
+type SessionUser = { email?: string; is_anonymous?: boolean; created_at?: string };
+type AuthOutcome = { ok: true; user: SessionUser | null } | { ok: false };
+
+interface AuthLookup {
+  user: SessionUser | null;
+  response: NextResponse;
+  /** The auth lookup stalled or errored — the caller decides fail-open vs fail-closed. */
+  degraded: boolean;
+}
+
+/** Supabase SSR stores the session in `sb-<ref>-auth-token` (possibly chunked). */
+function isAuthCookie(name: string): boolean {
+  return name.startsWith("sb-") && name.includes("auth-token");
+}
+
+/** Copies cookies set on `from` onto `to` — a freshly built redirect would drop them. */
+function carryCookies(from: NextResponse, to: NextResponse): NextResponse {
+  from.cookies.getAll().forEach((c) => to.cookies.set(c));
+  return to;
+}
+
 // Reads the current Supabase-authenticated user (if any) and returns the
 // response carrying any refreshed session cookies, so callers can either
 // `return` it directly (auth passed) or inspect `user` before redirecting.
-const GUEST_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-async function getSupabaseUser(req: NextRequest): Promise<{ user: { email?: string } | null; response: NextResponse }> {
+async function getSupabaseUser(req: NextRequest): Promise<AuthLookup> {
   let supabaseResponse = NextResponse.next({ request: req });
+
+  // No Supabase cookie at all means there is definitely no session, so skip
+  // the network round-trip entirely — this covers logged-out traffic and the
+  // prefetches that come with it.
+  if (!req.cookies.getAll().some((c) => isAuthCookie(c.name))) {
+    return { user: null, response: supabaseResponse, degraded: false };
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,30 +69,52 @@ async function getSupabaseUser(req: NextRequest): Promise<{ user: { email?: stri
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const outcome: AuthOutcome = await Promise.race([
+    supabase.auth
+      .getUser()
+      .then(({ data }): AuthOutcome => ({ ok: true, user: data.user as SessionUser | null }))
+      .catch((): AuthOutcome => ({ ok: false })),
+    new Promise<AuthOutcome>((resolve) => setTimeout(() => resolve({ ok: false }), AUTH_TIMEOUT_MS)),
+  ]);
+
+  if (!outcome.ok) return { user: null, response: supabaseResponse, degraded: true };
 
   // Guest (anonymous) sessions are a 24-hour pass, not a real account — past
-  // that, sign them out so they land back on the room's login-or-guest choice
-  // instead of staying in indefinitely.
-  if (user?.is_anonymous) {
+  // that, expire them so they land back on the room's login-or-guest choice
+  // instead of staying in indefinitely. The cookies are cleared directly
+  // rather than via signOut(): that would be a second unbounded network call
+  // on the hot path, and its cookie clearing was being silently dropped by the
+  // redirect below anyway, so expired guests never actually got signed out.
+  const user = outcome.user;
+  if (user?.is_anonymous && user.created_at) {
     const ageMs = Date.now() - new Date(user.created_at).getTime();
     if (ageMs > GUEST_SESSION_MAX_AGE_MS) {
-      await supabase.auth.signOut();
-      return { user: null, response: supabaseResponse };
+      const cleared = NextResponse.next({ request: req });
+      req.cookies.getAll().forEach((c) => {
+        if (isAuthCookie(c.name)) cleared.cookies.set(c.name, "", { maxAge: 0, path: "/" });
+      });
+      return { user: null, response: cleared, degraded: false };
     }
   }
 
-  return { user, response: supabaseResponse };
+  return { user, response: supabaseResponse, degraded: false };
 }
 
 async function supabaseAuthCheck(req: NextRequest, loginPath: string): Promise<NextResponse> {
-  const { user, response } = await getSupabaseUser(req);
+  const { user, response, degraded } = await getSupabaseUser(req);
+
+  // Auth lookup stalled — let the request through instead of hanging until
+  // Vercel kills the middleware and serves a 504 for the whole site. Every
+  // page behind this check re-verifies the session server-side and redirects
+  // on its own, so this check is a fast pre-filter, not the only gate.
+  // (/admin is the exception — it has no page-level check, so it fails closed.)
+  if (degraded) return NextResponse.next({ request: req });
 
   if (!user) {
     const url = req.nextUrl.clone();
     url.pathname = loginPath;
     url.searchParams.set("next", req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return carryCookies(response, NextResponse.redirect(url));
   }
 
   return response;
@@ -73,13 +130,17 @@ async function isAdminEmail(email: string): Promise<boolean> {
   try {
     const res = await fetch(
       `${supabaseUrl}/rest/v1/examiners?select=id&is_admin=eq.true&email=ilike.${encodeURIComponent(email)}`,
-      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, cache: "no-store" }
+      {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(ADMIN_LOOKUP_TIMEOUT_MS),
+      }
     );
     if (!res.ok) return false;
     const rows = (await res.json()) as unknown[];
     return Array.isArray(rows) && rows.length > 0;
   } catch {
-    return false; // Fail closed
+    return false; // Fail closed (includes the timeout abort)
   }
 }
 
@@ -100,13 +161,15 @@ export async function middleware(req: NextRequest) {
     }
 
     // 2. Normal path — logged in with an email on the admin list.
-    const { user, response } = await getSupabaseUser(req);
-    if (user?.email && (await isAdminEmail(user.email))) return response;
+    // Unlike the other protected areas, no admin page re-checks auth itself,
+    // so this is the only gate and a degraded lookup must fail closed.
+    const { user, response, degraded } = await getSupabaseUser(req);
+    if (!degraded && user?.email && (await isAdminEmail(user.email))) return response;
 
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return carryCookies(response, NextResponse.redirect(url));
   }
 
   // ── Case bank ─────────────────────────────────────────────────────────────
