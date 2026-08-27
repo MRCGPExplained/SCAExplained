@@ -111,7 +111,7 @@ export function StudyRoomPanel({
   // flag a doctor/patient who has dropped out as "(disconnected)".
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
   const [rolesSaving, setRolesSaving] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentHostIdRef = useRef<string | null>(null);
   const supabase = createSupabaseBrowserClient();
@@ -664,7 +664,10 @@ export function StudyRoomPanel({
   }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll only the chat pane itself — scrollIntoView would also drag the
+    // whole page down to reveal it, since the panel usually sits below the fold.
+    const el = chatContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   // Auto-rejoin saved room on mount (survives navigation and panel toggle).
@@ -1515,7 +1518,7 @@ export function StudyRoomPanel({
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(26,27,82,0.4)" }}>
           Chat
         </div>
-        <div className="max-h-[130px] overflow-y-auto flex flex-col gap-2 mb-2.5">
+        <div ref={chatContainerRef} className="max-h-[130px] overflow-y-auto flex flex-col gap-2 mb-2.5">
           {messages.map((msg) =>
             msg.from === "System" ? (
               <div key={msg.id} className="text-center py-0.5">
@@ -1545,7 +1548,6 @@ export function StudyRoomPanel({
               </div>
             )
           )}
-          <div ref={chatEndRef} />
         </div>
         <div className="flex gap-1.5">
           <input
