@@ -36,7 +36,6 @@ interface Props {
   gpRows: QueueRow[];
   aiRows: QueueRow[];
   examiners: Examiner[];
-  pipelineRetryEnabled: boolean;
 }
 
 function withinRange(startedAt: string, range: DateRange): boolean {
@@ -61,7 +60,7 @@ function matchesUser(rec: QueueRow, query: string): boolean {
   );
 }
 
-export default function ExaminerPortalClient({ gpRows, aiRows, examiners, pipelineRetryEnabled }: Props) {
+export default function ExaminerPortalClient({ gpRows, aiRows, examiners }: Props) {
   const [tab, setTab] = useState<Tab>("gp");
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [userQuery, setUserQuery] = useState("");
@@ -166,7 +165,7 @@ export default function ExaminerPortalClient({ gpRows, aiRows, examiners, pipeli
             ) : (
               <div className="flex flex-col gap-2.5">
                 {queue.map((rec) => (
-                  <RecordingCard key={rec.id} rec={rec} tab="gp" pipelineRetryEnabled={pipelineRetryEnabled} />
+                  <RecordingCard key={rec.id} rec={rec} tab="gp" />
                 ))}
               </div>
             )}
@@ -194,7 +193,7 @@ export default function ExaminerPortalClient({ gpRows, aiRows, examiners, pipeli
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {completed.map((rec) => (
-                    <RecordingCard key={rec.id} rec={rec} tab="gp" pipelineRetryEnabled={pipelineRetryEnabled} />
+                    <RecordingCard key={rec.id} rec={rec} tab="gp" />
                   ))}
                 </div>
               )
@@ -211,7 +210,7 @@ export default function ExaminerPortalClient({ gpRows, aiRows, examiners, pipeli
           ) : (
             <div className="flex flex-col gap-2.5">
               {aiFiltered.map((rec) => (
-                <RecordingCard key={rec.id} rec={rec} tab="ai" pipelineRetryEnabled={pipelineRetryEnabled} />
+                <RecordingCard key={rec.id} rec={rec} tab="ai" />
               ))}
             </div>
           )}
@@ -241,17 +240,18 @@ function EmptyState({ label }: { label: string }) {
 }
 
 function RecordingCard({
-  rec, tab, pipelineRetryEnabled,
+  rec, tab,
 }: {
   rec: QueueRow;
   tab: Tab;
-  pipelineRetryEnabled: boolean;
 }) {
   const router = useRouter();
   const isReviewing = rec.status === "reviewing";
   const isPending = rec.status === "pending_examiner";
   const examinerName = rec.examiners?.name ?? null;
-  const canRetry = pipelineRetryEnabled && !!rec.doctor_audio_path && !rec.ai_data_gathering && (isPending || isReviewing);
+  // Offered on every attempt, marked or not. Re-running an already-marked
+  // attempt asks for confirmation first, inside the button itself.
+  const alreadyMarked = !!rec.ai_data_gathering;
   const manuallyChecked = !!rec.manually_checked_at;
 
   const statusChip = tab === "ai"
@@ -330,7 +330,7 @@ function RecordingCard({
               Manual Overwrite
             </button>
           )}
-          {canRetry && <RetryPipelineButton recordingId={rec.id} />}
+          <RetryPipelineButton recordingId={rec.id} hasExistingMark={alreadyMarked} />
         </div>
       </div>
     </Link>
