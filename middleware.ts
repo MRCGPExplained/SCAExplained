@@ -88,9 +88,24 @@ async function getSupabaseUser(req: NextRequest): Promise<AuthLookup> {
   const outcome: AuthOutcome = await Promise.race([
     supabase.auth
       .getUser()
-      .then(({ data }): AuthOutcome => ({ ok: true, user: data.user as SessionUser | null }))
-      .catch((): AuthOutcome => ({ ok: false })),
-    new Promise<AuthOutcome>((resolve) => setTimeout(() => resolve({ ok: false }), AUTH_TIMEOUT_MS)),
+      .then(({ data, error }): AuthOutcome => {
+        // An auth error is a legitimate "no session", not a failure to look it
+        // up. Treating it as degraded is what locked admins out: /admin fails
+        // closed on degraded, so a signed-out-shaped answer became "your
+        // account is not an admin" rather than a redirect to sign in.
+        if (error) console.error("[middleware] getUser returned error", error.message);
+        return { ok: true, user: (data?.user ?? null) as SessionUser | null };
+      })
+      .catch((err): AuthOutcome => {
+        console.error("[middleware] getUser threw", err instanceof Error ? err.message : err);
+        return { ok: false };
+      }),
+    new Promise<AuthOutcome>((resolve) =>
+      setTimeout(() => {
+        console.error("[middleware] getUser timed out", AUTH_TIMEOUT_MS);
+        resolve({ ok: false });
+      }, AUTH_TIMEOUT_MS)
+    ),
   ]);
 
   if (!outcome.ok) return { user: null, response: supabaseResponse, degraded: true };
