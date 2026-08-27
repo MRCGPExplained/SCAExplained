@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Station, TimerPhase } from "@/lib/case-bank-types";
@@ -667,6 +667,8 @@ export function StationPageClient({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
+  const [isStationNavPending, startStationNav] = useTransition();
+  const [stationNavDirection, setStationNavDirection] = useState<"prev" | "next" | null>(null);
 
   const supabase = createSupabaseBrowserClient();
 
@@ -899,6 +901,16 @@ export function StationPageClient({
     []
   );
 
+  const goToStation = useCallback(
+    (stationNumber: number, direction: "prev" | "next") => {
+      setStationNavDirection(direction);
+      startStationNav(() => {
+        router.push(`/case-bank/${stationNumber}`);
+      });
+    },
+    [router]
+  );
+
   // Guest navigation: follow host to a different station
   const handleStationChange = useCallback(
     (stationNumber: number) => {
@@ -927,8 +939,18 @@ export function StationPageClient({
           <div className="flex items-center gap-1">
             {(!inRoom || iAmHost) && prevStationNumber && (
               <button
-                onClick={() => router.push(`/case-bank/${prevStationNumber}`)}
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", cursor: "pointer", padding: "2px 6px", fontSize: "14px", lineHeight: 1 }}
+                onClick={() => goToStation(prevStationNumber, "prev")}
+                disabled={isStationNavPending}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: isStationNavPending && stationNavDirection === "prev" ? "white" : "rgba(255,255,255,0.45)",
+                  cursor: isStationNavPending ? "default" : "pointer",
+                  padding: "2px 6px",
+                  fontSize: "14px",
+                  lineHeight: 1,
+                  opacity: isStationNavPending && stationNavDirection !== "prev" ? 0.35 : 1,
+                }}
               >
                 ←
               </button>
@@ -988,11 +1010,26 @@ export function StationPageClient({
             )}
             {(!inRoom || iAmHost) && nextStationNumber && (
               <button
-                onClick={() => router.push(`/case-bank/${nextStationNumber}`)}
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", cursor: "pointer", padding: "2px 6px", fontSize: "14px", lineHeight: 1 }}
+                onClick={() => goToStation(nextStationNumber, "next")}
+                disabled={isStationNavPending}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: isStationNavPending && stationNavDirection === "next" ? "white" : "rgba(255,255,255,0.45)",
+                  cursor: isStationNavPending ? "default" : "pointer",
+                  padding: "2px 6px",
+                  fontSize: "14px",
+                  lineHeight: 1,
+                  opacity: isStationNavPending && stationNavDirection !== "next" ? 0.35 : 1,
+                }}
               >
                 →
               </button>
+            )}
+            {isStationNavPending && (
+              <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Loading…
+              </span>
             )}
             {inRoom && !iAmHost && (
               <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>
