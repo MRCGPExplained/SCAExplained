@@ -23,13 +23,30 @@ function RepeatIcon() {
 // read them.
 const RELOAD_DELAY_MS = 60_000;
 
-export default function RetryPipelineButton({ recordingId }: { recordingId: string }) {
+export default function RetryPipelineButton({
+  recordingId,
+  hasExistingMark = false,
+}: {
+  recordingId: string;
+  /** Already AI-marked — re-running replaces the existing grades, so confirm first. */
+  hasExistingMark?: boolean;
+}) {
   const [phase, setPhase] = useState<"idle" | "retrying" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
-  async function handleRetry(e: React.MouseEvent) {
+  function handleClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (hasExistingMark) {
+      setConfirming(true);
+      return;
+    }
+    runPipeline();
+  }
+
+  async function runPipeline() {
+    setConfirming(false);
     setPhase("retrying");
     setError("");
     logStatus("retry requested", { recordingId });
@@ -52,11 +69,13 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
       const { status, hasGrades, aiError } = await checkRetryStatusAction(recordingId);
       logStatus("poll tick", { recordingId, status, hasGrades });
 
-      // Wait for the run to leave "processing", then judge it by whether
-      // grades actually landed — status is "ai_graded" on success and on
-      // failure alike, so it can't be the success signal on its own.
+      // Wait for the run to leave "processing", then judge it. Status is
+      // "ai_graded" on success and on failure alike, so it can't be the signal
+      // on its own — and on a re-mark the previous grades survive a failed run,
+      // so `hasGrades` can't be either. A successful run clears ai_error; a
+      // failed one sets it. That combination is reliable in both cases.
       if (status && status !== "processing") {
-        if (hasGrades) {
+        if (hasGrades && !aiError) {
           logDuration("retry completed", t0);
           logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);
           setPhase("done");
@@ -80,7 +99,7 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
         <span style={{ animation: "spin 1.1s linear infinite", display: "inline-flex" }}>
           <RepeatIcon />
         </span>
-        Retrying…
+        Running…
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </span>
     );
@@ -98,15 +117,55 @@ export default function RetryPipelineButton({ recordingId }: { recordingId: stri
     <div className="flex flex-col items-end gap-1" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        onClick={handleRetry}
+        onClick={handleClick}
         className="text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1.5"
         style={{ background: "rgba(51,51,51,0.08)", color: "#333333", border: "none", cursor: "pointer" }}
       >
         <RepeatIcon />
-        Retry AI
+        Run AI Pipeline
       </button>
       {phase === "error" && (
         <span className="text-[10px]" style={{ color: "#B91C1C" }}>{error}</span>
+      )}
+
+      {confirming && (
+        <div
+          className="fixed inset-0 flex items-center justify-center px-6"
+          style={{ background: "rgba(0,0,0,0.45)", zIndex: 100 }}
+          onClick={() => setConfirming(false)}
+        >
+          <div
+            className="rounded-2xl p-6 max-w-[420px] w-full text-left"
+            style={{ background: "white", boxShadow: "0 12px 40px rgba(0,0,0,0.2)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display font-extrabold text-[17px] mb-2" style={{ color: "#333333" }}>
+              This attempt already has an AI mark
+            </h2>
+            <p className="text-[13px] leading-[1.6] mb-5" style={{ color: "rgba(51,51,51,0.6)" }}>
+              Running the pipeline again will replace the existing AI grades and comments
+              with a fresh set. Any examiner grades you have entered are not affected.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="text-[13px] font-semibold px-4 py-2 rounded-lg"
+                style={{ background: "rgba(51,51,51,0.07)", color: "#333333", border: "none", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={runPipeline}
+                className="text-[13px] font-bold px-4 py-2 rounded-lg"
+                style={{ background: "#333333", color: "white", border: "none", cursor: "pointer" }}
+              >
+                Re-mark it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

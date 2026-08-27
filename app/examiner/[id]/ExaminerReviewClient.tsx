@@ -131,10 +131,9 @@ interface Props {
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
   voiceNoteUrl: string | null;
-  canRetryPipeline: boolean;
 }
 
-export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, canRetryPipeline }: Props) {
+export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl }: Props) {
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -256,22 +255,24 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
             </div>
           )}
 
-          {/* No AI notice */}
-          {!hasAi && (
-            <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
+          {/* AI pipeline — always available, on every attempt */}
+          <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <span>
-                {rec.ai_error
-                  ? "AI grading did not complete for this consultation. Retrying will reuse the existing transcript, so it goes straight to grading."
-                  : "No AI pre-assessment — transcription was disabled or the pipeline did not complete."}
+                {hasAi
+                  ? "AI pre-assessment complete. Re-running replaces the AI grades below."
+                  : rec.ai_error
+                    ? "AI grading did not complete for this consultation. Running it again reuses the existing transcript, so it goes straight to grading."
+                    : "No AI pre-assessment — transcription was disabled or the pipeline did not complete."}
               </span>
-              {rec.ai_error && (
-                <span className="text-[11px] font-mono px-2.5 py-2 rounded-lg" style={{ background: "rgba(185,28,28,0.06)", color: "#B91C1C", wordBreak: "break-word" }}>
-                  {rec.ai_error}
-                </span>
-              )}
-              {canRetryPipeline && <RetryPipelineButton recordingId={rec.id} />}
+              <RetryPipelineButton recordingId={rec.id} hasExistingMark={!!hasAi} />
             </div>
-          )}
+            {rec.ai_error && (
+              <span className="text-[11px] font-mono px-2.5 py-2 rounded-lg" style={{ background: "rgba(185,28,28,0.06)", color: "#B91C1C", wordBreak: "break-word" }}>
+                {rec.ai_error}
+              </span>
+            )}
+          </div>
 
           {/* Domain cards — flat, full width, AI context inline */}
           <div className="flex flex-col gap-4 mb-4">
