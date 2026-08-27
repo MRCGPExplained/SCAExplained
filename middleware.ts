@@ -46,6 +46,23 @@ interface AuthLookup {
   degraded: boolean;
 }
 
+/**
+ * Supabase's auth client serialises token work behind `navigator.locks` by
+ * default. In Vercel's Edge runtime that lock never settles, so `getUser()`
+ * hangs forever even though the auth request itself returns 200 in about 60ms
+ * — which is what was locking real admins out of /admin, and before the
+ * timeouts existed, what hung middleware into a site-wide 504.
+ *
+ * Each middleware invocation handles one request and writes cookies onto that
+ * request's own response, so there is no shared state to serialise here and a
+ * pass-through lock is the correct behaviour, not a workaround.
+ */
+const passthroughLock = async <R>(
+  _name: string,
+  _acquireTimeout: number,
+  fn: () => Promise<R>
+): Promise<R> => fn();
+
 /** Supabase SSR stores the session in `sb-<ref>-auth-token` (possibly chunked). */
 function isAuthCookie(name: string): boolean {
   return name.startsWith("sb-") && name.includes("auth-token");
@@ -74,6 +91,7 @@ async function getSupabaseUser(req: NextRequest): Promise<AuthLookup> {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      auth: { lock: passthroughLock },
       cookies: {
         getAll() { return req.cookies.getAll(); },
         setAll(cookiesToSet) {
