@@ -32,6 +32,14 @@ const SKILL_RATING_META: Record<string, { label: string; color: string; bg: stri
   not_assessable: { label: "Not Assessable", color: "rgba(51,51,51,0.5)", bg: "rgba(51,51,51,0.06)" },
 };
 
+const MODULATION_LABEL: Record<string, string> = {
+  strong_positive: "strong positive",
+  moderate_positive: "moderate positive",
+  neutral: "neutral",
+  moderate_negative: "moderate negative",
+  strong_negative: "strong negative",
+};
+
 function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
   const meta = GRADE_META[grade];
@@ -79,6 +87,9 @@ type RecordingDetail = {
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
   skills_assessment: unknown;
+  ai_baseline_data_gathering: string | null;
+  ai_baseline_clinical_management: string | null;
+  ai_baseline_relating_to_others: string | null;
   examiner_voice_note_path: string | null;
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
@@ -409,6 +420,39 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 Consultation-process skills observed in the transcript. These inform the grades above.
               </p>
             </div>
+            {/* Examiner-only: what the skill layer actually did to the grades.
+                Candidates see the final grade and the skill ratings, not the
+                mechanics — this is review context and tuning data. */}
+            {examiner && (
+              <div
+                className="mx-5 mt-4 rounded-xl px-4 py-3"
+                style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.18)" }}
+              >
+                <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "#4338CA" }}>
+                  Examiner view · not shown to the candidate
+                </div>
+                <div className="flex flex-col gap-1">
+                  {([
+                    { key: "dg", label: "Data Gathering", baseline: rec.ai_baseline_data_gathering, final: rec.ai_data_gathering, mod: skillsAssessment?.domain_modulation?.data_gathering },
+                    { key: "cm", label: "Clinical Management", baseline: rec.ai_baseline_clinical_management, final: rec.ai_clinical_management, mod: skillsAssessment?.domain_modulation?.clinical_management },
+                    { key: "ro", label: "Relating to Others", baseline: rec.ai_baseline_relating_to_others, final: rec.ai_relating_to_others, mod: skillsAssessment?.domain_modulation?.relating_to_others },
+                  ] as const).map((d) => {
+                    const moved = d.baseline && d.final && d.baseline !== d.final;
+                    return (
+                      <div key={d.key} className="flex items-center justify-between gap-3 text-[12.5px]">
+                        <span style={{ color: "rgba(51,51,51,0.6)" }}>{d.label}</span>
+                        <span className="font-mono" style={{ color: moved ? "#4338CA" : "rgba(51,51,51,0.45)" }}>
+                          {d.baseline ?? "—"}
+                          {moved ? ` → ${d.final}` : " (unchanged)"}
+                          {d.mod ? ` · ${MODULATION_LABEL[d.mod] ?? d.mod}` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
               {skills.map((s) => {
                 const meta = SKILL_RATING_META[s.rating] ?? SKILL_RATING_META.not_assessable;
