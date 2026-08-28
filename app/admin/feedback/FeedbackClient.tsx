@@ -8,6 +8,23 @@ const NAVY = "#333333";
 
 type ReportType = "feedback" | "help";
 
+/** The three pills. "report" is AI-report feedback, which has its own shape. */
+type Tab = ReportType | "report";
+
+export type ReportFeedbackRow = {
+  id: string;
+  recording_id: string;
+  agrees: boolean;
+  comment: string | null;
+  created_at: string;
+  station_recordings: {
+    station_number: number;
+    station_title: string;
+    doctor_display_name: string;
+    candidate_email: string | null;
+  } | null;
+};
+
 type Report = {
   id: string;
   station_number: number | null;
@@ -135,16 +152,76 @@ function ReplyRow({ report }: { report: Report }) {
   );
 }
 
-export function FeedbackClient({ reports }: { reports: Report[] }) {
-  const [tab, setTab] = useState<ReportType>("feedback");
+/**
+ * One candidate's verdict on an AI report. Read-only: unlike case feedback and
+ * help, there is no reply — it is a quality signal about the marking itself.
+ */
+function ReportFeedbackRowCard({ row }: { row: ReportFeedbackRow }) {
+  const rec = row.station_recordings;
+  return (
+    <div className="rounded-2xl border border-navy/10 bg-white px-5 py-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-navy m-0">
+            {rec ? `Station #${rec.station_number} — ${rec.station_title}` : "Recording unavailable"}
+          </p>
+          <p className="text-[12px] text-navy/50 mt-0.5 m-0">
+            {rec?.doctor_display_name ?? "Unknown"}
+            {rec?.candidate_email ? ` · ${rec.candidate_email}` : ""} · {fmtDate(row.created_at)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em]"
+            style={
+              row.agrees
+                ? { background: "rgba(34,197,94,0.12)", color: "#166534" }
+                : { background: "rgba(239,68,68,0.12)", color: "#B91C1C" }
+            }
+          >
+            {row.agrees ? "Agreed" : "Disagreed"}
+          </span>
+          <a
+            href={`/recordings/${row.recording_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[12px] font-semibold text-navy/50 hover:text-navy transition no-underline"
+          >
+            View report →
+          </a>
+        </div>
+      </div>
+      {row.comment?.trim() && (
+        <p
+          className="text-[13.5px] leading-[1.6] mt-3 mb-0 px-3 py-2 rounded-lg"
+          style={{ background: "rgba(51,51,51,0.04)", color: "rgba(51,51,51,0.75)", whiteSpace: "pre-line" }}
+        >
+          {row.comment}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function FeedbackClient({
+  reports,
+  reportFeedback,
+}: {
+  reports: Report[];
+  reportFeedback: ReportFeedbackRow[];
+}) {
+  const [tab, setTab] = useState<Tab>("feedback");
   const [sortAsc, setSortAsc] = useState(false);
   const [awaitingOnly, setAwaitingOnly] = useState(false);
 
+  // Report feedback is a one-way signal about AI marking quality — there is
+  // nobody to reply to — so the reply-oriented controls don't apply to it.
+  const isReplyTab = tab !== "report";
+
   const counts = {
-    feedback: reports.filter((r) => r.type === "feedback").length,
     feedbackAwaiting: reports.filter((r) => r.type === "feedback" && !r.resolved).length,
-    help: reports.filter((r) => r.type === "help").length,
     helpAwaiting: reports.filter((r) => r.type === "help" && !r.resolved).length,
+    disagreements: reportFeedback.filter((r) => !r.agrees).length,
   };
 
   const filtered = reports
@@ -155,12 +232,18 @@ export function FeedbackClient({ reports }: { reports: Report[] }) {
       return sortAsc ? delta : -delta;
     });
 
+  const sortedReportFeedback = [...reportFeedback].sort((a, b) => {
+    const delta = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return sortAsc ? delta : -delta;
+  });
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex gap-1 bg-white rounded-xl border border-navy/10 p-1.5" style={{ width: "fit-content" }}>
           {([
-            { id: "feedback" as const, label: "Feedback", awaiting: counts.feedbackAwaiting },
+            { id: "feedback" as const, label: "Case Feedback", awaiting: counts.feedbackAwaiting },
+            { id: "report" as const, label: "Report Feedback", awaiting: counts.disagreements },
             { id: "help" as const, label: "Help", awaiting: counts.helpAwaiting },
           ]).map((t) => (
             <button
@@ -191,10 +274,12 @@ export function FeedbackClient({ reports }: { reports: Report[] }) {
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-[12.5px] text-navy/60 cursor-pointer">
-            <input type="checkbox" checked={awaitingOnly} onChange={(e) => setAwaitingOnly(e.target.checked)} className="rounded" />
-            Only awaiting reply
-          </label>
+          {isReplyTab && (
+            <label className="flex items-center gap-2 text-[12.5px] text-navy/60 cursor-pointer">
+              <input type="checkbox" checked={awaitingOnly} onChange={(e) => setAwaitingOnly(e.target.checked)} className="rounded" />
+              Only awaiting reply
+            </label>
+          )}
           <button
             type="button"
             onClick={() => setSortAsc((v) => !v)}
@@ -206,7 +291,19 @@ export function FeedbackClient({ reports }: { reports: Report[] }) {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {tab === "report" ? (
+        sortedReportFeedback.length === 0 ? (
+          <div className="rounded-2xl border border-navy/10 bg-white px-8 py-12 text-center">
+            <p className="text-[14px] text-navy/40">No report feedback yet.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {sortedReportFeedback.map((r) => (
+              <ReportFeedbackRowCard key={r.id} row={r} />
+            ))}
+          </div>
+        )
+      ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-navy/10 bg-white px-8 py-12 text-center">
           <p className="text-[14px] text-navy/40">
             {awaitingOnly ? "Nothing awaiting reply." : `No ${tab} submissions yet.`}
