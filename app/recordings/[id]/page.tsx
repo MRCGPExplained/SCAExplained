@@ -416,9 +416,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Skills Assessment
               </div>
-              <p className="text-[12.5px] mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
-                Consultation-process skills observed in the transcript. These inform the grades above.
-              </p>
             </div>
             {/* Examiner-only: what the skill layer actually did to the grades.
                 Candidates see the final grade and the skill ratings, not the

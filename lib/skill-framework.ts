@@ -293,6 +293,19 @@ Ratings: excellent, satisfactory, needs_improvement, or not_assessable when the
 transcript genuinely does not show enough to judge. Never invent a behaviour to
 fill a skill in — not_assessable is the correct answer when evidence is absent.
 
+Writing the skill comments — the candidate reads these, so address them
+directly as "you". Never write "the candidate", "the doctor" or "the clinician".
+Write exactly two sentences, and shape them to the rating:
+- excellent: say what you did well and why it was effective.
+- satisfactory: acknowledge what you did well, then give one concrete idea to
+  do it better.
+- needs_improvement: say what was missing or went wrong, then give one concrete
+  idea to do it differently next time.
+- not_assessable: say briefly that the transcript does not show enough to judge
+  this, and what would have demonstrated it.
+Ground every comment in what the transcript actually shows, quoting or closely
+paraphrasing where it helps. Never use em dashes; use a comma or rewrite.
+
 Aggregating:
 - This is not a majority vote. One materially important negative finding may
   outweigh several weak positives.
@@ -327,7 +340,7 @@ export const SKILLS_OUTPUT_CONTRACT = `
       {
         "skill": "history_structure",
         "rating": "excellent",
-        "comment": "One or two sentences citing what the transcript shows.",
+        "comment": "Two sentences, addressed to the candidate as \\"you\\", shaped to the rating.",
         "domain_influences": {
           "data_gathering": "moderate_positive",
           "clinical_management": "not_applicable",

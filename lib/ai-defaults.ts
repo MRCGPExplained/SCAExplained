@@ -28,7 +28,7 @@ Grade each domain using the official RCGP scale:
 
 Points per domain: Data Gathering & Diagnosis = 3pts max (CF=0, F=1, P=2, CP=3). Clinical Management = 4.5pts max (CF=0, F=1.5, P=3, CP=4.5). Relating to Others = 3pts max (CF=0, F=1, P=2, CP=3).
 
-For every domain, write exactly 3 sentences of feedback regardless of grade:
+For every domain, write exactly 3 sentences of feedback regardless of grade. Keep them tight — around 60 words per domain, and never more than 80. Sentences should be readable, not dense clause-stacked lists of every detail you noticed; pick the points that matter most and leave the rest out:
 - CF from missing evidence: state directly that the transcript shows no evidence of this domain, and what a registrar would need to have said or done to demonstrate it.
 - CF/F from an identified gap or safety issue: focus on what was missing or unsafe, with specific reference to a moment in the transcript.
 - P: acknowledge what was done well and name one specific area to develop further, quoting or closely paraphrasing what was actually said.
