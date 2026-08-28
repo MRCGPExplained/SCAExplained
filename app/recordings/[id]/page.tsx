@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
+import { skillLabel, type SkillAssessment, type SkillsAssessment } from "@/lib/skill-framework";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
@@ -20,6 +21,16 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; pts
 };
 
 const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
+
+// Deliberately shows the rating only. The underlying weak/moderate/strong
+// domain influences stay internal — they are tuning data, not something a
+// candidate should be reading as a second scoring system.
+const SKILL_RATING_META: Record<string, { label: string; color: string; bg: string }> = {
+  excellent: { label: "Excellent", color: "#1D4ED8", bg: "rgba(59,130,246,0.10)" },
+  satisfactory: { label: "Satisfactory", color: "#166534", bg: "rgba(34,197,94,0.10)" },
+  needs_improvement: { label: "Needs Improvement", color: "#92400E", bg: "rgba(245,158,11,0.12)" },
+  not_assessable: { label: "Not Assessable", color: "rgba(51,51,51,0.5)", bg: "rgba(51,51,51,0.06)" },
+};
 
 function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
@@ -67,6 +78,7 @@ type RecordingDetail = {
   examiner_comment_clinical_management: string | null;
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
+  skills_assessment: unknown;
   examiner_voice_note_path: string | null;
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
@@ -123,6 +135,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
       .maybeSingle();
     hasAiReportFeedback = !!feedback;
   }
+
+  const skillsAssessment = rec.skills_assessment as SkillsAssessment | null;
+  const skills: SkillAssessment[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
 
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
@@ -375,6 +390,54 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── Skills Assessment ── */}
+        {/* Only rendered when the recording actually has skill data, so
+            recordings graded before skill grading existed are unaffected. */}
+        {skills.length > 0 && (
+          <div
+            className="rounded-2xl overflow-hidden mb-5"
+            style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+          >
+            <div className="px-5 pt-5">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Skills Assessment
+              </div>
+              <p className="text-[12.5px] mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
+                Consultation-process skills observed in the transcript. These inform the grades above.
+              </p>
+            </div>
+            <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
+              {skills.map((s) => {
+                const meta = SKILL_RATING_META[s.rating] ?? SKILL_RATING_META.not_assessable;
+                return (
+                  <div
+                    key={s.skill}
+                    className="rounded-xl px-4 py-3"
+                    style={{ background: "rgba(51,51,51,0.02)", border: "1px solid rgba(51,51,51,0.07)" }}
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-[13.5px] font-semibold" style={{ color: NAVY }}>
+                        {skillLabel(s.skill)}
+                      </span>
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em]"
+                        style={{ background: meta.bg, color: meta.color }}
+                      >
+                        {meta.label}
+                      </span>
+                    </div>
+                    {s.comment?.trim() && (
+                      <p className="text-[13.5px] leading-[1.6] mt-1.5 mb-0" style={{ color: "rgba(51,51,51,0.7)" }}>
+                        {s.comment}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

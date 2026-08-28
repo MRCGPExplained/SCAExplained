@@ -4,6 +4,7 @@ import { useState, useActionState, useTransition, useEffect } from "react";
 import {
   saveAiPromptAction, clearAiPromptAction,
   toggleDeepgramAction, setVercelPlanAction, toggleResendAction, toggleDailyCoAction,
+  toggleSkillGradingAction, setGradingModelAction,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -15,11 +16,13 @@ interface Props {
   defaultPrompt: string;
   deepgramEnabled: boolean;
   vercelPlan: "hobby" | "pro";
+  skillGradingEnabled: boolean;
+  gradingModel: string;
   resendEnabled: boolean;
   dailyCoEnabled: boolean;
 }
 
-export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan, resendEnabled: initialResend, dailyCoEnabled: initialDailyCo }: Props) {
+export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEnabled: initialDeepgram, vercelPlan: initialVercelPlan, resendEnabled: initialResend, dailyCoEnabled: initialDailyCo, skillGradingEnabled: initialSkillGrading, gradingModel: initialGradingModel }: Props) {
   const [tab, setTab] = useState<Tab>("ai_prompt");
 
   // AI prompt
@@ -41,6 +44,12 @@ export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEna
   const [resendOn, setResendOn] = useState(initialResend);
   const [resendPending, startResendTransition] = useTransition();
   const [resendErr, setResendErr] = useState("");
+
+  // Skill grading — off unless explicitly enabled
+  const [skillGrading, setSkillGrading] = useState(initialSkillGrading);
+  const [skillGradingPending, startSkillGrading] = useTransition();
+  const [gradingModel, setGradingModel] = useState(initialGradingModel);
+  const [gradingModelPending, startGradingModel] = useTransition();
 
   // DailyCo toggle
   const [dailyCoOn, setDailyCoOn] = useState(initialDailyCo);
@@ -155,6 +164,82 @@ export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEna
                       }}
                     >
                       {plan === "pro" ? "Pro / Enterprise" : "Hobby"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skill grading */}
+            {deepgramOn && (
+              <div style={{ paddingTop: 16, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+                <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>Skill Grading</div>
+                <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
+                  Adds a consultation-skills layer (history structure, cue recognition, safety
+                  netting and so on) that can nudge a borderline domain grade by up to one band.
+                  Off means grading behaves exactly as it does today.
+                </p>
+                <div className="flex gap-2 items-center flex-wrap">
+                  {([true, false] as const).map((on) => (
+                    <button
+                      key={String(on)}
+                      type="button"
+                      disabled={skillGradingPending}
+                      onClick={() => {
+                        setSkillGrading(on);
+                        startSkillGrading(async () => { await toggleSkillGradingAction(on); });
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+                      style={{
+                        background: skillGrading === on ? NAVY : "rgba(51,51,51,0.07)",
+                        border: "1.5px solid transparent",
+                        color: skillGrading === on ? "white" : "rgba(51,51,51,0.45)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {on ? "On" : "Off"}
+                    </button>
+                  ))}
+                  {skillGrading && (
+                    <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
+                      Applies to consultations graded from now on.
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Grading model */}
+            {deepgramOn && (
+              <div style={{ paddingTop: 16, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+                <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>Grading Model</div>
+                <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
+                  Haiku is fast and cheap and is fine for straightforward grading. Sonnet reasons
+                  better about the skill layer&apos;s aggregation rules, at roughly 3–5x the cost per
+                  consultation — still pennies. Cost per run is recorded under Economics.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { id: "claude-haiku-4-5-20251001", label: "Haiku 4.5" },
+                    { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+                  ] as const).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      disabled={gradingModelPending}
+                      onClick={() => {
+                        setGradingModel(m.id);
+                        startGradingModel(async () => { await setGradingModelAction(m.id); });
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition disabled:opacity-50"
+                      style={{
+                        background: gradingModel === m.id ? NAVY : "rgba(51,51,51,0.07)",
+                        border: "1.5px solid transparent",
+                        color: gradingModel === m.id ? "white" : "rgba(51,51,51,0.45)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {m.label}
                     </button>
                   ))}
                 </div>

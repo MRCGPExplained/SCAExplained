@@ -1507,3 +1507,31 @@ export async function deleteOldCandidateAudioAction(beforeDate: string): Promise
   if (error) return { error: error.message };
   return { success: true, deleted: rows.length };
 }
+
+// ── Skill grading ─────────────────────────────────────────────────────────────
+
+export async function toggleSkillGradingAction(enabled: boolean): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "skill_grading_enabled", value: enabled ? "true" : "false" }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/api-settings");
+  return { success: true };
+}
+
+export async function setGradingModelAction(model: string): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "grading_model", value: model }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/api-settings");
+  return { success: true };
+}

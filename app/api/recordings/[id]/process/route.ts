@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { DEFAULT_SYSTEM_PROMPT } from "@/lib/ai-defaults";
+import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
+import { buildSkillFrameworkPrompt, type SkillsAssessment } from "@/lib/skill-framework";
 import {
   getCurrentPricing,
   claudeCostUsd,
@@ -33,6 +34,11 @@ interface GradeResult {
   comment_clinical_management: string;
   comment_relating_to_others: string;
   focus_for_next_time: string;
+  // Present only when skill grading is enabled.
+  baseline_data_gathering?: Grade;
+  baseline_clinical_management?: Grade;
+  baseline_relating_to_others?: Grade;
+  skills_assessment?: SkillsAssessment;
 }
 
 interface ClaudeUsageRaw {
@@ -136,9 +142,18 @@ interface GradeWithUsage {
 async function gradeWithClaude(
   stationContext: string,
   transcript: string,
-  customPrompt?: string
+  opts: { customPrompt?: string; skillFramework?: string; model: string }
 ): Promise<GradeWithUsage> {
-  const systemPrompt = customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
+  // Guidance is replaceable by an admin; the skill framework and the output
+  // contract are not, so a custom prompt can change how Claude grades but can
+  // never break how it replies.
+  const systemPrompt = [
+    opts.customPrompt?.trim() || DEFAULT_GRADING_GUIDANCE,
+    opts.skillFramework,
+    buildOutputContract(!!opts.skillFramework),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const userMessage = `STATION CONTEXT:\n${stationContext}\n\nCONSULTATION TRANSCRIPT:\n${transcript}\n\nPlease grade this consultation.`;
 
@@ -150,7 +165,7 @@ async function gradeWithClaude(
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: GRADING_MODEL,
+      model: opts.model,
       max_tokens: GRADING_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
@@ -186,7 +201,7 @@ async function gradeWithClaude(
   };
 
   try {
-    return { grades: JSON.parse(text) as GradeResult, model: data.model ?? GRADING_MODEL, tokens };
+    return { grades: JSON.parse(text) as GradeResult, model: data.model ?? opts.model, tokens };
   } catch {
     throw new Error(`Claude returned invalid JSON: ${text.slice(0, 200)}`);
   }
@@ -275,7 +290,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { data: settingsRows } = await admin
     .from("site_settings")
     .select("key, value")
-    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan"]);
+    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model"]);
 
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
@@ -283,6 +298,10 @@ export async function POST(req: Request, { params }: RouteParams) {
   const deepgramEnabled = settingsMap.get("deepgram_enabled") === "true"; // must be explicitly on
   const vercelPlan = settingsMap.get("vercel_plan") ?? "pro"; // default pro
   const customPrompt = settingsMap.get("ai_grading_prompt") ?? undefined;
+  // Off unless explicitly enabled, so the pipeline behaves exactly as before
+  // until someone turns it on.
+  const skillGrading = settingsMap.get("skill_grading_enabled") === "true";
+  const gradingModel = settingsMap.get("grading_model")?.trim() || GRADING_MODEL;
 
   // If Deepgram is disabled, skip AI grading — the candidate can still
   // choose to Submit for GP Review with no AI pre-assessment shown.
@@ -304,7 +323,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { data: station } = await admin
       .from("stations")
       .select(
-        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, data_gathering, management, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, data_gathering, management, skill_notes, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
       )
       .eq("number", recording.station_number)
       .single<{
@@ -324,6 +343,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         question_for_doctor: string[] | null;
         data_gathering: string[];
         management: string[];
+        skill_notes: Record<string, string> | null;
         marking_notes_data_gathering: string | null;
         marking_notes_clinical_management: string | null;
         marking_notes_relating_to_others: string | null;
@@ -446,7 +466,13 @@ export async function POST(req: Request, { params }: RouteParams) {
         .filter(Boolean)
         .join("\n");
 
-      const { grades, model: gradeModel, tokens } = await gradeWithClaude(stationContext, transcriptFormatted, customPrompt);
+      const { grades, model: gradeModel, tokens } = await gradeWithClaude(stationContext, transcriptFormatted, {
+        customPrompt,
+        skillFramework: skillGrading
+          ? buildSkillFrameworkPrompt((station?.skill_notes ?? {}) as Record<string, string>)
+          : undefined,
+        model: gradingModel,
+      });
 
       // Record Claude usage + cost. First grading call for a recording is
       // "grading"; any later call (a Retry AI run) is "retry".
@@ -487,6 +513,15 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_focus_for_next_time: grades.focus_for_next_time,
         ai_graded_at: new Date().toISOString(),
         status: "ai_graded",
+        // Null when skill grading is off, which is what keeps the report's
+        // Skills Assessment section hidden for those recordings.
+        skills_assessment: grades.skills_assessment ?? null,
+        skills_graded_at: grades.skills_assessment ? new Date().toISOString() : null,
+        // Pre-modulation grades, so the skill layer's actual effect stays
+        // measurable rather than being folded invisibly into the final grade.
+        ai_baseline_data_gathering: grades.baseline_data_gathering ?? null,
+        ai_baseline_clinical_management: grades.baseline_clinical_management ?? null,
+        ai_baseline_relating_to_others: grades.baseline_relating_to_others ?? null,
         // Clear any failure recorded by a previous attempt.
         ai_error: null,
         ai_failed_at: null,
