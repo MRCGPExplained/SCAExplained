@@ -1086,6 +1086,41 @@ export function StationPageClient({
                     </QAEditableField>
                   </div>
                 )}
+                {/* Internal note — admins only, never rendered for candidates. */}
+                {isAdmin && (
+                  <div
+                    className="rounded-lg p-4"
+                    style={{
+                      background: "rgba(246,212,75,0.13)",
+                      border: "1px solid rgba(246,212,75,0.55)",
+                      borderTop: "1px solid rgba(246,212,75,0.55)",
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1.5"
+                      style={{ color: "rgba(133,77,14,0.85)" }}
+                    >
+                      Admin Note
+                      <span className="font-medium normal-case tracking-normal opacity-70">
+                        · only visible to admins
+                      </span>
+                    </div>
+                    <EditableField field="admin_note" value={station.admin_note ?? ""}>
+                      {station.admin_note?.trim() ? (
+                        <p
+                          className="text-[15px] leading-[1.7] m-0"
+                          style={{ color: "rgba(87,52,10,0.95)", whiteSpace: "pre-line" }}
+                        >
+                          {station.admin_note}
+                        </p>
+                      ) : (
+                        <p className="text-[14px] italic m-0" style={{ color: "rgba(133,77,14,0.55)" }}>
+                          No note yet — use the pencil to add one.
+                        </p>
+                      )}
+                    </EditableField>
+                  </div>
+                )}
               </div>
             )}
             {activeTab === "audio" && station.audio_url && (

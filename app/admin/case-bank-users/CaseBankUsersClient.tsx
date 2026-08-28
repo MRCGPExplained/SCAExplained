@@ -37,6 +37,14 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
   }
 
   const now = new Date().toISOString();
+
+  // Guests sign in anonymously to join a study room, so they never have an
+  // email. They can accumulate quickly and are rarely what you're looking for
+  // on this page, so they're hidden unless asked for.
+  const [showGuests, setShowGuests] = useState(false);
+  const guestCount = users.filter((u) => !u.email).length;
+  const visibleUsers = showGuests ? users : users.filter((u) => u.email);
+
   const activeCount = users.filter((u) => u.access?.has_programme && u.access.expires_at > now).length;
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -103,7 +111,19 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
         </div>
       )}
 
-      {users.length === 0 ? (
+      {guestCount > 0 && (
+        <label className="flex items-center gap-2 mb-3 text-[12.5px] text-navy/60 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showGuests}
+            onChange={(e) => setShowGuests(e.target.checked)}
+            className="cursor-pointer"
+          />
+          Show guest accounts ({guestCount})
+        </label>
+      )}
+
+      {visibleUsers.length === 0 ? (
         <div className="rounded-2xl border border-navy/10 bg-white px-8 py-12 text-center"><p className="text-[14px] text-navy/50">No users yet.</p></div>
       ) : (
         <div className="rounded-2xl border border-navy/10 bg-white overflow-x-auto">
@@ -121,7 +141,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
               </tr>
             </thead>
             <tbody>
-              {users.map((user, i) => {
+              {visibleUsers.map((user, i) => {
                 const isGrantOpen = openGrant === user.id;
                 const isCreditsOpen = openCredits === user.id;
                 const isLast = i === users.length - 1;
