@@ -5,7 +5,7 @@ type BypassSettings = { enabled: boolean; emails: string };
 
 export const dynamic = "force-dynamic";
 
-type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
+type Examiner = { id: string; name: string; email: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
   id: string;
   station_number: number;
@@ -29,7 +29,7 @@ export default async function ExaminersPage({
 
   const [examinersResult, activityResult, bypassResult] = await Promise.all([
     supabase
-      ? supabase.from("examiners").select("id, name, email, passcode, is_admin, created_at").order("name")
+      ? supabase.from("examiners").select("id, name, email, is_admin, created_at").order("name")
       : Promise.resolve({ data: [] }),
     supabase
       ? (() => {

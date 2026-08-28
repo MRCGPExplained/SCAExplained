@@ -10,7 +10,7 @@ import {
 
 const NAVY = "#333333";
 
-type Examiner = { id: string; name: string; email: string; passcode: string; is_admin: boolean; created_at: string };
+type Examiner = { id: string; name: string; email: string; is_admin: boolean; created_at: string };
 type ActivityRow = {
   id: string;
   station_number: number;
@@ -57,8 +57,10 @@ function ExaminerForm({ examiner, onDone }: { examiner?: Examiner; onDone: () =>
           <input name="email" type="email" defaultValue={examiner?.email} required placeholder="jane@example.com" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Passcode</label>
-          <input name="passcode" defaultValue={examiner?.passcode} required placeholder="e.g. spring2025" className={inputCls} />
+          <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">
+            Password {examiner && <span className="font-medium normal-case tracking-normal text-navy/35">— leave blank to keep current</span>}
+          </label>
+          <input name="passcode" type="password" autoComplete="new-password" required={!examiner} placeholder={examiner ? "Unchanged" : "Min 8 characters"} className={inputCls} />
         </div>
       </div>
       <div className="flex gap-2">
@@ -377,7 +379,6 @@ export default function ExaminersClient({ examiners, activity, filters, bypassSe
                         )}
                       </div>
                       <div className="text-[12px] text-navy/50">{ex.email}</div>
-                      <div className="text-[11px] mt-1 font-mono" style={{ color: "rgba(51,51,51,0.35)" }}>Passcode: {ex.passcode}</div>
                     </div>
                     <div className="flex gap-2 items-center">
                       <button

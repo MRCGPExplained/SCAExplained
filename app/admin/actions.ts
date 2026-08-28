@@ -938,8 +938,9 @@ export async function createExaminerAction(
 
   if (!name || !email || !passcode) return { error: "Name, email and passcode are all required." };
 
-  // Insert examiner row
-  const { error: examErr } = await supabase.from("examiners").insert({ name, email, passcode });
+  // The password is used to create their Supabase auth account and is never
+  // stored here — auth.users already holds a proper hash of it.
+  const { error: examErr } = await supabase.from("examiners").insert({ name, email });
   if (examErr) return { error: examErr.message };
 
   // Create Supabase auth user (passcode is their password)
@@ -982,7 +983,7 @@ export async function updateExaminerAction(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const passcode = String(formData.get("passcode") ?? "").trim();
 
-  if (!id || !name || !email || !passcode) return { error: "All fields required." };
+  if (!id || !name || !email) return { error: "Name and email are required." };
 
   // Fetch current email to find auth user
   const { data: current } = await supabase
@@ -991,14 +992,16 @@ export async function updateExaminerAction(
     .eq("id", id)
     .single<{ email: string }>();
 
-  const { error } = await supabase.from("examiners").update({ name, email, passcode }).eq("id", id);
+  const { error } = await supabase.from("examiners").update({ name, email }).eq("id", id);
   if (error) return { error: error.message };
 
   // Sync auth user
   const lookupEmail = current?.email ?? email;
   const authUserId = await findAuthUserByEmail(supabase, lookupEmail);
   if (authUserId) {
-    const updates: Record<string, unknown> = { password: passcode, user_metadata: { display_name: name } };
+    // Blank means "leave the existing password alone".
+    const updates: Record<string, unknown> = { user_metadata: { display_name: name } };
+    if (passcode) updates.password = passcode;
     if (email !== lookupEmail) updates.email = email;
     await supabase.auth.admin.updateUserById(authUserId, updates);
   }
@@ -1143,56 +1146,6 @@ export async function toggleDailyCoAction(enabled: boolean): Promise<ActionResul
   if (error) return { error: error.message };
   revalidatePath("/admin/examiners");
   return { success: true };
-}
-
-// ── Admin passcodes ───────────────────────────────────────────────────────────
-
-export async function createAdminPasscodeAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Database not available." };
-
-  const name = String(formData.get("name") ?? "").trim();
-  const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!name || !passcode) return { error: "Name and passcode are required." };
-
-  const { error } = await supabase.from("admin_passcodes").insert({ name, passcode });
-  if (error) return { error: error.message };
-
-  revalidatePath("/admin/examiners");
-  return { success: true };
-}
-
-export async function updateAdminPasscodeAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Database not available." };
-
-  const id = String(formData.get("id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const passcode = String(formData.get("passcode") ?? "").trim();
-  if (!id || !name || !passcode) return { error: "All fields required." };
-
-  const { error } = await supabase.from("admin_passcodes").update({ name, passcode }).eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/admin/examiners");
-  return { success: true };
-}
-
-export async function deleteAdminPasscodeAction(id: string): Promise<ActionResult> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Database not available." };
-
-  const { error } = await supabase.from("admin_passcodes").delete().eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/admin/examiners");
-  return {};
 }
 
 // ── Beta flag ─────────────────────────────────────────────────────────────────
