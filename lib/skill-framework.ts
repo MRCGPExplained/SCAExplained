@@ -271,14 +271,20 @@ ${list}
 
 For each question write a comment of three to four sentences, addressed to the
 candidate directly as "you". Never write "the candidate", "the doctor" or "the
-clinician". Include a short quoted or closely paraphrased example from the
-transcript.
-- good: say what you did well, with the example, and why it worked. If you can
+clinician". Point to a specific moment in the consultation every time.
+- good: say what you did well, with the moment, and why it worked. If you can
   see a genuine way to make it even better, add it; do not manufacture one.
-- needs_improvement: say what was missing or went wrong, with the example, and
+- needs_improvement: say what was missing or went wrong, with the moment, and
   say specifically how to do it differently.
 - not_assessable: say briefly what the transcript does not show and what would
   have demonstrated it.
+
+Never quote the transcript. Describe the moment in your own words instead: write
+"when you asked what she thought was causing it" rather than reproducing the
+words inside quotation marks. The transcript is a machine transcription of
+speech, so it carries filler and mis-heard words, and quoting it puts sentences
+in the candidate's mouth that they did not say. Describing keeps the feedback
+anchored to something that genuinely happened without misquoting anyone.
 
 Ground every comment in what the transcript actually shows. Never invent a
 behaviour. Never use em dashes; use a comma or rewrite the sentence.
@@ -297,7 +303,7 @@ export function buildSkillsOutputContract(skills: GradingSkill[]): string {
       {
         "skill": "one of: ${keys}",
         "rating": "good | needs_improvement | not_assessable",
-        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", including a quoted or paraphrased example."
+        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", describing a specific moment in the consultation without quoting the transcript."
       }
     ]
   }`;

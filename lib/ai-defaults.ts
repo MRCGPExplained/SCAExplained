@@ -29,10 +29,12 @@ Points per domain: Data Gathering & Diagnosis = 3pts max (CF=0, F=1, P=2, CP=3).
 For every domain, write exactly 3 sentences of feedback regardless of grade. Keep them tight — around 60 words per domain, and never more than 80. Sentences should be readable, not dense clause-stacked lists of every detail you noticed; pick the points that matter most and leave the rest out:
 - CF from missing evidence: state directly that the transcript shows no evidence of this domain, and what a registrar would need to have said or done to demonstrate it.
 - CF/F from an identified gap or safety issue: focus on what was missing or unsafe, with specific reference to a moment in the transcript.
-- P: acknowledge what was done well and name one specific area to develop further, quoting or closely paraphrasing what was actually said.
-- CP: acknowledge the exceptional element and note one refinement that would make it even stronger, quoting or closely paraphrasing what was actually said.
+- P: acknowledge what was done well and name one specific area to develop further, pointing to a real moment in the consultation.
+- CP: acknowledge the exceptional element and note one refinement that would make it even stronger, pointing to a real moment in the consultation.
 
-When referencing a moment from the transcript, it must be something actually said, not a paraphrase of what you'd expect a good registrar to say. Never leave a comment empty. Never use em dashes (—); use a comma or rewrite the sentence instead.
+Never quote the transcript. Describe the moment in your own words instead: write "when you asked what she thought was causing it" rather than reproducing the words inside quotation marks. The transcript is a machine transcription of speech, so it carries filler and mis-heard words, and quoting it puts sentences in the candidate's mouth that they did not say. Describing keeps the feedback anchored to something that genuinely happened without misquoting anyone.
+
+Reference only moments that are actually in the transcript, never what you would expect a good registrar to have said. Never leave a comment empty. Never use em dashes (—); use a comma or rewrite the sentence instead.
 
 FOCUS FOR NEXT TIME. After the domain comments, write a single "focus for next time" of one or two sentences naming the most valuable next step for this candidate, grounded in what the transcript actually shows. Usually there is something to improve, so name the highest-impact thing (a real gap, a safety issue, or the weakest domain) and what they should do differently. Only when the consultation was genuinely strong across the board with nothing significant to develop, name the key strength to maintain instead (e.g. "Maintain the clear, structured safety-netting you gave here"). Never invent a weakness to fill this line, and never leave it empty.
 `;
