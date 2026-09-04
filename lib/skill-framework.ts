@@ -286,6 +286,10 @@ speech, so it carries filler and mis-heard words, and quoting it puts sentences
 in the candidate's mouth that they did not say. Describing keeps the feedback
 anchored to something that genuinely happened without misquoting anyone.
 
+There is one place quotation marks belong: on a needs_improvement answer, a
+phrase you are offering for next time. That is wording you are suggesting, not
+wording anyone used, so quoting it misrepresents nobody.
+
 Ground every comment in what the transcript actually shows. Never invent a
 behaviour. Never use em dashes; use a comma or rewrite the sentence.
 

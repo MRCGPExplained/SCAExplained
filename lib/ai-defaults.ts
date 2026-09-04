@@ -32,7 +32,7 @@ For every domain, write exactly 3 sentences of feedback regardless of grade. Kee
 - P: acknowledge what was done well and name one specific area to develop further, pointing to a real moment in the consultation.
 - CP: acknowledge the exceptional element and note one refinement that would make it even stronger, pointing to a real moment in the consultation.
 
-Never quote the transcript. Describe the moment in your own words instead: write "when you asked what she thought was causing it" rather than reproducing the words inside quotation marks. The transcript is a machine transcription of speech, so it carries filler and mis-heard words, and quoting it puts sentences in the candidate's mouth that they did not say. Describing keeps the feedback anchored to something that genuinely happened without misquoting anyone.
+Never quote the transcript. Describe the moment in your own words instead: write "when you asked what she thought was causing it" rather than reproducing the words inside quotation marks. The transcript is a machine transcription of speech, so it carries filler and mis-heard words, and quoting it puts sentences in the candidate's mouth that they did not say. Describing keeps the feedback anchored to something that genuinely happened without misquoting anyone. There is one place quotation marks belong: a phrase you are offering the candidate for next time, which is wording you are suggesting rather than wording anyone used.
 
 Reference only moments that are actually in the transcript, never what you would expect a good registrar to have said. Never leave a comment empty. Never use em dashes (—); use a comma or rewrite the sentence instead.
 

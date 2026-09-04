@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
+import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
 import {
   buildSkillFrameworkPrompt,
   buildSkillsOutputContract,
@@ -215,6 +216,91 @@ async function gradeWithClaude(
   } catch {
     throw new Error(`Claude returned invalid JSON: ${text.slice(0, 200)}`);
   }
+}
+
+/**
+ * Rewrites any comment that quotes the transcript, and returns what it changed.
+ *
+ * Asking the model not to quote is not a control: the same instruction produced
+ * 1, 7 and 10 quoting comments across three runs of the same two recordings, so
+ * the check has to happen after the fact. `findTranscriptQuotes` decides what
+ * counts, mechanically, and only the comments that fail are sent back.
+ *
+ * Grades are never re-requested. They are already settled, and regrading to fix
+ * prose could change them, which is a much worse outcome than a quotation.
+ */
+async function repairQuotedComments(
+  comments: Record<string, string | undefined>,
+  transcript: string,
+  model: string
+): Promise<{ fixed: Record<string, string>; tokens: ClaudeTokens | null; remaining: number }> {
+  const targets: RepairTarget[] = [];
+  for (const [key, comment] of Object.entries(comments)) {
+    if (!comment) continue;
+    const quotes = findTranscriptQuotes(comment, transcript);
+    if (quotes.length) targets.push({ key, comment, quotes });
+  }
+
+  if (!targets.length) return { fixed: {}, tokens: null, remaining: 0 };
+
+  console.log(`[recordings/process] rewriting ${targets.length} quoting comment(s)`);
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2000,
+      messages: [{ role: "user", content: buildQuoteRepairPrompt(targets) }],
+    }),
+  });
+
+  // A failed rewrite must never fail the grading. The original comment is
+  // worse for quoting, not unusable, so it stands and the run continues.
+  if (!res.ok) {
+    console.error(`[recordings/process] quote repair failed: Claude ${res.status}`);
+    return { fixed: {}, tokens: null, remaining: targets.length };
+  }
+
+  const data = await res.json();
+  const raw = (data.content?.[0]?.text ?? "").trim();
+  const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+
+  const usage = (data.usage ?? {}) as ClaudeUsageRaw;
+  const tokens: ClaudeTokens = {
+    input_tokens: usage.input_tokens ?? 0,
+    output_tokens: usage.output_tokens ?? 0,
+    cache_creation_tokens: usage.cache_creation_input_tokens ?? 0,
+    cache_read_tokens: usage.cache_read_input_tokens ?? 0,
+  };
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    console.error(`[recordings/process] quote repair returned invalid JSON: ${text.slice(0, 200)}`);
+    return { fixed: {}, tokens, remaining: targets.length };
+  }
+
+  const fixed: Record<string, string> = {};
+  let remaining = 0;
+  for (const target of targets) {
+    const rewritten = parsed[target.key];
+    // Only accept a rewrite that actually stopped quoting. One that still
+    // quotes is no better than what it replaces, so the original stands.
+    if (typeof rewritten === "string" && rewritten.trim() && !quotesTranscript(rewritten, transcript)) {
+      fixed[target.key] = rewritten.trim();
+    } else {
+      remaining++;
+    }
+  }
+
+  if (remaining) console.warn(`[recordings/process] ${remaining} comment(s) still quoting after rewrite`);
+  return { fixed, tokens, remaining };
 }
 
 // Sample transcript injected when ?spike=1 — skips Deepgram entirely
@@ -513,6 +599,33 @@ export async function POST(req: Request, { params }: RouteParams) {
 
       const finalGrades = adjusted?.final ?? baseline;
 
+      // Domain comments and skill comments go through the same check: a quote
+      // is just as unwelcome in either, and both are read by the candidate.
+      const skillCommentKey = (skill: string) => `skill:${skill}`;
+      const { fixed: repaired, tokens: repairTokens } = await repairQuotedComments(
+        {
+          comment_data_gathering: grades.comment_data_gathering,
+          comment_clinical_management: grades.comment_clinical_management,
+          comment_relating_to_others: grades.comment_relating_to_others,
+          focus_for_next_time: grades.focus_for_next_time,
+          ...Object.fromEntries(skillAnswers.map((a) => [skillCommentKey(a.skill), a.comment])),
+        },
+        transcriptFormatted,
+        gradingModel
+      );
+
+      const comments = {
+        data_gathering: repaired.comment_data_gathering ?? grades.comment_data_gathering,
+        clinical_management: repaired.comment_clinical_management ?? grades.comment_clinical_management,
+        relating_to_others: repaired.comment_relating_to_others ?? grades.comment_relating_to_others,
+        focus: repaired.focus_for_next_time ?? grades.focus_for_next_time,
+      };
+
+      const finalSkillAnswers: SkillAnswer[] = skillAnswers.map((a) => ({
+        ...a,
+        comment: repaired[skillCommentKey(a.skill)] ?? a.comment,
+      }));
+
       // Record Claude usage + cost. First grading call for a recording is
       // "grading"; any later call (a Retry AI run) is "retry".
       if (pricing) {
@@ -535,6 +648,24 @@ export async function POST(req: Request, { params }: RouteParams) {
           cost_gbp: usdToGbp(costUsd, pricing),
           pricing_version_id: pricing.id,
         });
+
+        // Billed separately so the cost of enforcing the no-quotes rule is
+        // visible rather than buried in the grading line.
+        if (repairTokens) {
+          const repairUsd = claudeCostUsd(repairTokens, pricing);
+          await admin.from("claude_usage").insert({
+            recording_id: recordingId,
+            call_type: "quote_repair",
+            model: gradingModel,
+            input_tokens: repairTokens.input_tokens,
+            output_tokens: repairTokens.output_tokens,
+            cache_creation_tokens: repairTokens.cache_creation_tokens,
+            cache_read_tokens: repairTokens.cache_read_tokens,
+            cost_usd: repairUsd,
+            cost_gbp: usdToGbp(repairUsd, pricing),
+            pricing_version_id: pricing.id,
+          });
+        }
       }
 
       // Save transcript + grades to DB. Status lands on "ai_graded", not the
@@ -547,16 +678,16 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_data_gathering: finalGrades.data_gathering,
         ai_clinical_management: finalGrades.clinical_management,
         ai_relating_to_others: finalGrades.relating_to_others,
-        ai_comment_data_gathering: grades.comment_data_gathering,
-        ai_comment_clinical_management: grades.comment_clinical_management,
-        ai_comment_relating_to_others: grades.comment_relating_to_others,
-        ai_focus_for_next_time: grades.focus_for_next_time,
+        ai_comment_data_gathering: comments.data_gathering,
+        ai_comment_clinical_management: comments.clinical_management,
+        ai_comment_relating_to_others: comments.relating_to_others,
+        ai_focus_for_next_time: comments.focus,
         ai_graded_at: new Date().toISOString(),
         status: "ai_graded",
         // Null when skill grading is off, which is what keeps the report's
         // Skills Assessment section hidden for those recordings.
         skills_assessment: adjusted
-          ? { skills: skillAnswers, outcomes: adjusted.outcomes }
+          ? { skills: finalSkillAnswers, outcomes: adjusted.outcomes }
           : null,
         skills_graded_at: adjusted ? new Date().toISOString() : null,
         skills_framework_version: adjusted ? skillConfig.frameworkVersion : null,
