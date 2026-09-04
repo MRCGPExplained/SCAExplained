@@ -1,5 +1,3 @@
-import { SKILLS_OUTPUT_CONTRACT } from "./skill-framework";
-
 /**
  * The grading prompt is deliberately split in two.
  *
@@ -43,7 +41,7 @@ FOCUS FOR NEXT TIME. After the domain comments, write a single "focus for next t
  * The machine contract. Always appended to whatever guidance is in force, so a
  * custom admin prompt can change how Claude grades but never how it replies.
  */
-export function buildOutputContract(skillsEnabled: boolean): string {
+export function buildOutputContract(skillsContract: string | null): string {
   const core = `  "data_gathering": "P",
   "clinical_management": "F",
   "relating_to_others": "CP",
@@ -52,7 +50,7 @@ export function buildOutputContract(skillsEnabled: boolean): string {
   "comment_relating_to_others": "Three sentence comment here.",
   "focus_for_next_time": "One or two sentence next step here."`;
 
-  if (!skillsEnabled) {
+  if (!skillsContract) {
     return `Respond ONLY with valid JSON — no markdown, no explanation:
 {
 ${core}
@@ -61,14 +59,12 @@ ${core}
 
   return `Respond ONLY with valid JSON — no markdown, no explanation.
 
-The three top-level grades are the FINAL grades, after any skill modulation has
-been applied. The baseline_* fields are the grades you reached before applying
-it, so leave them equal to the final grades where modulation changed nothing.
-Include an entry for every skill, using "not_assessable" where the transcript
-does not support a judgement.
+Grade the three domains from the station's criteria and the transcript. Do not
+adjust them to reflect the skill answers: that adjustment is applied separately
+and is not your job. Include exactly one entry per skill listed above.
 
 {
 ${core},
-${SKILLS_OUTPUT_CONTRACT}
+${skillsContract}
 }`;
 }

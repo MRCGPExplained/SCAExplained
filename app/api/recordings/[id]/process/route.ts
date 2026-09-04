@@ -1,7 +1,16 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
-import { buildSkillFrameworkPrompt, type SkillsAssessment } from "@/lib/skill-framework";
+import {
+  buildSkillFrameworkPrompt,
+  buildSkillsOutputContract,
+  loadGradingSkills,
+  applySkillAdjustment,
+  DEFAULT_SKILL_CONFIG,
+  type SkillAnswer,
+  type GradingSkill,
+  type Grade as SkillGrade,
+} from "@/lib/skill-framework";
 import {
   getCurrentPricing,
   claudeCostUsd,
@@ -34,11 +43,9 @@ interface GradeResult {
   comment_clinical_management: string;
   comment_relating_to_others: string;
   focus_for_next_time: string;
-  // Present only when skill grading is enabled.
-  baseline_data_gathering?: Grade;
-  baseline_clinical_management?: Grade;
-  baseline_relating_to_others?: Grade;
-  skills_assessment?: SkillsAssessment;
+  // Present only when skill grading is enabled. The model answers the skill
+  // questions; the grade adjustment itself is computed in code.
+  skills_assessment?: { skills?: SkillAnswer[] };
 }
 
 interface ClaudeUsageRaw {
@@ -144,15 +151,16 @@ interface GradeWithUsage {
 async function gradeWithClaude(
   stationContext: string,
   transcript: string,
-  opts: { customPrompt?: string; skillFramework?: string; model: string }
+  opts: { customPrompt?: string; skills?: GradingSkill[]; stationNotes?: Record<string, string>; model: string }
 ): Promise<GradeWithUsage> {
   // Guidance is replaceable by an admin; the skill framework and the output
   // contract are not, so a custom prompt can change how Claude grades but can
   // never break how it replies.
+  const skills = opts.skills ?? [];
   const systemPrompt = [
     opts.customPrompt?.trim() || DEFAULT_GRADING_GUIDANCE,
-    opts.skillFramework,
-    buildOutputContract(!!opts.skillFramework),
+    skills.length ? buildSkillFrameworkPrompt(skills, opts.stationNotes ?? {}) : null,
+    buildOutputContract(skills.length ? buildSkillsOutputContract(skills) : null),
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -292,7 +300,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { data: settingsRows } = await admin
     .from("site_settings")
     .select("key, value")
-    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model"]);
+    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model", "skill_threshold_up", "skill_threshold_down", "skill_min_assessable", "skill_framework_version"]);
 
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
@@ -304,6 +312,12 @@ export async function POST(req: Request, { params }: RouteParams) {
   // until someone turns it on.
   const skillGrading = settingsMap.get("skill_grading_enabled") === "true";
   const gradingModel = settingsMap.get("grading_model")?.trim() || GRADING_MODEL;
+  const skillConfig = {
+    thresholdUp: Number(settingsMap.get("skill_threshold_up")) || DEFAULT_SKILL_CONFIG.thresholdUp,
+    thresholdDown: Number(settingsMap.get("skill_threshold_down")) || DEFAULT_SKILL_CONFIG.thresholdDown,
+    minAssessable: Number(settingsMap.get("skill_min_assessable")) || DEFAULT_SKILL_CONFIG.minAssessable,
+    frameworkVersion: Number(settingsMap.get("skill_framework_version")) || DEFAULT_SKILL_CONFIG.frameworkVersion,
+  };
 
   // If Deepgram is disabled, skip AI grading — the candidate can still
   // choose to Submit for GP Review with no AI pre-assessment shown.
@@ -468,13 +482,35 @@ export async function POST(req: Request, { params }: RouteParams) {
         .filter(Boolean)
         .join("\n");
 
+      // Loaded per run so an edited question set takes effect immediately.
+      const gradingSkills = skillGrading ? await loadGradingSkills(admin) : [];
+
       const { grades, model: gradeModel, tokens } = await gradeWithClaude(stationContext, transcriptFormatted, {
         customPrompt,
-        skillFramework: skillGrading
-          ? buildSkillFrameworkPrompt((station?.skill_notes ?? {}) as Record<string, string>)
-          : undefined,
+        skills: gradingSkills,
+        stationNotes: (station?.skill_notes ?? {}) as Record<string, string>,
         model: gradingModel,
       });
+
+      // The model graded the domains and answered the skill questions. Moving
+      // the grade is arithmetic, so it happens here rather than being asked of
+      // the model — that is what makes it consistent and tunable.
+      const skillAnswers: SkillAnswer[] = Array.isArray(grades.skills_assessment?.skills)
+        ? grades.skills_assessment.skills
+        : [];
+
+      const baseline = {
+        data_gathering: grades.data_gathering as SkillGrade,
+        clinical_management: grades.clinical_management as SkillGrade,
+        relating_to_others: grades.relating_to_others as SkillGrade,
+      };
+
+      const adjusted =
+        gradingSkills.length && skillAnswers.length
+          ? applySkillAdjustment(baseline, skillAnswers, gradingSkills, skillConfig)
+          : null;
+
+      const finalGrades = adjusted?.final ?? baseline;
 
       // Record Claude usage + cost. First grading call for a recording is
       // "grading"; any later call (a Retry AI run) is "retry".
@@ -506,9 +542,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       await admin.from("station_recordings").update({
         transcript_formatted: transcriptFormatted,
         transcript_raw: transcriptRaw,
-        ai_data_gathering: grades.data_gathering,
-        ai_clinical_management: grades.clinical_management,
-        ai_relating_to_others: grades.relating_to_others,
+        // The grades shown on the report are post-adjustment.
+        ai_data_gathering: finalGrades.data_gathering,
+        ai_clinical_management: finalGrades.clinical_management,
+        ai_relating_to_others: finalGrades.relating_to_others,
         ai_comment_data_gathering: grades.comment_data_gathering,
         ai_comment_clinical_management: grades.comment_clinical_management,
         ai_comment_relating_to_others: grades.comment_relating_to_others,
@@ -517,13 +554,16 @@ export async function POST(req: Request, { params }: RouteParams) {
         status: "ai_graded",
         // Null when skill grading is off, which is what keeps the report's
         // Skills Assessment section hidden for those recordings.
-        skills_assessment: grades.skills_assessment ?? null,
-        skills_graded_at: grades.skills_assessment ? new Date().toISOString() : null,
-        // Pre-modulation grades, so the skill layer's actual effect stays
-        // measurable rather than being folded invisibly into the final grade.
-        ai_baseline_data_gathering: grades.baseline_data_gathering ?? null,
-        ai_baseline_clinical_management: grades.baseline_clinical_management ?? null,
-        ai_baseline_relating_to_others: grades.baseline_relating_to_others ?? null,
+        skills_assessment: adjusted
+          ? { skills: skillAnswers, outcomes: adjusted.outcomes }
+          : null,
+        skills_graded_at: adjusted ? new Date().toISOString() : null,
+        skills_framework_version: adjusted ? skillConfig.frameworkVersion : null,
+        // What the model graded before the adjustment, so the layer's effect
+        // stays measurable rather than folded invisibly into the final grade.
+        ai_baseline_data_gathering: adjusted ? baseline.data_gathering : null,
+        ai_baseline_clinical_management: adjusted ? baseline.clinical_management : null,
+        ai_baseline_relating_to_others: adjusted ? baseline.relating_to_others : null,
         // Clear any failure recorded by a previous attempt.
         ai_error: null,
         ai_failed_at: null,

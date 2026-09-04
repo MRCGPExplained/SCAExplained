@@ -97,6 +97,7 @@ export default async function AdminLayout({
             <Link href="/admin/case-bank-users" className="text-[13px] text-white/60 hover:text-white transition no-underline">Users</Link>
             <Link href="/admin/examiners" className="text-[13px] text-white/60 hover:text-white transition no-underline">Examiners</Link>
             <Link href="/admin/api-settings" className="text-[13px] text-white/60 hover:text-white transition no-underline">API Settings</Link>
+            <Link href="/admin/skills" className="text-[13px] text-white/60 hover:text-white transition no-underline">Skills</Link>
             <Link href="/admin/feedback" className="text-[13px] text-white/60 hover:text-white transition no-underline">Feedback &amp; Help</Link>
             <Link href="/admin/webinar" className="text-[13px] text-white/60 hover:text-white transition no-underline">Webinar</Link>
             <Link href="/admin/testimonials" className="text-[13px] text-white/60 hover:text-white transition no-underline">Testimonials</Link>

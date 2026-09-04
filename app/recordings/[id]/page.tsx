@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
-import { skillLabel, type SkillAssessment, type SkillsAssessment } from "@/lib/skill-framework";
+import { loadAllSkillLabels, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
@@ -26,19 +26,16 @@ const DOMAIN_MAX: Record<string, number> = { dg: 3, cm: 4.5, ro: 3 };
 // domain influences stay internal — they are tuning data, not something a
 // candidate should be reading as a second scoring system.
 const SKILL_RATING_META: Record<string, { label: string; color: string; bg: string }> = {
-  excellent: { label: "Excellent", color: "#1D4ED8", bg: "rgba(59,130,246,0.10)" },
-  satisfactory: { label: "Satisfactory", color: "#166534", bg: "rgba(34,197,94,0.10)" },
+  good: { label: "Good", color: "#166534", bg: "rgba(34,197,94,0.10)" },
   needs_improvement: { label: "Needs Improvement", color: "#92400E", bg: "rgba(245,158,11,0.12)" },
   not_assessable: { label: "Not Assessable", color: "rgba(51,51,51,0.5)", bg: "rgba(51,51,51,0.06)" },
+  // Retired three-band ratings, kept so recordings graded under the old
+  // framework still render a label rather than a raw key.
+  excellent: { label: "Excellent", color: "#1D4ED8", bg: "rgba(59,130,246,0.10)" },
+  satisfactory: { label: "Satisfactory", color: "#166534", bg: "rgba(34,197,94,0.10)" },
 };
 
-const MODULATION_LABEL: Record<string, string> = {
-  strong_positive: "strong positive",
-  moderate_positive: "moderate positive",
-  neutral: "neutral",
-  moderate_negative: "moderate negative",
-  strong_negative: "strong negative",
-};
+
 
 function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
@@ -148,7 +145,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   }
 
   const skillsAssessment = rec.skills_assessment as SkillsAssessment | null;
-  const skills: SkillAssessment[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
+  const skills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
+  // Includes retired skills so an old recording still shows a proper label.
+  const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
 
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
@@ -430,18 +429,26 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 </div>
                 <div className="flex flex-col gap-1">
                   {([
-                    { key: "dg", label: "Data Gathering", baseline: rec.ai_baseline_data_gathering, final: rec.ai_data_gathering, mod: skillsAssessment?.domain_modulation?.data_gathering },
-                    { key: "cm", label: "Clinical Management", baseline: rec.ai_baseline_clinical_management, final: rec.ai_clinical_management, mod: skillsAssessment?.domain_modulation?.clinical_management },
-                    { key: "ro", label: "Relating to Others", baseline: rec.ai_baseline_relating_to_others, final: rec.ai_relating_to_others, mod: skillsAssessment?.domain_modulation?.relating_to_others },
+                    { key: "data_gathering", label: "Data Gathering", baseline: rec.ai_baseline_data_gathering, final: rec.ai_data_gathering },
+                    { key: "clinical_management", label: "Clinical Management", baseline: rec.ai_baseline_clinical_management, final: rec.ai_clinical_management },
+                    { key: "relating_to_others", label: "Relating to Others", baseline: rec.ai_baseline_relating_to_others, final: rec.ai_relating_to_others },
                   ] as const).map((d) => {
+                    const o = skillsAssessment?.outcomes?.[d.key];
                     const moved = d.baseline && d.final && d.baseline !== d.final;
+                    // Says why nothing moved, not just that nothing moved —
+                    // "2 of 4 assessable" is the answer to the obvious question.
+                    const detail = !o
+                      ? ""
+                      : o.goodPct === null
+                        ? ` · ${o.assessed} assessable, below minimum`
+                        : ` · ${o.good}/${o.assessed} good (${Math.round(o.goodPct)}%)`;
                     return (
                       <div key={d.key} className="flex items-center justify-between gap-3 text-[12.5px]">
                         <span style={{ color: "rgba(51,51,51,0.6)" }}>{d.label}</span>
                         <span className="font-mono" style={{ color: moved ? "#4338CA" : "rgba(51,51,51,0.45)" }}>
                           {d.baseline ?? "—"}
                           {moved ? ` → ${d.final}` : " (unchanged)"}
-                          {d.mod ? ` · ${MODULATION_LABEL[d.mod] ?? d.mod}` : ""}
+                          {detail}
                         </span>
                       </div>
                     );
@@ -461,7 +468,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                   >
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <span className="text-[13.5px] font-semibold" style={{ color: NAVY }}>
-                        {skillLabel(s.skill)}
+                        {s.skill in skillLabels ? skillLabels[s.skill] : s.skill}
                       </span>
                       <span
                         className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em]"

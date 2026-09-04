@@ -1,5 +1,6 @@
 ﻿"use server";
 
+import { validateThreshold, validateMinAssessable } from "@/lib/skill-framework";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -1533,5 +1534,102 @@ export async function setGradingModelAction(model: string): Promise<ActionResult
 
   if (error) return { error: error.message };
   revalidatePath("/admin/api-settings");
+  return { success: true };
+}
+
+// ── Grading skills ────────────────────────────────────────────────────────────
+
+export async function upsertGradingSkillAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const skillKey = String(formData.get("skill_key") ?? "").trim().toLowerCase();
+  const label = String(formData.get("label") ?? "").trim();
+  const question = String(formData.get("question") ?? "").trim();
+  const domain = String(formData.get("domain") ?? "relating_to_others").trim();
+  const sortOrder = Number(String(formData.get("sort_order") ?? "0")) || 0;
+
+  if (!label || !question) return { error: "Label and question are both required." };
+  if (!/^[a-z0-9_]+$/.test(skillKey)) {
+    return { error: "Key must be lower-case letters, numbers and underscores only." };
+  }
+  if (!["data_gathering", "clinical_management", "relating_to_others", "none"].includes(domain)) {
+    return { error: "Unknown domain." };
+  }
+
+  const row = { skill_key: skillKey, label, question, domain, sort_order: sortOrder };
+  const { error } = id
+    ? await supabase.from("grading_skills").update(row).eq("id", id)
+    : await supabase.from("grading_skills").insert(row);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+/**
+ * Deactivates rather than deletes: historical recordings reference the key, and
+ * a removed row would leave old reports printing a raw key instead of a label.
+ */
+export async function setGradingSkillActiveAction(id: string, active: boolean): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("grading_skills").update({ active }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+export async function saveSkillThresholdsAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const up = validateThreshold(String(formData.get("threshold_up") ?? ""));
+  if (up.error) return { error: `Promote threshold: ${up.error}` };
+  const down = validateThreshold(String(formData.get("threshold_down") ?? ""));
+  if (down.error) return { error: `Demote threshold: ${down.error}` };
+  const min = validateMinAssessable(String(formData.get("min_assessable") ?? ""));
+  if (min.error) return { error: `Minimum answered: ${min.error}` };
+
+  const { error } = await supabase.from("site_settings").upsert([
+    { key: "skill_threshold_up", value: String(up.value) },
+    { key: "skill_threshold_down", value: String(down.value) },
+    { key: "skill_min_assessable", value: String(min.value) },
+  ]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+/**
+ * Bumped whenever the question set changes, so a stored result can always be
+ * traced to the questions that produced it. Applies to future gradings only.
+ */
+export async function bumpSkillFrameworkVersionAction(): Promise<ActionResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "skill_framework_version")
+    .maybeSingle<{ value: string }>();
+
+  const next = (Number(data?.value) || 1) + 1;
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "skill_framework_version", value: String(next) }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
   return { success: true };
 }
