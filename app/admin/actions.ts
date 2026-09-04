@@ -1543,6 +1543,8 @@ export async function upsertGradingSkillAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1551,7 +1553,6 @@ export async function upsertGradingSkillAction(
   const label = String(formData.get("label") ?? "").trim();
   const question = String(formData.get("question") ?? "").trim();
   const domain = String(formData.get("domain") ?? "relating_to_others").trim();
-  const sortOrder = Number(String(formData.get("sort_order") ?? "0")) || 0;
 
   if (!label || !question) return { error: "Label and question are both required." };
   if (!/^[a-z0-9_]+$/.test(skillKey)) {
@@ -1561,12 +1562,47 @@ export async function upsertGradingSkillAction(
     return { error: "Unknown domain." };
   }
 
-  const row = { skill_key: skillKey, label, question, domain, sort_order: sortOrder };
-  const { error } = id
-    ? await supabase.from("grading_skills").update(row).eq("id", id)
-    : await supabase.from("grading_skills").insert(row);
+  const row = { skill_key: skillKey, label, question, domain };
 
-  if (error) return { error: error.message };
+  if (id) {
+    // Order is owned by drag and drop, so an edit must leave it alone.
+    const { error } = await supabase.from("grading_skills").update(row).eq("id", id);
+    if (error) return { error: error.message };
+  } else {
+    // New skills land at the bottom, where the person who just added one is
+    // looking, and can be dragged from there.
+    const { data: last } = await supabase
+      .from("grading_skills")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ sort_order: number }>();
+    const { error } = await supabase
+      .from("grading_skills")
+      .insert({ ...row, sort_order: (last?.sort_order ?? -1) + 1 });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+/**
+ * Rewrites every row's position from the order the list was left in. Sending
+ * the whole list rather than one moved row keeps the stored order matching what
+ * the admin can see, even if two rows had somehow ended up sharing a number.
+ */
+export async function reorderGradingSkillsAction(ids: string[]): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  for (let i = 0; i < ids.length; i++) {
+    const { error } = await supabase.from("grading_skills").update({ sort_order: i }).eq("id", ids[i]);
+    if (error) return { error: error.message };
+  }
+
   revalidatePath("/admin/skills");
   return { success: true };
 }
@@ -1576,6 +1612,8 @@ export async function upsertGradingSkillAction(
  * a removed row would leave old reports printing a raw key instead of a label.
  */
 export async function setGradingSkillActiveAction(id: string, active: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1589,6 +1627,8 @@ export async function saveSkillThresholdsAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1617,6 +1657,8 @@ export async function saveSkillThresholdsAction(
  * traced to the questions that produced it. Applies to future gradings only.
  */
 export async function bumpSkillFrameworkVersionAction(): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 

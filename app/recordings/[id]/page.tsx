@@ -148,6 +148,8 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const skills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
   // Includes retired skills so an old recording still shows a proper label.
   const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
+  const assessableSkills = skills.filter((s) => s.rating !== "not_assessable").length;
+  const goodSkills = skills.filter((s) => s.rating === "good").length;
 
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
@@ -407,15 +409,32 @@ export default async function RecordingDetailPage({ params }: PageProps) {
         {/* Only rendered when the recording actually has skill data, so
             recordings graded before skill grading existed are unaffected. */}
         {skills.length > 0 && (
-          <div
+          <details
             className="rounded-2xl overflow-hidden mb-5"
             style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="px-5 pt-5">
-              <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+            <summary
+              className="px-5 py-4 cursor-pointer select-none flex items-center justify-center gap-2"
+              style={{ listStyle: "none" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+                <path d="M1.5 4.5L3 6l2.5-2.5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M1.5 11L3 12.5L5.5 10" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8.5 5h6M8.5 11.5h6" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>
                 Skills Assessment
-              </div>
-            </div>
+              </span>
+              {/* Enough to be worth opening. Not-assessable answers are left
+                  out, so the denominator matches the one used for grading. */}
+              {assessableSkills > 0 && (
+                <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}>
+                  · {goodSkills} of {assessableSkills} good
+                </span>
+              )}
+            </summary>
+
+            <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
             {/* Examiner-only: what the skill layer actually did to the grades.
                 Candidates see the final grade and the skill ratings, not the
                 mechanics — this is review context and tuning data. */}
@@ -491,7 +510,8 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 );
               })}
             </div>
-          </div>
+            </div>
+          </details>
         )}
 
         {/* ── View Consultation ── */}

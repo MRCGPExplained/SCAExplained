@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useRef, useActionState, useTransition } from "react";
 import {
   upsertGradingSkillAction,
   setGradingSkillActiveAction,
   saveSkillThresholdsAction,
   bumpSkillFrameworkVersionAction,
+  reorderGradingSkillsAction,
 } from "../actions";
 import { DOMAIN_LABEL, type SkillDomain } from "@/lib/skill-framework";
 
@@ -70,19 +71,13 @@ function SkillForm({ skill, onDone }: { skill?: SkillRow; onDone: () => void }) 
           className={inputCls}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wide text-navy/50 mb-1">Affects</label>
-          <select name="domain" defaultValue={skill?.domain ?? "relating_to_others"} className={inputCls}>
-            {DOMAINS.map((d) => (
-              <option key={d} value={d}>{DOMAIN_LABEL[d]}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wide text-navy/50 mb-1">Order</label>
-          <input name="sort_order" type="number" defaultValue={skill?.sort_order ?? 0} className={inputCls} />
-        </div>
+      <div className="w-1/2 pr-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-wide text-navy/50 mb-1">Affects</label>
+        <select name="domain" defaultValue={skill?.domain ?? "relating_to_others"} className={inputCls}>
+          {DOMAINS.map((d) => (
+            <option key={d} value={d}>{DOMAIN_LABEL[d]}</option>
+          ))}
+        </select>
       </div>
       <div className="flex gap-2">
         <button
@@ -127,6 +122,43 @@ export default function SkillsClient({
   const [adding, setAdding] = useState(false);
   const [thresholdState, thresholdAction, thresholdPending] = useActionState(saveSkillThresholdsAction, {});
   const [pending, startTransition] = useTransition();
+
+  // The list is held locally so a drag lands instantly instead of waiting on a
+  // round trip. The server stays the authority: whenever it reports a different
+  // order, that wins. Compared during render rather than in an effect, so a
+  // reordered row never flashes back to where it came from.
+  const [order, setOrder] = useState<SkillRow[]>(skills);
+  const serverIds = skills.map((s) => s.id).join(",");
+  const [syncedIds, setSyncedIds] = useState(serverIds);
+  if (serverIds !== syncedIds) {
+    setSyncedIds(serverIds);
+    setOrder(skills);
+  }
+
+  // Which row is being dragged is held in a ref as well as state. State drives
+  // the highlight, but a ref is what the dragover handler reads: state has not
+  // committed yet when the first dragover arrives, and a handler that missed it
+  // would refuse the drop.
+  const dragRef = useRef<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  function endDrag() {
+    dragRef.current = null;
+    setDragId(null);
+    setOverId(null);
+  }
+
+  function move(from: number, to: number) {
+    if (from === to || to < 0 || to >= order.length) return;
+    const next = [...order];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
+    startTransition(async () => {
+      await reorderGradingSkillsAction(next.map((s) => s.id));
+    });
+  }
 
   const min = Number(minAssessable) || 4;
 
@@ -259,9 +291,14 @@ export default function SkillsClient({
 
       {/* Skills */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-display font-bold text-[15px] text-navy">
-          Questions <span className="font-normal text-navy/40">· framework version {frameworkVersion}</span>
-        </h2>
+        <div>
+          <h2 className="font-display font-bold text-[15px] text-navy mb-0.5">
+            Questions <span className="font-normal text-navy/40">· framework version {frameworkVersion}</span>
+          </h2>
+          <p className="text-[12px] text-navy/40 m-0">
+            Drag to reorder. This is the order they are asked in and the order they appear on a report.
+          </p>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
@@ -290,17 +327,51 @@ export default function SkillsClient({
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5">
-        {skills.map((s) =>
+      <div className="flex flex-col gap-2.5" onDragEnd={endDrag}>
+        {order.map((s, idx) =>
           editing === s.id ? (
             <SkillForm key={s.id} skill={s} onDone={() => setEditing(null)} />
           ) : (
             <div
               key={s.id}
-              className="rounded-xl border border-navy/10 bg-white px-5 py-4"
-              style={{ opacity: s.active ? 1 : 0.5 }}
+              onDragOver={(e) => { if (dragRef.current) { e.preventDefault(); setOverId(s.id); } }}
+              onDrop={(e) => {
+                const from = dragRef.current;
+                if (!from) return;
+                e.preventDefault();
+                move(order.findIndex((o) => o.id === from), idx);
+                endDrag();
+              }}
+              className="rounded-xl border bg-white px-4 py-4 transition-colors"
+              style={{
+                opacity: dragId === s.id ? 0.4 : s.active ? 1 : 0.5,
+                borderColor: overId === s.id && dragId !== s.id ? "rgba(51,51,51,0.55)" : "rgba(51,51,51,0.1)",
+              }}
             >
               <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0 flex items-start gap-2.5">
+                  {/* A button, not a bare handle, so the order is reachable
+                      without a mouse — the arrow keys move the focused row. */}
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(e) => { dragRef.current = s.id; setDragId(s.id); e.dataTransfer.effectAllowed = "move"; }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                      e.preventDefault();
+                      move(idx, e.key === "ArrowUp" ? idx - 1 : idx + 1);
+                    }}
+                    aria-label={`Reorder ${s.label}. Position ${idx + 1} of ${order.length}. Drag, or use the arrow keys.`}
+                    title="Drag to reorder, or focus and use the arrow keys"
+                    className="mt-0.5 shrink-0 rounded-md px-1 py-1 text-navy/25 hover:text-navy/60 hover:bg-navy/[0.05] transition"
+                    style={{ background: "none", border: "none", cursor: "grab" }}
+                  >
+                    <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor" aria-hidden="true">
+                      <circle cx="3.5" cy="4" r="1.4" /><circle cx="8.5" cy="4" r="1.4" />
+                      <circle cx="3.5" cy="8" r="1.4" /><circle cx="8.5" cy="8" r="1.4" />
+                      <circle cx="3.5" cy="12" r="1.4" /><circle cx="8.5" cy="12" r="1.4" />
+                    </svg>
+                  </button>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[14px] font-semibold text-navy">{s.label}</span>
@@ -322,6 +393,7 @@ export default function SkillsClient({
                   </div>
                   <p className="text-[13px] text-navy/60 mt-1 mb-0">{s.question}</p>
                   <p className="text-[11px] font-mono text-navy/30 mt-1 mb-0">{s.skill_key}</p>
+                </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button
