@@ -47,7 +47,10 @@ export interface DomainOutcome {
   /** Null when the domain had too few assessable answers to act on. */
   goodPct: number | null;
   direction: "up" | "down" | "none";
+  /** The model's own grade, always as it graded it — never the capped value. */
   baseline: Grade | null;
+  /** True when the ceiling actually lowered the starting point for this domain. */
+  capApplied?: boolean;
   final: Grade | null;
 }
 
@@ -62,6 +65,8 @@ export interface SkillConfig {
   thresholdDown: number;
   minAssessable: number;
   frameworkVersion: number;
+  /** See CAP_DOMAIN. Off by default, so grading behaves as before until turned on. */
+  capEnabled: boolean;
 }
 
 export const DEFAULT_SKILL_CONFIG: SkillConfig = {
@@ -69,7 +74,24 @@ export const DEFAULT_SKILL_CONFIG: SkillConfig = {
   thresholdDown: 75,
   minAssessable: 4,
   frameworkVersion: 1,
+  capEnabled: false,
 };
+
+/**
+ * The ceiling.
+ *
+ * Pass versus Clear Pass on Relating to Others is the least reliable judgement
+ * the model makes: on one transcript it returned Pass and Clear Pass on two runs
+ * of the same input. The questions on that same transcript did not waver. So
+ * when the cap is on, the model cannot award the top band here — it sets the
+ * floor, and Clear Pass has to be earned on the count.
+ *
+ * Only this domain is capped. Data Gathering and Clinical Management are graded
+ * against the station's own criteria, which are concrete enough that the model
+ * is not guessing at them.
+ */
+export const CAP_DOMAIN: DomainKey = "relating_to_others";
+export const CAP_CEILING: Grade = "P";
 
 export const RATING_LABEL: Record<SkillRating, string> = {
   good: "Good",
@@ -147,6 +169,13 @@ function step(grade: Grade, direction: "up" | "down"): Grade {
  * evidence", not a negative — and a domain needs `minAssessable` answers before
  * it can move at all, so a domain with one or two questions assigned to it can
  * never swing on a single verdict.
+ *
+ * With the cap on, CAP_DOMAIN starts from CAP_CEILING rather than the model's
+ * grade whenever the model went higher. One consequence is worth stating
+ * plainly: a capped Clear Pass that then demotes lands two bands below what the
+ * model said. That only happens when the model and the questions flatly
+ * contradict each other, and in that case the count is the one showing its
+ * working.
  */
 export function applySkillAdjustment(
   baseline: Record<DomainKey, Grade | null>,
@@ -177,7 +206,20 @@ export function applySkillAdjustment(
     }
 
     const base = baseline[domain];
-    final[domain] = base && direction !== "none" ? step(base, direction) : base;
+
+    // The cap is gated on the domain being able to move. Applying it while the
+    // domain is dormant would put the top band permanently out of reach with
+    // nothing in the report to explain why.
+    const canMove = assessable.length >= config.minAssessable;
+    const capApplied =
+      config.capEnabled &&
+      domain === CAP_DOMAIN &&
+      canMove &&
+      base !== null &&
+      GRADE_ORDER.indexOf(base) > GRADE_ORDER.indexOf(CAP_CEILING);
+    const start = capApplied ? CAP_CEILING : base;
+
+    final[domain] = start && direction !== "none" ? step(start, direction) : start;
 
     outcomes[domain] = {
       assessed: assessable.length,
@@ -185,7 +227,11 @@ export function applySkillAdjustment(
       needsImprovement,
       goodPct,
       direction,
+      // Deliberately the model's own grade, not `start`. Storing the capped
+      // value would erase the evidence needed to judge whether the cap earns
+      // its place — namely how often the model and the count disagreed.
       baseline: base,
+      ...(capApplied ? { capApplied: true } : {}),
       final: final[domain],
     };
   }

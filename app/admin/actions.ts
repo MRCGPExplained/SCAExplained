@@ -1603,6 +1603,8 @@ export async function saveSkillThresholdsAction(
     { key: "skill_threshold_up", value: String(up.value) },
     { key: "skill_threshold_down", value: String(down.value) },
     { key: "skill_min_assessable", value: String(min.value) },
+    // A checkbox posts nothing when unticked, so absence is a real "off".
+    { key: "skill_cap_rto", value: formData.get("cap_rto") ? "true" : "false" },
   ]);
 
   if (error) return { error: error.message };

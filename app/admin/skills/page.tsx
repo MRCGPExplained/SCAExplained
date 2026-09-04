@@ -24,6 +24,7 @@ export default async function AdminSkillsPage() {
             "skill_min_assessable",
             "skill_framework_version",
             "skill_grading_enabled",
+            "skill_cap_rto",
           ]),
       ])
     : [{ data: [] }, { data: [] }];
@@ -40,6 +41,7 @@ export default async function AdminSkillsPage() {
       minAssessable={settings.get("skill_min_assessable") ?? String(DEFAULT_SKILL_CONFIG.minAssessable)}
       frameworkVersion={settings.get("skill_framework_version") ?? "1"}
       skillGradingEnabled={settings.get("skill_grading_enabled") === "true"}
+      capRto={settings.get("skill_cap_rto") === "true"}
     />
   );
 }

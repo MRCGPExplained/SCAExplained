@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
-import { loadAllSkillLabels, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
+import { loadAllSkillLabels, CAP_CEILING, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
@@ -442,12 +442,17 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                       : o.goodPct === null
                         ? ` · ${o.assessed} assessable, below minimum`
                         : ` · ${o.good}/${o.assessed} good (${Math.round(o.goodPct)}%)`;
+                    // Shown as the full chain when the ceiling bit, because
+                    // "CP (unchanged)" would be a lie about a capped Clear Pass
+                    // that the count then earned back.
+                    const chain = o?.capApplied
+                      ? `${d.baseline} → ${CAP_CEILING} (ceiling)${d.final !== CAP_CEILING ? ` → ${d.final}` : ""}`
+                      : `${d.baseline ?? "—"}${moved ? ` → ${d.final}` : " (unchanged)"}`;
                     return (
                       <div key={d.key} className="flex items-center justify-between gap-3 text-[12.5px]">
                         <span style={{ color: "rgba(51,51,51,0.6)" }}>{d.label}</span>
-                        <span className="font-mono" style={{ color: moved ? "#4338CA" : "rgba(51,51,51,0.45)" }}>
-                          {d.baseline ?? "—"}
-                          {moved ? ` → ${d.final}` : " (unchanged)"}
+                        <span className="font-mono" style={{ color: moved || o?.capApplied ? "#4338CA" : "rgba(51,51,51,0.45)" }}>
+                          {chain}
                           {detail}
                         </span>
                       </div>

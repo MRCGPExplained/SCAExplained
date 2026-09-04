@@ -300,7 +300,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { data: settingsRows } = await admin
     .from("site_settings")
     .select("key, value")
-    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model", "skill_threshold_up", "skill_threshold_down", "skill_min_assessable", "skill_framework_version"]);
+    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model", "skill_threshold_up", "skill_threshold_down", "skill_min_assessable", "skill_framework_version", "skill_cap_rto"]);
 
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
@@ -317,6 +317,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     thresholdDown: Number(settingsMap.get("skill_threshold_down")) || DEFAULT_SKILL_CONFIG.thresholdDown,
     minAssessable: Number(settingsMap.get("skill_min_assessable")) || DEFAULT_SKILL_CONFIG.minAssessable,
     frameworkVersion: Number(settingsMap.get("skill_framework_version")) || DEFAULT_SKILL_CONFIG.frameworkVersion,
+    capEnabled: settingsMap.get("skill_cap_rto") === "true",
   };
 
   // If Deepgram is disabled, skip AI grading — the candidate can still

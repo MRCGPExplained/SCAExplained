@@ -113,6 +113,7 @@ export default function SkillsClient({
   minAssessable,
   frameworkVersion,
   skillGradingEnabled,
+  capRto,
 }: {
   skills: SkillRow[];
   thresholdUp: string;
@@ -120,6 +121,7 @@ export default function SkillsClient({
   minAssessable: string;
   frameworkVersion: string;
   skillGradingEnabled: boolean;
+  capRto: boolean;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -201,6 +203,27 @@ export default function SkillsClient({
           and demote rules at the same time.
         </p>
 
+        <label className="flex items-start gap-2.5 mt-4 pt-4 border-t border-navy/10 cursor-pointer">
+          <input
+            type="checkbox"
+            name="cap_rto"
+            defaultChecked={capRto}
+            className="mt-0.5 w-4 h-4 accent-navy shrink-0 cursor-pointer"
+          />
+          <span>
+            <span className="block text-[13.5px] font-semibold text-navy">
+              Clear Pass in Relating to Others must be earned on the questions
+            </span>
+            <span className="block text-[12px] text-navy/50 mt-0.5 leading-relaxed">
+              The model can grade Relating to Others no higher than Pass. Clear Pass is then reached
+              only by clearing the promote threshold. Pass versus Clear Pass is the least stable call
+              the model makes here, so this hands the top band to the count instead. The model&apos;s
+              own grade is still recorded on every report, so you can see how often the two disagreed.
+              Withheld automatically while Relating to Others has too few questions to move a grade.
+            </span>
+          </span>
+        </label>
+
         <button
           type="submit"
           disabled={thresholdPending}
@@ -225,6 +248,13 @@ export default function SkillsClient({
             </div>
           ))}
         </div>
+        {capRto && (counts.find((c) => c.domain === "relating_to_others")?.count ?? 0) < min && (
+          <p className="text-[12px] mt-3 mb-0 rounded-lg px-3 py-2" style={{ background: "rgba(245,158,11,0.09)", color: "#92400E" }}>
+            The Clear Pass ceiling is switched on but not in force: Relating to Others has too few
+            questions to move a grade, so capping it would put Clear Pass out of reach with no way to
+            earn it back.
+          </p>
+        )}
       </div>
 
       {/* Skills */}
