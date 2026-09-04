@@ -219,6 +219,17 @@ async function gradeWithClaude(
 }
 
 /**
+ * Whether a quoting comment is rewritten or merely recorded.
+ *
+ * The prompt already asks for no quoting and mostly gets it. Rewriting is a
+ * second Claude call per affected consultation, which is real money for a
+ * problem that is a readability one, so the default is to measure how often the
+ * prompt fails rather than pay to correct it every time. Flip to true to make
+ * the rule a guarantee.
+ */
+const REWRITE_QUOTED_COMMENTS = false;
+
+/**
  * Rewrites any comment that quotes the transcript, and returns what it changed.
  *
  * Asking the model not to quote is not a control: the same instruction produced
@@ -242,6 +253,17 @@ async function repairQuotedComments(
   }
 
   if (!targets.length) return { fixed: {}, tokens: null, remaining: 0 };
+
+  // Detection is free; the rewrite is a second Claude call. Off by default, so
+  // the prompt does the work and this only records how often the prompt failed.
+  // Turn on to guarantee the rule rather than merely measure it.
+  if (!REWRITE_QUOTED_COMMENTS) {
+    console.warn(
+      `[recordings/process] ${targets.length} comment(s) quote the transcript, rewrite disabled: ` +
+        targets.map((t) => `${t.key} (${t.quotes[0]?.slice(0, 60)})`).join("; ")
+    );
+    return { fixed: {}, tokens: null, remaining: targets.length };
+  }
 
   console.log(`[recordings/process] rewriting ${targets.length} quoting comment(s)`);
 
