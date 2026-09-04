@@ -148,8 +148,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const skills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
   // Includes retired skills so an old recording still shows a proper label.
   const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
-  const assessableSkills = skills.filter((s) => s.rating !== "not_assessable").length;
-  const goodSkills = skills.filter((s) => s.rating === "good").length;
 
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
@@ -425,13 +423,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>
                 Skills Assessment
               </span>
-              {/* Enough to be worth opening. Not-assessable answers are left
-                  out, so the denominator matches the one used for grading. */}
-              {assessableSkills > 0 && (
-                <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}>
-                  · {goodSkills} of {assessableSkills} good
-                </span>
-              )}
             </summary>
 
             <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
