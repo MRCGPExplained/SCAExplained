@@ -286,12 +286,6 @@ speech, so it carries filler and mis-heard words, and quoting it puts sentences
 in the candidate's mouth that they did not say. Describing keeps the feedback
 anchored to something that genuinely happened without misquoting anyone.
 
-Quotation marks have one use here, and it is the opposite one: a phrase you are
-offering the candidate to use next time. "You could have said, 'Let us think
-together about what is workable today'" is exactly right, and is often the most
-useful line in the whole comment. Quote the words you are suggesting, never the
-words they used.
-
 Ground every comment in what the transcript actually shows. Never invent a
 behaviour. Never use em dashes; use a comma or rewrite the sentence.
 
