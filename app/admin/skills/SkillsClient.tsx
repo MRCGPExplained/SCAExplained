@@ -7,8 +7,10 @@ import {
   saveSkillThresholdsAction,
   bumpSkillFrameworkVersionAction,
   reorderGradingSkillsAction,
+  saveSkillPromptAction,
+  resetSkillPromptAction,
 } from "../actions";
-import { DOMAIN_LABEL, type SkillDomain } from "@/lib/skill-framework";
+import { DOMAIN_LABEL, SKILLS_TOKEN, type SkillDomain } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
 
@@ -109,6 +111,8 @@ export default function SkillsClient({
   frameworkVersion,
   skillGradingEnabled,
   capRto,
+  skillPrompt,
+  usingDefaultPrompt,
 }: {
   skills: SkillRow[];
   thresholdUp: string;
@@ -117,11 +121,19 @@ export default function SkillsClient({
   frameworkVersion: string;
   skillGradingEnabled: boolean;
   capRto: boolean;
+  skillPrompt: string;
+  usingDefaultPrompt: boolean;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [thresholdState, thresholdAction, thresholdPending] = useActionState(saveSkillThresholdsAction, {});
+  const [promptState, promptAction, promptPending] = useActionState(saveSkillPromptAction, {});
   const [pending, startTransition] = useTransition();
+
+  // Remounts the textarea after a reset so it picks up the restored default,
+  // which a defaultValue alone would not do.
+  const [promptKey, setPromptKey] = useState(0);
+  const [promptOpen, setPromptOpen] = useState(false);
 
   // The list is held locally so a drag lands instantly instead of waiting on a
   // round trip. The server stays the authority: whenever it reports a different
@@ -265,6 +277,92 @@ export default function SkillsClient({
           {thresholdPending ? "Saving…" : "Save"}
         </button>
       </form>
+
+      {/* Prompt */}
+      <details
+        className="rounded-2xl border border-navy/10 bg-white mb-6"
+        open={promptOpen}
+        onToggle={(e) => setPromptOpen((e.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary className="px-6 py-4 cursor-pointer select-none flex items-center justify-between gap-3" style={{ listStyle: "none" }}>
+          <span>
+            <span className="font-display font-bold text-[15px] text-navy">Prompt</span>
+            <span className="text-[12.5px] text-navy/45 ml-2">
+              how the questions are put to the model
+            </span>
+          </span>
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em] shrink-0"
+            style={
+              usingDefaultPrompt
+                ? { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.5)" }
+                : { background: "rgba(99,102,241,0.1)", color: "#4338CA" }
+            }
+          >
+            {usingDefaultPrompt ? "Default" : "Edited"}
+          </span>
+        </summary>
+
+        <form action={promptAction} className="px-6 pb-6 pt-1 border-t border-navy/10">
+          <p className="text-[12.5px] text-navy/50 mt-4 mb-3">
+            This is the half of the grading prompt that asks the skill questions. The questions
+            themselves come from the list below and are inserted at{" "}
+            <code className="font-mono text-[12px] px-1 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.1)", color: "#4338CA" }}>
+              {SKILLS_TOKEN}
+            </code>
+            , so leave that in. How the answers are read and what they do to a grade is not set
+            here, and cannot be changed from this page.
+          </p>
+
+          {promptState.error && (
+            <p className="text-[12.5px] text-red-600 mb-3 rounded-lg px-3 py-2" style={{ background: "rgba(239,68,68,0.07)" }}>
+              {promptState.error}
+            </p>
+          )}
+          {"success" in promptState && promptState.success && (
+            <p className="text-[12.5px] text-green-700 mb-3">Saved. Applies to consultations graded from now on.</p>
+          )}
+
+          <textarea
+            key={promptKey}
+            name="skill_prompt"
+            defaultValue={skillPrompt}
+            rows={20}
+            spellCheck={false}
+            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-[12.5px] font-mono leading-relaxed outline-none focus:border-navy/50"
+          />
+
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              type="submit"
+              disabled={promptPending}
+              className="px-5 py-2 rounded-lg text-[13px] font-semibold text-white disabled:opacity-50"
+              style={{ background: NAVY, border: "none", cursor: "pointer" }}
+            >
+              {promptPending ? "Saving…" : "Save prompt"}
+            </button>
+            <button
+              type="button"
+              disabled={pending || usingDefaultPrompt}
+              onClick={() =>
+                startTransition(async () => {
+                  await resetSkillPromptAction();
+                  setPromptKey((k) => k + 1);
+                })
+              }
+              className="text-[12.5px] font-semibold text-navy/50 hover:text-navy transition disabled:opacity-40"
+              style={{ background: "none", border: "none", cursor: usingDefaultPrompt ? "default" : "pointer" }}
+              title={
+                usingDefaultPrompt
+                  ? "Already on the default"
+                  : "Discard the edit and follow the built-in prompt again, including any later improvements to it"
+              }
+            >
+              Restore default
+            </button>
+          </div>
+        </form>
+      </details>
 
       {/* Dormancy */}
       <div className="rounded-2xl border border-navy/10 bg-white p-6 mb-6">

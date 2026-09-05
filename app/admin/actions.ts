@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { validateThreshold, validateMinAssessable } from "@/lib/skill-framework";
+import { validateThreshold, validateMinAssessable, validateSkillPrompt } from "@/lib/skill-framework";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -1073,6 +1073,8 @@ export async function saveAiPromptAction(
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1089,6 +1091,8 @@ export async function saveAiPromptAction(
 }
 
 export async function clearAiPromptAction(): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1647,6 +1651,44 @@ export async function saveSkillThresholdsAction(
     { key: "skill_cap_rto", value: formData.get("cap_rto") ? "true" : "false" },
   ]);
 
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+export async function saveSkillPromptAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const prompt = validateSkillPrompt(String(formData.get("skill_prompt") ?? ""));
+  if (prompt.error) return { error: prompt.error };
+
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert([{ key: "skill_prompt", value: prompt.value! }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/skills");
+  return { success: true };
+}
+
+/**
+ * Deletes the row rather than writing the default into it, so the prompt goes
+ * back to being whatever the code says. A copy saved in the database would
+ * freeze today's wording and quietly ignore every later improvement to it.
+ */
+export async function resetSkillPromptAction(): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { error } = await supabase.from("site_settings").delete().eq("key", "skill_prompt");
   if (error) return { error: error.message };
   revalidatePath("/admin/skills");
   return { success: true };

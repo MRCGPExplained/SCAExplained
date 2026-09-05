@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { DEFAULT_SKILL_CONFIG, type GradingSkill } from "@/lib/skill-framework";
+import { DEFAULT_SKILL_CONFIG, DEFAULT_SKILL_PROMPT, type GradingSkill } from "@/lib/skill-framework";
 import SkillsClient from "./SkillsClient";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,7 @@ export default async function AdminSkillsPage() {
             "skill_framework_version",
             "skill_grading_enabled",
             "skill_cap_rto",
+            "skill_prompt",
           ]),
       ])
     : [{ data: [] }, { data: [] }];
@@ -42,6 +43,8 @@ export default async function AdminSkillsPage() {
       frameworkVersion={settings.get("skill_framework_version") ?? "1"}
       skillGradingEnabled={settings.get("skill_grading_enabled") === "true"}
       capRto={settings.get("skill_cap_rto") === "true"}
+      skillPrompt={settings.get("skill_prompt") ?? DEFAULT_SKILL_PROMPT}
+      usingDefaultPrompt={!settings.get("skill_prompt")}
     />
   );
 }

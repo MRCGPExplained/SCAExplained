@@ -152,7 +152,7 @@ interface GradeWithUsage {
 async function gradeWithClaude(
   stationContext: string,
   transcript: string,
-  opts: { customPrompt?: string; skills?: GradingSkill[]; stationNotes?: Record<string, string>; model: string }
+  opts: { customPrompt?: string; skills?: GradingSkill[]; stationNotes?: Record<string, string>; skillPrompt?: string | null; model: string }
 ): Promise<GradeWithUsage> {
   // Guidance is replaceable by an admin; the skill framework and the output
   // contract are not, so a custom prompt can change how Claude grades but can
@@ -160,7 +160,7 @@ async function gradeWithClaude(
   const skills = opts.skills ?? [];
   const systemPrompt = [
     opts.customPrompt?.trim() || DEFAULT_GRADING_GUIDANCE,
-    skills.length ? buildSkillFrameworkPrompt(skills, opts.stationNotes ?? {}) : null,
+    skills.length ? buildSkillFrameworkPrompt(skills, opts.stationNotes ?? {}, opts.skillPrompt) : null,
     buildOutputContract(skills.length ? buildSkillsOutputContract(skills) : null),
   ]
     .filter(Boolean)
@@ -408,7 +408,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { data: settingsRows } = await admin
     .from("site_settings")
     .select("key, value")
-    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model", "skill_threshold_up", "skill_threshold_down", "skill_min_assessable", "skill_framework_version", "skill_cap_rto"]);
+    .in("key", ["deepgram_enabled", "ai_grading_prompt", "vercel_plan", "skill_grading_enabled", "grading_model", "skill_threshold_up", "skill_threshold_down", "skill_min_assessable", "skill_framework_version", "skill_cap_rto", "skill_prompt"]);
 
   const settingsMap = new Map(
     ((settingsRows ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value])
@@ -598,6 +598,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         customPrompt,
         skills: gradingSkills,
         stationNotes: (station?.skill_notes ?? {}) as Record<string, string>,
+        skillPrompt: settingsMap.get("skill_prompt") ?? null,
         model: gradingModel,
       });
 

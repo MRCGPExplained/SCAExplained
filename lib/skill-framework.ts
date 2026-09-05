@@ -239,25 +239,23 @@ export function applySkillAdjustment(
   return { final, outcomes };
 }
 
-/** The skills half of the grading prompt. */
-export function buildSkillFrameworkPrompt(
-  skills: GradingSkill[],
-  stationNotes: Record<string, string> = {}
-): string {
-  const list = skills
-    .map((s) => {
-      const note = stationNotes[s.skill_key]?.trim();
-      return [
-        `- ${s.skill_key} — ${s.label}`,
-        `  Question: ${s.question}`,
-        note ? `  Note for this station (context for this question only, not an extra requirement unless it says so): ${note}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    })
-    .join("\n");
+/**
+ * Where the questions are injected into the prompt.
+ *
+ * The questions themselves are generated from grading_skills, never typed by
+ * hand, so an edited prompt that dropped them would send the model an
+ * assessment with nothing to assess. Required on save for that reason.
+ */
+export const SKILLS_TOKEN = "{{SKILLS}}";
 
-  return `
+/**
+ * The editable half of the skills prompt.
+ *
+ * Admin-replaceable, like the grading guidance. The output contract is not, and
+ * neither is the counting rule: this decides how the model is asked, not how
+ * the answers are parsed or what they do to a grade.
+ */
+export const DEFAULT_SKILL_PROMPT = `
 SKILLS ASSESSMENT
 
 Answer each question below about the consultation. These are deliberately
@@ -267,7 +265,7 @@ answer either way — never to avoid a difficult judgement, and never as a
 substitute for "no" when the thing simply did not happen. If the doctor had the
 opportunity and did not do it, that is needs_improvement, not not_assessable.
 
-${list}
+{{SKILLS}}
 
 For each question write a comment of three to four sentences, addressed to the
 candidate directly as "you". Never write "the candidate", "the doctor" or "the
@@ -297,6 +295,47 @@ Grade the three domains exactly as you would without this section — from the
 station's own criteria and the transcript. Do NOT adjust the grades yourself to
 reflect these answers; that adjustment is applied separately.
 `.trim();
+
+/**
+ * A saved prompt has to keep the questions in it. Without the token the model
+ * would be told to answer an assessment and shown no questions, and the failure
+ * would be silent: valid JSON with an empty skills array, so no error, no
+ * adjustment, and nothing on the report to say why.
+ */
+export function validateSkillPrompt(raw: string): { value?: string; error?: string } {
+  const value = raw.trim();
+  if (!value) return { error: "The prompt cannot be empty." };
+  if (!value.includes(SKILLS_TOKEN)) {
+    return { error: `Keep ${SKILLS_TOKEN} somewhere in the prompt. It is where the questions are inserted, and without it the model is asked to answer questions it was never shown.` };
+  }
+  return { value };
+}
+
+/** The skills half of the grading prompt, with the live questions filled in. */
+export function buildSkillFrameworkPrompt(
+  skills: GradingSkill[],
+  stationNotes: Record<string, string> = {},
+  template?: string | null
+): string {
+  const list = skills
+    .map((s) => {
+      const note = stationNotes[s.skill_key]?.trim();
+      return [
+        `- ${s.skill_key} — ${s.label}`,
+        `  Question: ${s.question}`,
+        note ? `  Note for this station (context for this question only, not an extra requirement unless it says so): ${note}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n");
+
+  // A saved prompt missing the token would silently drop every question, so it
+  // is refused here as well as on save, rather than trusted twice.
+  const chosen = template?.trim();
+  const base = chosen && chosen.includes(SKILLS_TOKEN) ? chosen : DEFAULT_SKILL_PROMPT;
+
+  return base.split(SKILLS_TOKEN).join(list);
 }
 
 /** The skills half of the JSON contract. */
