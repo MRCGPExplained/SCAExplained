@@ -314,25 +314,23 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Total Score
               </div>
-              <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
-                <span className="font-extrabold leading-none" style={{ fontSize: 44, color: NAVY }}>
+              <div className="mb-5">
+                <span className="font-extrabold leading-none block" style={{ fontSize: 44, color: NAVY }}>
                   {total}
                   <span className="font-extrabold">/10.5</span>
                 </span>
                 {/* The number means nothing without the bar it is measured
                     against, and a candidate should not have to know that 7 is
-                    the line to read their own report. */}
-                {/* Sized by length, not by rule: "Needs Improvement" at 44
-                    would overrun the card. No max-width — capping it forces a
-                    break inside "IMPROVEMENT", which is one unbreakable word
-                    and simply spills past the edge. Let the flex row decide. */}
+                    the line to read their own report.
+
+                    Under the score rather than beside it: the two verdicts are
+                    very different lengths, and side by side the longer one
+                    either overran the card or wrapped onto its own row anyway.
+                    Stacking makes that the layout instead of the accident, and
+                    at this size the colour carries it without a tint behind. */}
                 <span
-                  className="font-extrabold uppercase px-4 py-2 rounded-xl text-right"
-                  style={
-                    isPassing
-                      ? { fontSize: 44, lineHeight: 1, background: "rgba(34,197,94,0.11)", color: "#166534" }
-                      : { fontSize: 18, lineHeight: 1.15, background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
-                  }
+                  className="font-extrabold uppercase block mt-2.5 tracking-[0.02em]"
+                  style={{ fontSize: 18, color: isPassing ? "#166534" : "#B91C1C" }}
                 >
                   {isPassing ? "Pass" : "Needs Improvement"}
                 </span>
