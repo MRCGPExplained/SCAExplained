@@ -296,8 +296,12 @@ clinician". Point to a specific moment in the consultation every time.
   Do not manufacture a next step where there honestly isn't one.
 - needs_improvement: say what was missing or went wrong, with the moment. The
   fix does not go here: put it in the separate "improvement" field, which every
-  needs_improvement answer must have. One or two sentences, what to do instead
-  next time, concrete enough to act on rather than a restatement of the fault.
+  needs_improvement answer must have, without exception, however many of them
+  there are. One or two sentences, what to do instead next time, concrete
+  enough to act on rather than a restatement of the fault. Write the
+  improvement before writing the comment, so a long comment never crowds it
+  out. An answer marked needs_improvement with no improvement is not a finished
+  answer.
 - not_assessable: say briefly what the transcript does not show and what would
   have demonstrated it.
 
@@ -370,8 +374,8 @@ export function buildSkillsOutputContract(skills: GradingSkill[]): string {
       {
         "skill": "one of: ${keys}",
         "rating": "good | needs_improvement | not_assessable",
-        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", describing a specific moment in the consultation without quoting the transcript.",
-        "improvement": "REQUIRED when rating is needs_improvement: one or two sentences saying what to do differently next time, addressed as \\"you\\", concrete enough to act on. Omit entirely for good and not_assessable."
+        "improvement": "MANDATORY on every needs_improvement, and the response is incomplete without it: one or two sentences saying what to do differently next time, addressed as \\"you\\", concrete enough to act on. Write this before the comment. Omit entirely for good and not_assessable.",
+        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", describing a specific moment in the consultation without quoting the transcript."
       }
     ]
   }`;
