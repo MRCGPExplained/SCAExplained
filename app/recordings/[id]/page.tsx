@@ -84,6 +84,7 @@ type RecordingDetail = {
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
   skills_assessment: unknown;
+  examiner_skills_assessment: unknown;
   ai_baseline_data_gathering: string | null;
   ai_baseline_clinical_management: string | null;
   ai_baseline_relating_to_others: string | null;
@@ -145,7 +146,13 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   }
 
   const skillsAssessment = rec.skills_assessment as SkillsAssessment | null;
-  const skills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
+  const aiSkills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
+  // A GP's edits win over the model's, the same way examiner_* domain grades
+  // win over ai_*. The AI's version stays in its own column either way.
+  const examinerSkills = rec.examiner_skills_assessment as SkillsAssessment | null;
+  const skills: SkillAnswer[] = Array.isArray(examinerSkills?.skills) && examinerSkills.skills.length
+    ? examinerSkills.skills
+    : aiSkills;
   // Includes retired skills so an old recording still shows a proper label.
   const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
 

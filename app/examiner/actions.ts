@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -318,4 +319,50 @@ export async function submitExaminerReviewAction(
   }
 
   return { success: true };
+}
+
+/**
+ * Examiner edits to the skill ratings and text.
+ *
+ * Saved to examiner_skills_assessment rather than over the AI's, mirroring how
+ * examiner_data_gathering sits beside ai_data_gathering: the report can then
+ * show what the model said and what the GP changed it to, and a re-run of the
+ * pipeline cannot silently wipe a GP's work.
+ *
+ * Deliberately does not re-run the grade adjustment. That adjustment exists to
+ * correct the model's own domain grades; an examiner sets the domain grades
+ * directly, so recomputing from their skill edits would fight them for control
+ * of the same number.
+ */
+export async function saveExaminerSkillsAction(
+  recordingId: string,
+  skills: { skill: string; rating: string; comment: string; improvement?: string }[]
+): Promise<{ error?: string }> {
+  const examiner = await getExaminer();
+  if (!examiner) return { error: "Not authorised." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." };
+
+  const allowed = ["good", "needs_improvement", "not_assessable"];
+  for (const s of skills) {
+    if (!allowed.includes(s.rating)) return { error: `Unknown rating "${s.rating}".` };
+  }
+
+  const cleaned = skills.map((s) => ({
+    skill: s.skill,
+    rating: s.rating,
+    comment: (s.comment ?? "").trim(),
+    ...(s.improvement?.trim() ? { improvement: s.improvement.trim() } : {}),
+  }));
+
+  const { error } = await admin
+    .from("station_recordings")
+    .update({ examiner_skills_assessment: { skills: cleaned } })
+    .eq("id", recordingId);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/examiner/${recordingId}`);
+  revalidatePath(`/recordings/${recordingId}`);
+  return {};
 }

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { loadAllSkillLabels, type SkillAnswer } from "@/lib/skill-framework";
 import ExaminerReviewClient from "./ExaminerReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,8 @@ type RecordingFull = {
   ai_error: string | null;
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
+  skills_assessment: { skills?: SkillAnswer[] } | null;
+  examiner_skills_assessment: { skills?: SkillAnswer[] } | null;
 };
 
 interface PageProps {
@@ -77,12 +80,20 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
   patientAudioUrl = patientResult.data?.signedUrl ?? null;
   voiceNoteUrl = voiceResult.data?.signedUrl ?? null;
 
+  const aiSkills = rec.skills_assessment?.skills ?? [];
+  // Retired skills included, so a report graded under an older question set
+  // still shows a label rather than a bare key.
+  const skillLabels = aiSkills.length ? await loadAllSkillLabels(admin) : {};
+
   return (
     <ExaminerReviewClient
       recording={rec}
       doctorAudioUrl={doctorAudioUrl}
       patientAudioUrl={patientAudioUrl}
       voiceNoteUrl={voiceNoteUrl}
+      aiSkills={aiSkills}
+      examinerSkills={rec.examiner_skills_assessment?.skills ?? null}
+      skillLabels={skillLabels}
     />
   );
 }

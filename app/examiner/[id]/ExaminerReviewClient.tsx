@@ -5,6 +5,8 @@ import Link from "next/link";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
+import ExaminerSkills from "./ExaminerSkills";
+import type { SkillAnswer } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
 const LIGHT_BG = "#FAFAF8";
@@ -131,9 +133,12 @@ interface Props {
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
   voiceNoteUrl: string | null;
+  aiSkills: SkillAnswer[];
+  examinerSkills: SkillAnswer[] | null;
+  skillLabels: Record<string, string>;
 }
 
-export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl }: Props) {
+export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -357,6 +362,14 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               </div>
             ))}
           </div>
+
+          <ExaminerSkills
+            recordingId={rec.id}
+            aiSkills={aiSkills}
+            examinerSkills={examinerSkills}
+            labels={skillLabels}
+            disabled={isSent}
+          />
 
           {/* Overall Comment */}
           <div className="mb-4">
