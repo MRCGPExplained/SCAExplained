@@ -326,11 +326,17 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                     Under the score rather than beside it: the two verdicts are
                     very different lengths, and side by side the longer one
                     either overran the card or wrapped onto its own row anyway.
-                    Stacking makes that the layout instead of the accident, and
-                    at this size the colour carries it without a tint behind. */}
+                    Stacking makes that the layout instead of the accident.
+
+                    inline-block, not block, so the tint stops at the end of
+                    the words rather than running the width of the card. */}
                 <span
-                  className="font-extrabold uppercase block mt-2.5 tracking-[0.02em]"
-                  style={{ fontSize: 18, color: isPassing ? "#166534" : "#B91C1C" }}
+                  className="font-extrabold uppercase inline-block mt-3 px-3 py-1.5 rounded-lg tracking-[0.02em]"
+                  style={
+                    isPassing
+                      ? { fontSize: 18, background: "rgba(34,197,94,0.11)", color: "#166534" }
+                      : { fontSize: 18, background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
+                  }
                 >
                   {isPassing ? "Pass" : "Needs Improvement"}
                 </span>
