@@ -339,6 +339,62 @@ export function validateSkillPrompt(raw: string): { value?: string; error?: stri
   return { value };
 }
 
+/**
+ * Pacing is only judgeable against a full sitting, so a short consultation is
+ * not assessed for it.
+ *
+ * Decided here rather than in the question. Whether the last timestamp is under
+ * eleven minutes is arithmetic, and the model proved it will not be trusted
+ * with it: given a transcript ending at 9:37 it wrote "which is under 11
+ * minutes, so pacing cannot be fully assessed" and then answered good anyway.
+ *
+ * Tied to the skill by key, so renaming that key in the admin panel silently
+ * switches this off. The panel already warns that changing a key orphans past
+ * results; this is the other thing it does.
+ */
+export const TIME_MANAGEMENT_SKILL = "time_management";
+export const TIME_MANAGEMENT_MIN_MINUTES = 11;
+
+/** Seconds to the last [m:ss] marker in the transcript, or null if unmarked. */
+export function transcriptDurationSeconds(transcript: string): number | null {
+  let latest: number | null = null;
+  for (const m of transcript.matchAll(/\[(\d{1,2}):(\d{2})\]/g)) {
+    const seconds = Number(m[1]) * 60 + Number(m[2]);
+    if (latest === null || seconds > latest) latest = seconds;
+  }
+  return latest;
+}
+
+export function applyTimeManagementCutoff(
+  answers: SkillAnswer[],
+  transcript: string
+): { answers: SkillAnswer[]; applied: boolean } {
+  const seconds = transcriptDurationSeconds(transcript);
+  // An unmarked transcript is not evidence of a short consultation, so leave
+  // the model's answer alone rather than assume.
+  if (seconds === null || seconds >= TIME_MANAGEMENT_MIN_MINUTES * 60) {
+    return { answers, applied: false };
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = String(seconds % 60).padStart(2, "0");
+
+  let applied = false;
+  const next = answers.map((a) => {
+    if (a.skill !== TIME_MANAGEMENT_SKILL || a.rating === "not_assessable") return a;
+    applied = true;
+    // The improvement is dropped with the rating: there is nothing to put
+    // right, and the report only shows one on a needs_improvement anyway.
+    return {
+      skill: a.skill,
+      rating: "not_assessable" as const,
+      comment: `This consultation ran ${mins}:${secs}, under ${TIME_MANAGEMENT_MIN_MINUTES} minutes, so pacing was not assessed.`,
+    };
+  });
+
+  return { answers: next, applied };
+}
+
 /** The skills half of the grading prompt, with the live questions filled in. */
 export function buildSkillFrameworkPrompt(
   skills: GradingSkill[],

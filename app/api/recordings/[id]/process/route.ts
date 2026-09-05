@@ -7,6 +7,7 @@ import {
   buildSkillsOutputContract,
   loadGradingSkills,
   applySkillAdjustment,
+  applyTimeManagementCutoff,
   DEFAULT_SKILL_CONFIG,
   type SkillAnswer,
   type GradingSkill,
@@ -605,9 +606,17 @@ export async function POST(req: Request, { params }: RouteParams) {
       // The model graded the domains and answered the skill questions. Moving
       // the grade is arithmetic, so it happens here rather than being asked of
       // the model — that is what makes it consistent and tunable.
-      const skillAnswers: SkillAnswer[] = Array.isArray(grades.skills_assessment?.skills)
+      const rawSkillAnswers: SkillAnswer[] = Array.isArray(grades.skills_assessment?.skills)
         ? grades.skills_assessment.skills
         : [];
+
+      // Applied before anything downstream reads the answers, so the count, the
+      // report and the examiner's copy all see the same corrected set.
+      const cutoff = applyTimeManagementCutoff(rawSkillAnswers, transcriptFormatted);
+      const skillAnswers = cutoff.answers;
+      if (cutoff.applied) {
+        console.log("[recordings/process] consultation under the pacing cutoff, time management not assessed");
+      }
 
       // Costs nothing and needs no second call: the schema asks for an
       // improvement on every needs_improvement answer, so a missing one is the
