@@ -265,13 +265,28 @@ answer either way — never to avoid a difficult judgement, and never as a
 substitute for "no" when the thing simply did not happen. If the doctor had the
 opportunity and did not do it, that is needs_improvement, not not_assessable.
 
+Answer on what happened, not on whether it was reasonable. A thing can be
+understandable, efficient, or the right call for this particular patient and
+still not have happened, and the answer is then "no". If your comment would
+read "no, but that was fair enough here", the answer is needs_improvement and
+the reason why it was fair enough belongs in the comment. Never talk yourself
+from a no to a yes.
+
+Decide the answer first, then write the comment to match it. A comment that
+describes the thing not happening sits under needs_improvement, never under
+good.
+
 {{SKILLS}}
 
 For each question write a comment of three to four sentences, addressed to the
 candidate directly as "you". Never write "the candidate", "the doctor" or "the
 clinician". Point to a specific moment in the consultation every time.
-- good: say what you did well, with the moment, and why it worked. If you can
-  see a genuine way to make it even better, add it; do not manufacture one.
+- good: say what you did well, with the moment, and why it worked. If there is a
+  genuine way to go further, offer it as a next step — "you could build on this
+  by", "an even stronger version of this would be" — never as a shortfall. Do
+  not write "however", "but you did not" or "you failed to" in a good comment:
+  the answer was yes, and the candidate should finish reading it feeling that.
+  Do not manufacture a next step where there honestly isn't one.
 - needs_improvement: say what was missing or went wrong, with the moment, and
   say specifically how to do it differently.
 - not_assessable: say briefly what the transcript does not show and what would
