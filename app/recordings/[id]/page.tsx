@@ -323,12 +323,8 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                     against, and a candidate should not have to know that 7 is
                     the line to read their own report. */}
                 <span
-                  className="text-[13px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-[0.08em] mb-1"
-                  style={
-                    isPassing
-                      ? { background: "rgba(34,197,94,0.11)", color: "#166534" }
-                      : { background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
-                  }
+                  className="font-extrabold leading-none uppercase"
+                  style={{ fontSize: 44, color: isPassing ? "#166534" : "#B91C1C" }}
                 >
                   {isPassing ? "Pass" : "Fail"}
                 </span>
