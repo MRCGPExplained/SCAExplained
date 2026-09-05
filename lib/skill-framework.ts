@@ -37,6 +37,13 @@ export interface SkillAnswer {
   skill: string;
   rating: SkillRating;
   comment: string;
+  /**
+   * What to do differently next time. Its own field rather than the closing
+   * sentence of the comment: asked for in prose it arrived about a third of the
+   * time, and buried at the end of a paragraph it is the easiest part to skim
+   * past. Required of the model on needs_improvement, absent otherwise.
+   */
+  improvement?: string;
 }
 
 export interface DomainOutcome {
@@ -287,10 +294,10 @@ clinician". Point to a specific moment in the consultation every time.
   not write "however", "but you did not" or "you failed to" in a good comment:
   the answer was yes, and the candidate should finish reading it feeling that.
   Do not manufacture a next step where there honestly isn't one.
-- needs_improvement: say what was missing or went wrong, with the moment, then
-  end on the fix. The last sentence must be the suggestion: what to do instead
-  next time, concrete enough to act on. Never close on the criticism alone, and
-  never leave the improvement implied — name it.
+- needs_improvement: say what was missing or went wrong, with the moment. The
+  fix does not go here: put it in the separate "improvement" field, which every
+  needs_improvement answer must have. One or two sentences, what to do instead
+  next time, concrete enough to act on rather than a restatement of the fault.
 - not_assessable: say briefly what the transcript does not show and what would
   have demonstrated it.
 
@@ -363,7 +370,8 @@ export function buildSkillsOutputContract(skills: GradingSkill[]): string {
       {
         "skill": "one of: ${keys}",
         "rating": "good | needs_improvement | not_assessable",
-        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", describing a specific moment in the consultation without quoting the transcript."
+        "comment": "Three to four sentences, addressed to the candidate as \\"you\\", describing a specific moment in the consultation without quoting the transcript.",
+        "improvement": "REQUIRED when rating is needs_improvement: one or two sentences saying what to do differently next time, addressed as \\"you\\", concrete enough to act on. Omit entirely for good and not_assessable."
       }
     ]
   }`;

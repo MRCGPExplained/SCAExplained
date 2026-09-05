@@ -609,6 +609,19 @@ export async function POST(req: Request, { params }: RouteParams) {
         ? grades.skills_assessment.skills
         : [];
 
+      // Costs nothing and needs no second call: the schema asks for an
+      // improvement on every needs_improvement answer, so a missing one is the
+      // model not holding up its end, and worth seeing in the logs rather than
+      // discovering on a report.
+      const missingImprovement = skillAnswers
+        .filter((a) => a.rating === "needs_improvement" && !a.improvement?.trim())
+        .map((a) => a.skill);
+      if (missingImprovement.length) {
+        console.warn(
+          `[recordings/process] no improvement given for: ${missingImprovement.join(", ")}`
+        );
+      }
+
       const baseline = {
         data_gathering: grades.data_gathering as SkillGrade,
         clinical_management: grades.clinical_management as SkillGrade,

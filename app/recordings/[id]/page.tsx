@@ -497,6 +497,18 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                         {s.comment}
                       </p>
                     )}
+                    {/* The actionable half, given its own line rather than left
+                        as the last clause of a paragraph about what went wrong.
+                        Absent on recordings graded before it existed. */}
+                    {s.improvement?.trim() && (
+                      <p
+                        className="text-[13.5px] leading-[1.6] mt-2.5 mb-0 pl-3"
+                        style={{ color: "rgba(51,51,51,0.72)", borderLeft: "2px solid rgba(246,212,75,0.9)" }}
+                      >
+                        <span className="font-semibold" style={{ color: NAVY }}>Next time: </span>
+                        {s.improvement}
+                      </p>
+                    )}
                   </div>
                 );
               })}
