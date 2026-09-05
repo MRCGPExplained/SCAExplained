@@ -314,7 +314,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Total Score
               </div>
-              <div className="flex items-end gap-4 mb-5 flex-wrap">
+              <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
                 <span className="font-extrabold leading-none" style={{ fontSize: 44, color: NAVY }}>
                   {total}
                   <span className="font-extrabold">/10.5</span>
@@ -323,8 +323,12 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                     against, and a candidate should not have to know that 7 is
                     the line to read their own report. */}
                 <span
-                  className="font-extrabold leading-none uppercase"
-                  style={{ fontSize: 44, color: isPassing ? "#166534" : "#B91C1C" }}
+                  className="font-extrabold leading-none uppercase px-4 py-2 rounded-xl"
+                  style={
+                    isPassing
+                      ? { fontSize: 44, background: "rgba(34,197,94,0.11)", color: "#166534" }
+                      : { fontSize: 44, background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
+                  }
                 >
                   {isPassing ? "Pass" : "Fail"}
                 </span>
