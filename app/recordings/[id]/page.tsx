@@ -12,6 +12,19 @@ export const dynamic = "force-dynamic";
 
 const NAVY = "#333333";
 const PASS_THRESHOLD = 7;
+/** Below this the score is a long way off, rather than close to the line. */
+const BORDERLINE_THRESHOLD = 5;
+
+/**
+ * The number carries the verdict for everything under the pass mark, so only a
+ * pass gets a badge as well. Two bands of shortfall told twice over, in a
+ * colour and in a word, was more noise than information.
+ */
+function scoreColour(total: number): string {
+  if (total >= PASS_THRESHOLD) return "#166534";
+  if (total >= BORDERLINE_THRESHOLD) return "#C2410C";
+  return "#B91C1C";
+}
 
 const GRADE_META: Record<string, { label: string; color: string; bg: string; pts: (d: string) => number }> = {
   CF: { label: "Clear Fail", color: "#B91C1C", bg: "rgba(239,68,68,0.09)", pts: () => 0 },
@@ -314,32 +327,25 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Total Score
               </div>
-              <div className="mb-5">
-                <span className="font-extrabold leading-none block" style={{ fontSize: 44, color: NAVY }}>
+              <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
+                {/* Green at or above the pass mark, orange within striking
+                    distance of it, red well short. A candidate reads where
+                    they stand off the number itself. */}
+                <span className="font-extrabold leading-none" style={{ fontSize: 44, color: scoreColour(total) }}>
                   {total}
                   <span className="font-extrabold">/10.5</span>
                 </span>
-                {/* The number means nothing without the bar it is measured
-                    against, and a candidate should not have to know that 7 is
-                    the line to read their own report.
-
-                    Under the score rather than beside it: the two verdicts are
-                    very different lengths, and side by side the longer one
-                    either overran the card or wrapped onto its own row anyway.
-                    Stacking makes that the layout instead of the accident.
-
-                    inline-block, not block, so the tint stops at the end of
-                    the words rather than running the width of the card. */}
-                <span
-                  className="font-extrabold uppercase inline-block mt-3 px-3 py-1.5 rounded-lg tracking-[0.02em]"
-                  style={
-                    isPassing
-                      ? { fontSize: 18, background: "rgba(34,197,94,0.11)", color: "#166534" }
-                      : { fontSize: 18, background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
-                  }
-                >
-                  {isPassing ? "Pass" : "Needs Improvement"}
-                </span>
+                {/* Only a pass is named. It is short enough to sit beside the
+                    score at full size, which the longer shortfall wording never
+                    was. */}
+                {isPassing && (
+                  <span
+                    className="font-extrabold uppercase px-4 py-2 rounded-xl leading-none tracking-[0.02em]"
+                    style={{ fontSize: 44, background: "rgba(34,197,94,0.11)", color: "#166534" }}
+                  >
+                    Pass
+                  </span>
+                )}
               </div>
 
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
