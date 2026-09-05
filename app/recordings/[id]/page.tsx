@@ -335,13 +335,16 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                   {total}
                   <span className="font-extrabold">/10.5</span>
                 </span>
-                {/* Only a pass is named. It is short enough to sit beside the
-                    score at full size, which the longer shortfall wording never
-                    was. */}
+                {/* Only a pass is named. Set below the score deliberately: at
+                    matching type size the padding made the badge taller than
+                    the number, so it set the height of the row and threw the
+                    spacing above and below it out. At 30 with tighter padding
+                    it comes in just under 44 and the row keeps the score's own
+                    height. */}
                 {isPassing && (
                   <span
-                    className="font-extrabold uppercase px-4 py-2 rounded-xl leading-none tracking-[0.02em]"
-                    style={{ fontSize: 44, background: "rgba(34,197,94,0.11)", color: "#166534" }}
+                    className="font-extrabold uppercase px-4 py-1.5 rounded-xl leading-none tracking-[0.02em]"
+                    style={{ fontSize: 30, background: "rgba(34,197,94,0.11)", color: "#166534" }}
                   >
                     Pass
                   </span>
