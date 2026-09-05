@@ -287,8 +287,10 @@ clinician". Point to a specific moment in the consultation every time.
   not write "however", "but you did not" or "you failed to" in a good comment:
   the answer was yes, and the candidate should finish reading it feeling that.
   Do not manufacture a next step where there honestly isn't one.
-- needs_improvement: say what was missing or went wrong, with the moment, and
-  say specifically how to do it differently.
+- needs_improvement: say what was missing or went wrong, with the moment, then
+  end on the fix. The last sentence must be the suggestion: what to do instead
+  next time, concrete enough to act on. Never close on the criticism alone, and
+  never leave the improvement implied — name it.
 - not_assessable: say briefly what the transcript does not show and what would
   have demonstrated it.
 
