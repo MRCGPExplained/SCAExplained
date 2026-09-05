@@ -322,15 +322,16 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 {/* The number means nothing without the bar it is measured
                     against, and a candidate should not have to know that 7 is
                     the line to read their own report. */}
-                {/* Sized by length, not by rule: "Needs Improvement" set at 44
-                    would overrun the card, and two lines at 22 carry about the
-                    same weight as one line of Pass. */}
+                {/* Sized by length, not by rule: "Needs Improvement" at 44
+                    would overrun the card. No max-width — capping it forces a
+                    break inside "IMPROVEMENT", which is one unbreakable word
+                    and simply spills past the edge. Let the flex row decide. */}
                 <span
                   className="font-extrabold uppercase px-4 py-2 rounded-xl text-right"
                   style={
                     isPassing
                       ? { fontSize: 44, lineHeight: 1, background: "rgba(34,197,94,0.11)", color: "#166534" }
-                      : { fontSize: 22, lineHeight: 1.1, maxWidth: "9ch", background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
+                      : { fontSize: 18, lineHeight: 1.15, background: "rgba(239,68,68,0.10)", color: "#B91C1C" }
                   }
                 >
                   {isPassing ? "Pass" : "Needs Improvement"}
