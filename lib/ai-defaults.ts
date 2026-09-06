@@ -79,12 +79,16 @@ export function buildOutputSchema(
       type: "array",
       items: {
         type: "object",
+        // Property order is load-bearing, not cosmetic: the model generates
+        // left to right, so a finding written before the answer is a sentence
+        // the answer then has to agree with.
         properties: {
           rule: { type: "string", enum: ruleIds },
+          finding: { type: "string" },
           answer: { type: "string", enum: ["yes", "no"] },
           comment: { type: "string" },
         },
-        required: ["rule", "answer", "comment"],
+        required: ["rule", "finding", "answer", "comment"],
         additionalProperties: false,
       },
     };

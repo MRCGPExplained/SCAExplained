@@ -455,17 +455,26 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "#4338CA" }}>
               Case rules applied · not shown to the candidate
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2.5">
               {firedRules.map((f, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 text-[12.5px] flex-wrap">
-                  <span style={{ color: "rgba(51,51,51,0.65)" }}>
-                    {f.name}
-                    {!f.decisive && <span style={{ color: "rgba(51,51,51,0.35)" }}> · not decisive</span>}
-                  </span>
-                  <span className="font-mono" style={{ color: "#4338CA" }}>
-                    {CASE_DOMAIN_LABEL[f.domain]} {f.bound === "ceiling" ? "capped at" : "lifted to"} {f.grade}
-                    {f.before !== f.after ? ` · ${f.before} → ${f.after}` : " · no change"}
-                  </span>
+                <div key={i}>
+                  <div className="flex items-center justify-between gap-3 text-[12.5px] flex-wrap">
+                    <span style={{ color: "rgba(51,51,51,0.65)" }}>
+                      {f.name}
+                      {!f.decisive && <span style={{ color: "rgba(51,51,51,0.35)" }}> · not decisive</span>}
+                    </span>
+                    <span className="font-mono" style={{ color: "#4338CA" }}>
+                      {CASE_DOMAIN_LABEL[f.domain]} {f.bound === "ceiling" ? "capped at" : "lifted to"} {f.grade}
+                      {f.before !== f.after ? ` · ${f.before} → ${f.after}` : " · no change"}
+                    </span>
+                  </div>
+                  {/* What it fired on, not just that it fired. A forced grade an
+                      examiner cannot check is a forced grade they cannot trust. */}
+                  {f.finding && (
+                    <p className="text-[12px] mt-1 mb-0 pl-3" style={{ color: "rgba(51,51,51,0.5)", borderLeft: "2px solid rgba(99,102,241,0.3)" }}>
+                      {f.finding}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

@@ -35,6 +35,18 @@ export interface CaseRule {
 /** One answer from the model, keyed by the rule's id. */
 export interface CaseRuleAnswer {
   rule: string;
+  /**
+   * What the transcript shows, written before the answer.
+   *
+   * Not decoration. A check once answered "yes" while its own comment read "you
+   * prescribed amoxicillin without making it conditional on a face-to-face
+   * examination" — the reasoning said no and the answer said yes, and a
+   * clinical management grade was capped at Fail on the strength of it. The
+   * model writes left to right, so making it state the fact first means a
+   * contradicting answer has to be written directly underneath a sentence that
+   * refutes it.
+   */
+  finding?: string;
   answer: string;
   /** Written only when the answer fires the rule; replaces the domain comment. */
   comment?: string;
@@ -51,6 +63,8 @@ export interface FiredRule {
   after: Grade | null;
   /** True for the rule that actually set the final grade for its domain. */
   decisive: boolean;
+  /** Kept so an examiner can see what a forced grade was actually based on. */
+  finding?: string;
 }
 
 export interface CaseRulesOutcome {
@@ -148,7 +162,8 @@ export function applyCaseRules(
     const replacement = decisive.answer?.comment?.trim();
     if (replacement) comments[domain] = replacement;
 
-    for (const { rule } of hits) {
+    for (const { rule, answer } of hits) {
+      const finding = answer?.finding?.trim();
       fired.push({
         id: rule.id,
         name: rule.name,
@@ -158,6 +173,7 @@ export function applyCaseRules(
         before,
         after: grade,
         decisive: rule.id === decisive.rule.id,
+        ...(finding ? { finding } : {}),
       });
     }
   }
@@ -183,6 +199,13 @@ CASE-SPECIFIC CHECKS
 These are written by the examiner who set this station. Answer each one yes or
 no from the transcript, exactly as asked, and nothing more: what happens to the
 grade as a result is decided elsewhere and is not your concern.
+
+For each one, write the finding first: a single sentence saying what the
+transcript actually shows about it. Then answer, and make the answer follow from
+what you just wrote. If your finding describes the thing not happening, the
+answer is no. Do not write a finding that points one way and an answer that
+points the other; these checks decide grades, and a contradiction between them
+is how a candidate ends up failed for something they did.
 
 Answer only from what the transcript shows. If it does not show enough to
 answer, answer no rather than guessing, because these checks carry weight and a
@@ -248,11 +271,14 @@ Respond ONLY with valid JSON, no markdown, mapping every key you changed to its 
 /** The case-rules half of the JSON contract. */
 export function buildCaseRulesOutputContract(rules: CaseRule[]): string {
   const ids = rules.map((r) => `"${r.id}"`).join(", ");
+  // finding sits above answer deliberately: written first, it is what the
+  // answer then has to agree with.
   return `  "case_checks": [
     {
       "rule": "one of: ${ids}",
+      "finding": "One sentence on what the transcript actually shows about this check. Write this BEFORE deciding the answer, and make the answer follow from it.",
       "answer": "yes | no",
-      "comment": "Replacement comment for this check's domain. Required whenever your answer is the one the check is looking for, omitted otherwise."
+      "comment": "Replacement comment for this check's domain. Required whenever your answer is the one the check is looking for, empty otherwise."
     }
   ]`;
 }
