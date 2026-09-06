@@ -1,6 +1,6 @@
 "use server";
 
-import { endOtherSessions } from "@/lib/single-session";
+import { endOtherSessions, sessionWasRevoked, SESSION_TAKEN_OVER } from "@/lib/single-session";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -841,6 +841,8 @@ export async function startSoloRecordingAction(args: {
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
+  if (await sessionWasRevoked(supabase, admin)) return { error: SESSION_TAKEN_OVER };
+
   const bypassed = await checkRecordingBypass(user.email);
   if (!bypassed) {
     const capError = await checkAiUsageCap(admin, user.id);
@@ -890,6 +892,11 @@ export async function startRecordingAction(args: {
 
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
+
+  // The caller's own session, not the doctor's: a guest role-player is
+  // anonymous and has no account to share, so only the person who clicked is
+  // checked here.
+  if (await sessionWasRevoked(supabase, admin)) return { error: SESSION_TAKEN_OVER };
 
   // Gated on the doctor/candidate's access — they're the one being AI-reviewed,
   // regardless of who (host or patient role-player) actually clicks Start.
