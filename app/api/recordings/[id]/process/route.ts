@@ -136,15 +136,21 @@ function buildTranscript(
 
 const GRADING_MODEL = "claude-haiku-4-5-20251001";
 
-// Output scales with consultation length: three domains × three sentences with
-// quotes, plus a focus line. Plain grading has come in at 303-644 tokens.
+// Output scales with consultation length: three domains × three sentences,
+// plus a focus line. Plain grading has come in at 303-644 tokens.
 //
-// Skill grading adds far more than it looks — eleven skills, each with a
-// comment and three domain influences, plus baseline grades. That overshot a
-// 2000 ceiling on the first real run and truncated the JSON mid-string, which
-// fails the whole grading. Sized well clear of it now: output is billed per
-// token generated, not per token allowed, so unused headroom costs nothing.
-const GRADING_MAX_TOKENS = 6000;
+// Skill grading adds far more than it looks — thirteen skills, each with a
+// comment and often an improvement, plus case checks with their findings.
+// A 2000 ceiling truncated on the first real run; 6000 then truncated on
+// roughly one grading in five of the longer station 1 consultations, measured
+// over forty runs. Truncation is not a worse report, it is no report: the JSON
+// stops mid-string and the whole grading fails.
+//
+// Twelve thousand is deliberately far more than the 2,500-3,200 a grading
+// actually uses. Output is billed per token generated, not per token allowed,
+// so the headroom is free and the previous two ceilings were both set too
+// close to the observed maximum.
+const GRADING_MAX_TOKENS = 12000;
 
 interface GradeWithUsage {
   grades: GradeResult;
