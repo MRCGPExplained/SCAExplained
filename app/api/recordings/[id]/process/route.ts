@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
+import { DEFAULT_GRADING_GUIDANCE, buildOutputContract, buildOutputSchema } from "@/lib/ai-defaults";
 import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, buildAlignmentPrompt, type CaseRule, type CaseRuleAnswer, type FiredRule } from "@/lib/case-rules";
 import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
 import {
@@ -189,6 +189,18 @@ async function gradeWithClaude(
       max_tokens: GRADING_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
+      // Enforced at generation, so a stray quote mark inside a comment can no
+      // longer cost the whole grading. The contract text above still carries
+      // what to write; this only guarantees the shape it arrives in.
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: buildOutputSchema(
+            skills.map((s) => s.skill_key),
+            rules.map((r) => r.id)
+          ),
+        },
+      },
     }),
   });
 
@@ -208,7 +220,13 @@ async function gradeWithClaude(
     );
   }
 
-  const raw = (data.content?.[0]?.text ?? "").trim();
+  // Every text block, not just the first: a response split across blocks would
+  // otherwise be silently cut at the join.
+  const raw = ((data.content ?? []) as { type?: string; text?: string }[])
+    .filter((b) => b.type === "text" && typeof b.text === "string")
+    .map((b) => b.text as string)
+    .join("")
+    .trim();
   // Strip markdown code fences Claude sometimes adds despite instructions
   const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 

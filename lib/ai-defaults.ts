@@ -43,6 +43,82 @@ FOCUS FOR NEXT TIME. After the domain comments, write a single "focus for next t
  * The machine contract. Always appended to whatever guidance is in force, so a
  * custom admin prompt can change how Claude grades but never how it replies.
  */
+/**
+ * The response shape, enforced at generation rather than hoped for.
+ *
+ * A grading run failed three times in one evening with a complete, naturally
+ * terminated response that would not parse: 15,434 characters, a proper closing
+ * brace, and an unescaped character somewhere in the middle. The model had
+ * quoted the transcript, and a stray quote mark or line break inside a JSON
+ * string costs the entire grading, not a tidy sentence.
+ *
+ * Every property is required and empty strings are allowed rather than fields
+ * being optional, because structured output wants a closed shape. "Not
+ * applicable" is therefore an empty string, which the code that reads these
+ * already treats as absent.
+ */
+export function buildOutputSchema(
+  skillKeys: string[],
+  ruleIds: string[]
+): Record<string, unknown> {
+  const grade = { type: "string", enum: ["CF", "F", "P", "CP"] };
+
+  const properties: Record<string, unknown> = {
+    data_gathering: grade,
+    clinical_management: grade,
+    relating_to_others: grade,
+    comment_data_gathering: { type: "string" },
+    comment_clinical_management: { type: "string" },
+    comment_relating_to_others: { type: "string" },
+    focus_for_next_time: { type: "string" },
+  };
+  const required = Object.keys(properties);
+
+  if (ruleIds.length) {
+    properties.case_checks = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          rule: { type: "string", enum: ruleIds },
+          answer: { type: "string", enum: ["yes", "no"] },
+          comment: { type: "string" },
+        },
+        required: ["rule", "answer", "comment"],
+        additionalProperties: false,
+      },
+    };
+    required.push("case_checks");
+  }
+
+  if (skillKeys.length) {
+    properties.skills_assessment = {
+      type: "object",
+      properties: {
+        skills: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              skill: { type: "string", enum: skillKeys },
+              rating: { type: "string", enum: ["good", "needs_improvement", "not_assessable"] },
+              improvement: { type: "string" },
+              comment: { type: "string" },
+            },
+            required: ["skill", "rating", "improvement", "comment"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["skills"],
+      additionalProperties: false,
+    };
+    required.push("skills_assessment");
+  }
+
+  return { type: "object", properties, required, additionalProperties: false };
+}
+
 export function buildOutputContract(
   skillsContract: string | null,
   caseChecksContract: string | null = null
