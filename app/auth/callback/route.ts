@@ -1,3 +1,4 @@
+import { endOtherSessions } from "@/lib/single-session";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -27,8 +28,10 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
+    await endOtherSessions(supabase);
   } else if (tokenHash && type) {
     await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "signup" | "email" | "recovery" });
+    await endOtherSessions(supabase);
   }
 
   const redirectTo = type === "recovery" ? "/reset-password" : "/login";

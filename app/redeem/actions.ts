@@ -1,5 +1,7 @@
 "use server";
 
+import { endOtherSessions } from "@/lib/single-session";
+
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { redirect } from "next/navigation";
@@ -81,6 +83,7 @@ export async function redeemWithSignupAction(
       if (signInErr || !signIn.user) {
         return { error: "An account with this email already exists. Sign in at /login instead." };
       }
+      await endOtherSessions(supabase);
       userId = signIn.user.id;
     } else {
       return { error: createErr.message };
@@ -100,6 +103,7 @@ export async function redeemWithSignupAction(
     const supabase = await createSupabaseServerClient();
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
     if (signInErr) return { error: "Account created but sign-in failed. Try logging in manually." };
+    await endOtherSessions(supabase);
   }
 
   const result = await redeemForUser(admin, userId, raw);

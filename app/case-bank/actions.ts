@@ -1,5 +1,7 @@
 "use server";
 
+import { endOtherSessions } from "@/lib/single-session";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
@@ -29,6 +31,8 @@ export async function loginAction(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { error: error.message };
+
+  await endOtherSessions(supabase);
 
   redirect(next);
 }
