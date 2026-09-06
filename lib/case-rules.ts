@@ -67,11 +67,31 @@ export interface FiredRule {
   finding?: string;
 }
 
+/**
+ * One check as answered, whether or not it fired.
+ *
+ * Kept because the system used to explain its Fails and say nothing about its
+ * non-Fails: a rule that quietly stopped firing would look exactly like a rule
+ * that had nothing to fire on. "Why did this not fire" is at least as important
+ * a question as "why did it", and it was unanswerable.
+ */
+export interface CheckedRule {
+  id: string;
+  name: string;
+  domain: DomainKey;
+  /** Absent when the model returned nothing for this rule at all. */
+  answer?: string;
+  finding?: string;
+  fired: boolean;
+}
+
 export interface CaseRulesOutcome {
   final: Record<DomainKey, Grade | null>;
   /** Replacement domain comments, from the rule that decided each domain. */
   comments: Partial<Record<DomainKey, string>>;
   fired: FiredRule[];
+  /** Every rule considered, so a non-firing answer is still on the record. */
+  checked: CheckedRule[];
 }
 
 const DOMAINS: DomainKey[] = ["data_gathering", "clinical_management", "relating_to_others"];
@@ -121,6 +141,21 @@ export function applyCaseRules(
   const final = { ...grades };
   const comments: Partial<Record<DomainKey, string>> = {};
   const fired: FiredRule[] = [];
+
+  // Recorded for every rule up front, so a rule that answered the other way, or
+  // that the model skipped entirely, still leaves a trace.
+  const checked: CheckedRule[] = rules.map((r) => {
+    const a = byId.get(r.id);
+    const answer = a?.answer?.trim().toLowerCase();
+    return {
+      id: r.id,
+      name: r.name,
+      domain: r.domain,
+      ...(answer ? { answer } : {}),
+      ...(a?.finding?.trim() ? { finding: a.finding.trim() } : {}),
+      fired: answer === r.fires_when,
+    };
+  });
 
   for (const domain of DOMAINS) {
     const before = grades[domain];
@@ -178,7 +213,7 @@ export function applyCaseRules(
     }
   }
 
-  return { final, comments, fired };
+  return { final, comments, fired, checked };
 }
 
 /** The case-rules half of the grading prompt. */

@@ -949,6 +949,10 @@ export async function POST(req: Request, { params }: RouteParams) {
           ? { skills: finalSkillAnswers, outcomes: adjusted.outcomes }
           : null,
         case_rules_fired: caseOutcome?.fired.length ? caseOutcome.fired : null,
+        // Every rule considered, firing or not. The report still shows only
+        // what fired; this is what makes "why did it not fire this time"
+        // answerable instead of a shrug at a database with nothing in it.
+        case_rules_checked: caseOutcome?.checked.length ? caseOutcome.checked : null,
         skills_graded_at: adjusted ? new Date().toISOString() : null,
         skills_framework_version: adjusted ? skillConfig.frameworkVersion : null,
         // What the model graded before the adjustment, so the layer's effect
