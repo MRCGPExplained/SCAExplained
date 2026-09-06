@@ -9,6 +9,7 @@ import {
   loadGradingSkills,
   applySkillAdjustment,
   applyTimeManagementCutoff,
+  normaliseSkillAnswers,
   DEFAULT_SKILL_CONFIG,
   type SkillAnswer,
   type GradingSkill,
@@ -720,9 +721,18 @@ export async function POST(req: Request, { params }: RouteParams) {
       // The model graded the domains and answered the skill questions. Moving
       // the grade is arithmetic, so it happens here rather than being asked of
       // the model — that is what makes it consistent and tunable.
-      const rawSkillAnswers: SkillAnswer[] = Array.isArray(grades.skills_assessment?.skills)
+      const parsedSkillAnswers: SkillAnswer[] = Array.isArray(grades.skills_assessment?.skills)
         ? grades.skills_assessment.skills
         : [];
+
+      // Duplicates removed and improvements stripped from anything not marked
+      // needs_improvement, before the count, the report or the examiner's copy
+      // sees any of it.
+      const normalised = normaliseSkillAnswers(parsedSkillAnswers, gradingSkills);
+      const rawSkillAnswers = normalised.answers;
+      if (normalised.duplicates.length) {
+        console.warn(`[recordings/process] duplicate skill answers dropped: ${normalised.duplicates.join(", ")}`);
+      }
 
       // Applied before anything downstream reads the answers, so the count, the
       // report and the examiner's copy all see the same corrected set.

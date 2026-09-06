@@ -340,6 +340,50 @@ export function validateSkillPrompt(raw: string): { value?: string; error?: stri
 }
 
 /**
+ * Cleans the answer list before anything reads it.
+ *
+ * Two things the model gets wrong that the schema cannot prevent. It sometimes
+ * answers the same skill twice — safety netting, cue recognition and empathy
+ * have all appeared as duplicate cards on a report — and an array of enums has
+ * no way to say "each value at most once".
+ *
+ * And it now writes an improvement on skills it marked good, because the schema
+ * requires the field on every entry. That was the price of a closed shape: the
+ * alternative, an optional field, is what the model kept omitting when it was
+ * actually needed. Required in the schema, cleared here, so the guarantee is
+ * kept where it matters and the field is dropped where it does not belong.
+ */
+export function normaliseSkillAnswers(
+  answers: SkillAnswer[],
+  skills: GradingSkill[]
+): { answers: SkillAnswer[]; duplicates: string[] } {
+  const known = new Set(skills.map((s) => s.skill_key));
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  const out: SkillAnswer[] = [];
+
+  for (const a of answers) {
+    if (!known.has(a.skill)) continue;
+    if (seen.has(a.skill)) {
+      duplicates.push(a.skill);
+      continue;
+    }
+    seen.add(a.skill);
+    // "Next time" is advice for something that fell short. On a skill done
+    // well it reads as a complaint attached to praise.
+    const keepImprovement = a.rating === "needs_improvement" && a.improvement?.trim();
+    out.push({
+      skill: a.skill,
+      rating: a.rating,
+      comment: a.comment,
+      ...(keepImprovement ? { improvement: a.improvement!.trim() } : {}),
+    });
+  }
+
+  return { answers: out, duplicates };
+}
+
+/**
  * Pacing is only judgeable against a full sitting, so a short consultation is
  * not assessed for it.
  *
