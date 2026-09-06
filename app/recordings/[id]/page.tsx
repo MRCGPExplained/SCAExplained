@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
 import { loadAllSkillLabels, CAP_CEILING, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
+import { DOMAIN_LABEL as CASE_DOMAIN_LABEL, type FiredRule } from "@/lib/case-rules";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
@@ -97,6 +98,7 @@ type RecordingDetail = {
   examiner_comment_relating_to_others: string | null;
   examiner_overall_comment: string | null;
   skills_assessment: unknown;
+  case_rules_fired: unknown;
   examiner_skills_assessment: unknown;
   ai_baseline_data_gathering: string | null;
   ai_baseline_clinical_management: string | null;
@@ -166,6 +168,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const skills: SkillAnswer[] = Array.isArray(examinerSkills?.skills) && examinerSkills.skills.length
     ? examinerSkills.skills
     : aiSkills;
+  const firedRules: FiredRule[] = Array.isArray(rec.case_rules_fired) ? rec.case_rules_fired : [];
   // Includes retired skills so an old recording still shows a proper label.
   const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
 
@@ -437,6 +440,35 @@ export default async function RecordingDetailPage({ params }: PageProps) {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── Case rules, examiner only ── */}
+        {/* Its own panel rather than part of the skills strip: a rule can fire
+            on a station with skill grading switched off entirely, and a forced
+            grade must never reach a GP unexplained. */}
+        {examiner && firedRules.length > 0 && (
+          <div
+            className="rounded-2xl px-5 py-4 mb-5"
+            style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.18)" }}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "#4338CA" }}>
+              Case rules applied · not shown to the candidate
+            </div>
+            <div className="flex flex-col gap-1">
+              {firedRules.map((f, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 text-[12.5px] flex-wrap">
+                  <span style={{ color: "rgba(51,51,51,0.65)" }}>
+                    {f.name}
+                    {!f.decisive && <span style={{ color: "rgba(51,51,51,0.35)" }}> · not decisive</span>}
+                  </span>
+                  <span className="font-mono" style={{ color: "#4338CA" }}>
+                    {CASE_DOMAIN_LABEL[f.domain]} {f.bound === "ceiling" ? "capped at" : "lifted to"} {f.grade}
+                    {f.before !== f.after ? ` · ${f.before} → ${f.after}` : " · no change"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

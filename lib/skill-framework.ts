@@ -22,7 +22,7 @@ export type SkillDomain = DomainKey | "none";
 export type Grade = "CF" | "F" | "P" | "CP";
 
 /** Worst to best. Adjustment moves one step along this and clamps at the ends. */
-const GRADE_ORDER: Grade[] = ["CF", "F", "P", "CP"];
+export const GRADE_ORDER: Grade[] = ["CF", "F", "P", "CP"];
 
 export interface GradingSkill {
   skill_key: string;

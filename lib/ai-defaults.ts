@@ -43,7 +43,10 @@ FOCUS FOR NEXT TIME. After the domain comments, write a single "focus for next t
  * The machine contract. Always appended to whatever guidance is in force, so a
  * custom admin prompt can change how Claude grades but never how it replies.
  */
-export function buildOutputContract(skillsContract: string | null): string {
+export function buildOutputContract(
+  skillsContract: string | null,
+  caseChecksContract: string | null = null
+): string {
   const core = `  "data_gathering": "P",
   "clinical_management": "F",
   "relating_to_others": "CP",
@@ -52,21 +55,32 @@ export function buildOutputContract(skillsContract: string | null): string {
   "comment_relating_to_others": "Three sentence comment here.",
   "focus_for_next_time": "One or two sentence next step here."`;
 
-  if (!skillsContract) {
+  const sections = [core, skillsContract, caseChecksContract].filter(Boolean).join(",\n");
+
+  if (!skillsContract && !caseChecksContract) {
     return `Respond ONLY with valid JSON — no markdown, no explanation:
 {
 ${core}
 }`;
   }
 
+  const notes = [
+    "Grade the three domains from the station's criteria and the transcript.",
+    skillsContract
+      ? "Do not adjust them to reflect the skill answers: that adjustment is applied separately and is not your job. Include exactly one entry per skill listed above."
+      : null,
+    caseChecksContract
+      ? "Nor to reflect the case-specific checks: answer those as asked and leave the consequences alone. Include exactly one entry per check listed above."
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return `Respond ONLY with valid JSON — no markdown, no explanation.
 
-Grade the three domains from the station's criteria and the transcript. Do not
-adjust them to reflect the skill answers: that adjustment is applied separately
-and is not your job. Include exactly one entry per skill listed above.
+${notes}
 
 {
-${core},
-${skillsContract}
+${sections}
 }`;
 }

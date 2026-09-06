@@ -1719,3 +1719,90 @@ export async function bumpSkillFrameworkVersionAction(): Promise<ActionResult> {
   revalidatePath("/admin/skills");
   return { success: true };
 }
+
+// ── Case rules ────────────────────────────────────────────────────────────────
+
+export async function upsertCaseRuleAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const stationId = String(formData.get("station_id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const trigger = String(formData.get("trigger_question") ?? "").trim();
+  const firesWhen = String(formData.get("fires_when") ?? "yes");
+  const domain = String(formData.get("domain") ?? "");
+  const bound = String(formData.get("bound") ?? "ceiling");
+  const grade = String(formData.get("grade") ?? "");
+  const basis = String(formData.get("comment_basis") ?? "").trim();
+
+  if (!stationId) return { error: "Station missing." };
+  if (!name) return { error: "Give the rule a name so it can be recognised later." };
+  if (!trigger) return { error: "The trigger question is required." };
+  if (!basis) return { error: "The comment basis is required: it is what the candidate is told when this fires." };
+  if (!["yes", "no"].includes(firesWhen)) return { error: "Fires when must be yes or no." };
+  if (!["data_gathering", "clinical_management", "relating_to_others"].includes(domain)) {
+    return { error: "Unknown domain." };
+  }
+  if (!["ceiling", "floor"].includes(bound)) return { error: "Unknown effect." };
+  if (!["CF", "F", "P", "CP"].includes(grade)) return { error: "Unknown grade." };
+
+  const row = {
+    station_id: stationId,
+    name,
+    trigger_question: trigger,
+    fires_when: firesWhen,
+    domain,
+    bound,
+    grade,
+    comment_basis: basis,
+  };
+
+  if (id) {
+    const { error } = await supabase.from("station_case_rules").update(row).eq("id", id);
+    if (error) return { error: error.message };
+  } else {
+    const { data: last } = await supabase
+      .from("station_case_rules")
+      .select("sort_order")
+      .eq("station_id", stationId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ sort_order: number }>();
+    const { error } = await supabase
+      .from("station_case_rules")
+      .insert({ ...row, sort_order: (last?.sort_order ?? -1) + 1 });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath(`/admin/stations/${stationId}/edit`);
+  return { success: true };
+}
+
+/**
+ * Retires rather than deletes: a recording graded while the rule was live
+ * records its id, and a deleted row would leave that audit trail pointing at
+ * nothing.
+ */
+export async function setCaseRuleActiveAction(id: string, active: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data, error } = await supabase
+    .from("station_case_rules")
+    .update({ active })
+    .eq("id", id)
+    .select("station_id")
+    .maybeSingle<{ station_id: string }>();
+
+  if (error) return { error: error.message };
+  if (data) revalidatePath(`/admin/stations/${data.station_id}/edit`);
+  return { success: true };
+}

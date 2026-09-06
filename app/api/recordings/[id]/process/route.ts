@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
+import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, type CaseRule, type CaseRuleAnswer } from "@/lib/case-rules";
 import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
 import {
   buildSkillFrameworkPrompt,
@@ -48,6 +49,8 @@ interface GradeResult {
   // Present only when skill grading is enabled. The model answers the skill
   // questions; the grade adjustment itself is computed in code.
   skills_assessment?: { skills?: SkillAnswer[] };
+  // Present only for stations that have case rules.
+  case_checks?: CaseRuleAnswer[];
 }
 
 interface ClaudeUsageRaw {
@@ -153,16 +156,21 @@ interface GradeWithUsage {
 async function gradeWithClaude(
   stationContext: string,
   transcript: string,
-  opts: { customPrompt?: string; skills?: GradingSkill[]; stationNotes?: Record<string, string>; skillPrompt?: string | null; model: string }
+  opts: { customPrompt?: string; skills?: GradingSkill[]; stationNotes?: Record<string, string>; skillPrompt?: string | null; caseRules?: CaseRule[]; model: string }
 ): Promise<GradeWithUsage> {
   // Guidance is replaceable by an admin; the skill framework and the output
   // contract are not, so a custom prompt can change how Claude grades but can
   // never break how it replies.
   const skills = opts.skills ?? [];
+  const rules = opts.caseRules ?? [];
   const systemPrompt = [
     opts.customPrompt?.trim() || DEFAULT_GRADING_GUIDANCE,
     skills.length ? buildSkillFrameworkPrompt(skills, opts.stationNotes ?? {}, opts.skillPrompt) : null,
-    buildOutputContract(skills.length ? buildSkillsOutputContract(skills) : null),
+    rules.length ? buildCaseRulesPrompt(rules) : null,
+    buildOutputContract(
+      skills.length ? buildSkillsOutputContract(skills) : null,
+      rules.length ? buildCaseRulesOutputContract(rules) : null
+    ),
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -449,10 +457,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { data: station } = await admin
       .from("stations")
       .select(
-        "title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, data_gathering, management, skill_notes, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
+        "id, title, dilemma, reason_for_consultation, pmh, medications_and_allergies, recent_notes, opening_statement, if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, ice_expectations, question_for_doctor, data_gathering, management, skill_notes, marking_notes_data_gathering, marking_notes_clinical_management, marking_notes_relating_to_others"
       )
       .eq("number", recording.station_number)
       .single<{
+        id: string;
         title: string;
         dilemma: string | null;
         reason_for_consultation: string;
@@ -594,12 +603,16 @@ export async function POST(req: Request, { params }: RouteParams) {
 
       // Loaded per run so an edited question set takes effect immediately.
       const gradingSkills = skillGrading ? await loadGradingSkills(admin) : [];
+      // Only stations that have rules pay for them: no rules, nothing added to
+      // the prompt and nothing changed about how the run behaves.
+      const caseRules = station?.id ? await loadCaseRules(admin, station.id) : [];
 
       const { grades, model: gradeModel, tokens } = await gradeWithClaude(stationContext, transcriptFormatted, {
         customPrompt,
         skills: gradingSkills,
         stationNotes: (station?.skill_notes ?? {}) as Record<string, string>,
         skillPrompt: settingsMap.get("skill_prompt") ?? null,
+        caseRules,
         model: gradingModel,
       });
 
@@ -642,16 +655,38 @@ export async function POST(req: Request, { params }: RouteParams) {
           ? applySkillAdjustment(baseline, skillAnswers, gradingSkills, skillConfig)
           : null;
 
-      const finalGrades = adjusted?.final ?? baseline;
+      const skillAdjusted = adjusted?.final ?? baseline;
+
+      // Last, and over the top of everything above it. The examiner who set the
+      // station outranks both the model's own grade and the skill modulation,
+      // which is what makes this layer authoritative rather than another nudge.
+      const caseAnswers = Array.isArray(grades.case_checks) ? grades.case_checks : [];
+      const caseOutcome = caseRules.length
+        ? applyCaseRules(skillAdjusted, caseAnswers, caseRules)
+        : null;
+      const finalGrades = caseOutcome?.final ?? skillAdjusted;
+
+      if (caseOutcome?.fired.length) {
+        console.log(
+          `[recordings/process] case rules fired: ${caseOutcome.fired
+            .map((f) => `${f.name} (${f.domain} ${f.before}→${f.after})`)
+            .join(", ")}`
+        );
+      }
 
       // Domain comments and skill comments go through the same check: a quote
       // is just as unwelcome in either, and both are read by the candidate.
       const skillCommentKey = (skill: string) => `skill:${skill}`;
       const { fixed: repaired, tokens: repairTokens } = await repairQuotedComments(
         {
-          comment_data_gathering: grades.comment_data_gathering,
-          comment_clinical_management: grades.comment_clinical_management,
-          comment_relating_to_others: grades.comment_relating_to_others,
+          // A rule's replacement takes the place of the model's own comment
+          // before the quote check runs, so the text that reaches the candidate
+          // is the one that gets checked.
+          comment_data_gathering: caseOutcome?.comments.data_gathering ?? grades.comment_data_gathering,
+          comment_clinical_management:
+            caseOutcome?.comments.clinical_management ?? grades.comment_clinical_management,
+          comment_relating_to_others:
+            caseOutcome?.comments.relating_to_others ?? grades.comment_relating_to_others,
           focus_for_next_time: grades.focus_for_next_time,
           ...Object.fromEntries(skillAnswers.map((a) => [skillCommentKey(a.skill), a.comment])),
         },
@@ -660,9 +695,18 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
 
       const comments = {
-        data_gathering: repaired.comment_data_gathering ?? grades.comment_data_gathering,
-        clinical_management: repaired.comment_clinical_management ?? grades.comment_clinical_management,
-        relating_to_others: repaired.comment_relating_to_others ?? grades.comment_relating_to_others,
+        data_gathering:
+          repaired.comment_data_gathering ??
+          caseOutcome?.comments.data_gathering ??
+          grades.comment_data_gathering,
+        clinical_management:
+          repaired.comment_clinical_management ??
+          caseOutcome?.comments.clinical_management ??
+          grades.comment_clinical_management,
+        relating_to_others:
+          repaired.comment_relating_to_others ??
+          caseOutcome?.comments.relating_to_others ??
+          grades.comment_relating_to_others,
         focus: repaired.focus_for_next_time ?? grades.focus_for_next_time,
       };
 
@@ -734,6 +778,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         skills_assessment: adjusted
           ? { skills: finalSkillAnswers, outcomes: adjusted.outcomes }
           : null,
+        case_rules_fired: caseOutcome?.fired.length ? caseOutcome.fired : null,
         skills_graded_at: adjusted ? new Date().toISOString() : null,
         skills_framework_version: adjusted ? skillConfig.frameworkVersion : null,
         // What the model graded before the adjustment, so the layer's effect
