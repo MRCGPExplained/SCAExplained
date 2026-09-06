@@ -202,6 +202,49 @@ Never quote the transcript, here as anywhere.
 `.trim();
 }
 
+/**
+ * Asks for the rest of the report to be brought into line with a fired rule.
+ *
+ * Needed because a contradiction cannot be found in code. A quote is string
+ * matching and a missing improvement is a null check, but "this comment praises
+ * what that comment condemns" is a judgement, and only a model can make it.
+ * What code does know, exactly, is when a rule fired — so the call is made only
+ * on those runs, and the transcript is not re-sent because the question is
+ * about the report, not the consultation.
+ */
+export function buildAlignmentPrompt(
+  fired: FiredRule[],
+  rules: CaseRule[],
+  texts: Record<string, string>
+): string {
+  const byId = new Map(rules.map((r) => [r.id, r]));
+  const positions = fired
+    .map((f) => {
+      const rule = byId.get(f.id);
+      return `- ${DOMAIN_LABEL[f.domain]}: ${rule?.comment_basis ?? f.name}`;
+    })
+    .join("\n\n");
+
+  const items = Object.entries(texts)
+    .map(([key, text]) => `${key}\n${text}`)
+    .join("\n\n");
+
+  return `An examiner's ruling has been applied to this report. These are the positions now taken:
+
+${positions}
+
+Below is the rest of the report, written before that ruling was applied. Some of it may praise or endorse the very thing the ruling marks as wrong.
+
+Rewrite only what contradicts the ruling. Leave anything consistent with it exactly as it is, word for word. Do not soften a criticism that still stands, do not restate the ruling in every entry, and change as little as possible: this is a correction pass, not a rewrite.
+
+Keep each entry's length, its "you" address, and its rating. Never quote the transcript.
+
+${items}
+
+Respond ONLY with valid JSON, no markdown, mapping every key you changed to its new text. Omit keys you left unchanged.
+{ "key": "rewritten text" }`;
+}
+
 /** The case-rules half of the JSON contract. */
 export function buildCaseRulesOutputContract(rules: CaseRule[]): string {
   const ids = rules.map((r) => `"${r.id}"`).join(", ");

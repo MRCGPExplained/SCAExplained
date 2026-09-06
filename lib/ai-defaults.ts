@@ -55,7 +55,13 @@ export function buildOutputContract(
   "comment_relating_to_others": "Three sentence comment here.",
   "focus_for_next_time": "One or two sentence next step here."`;
 
-  const sections = [core, skillsContract, caseChecksContract].filter(Boolean).join(",\n");
+  // Case checks come first on purpose. Generation is sequential, so what the
+  // model commits to early constrains what it writes afterwards: with the
+  // checks last, it wrote every skill comment from its own view and only then
+  // conceded the point, leaving one report praising what another part of it
+  // condemned. Answering first is what makes the consistency rule below
+  // something it can actually follow.
+  const sections = [caseChecksContract, core, skillsContract].filter(Boolean).join(",\n");
 
   if (!skillsContract && !caseChecksContract) {
     return `Respond ONLY with valid JSON — no markdown, no explanation:
@@ -70,7 +76,7 @@ ${core}
       ? "Do not adjust them to reflect the skill answers: that adjustment is applied separately and is not your job. Include exactly one entry per skill listed above."
       : null,
     caseChecksContract
-      ? "Nor to reflect the case-specific checks: answer those as asked and leave the consequences alone. Include exactly one entry per check listed above."
+      ? "Nor to reflect the case-specific checks: answer those as asked and leave the consequences alone. Include exactly one entry per check listed above. Answer them FIRST, then write everything else consistently with the position they take: where a check identifies something as wrong, no later comment may call that same thing correct, appropriate, or well handled. One report must not argue with itself."
       : null,
   ]
     .filter(Boolean)

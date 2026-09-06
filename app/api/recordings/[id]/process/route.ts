@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract } from "@/lib/ai-defaults";
-import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, type CaseRule, type CaseRuleAnswer } from "@/lib/case-rules";
+import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, buildAlignmentPrompt, type CaseRule, type CaseRuleAnswer, type FiredRule } from "@/lib/case-rules";
 import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
 import {
   buildSkillFrameworkPrompt,
@@ -332,6 +332,78 @@ async function repairQuotedComments(
 
   if (remaining) console.warn(`[recordings/process] ${remaining} comment(s) still quoting after rewrite`);
   return { fixed, tokens, remaining };
+}
+
+/**
+ * Brings the rest of the report into line with a fired case rule.
+ *
+ * Runs only when a rule actually fired, which is a flag rather than a guess, so
+ * the cost lands on the rare consultation where an examiner has overruled the
+ * model and nowhere else. Cheap because the transcript is not re-sent: the
+ * question is whether the report contradicts itself, not what happened.
+ */
+async function alignReportToCaseRules(
+  fired: FiredRule[],
+  rules: CaseRule[],
+  texts: Record<string, string | undefined>,
+  model: string
+): Promise<{ fixed: Record<string, string>; tokens: ClaudeTokens | null }> {
+  const present = Object.fromEntries(
+    Object.entries(texts).filter(([, v]) => v?.trim()) as [string, string][]
+  );
+  if (!fired.length || !Object.keys(present).length) return { fixed: {}, tokens: null };
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 3000,
+      messages: [{ role: "user", content: buildAlignmentPrompt(fired, rules, present) }],
+    }),
+  });
+
+  // A failed alignment must never fail the grading. An inconsistent report is
+  // worse than a consistent one and better than none.
+  if (!res.ok) {
+    console.error(`[recordings/process] alignment failed: Claude ${res.status}`);
+    return { fixed: {}, tokens: null };
+  }
+
+  const data = await res.json();
+  const raw = (data.content?.[0]?.text ?? "").trim();
+  const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+
+  const usage = (data.usage ?? {}) as ClaudeUsageRaw;
+  const tokens: ClaudeTokens = {
+    input_tokens: usage.input_tokens ?? 0,
+    output_tokens: usage.output_tokens ?? 0,
+    cache_creation_tokens: usage.cache_creation_input_tokens ?? 0,
+    cache_read_tokens: usage.cache_read_input_tokens ?? 0,
+  };
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    console.error(`[recordings/process] alignment returned invalid JSON: ${text.slice(0, 200)}`);
+    return { fixed: {}, tokens };
+  }
+
+  const fixed: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    // Only keys that were sent, so a hallucinated key cannot invent a comment.
+    if (key in present && typeof value === "string" && value.trim()) fixed[key] = value.trim();
+  }
+
+  if (Object.keys(fixed).length) {
+    console.log(`[recordings/process] realigned after case rule: ${Object.keys(fixed).join(", ")}`);
+  }
+  return { fixed, tokens };
 }
 
 // Sample transcript injected when ?spike=1 — skips Deepgram entirely
@@ -674,45 +746,80 @@ export async function POST(req: Request, { params }: RouteParams) {
         );
       }
 
+      const skillCommentKey = (skill: string) => `skill:${skill}`;
+
+      // Everything the candidate reads, so a fired rule cannot leave one part
+      // of the report praising what another part condemns. Runs before the
+      // quote check, so realigned text is checked like any other.
+      const { fixed: aligned, tokens: alignTokens } = caseOutcome?.fired.length
+        ? await alignReportToCaseRules(
+            caseOutcome.fired,
+            caseRules,
+            {
+              comment_data_gathering: caseOutcome.comments.data_gathering ?? grades.comment_data_gathering,
+              comment_clinical_management:
+                caseOutcome.comments.clinical_management ?? grades.comment_clinical_management,
+              comment_relating_to_others:
+                caseOutcome.comments.relating_to_others ?? grades.comment_relating_to_others,
+              focus_for_next_time: grades.focus_for_next_time,
+              ...Object.fromEntries(skillAnswers.map((a) => [skillCommentKey(a.skill), a.comment])),
+            },
+            gradingModel
+          )
+        : { fixed: {} as Record<string, string>, tokens: null };
+
       // Domain comments and skill comments go through the same check: a quote
       // is just as unwelcome in either, and both are read by the candidate.
-      const skillCommentKey = (skill: string) => `skill:${skill}`;
       const { fixed: repaired, tokens: repairTokens } = await repairQuotedComments(
         {
-          // A rule's replacement takes the place of the model's own comment
-          // before the quote check runs, so the text that reaches the candidate
-          // is the one that gets checked.
-          comment_data_gathering: caseOutcome?.comments.data_gathering ?? grades.comment_data_gathering,
+          // A rule's replacement, then any realignment, take the place of the
+          // model's own comment before the quote check runs, so the text that
+          // reaches the candidate is the one that gets checked.
+          comment_data_gathering:
+            aligned.comment_data_gathering ??
+            caseOutcome?.comments.data_gathering ??
+            grades.comment_data_gathering,
           comment_clinical_management:
-            caseOutcome?.comments.clinical_management ?? grades.comment_clinical_management,
+            aligned.comment_clinical_management ??
+            caseOutcome?.comments.clinical_management ??
+            grades.comment_clinical_management,
           comment_relating_to_others:
-            caseOutcome?.comments.relating_to_others ?? grades.comment_relating_to_others,
-          focus_for_next_time: grades.focus_for_next_time,
-          ...Object.fromEntries(skillAnswers.map((a) => [skillCommentKey(a.skill), a.comment])),
+            aligned.comment_relating_to_others ??
+            caseOutcome?.comments.relating_to_others ??
+            grades.comment_relating_to_others,
+          focus_for_next_time: aligned.focus_for_next_time ?? grades.focus_for_next_time,
+          ...Object.fromEntries(
+            skillAnswers.map((a) => [skillCommentKey(a.skill), aligned[skillCommentKey(a.skill)] ?? a.comment])
+          ),
         },
         transcriptFormatted,
         gradingModel
       );
 
+      // Latest wins: quote repair over realignment, realignment over the rule's
+      // replacement, replacement over the model's own.
       const comments = {
         data_gathering:
           repaired.comment_data_gathering ??
+          aligned.comment_data_gathering ??
           caseOutcome?.comments.data_gathering ??
           grades.comment_data_gathering,
         clinical_management:
           repaired.comment_clinical_management ??
+          aligned.comment_clinical_management ??
           caseOutcome?.comments.clinical_management ??
           grades.comment_clinical_management,
         relating_to_others:
           repaired.comment_relating_to_others ??
+          aligned.comment_relating_to_others ??
           caseOutcome?.comments.relating_to_others ??
           grades.comment_relating_to_others,
-        focus: repaired.focus_for_next_time ?? grades.focus_for_next_time,
+        focus: repaired.focus_for_next_time ?? aligned.focus_for_next_time ?? grades.focus_for_next_time,
       };
 
       const finalSkillAnswers: SkillAnswer[] = skillAnswers.map((a) => ({
         ...a,
-        comment: repaired[skillCommentKey(a.skill)] ?? a.comment,
+        comment: repaired[skillCommentKey(a.skill)] ?? aligned[skillCommentKey(a.skill)] ?? a.comment,
       }));
 
       // Record Claude usage + cost. First grading call for a recording is
@@ -737,6 +844,24 @@ export async function POST(req: Request, { params }: RouteParams) {
           cost_gbp: usdToGbp(costUsd, pricing),
           pricing_version_id: pricing.id,
         });
+
+        // Billed separately so the cost of keeping a report consistent with an
+        // examiner's ruling is visible rather than buried in the grading line.
+        if (alignTokens) {
+          const alignUsd = claudeCostUsd(alignTokens, pricing);
+          await admin.from("claude_usage").insert({
+            recording_id: recordingId,
+            call_type: "case_rule_align",
+            model: gradingModel,
+            input_tokens: alignTokens.input_tokens,
+            output_tokens: alignTokens.output_tokens,
+            cache_creation_tokens: alignTokens.cache_creation_tokens,
+            cache_read_tokens: alignTokens.cache_read_tokens,
+            cost_usd: alignUsd,
+            cost_gbp: usdToGbp(alignUsd, pricing),
+            pricing_version_id: pricing.id,
+          });
+        }
 
         // Billed separately so the cost of enforcing the no-quotes rule is
         // visible rather than buried in the grading line.
