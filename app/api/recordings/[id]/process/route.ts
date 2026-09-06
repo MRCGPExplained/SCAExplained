@@ -847,9 +847,13 @@ export async function POST(req: Request, { params }: RouteParams) {
 
         // Billed separately so the cost of keeping a report consistent with an
         // examiner's ruling is visible rather than buried in the grading line.
+        //
+        // The error is checked because ignoring it hid this exact bug: a check
+        // constraint predating these call types rejected the row, the ledger
+        // quietly under-reported, and the only symptom was a missing line.
         if (alignTokens) {
           const alignUsd = claudeCostUsd(alignTokens, pricing);
-          await admin.from("claude_usage").insert({
+          const { error: alignErr } = await admin.from("claude_usage").insert({
             recording_id: recordingId,
             call_type: "case_rule_align",
             model: gradingModel,
@@ -861,13 +865,14 @@ export async function POST(req: Request, { params }: RouteParams) {
             cost_gbp: usdToGbp(alignUsd, pricing),
             pricing_version_id: pricing.id,
           });
+          if (alignErr) console.error(`[recordings/process] could not bill alignment: ${alignErr.message}`);
         }
 
         // Billed separately so the cost of enforcing the no-quotes rule is
         // visible rather than buried in the grading line.
         if (repairTokens) {
           const repairUsd = claudeCostUsd(repairTokens, pricing);
-          await admin.from("claude_usage").insert({
+          const { error: repairErr } = await admin.from("claude_usage").insert({
             recording_id: recordingId,
             call_type: "quote_repair",
             model: gradingModel,
@@ -879,6 +884,7 @@ export async function POST(req: Request, { params }: RouteParams) {
             cost_gbp: usdToGbp(repairUsd, pricing),
             pricing_version_id: pricing.id,
           });
+          if (repairErr) console.error(`[recordings/process] could not bill quote repair: ${repairErr.message}`);
         }
       }
 
