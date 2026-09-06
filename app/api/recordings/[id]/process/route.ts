@@ -146,11 +146,14 @@ const GRADING_MODEL = "claude-haiku-4-5-20251001";
 // over forty runs. Truncation is not a worse report, it is no report: the JSON
 // stops mid-string and the whole grading fails.
 //
-// Twelve thousand is deliberately far more than the 2,500-3,200 a grading
-// actually uses. Output is billed per token generated, not per token allowed,
-// so the headroom is free and the previous two ceilings were both set too
-// close to the observed maximum.
-const GRADING_MAX_TOKENS = 12000;
+// Twenty thousand is deliberately far more than any grading uses. Haiku runs
+// at 2,500-3,200 output tokens and Sonnet at around 10,350, measured over
+// twenty gradings, so a ceiling sized for Haiku would truncate every Sonnet
+// response. Output is billed per token generated, not per token allowed, so
+// the headroom is free, and the previous three ceilings were each set just
+// above the largest response seen at the time, which is how they came to be
+// too low three times.
+const GRADING_MAX_TOKENS = 20000;
 
 interface GradeWithUsage {
   grades: GradeResult;
