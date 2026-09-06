@@ -223,7 +223,18 @@ async function gradeWithClaude(
   try {
     return { grades: JSON.parse(text) as GradeResult, model: data.model ?? opts.model, tokens };
   } catch {
-    throw new Error(`Claude returned invalid JSON: ${text.slice(0, 200)}`);
+    // The tail is what identifies the failure: a response that stops mid-string
+    // was truncated, one that ends on a brace was malformed. Two hundred
+    // characters of the head told neither story, so both ends are logged along
+    // with the stop reason and the length.
+    console.error(
+      `[recordings/process] unparseable grading response. stop_reason=${data.stop_reason}, ` +
+        `output_tokens=${usage.output_tokens}, chars=${text.length}\n` +
+        `HEAD: ${text.slice(0, 400)}\nTAIL: ${text.slice(-400)}`
+    );
+    throw new Error(
+      `Claude returned invalid JSON (stop_reason=${data.stop_reason}, ${text.length} chars). Ends: ${text.slice(-120)}`
+    );
   }
 }
 
