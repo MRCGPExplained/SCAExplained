@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
+import { CaseBankMockup } from "./components/CaseBankMockup";
+import { StudyRoomMockup } from "./components/StudyRoomMockup";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
 import { AwardIcon, SparklesIcon, StethoscopeIcon, BooksIcon } from "./components/TrustIcons";
@@ -155,6 +157,79 @@ export default async function HomePage() {
               How it works
             </p>
             <HowItWorks />
+          </div>
+        </div>
+      </section>
+
+
+      {/*
+        FEATURE BLOCKS. One capability per band, each with the actual interface
+        beside it rather than a sentence describing it — the product is a thing
+        you look at, and the page was asking people to take it on trust.
+
+        The panels are live markup on a small rotation, not screenshots. A
+        picture of a screen goes stale the first time the screen changes and
+        has to be re-cut at every width; this is the same components the app
+        renders, so it cannot disagree with the product and stays sharp on any
+        display. The tilt is 2 degrees and no more: enough to read as an object
+        sitting on the page rather than a rectangle pasted onto it, little
+        enough that nobody has to read text on a slant.
+      */}
+
+      {/* CASE BANK */}
+      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
+        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
+              Case bank
+            </p>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
+              240+ cases, written like the real thing
+            </h2>
+            <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.6)" }}>
+              Every station comes with the doctor&apos;s brief, the patient&apos;s story, what to gather,
+              how to manage it, and a worked example of the conversation. Star the ones you want to
+              come back to and keep your own notes against each.
+            </p>
+            <Link
+              href="/case-bank/sample"
+              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+              style={{ background: DARK, color: "white" }}
+            >
+              See a sample case →
+            </Link>
+          </div>
+          <div style={{ transform: "rotate(-2deg)" }}>
+            <CaseBankMockup />
+          </div>
+        </div>
+      </section>
+
+      {/* STUDY ROOM */}
+      <section className="px-10 py-16 max-md:px-6" style={{ background: NAVY }}>
+        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="lg:order-2">
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Study room
+            </p>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: "white" }}>
+              Practise with a partner, in the browser
+            </h2>
+            <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Share a code and you are in the same room. Three minutes to read the case, then the
+              voice call connects and the consultation records itself — twelve minutes, the same as
+              the exam. Nothing to install, no Zoom, no third-party software.
+            </p>
+            <Link
+              href="/register"
+              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+              style={{ background: YELLOW, color: DARK }}
+            >
+              Register Now →
+            </Link>
+          </div>
+          <div className="lg:order-1 max-w-[420px] w-full mx-auto" style={{ transform: "rotate(2deg)" }}>
+            <StudyRoomMockup />
           </div>
         </div>
       </section>
