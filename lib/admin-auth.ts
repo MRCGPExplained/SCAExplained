@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getCurrentUser } from "@/lib/current-user";
 
 function sha256hex(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -18,8 +18,7 @@ export async function isAdmin(): Promise<boolean> {
   const pw = process.env.ADMIN_PASSWORD ?? "";
   if (masterSession && pw && masterSession === sha256hex(pw)) return true;
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getCurrentUser();
   if (!user?.email) return false;
 
   const admin = getSupabaseAdmin();
@@ -39,8 +38,7 @@ export async function isAdmin(): Promise<boolean> {
 // outgoing reply emails. Falls back to a generic name for the /master
 // passcode fail-safe, which has no associated examiner record.
 export async function getCurrentAdminName(): Promise<string> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getCurrentUser();
   if (!user?.email) return "SCA Focus Team";
 
   const admin = getSupabaseAdmin();

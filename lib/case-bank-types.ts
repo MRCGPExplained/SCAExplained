@@ -43,6 +43,37 @@ export type Station = {
   updated_at: string;
 };
 
+/**
+ * Fields that exist for the AI grader and the examiner, and are never shown to
+ * a candidate — the case guide is explicit that the marking notes are context
+ * for grading, not study material.
+ *
+ * Add to this union rather than remembering to strip a new field by hand: the
+ * case page builds what it sends the browser by omitting these, so anything
+ * named here stops being shipped and the type says why.
+ */
+export const EXAMINER_ONLY_STATION_FIELDS = [
+  "marking_notes_data_gathering",
+  "marking_notes_clinical_management",
+  "marking_notes_relating_to_others",
+] as const;
+
+export type ExaminerOnlyStationField = (typeof EXAMINER_ONLY_STATION_FIELDS)[number];
+
+/** A station as the candidate is allowed to see it. */
+export type CandidateStation = Omit<Station, ExaminerOnlyStationField>;
+
+/**
+ * Strips the examiner-only fields from a station row. Driven by the list above
+ * rather than by naming each field at the call site, so the type and what is
+ * actually removed cannot drift apart.
+ */
+export function toCandidateStation(station: Station): CandidateStation {
+  const out: Record<string, unknown> = { ...station };
+  for (const field of EXAMINER_ONLY_STATION_FIELDS) delete out[field];
+  return out as CandidateStation;
+}
+
 export type StationListRow = {
   id: string;
   number: number;

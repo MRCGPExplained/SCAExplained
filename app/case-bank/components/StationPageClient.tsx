@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Station } from "@/lib/case-bank-types";
+import type { CandidateStation } from "@/lib/case-bank-types";
 import { StudyRoomPanel } from "./StudyRoom";
 import { StudyRoomTimer } from "./study-room/StudyRoomTimer";
 import { useStudyRoomStatus } from "./study-room/context";
@@ -303,7 +303,7 @@ function RecentNotesRenderer({ text }: { text: string }) {
   );
 }
 
-function DoctorBriefContent({ station }: { station: Station }) {
+function DoctorBriefContent({ station }: { station: CandidateStation }) {
   return (
     <div className="flex flex-col gap-3.5">
       <div className="grid grid-cols-2 gap-2.5">
@@ -457,7 +457,7 @@ function ExplanationBody({ text }: { text: string }) {
   );
 }
 
-function PatientStoryContent({ station }: { station: Station }) {
+function PatientStoryContent({ station }: { station: CandidateStation }) {
   return (
     <div className="flex flex-col gap-4">
       {/* The dilemma — the case's central tension and how the patient should play it */}
@@ -652,7 +652,7 @@ export function StationPageClient({
   initialStarred,
   isAdmin = false,
 }: {
-  station: Station;
+  station: CandidateStation;
   totalStations: number;
   prevStationNumber: number | null;
   nextStationNumber: number | null;

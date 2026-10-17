@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getCaseBankAccess } from "@/lib/case-bank-access";
 import { isAdmin } from "@/lib/admin-auth";
 import type { Station } from "@/lib/case-bank-types";
+import { toCandidateStation } from "@/lib/case-bank-types";
+import { getCurrentUser } from "@/lib/current-user";
 import { StationPageClient } from "../components/StationPageClient";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +20,9 @@ export default async function StationPage({ params }: PageProps) {
 
   const supabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Shared with the root layout and with isAdmin() below — all three used to
+  // verify the same JWT separately on the way to rendering this one page.
+  const user = await getCurrentUser();
   if (!user) redirect("/case-bank/login");
 
   // Guests (anonymous auth, joined via a room invite) never had anything to
@@ -41,8 +43,13 @@ export default async function StationPage({ params }: PageProps) {
 
   if (!station) notFound();
 
-  // Fetch prev/next station numbers
-  const [{ data: prevStation }, { data: nextStation }] = await Promise.all([
+  // Everything left is independent of everything else, so it goes in one
+  // round trip rather than four. Only the star lookup needed the station at
+  // all, and that is already in hand.
+  //
+  // The user's display name and initials are not among them — the case-bank
+  // layout loads those once for the study-room session that outlives this page.
+  const [{ data: prevStation }, { data: nextStation }, { count: totalCount }, { data: star }] = await Promise.all([
     supabase
       .from("stations")
       .select("number")
@@ -59,27 +66,25 @@ export default async function StationPage({ params }: PageProps) {
       .order("number", { ascending: true })
       .limit(1)
       .single<{ number: number }>(),
+    supabase
+      .from("stations")
+      .select("id", { count: "exact", head: true })
+      .eq("published", true),
+    supabase
+      .from("station_stars")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("station_id", station.id)
+      .single<{ id: string }>(),
   ]);
-
-  // Fetch total station count
-  const { count: totalCount } = await supabase
-    .from("stations")
-    .select("id", { count: "exact", head: true })
-    .eq("published", true);
-
-  // The user's display name and initials are no longer fetched here — the
-  // case-bank layout loads them once for the study-room session that outlives
-  // this page.
-  const { data: star } = await supabase
-    .from("station_stars")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("station_id", station.id)
-    .single<{ id: string }>();
 
   return (
     <StationPageClient
-      station={station}
+      // Stripped on the way out, not merely left unrendered: everything handed
+      // to a client component is serialised into the page the browser
+      // receives, so the marking notes were travelling to every candidate
+      // inside the source of the case they were about to be graded on.
+      station={toCandidateStation(station)}
       totalStations={totalCount ?? 246}
       prevStationNumber={prevStation?.number ?? null}
       nextStationNumber={nextStation?.number ?? null}
