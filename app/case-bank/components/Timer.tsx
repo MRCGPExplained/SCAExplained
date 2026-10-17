@@ -22,6 +22,7 @@ export function Timer({
   isHost,
   locked,
   startBlockedReason,
+  startWillRecord,
   onStart,
   onStop,
   onSkipPreread,
@@ -47,6 +48,12 @@ export function Timer({
    * not running it.
    */
   startBlockedReason?: string | null;
+  /**
+   * Whether starting begins a recorded consultation or just runs the clock.
+   * The button says which — "Start" next to a countdown reads as a stopwatch,
+   * and this one spends a credit-free but graded twelve minutes.
+   */
+  startWillRecord?: boolean;
   onStart: () => void;
   onStop: () => void;
   onSkipPreread: () => void;
@@ -119,23 +126,12 @@ export function Timer({
   const phaseLabel = phase === "PREREAD" ? "Preparation" : "Consultation";
 
   const borderColor = isOrange ? "#F97316" : "rgba(31,41,55,0.15)";
-  // A stopped clock is greyed rather than hidden or dimmed to nothing: the
-  // number still matters when it is not moving — it is what you resume from,
-  // and what you were left on when the consultation ended — so it stays fully
-  // legible and only loses its weight.
-  const digitColor = running
-    ? isOrange
-      ? "#F97316"
-      : NAVY
-    : isOrange
-      ? "rgba(249,115,22,0.45)"
-      : "rgba(31,41,55,0.38)";
-  const labelColor = isOrange
-    ? running ? "#F97316" : "rgba(249,115,22,0.45)"
-    : running ? "rgba(31,41,55,0.4)" : "rgba(31,41,55,0.25)";
-  const barColor = running
-    ? isOrange ? "#F97316" : NAVY
-    : isOrange ? "rgba(249,115,22,0.3)" : "rgba(31,41,55,0.2)";
+  // Full strength whether or not the clock is moving. Dimming it while stopped
+  // was tried and read as disabled rather than paused — the number is the one
+  // thing on this card that always matters.
+  const digitColor = isOrange ? "#F97316" : NAVY;
+  const labelColor = isOrange ? "#F97316" : "rgba(31,41,55,0.4)";
+  const barColor = isOrange ? "#F97316" : NAVY;
 
   return (
     <div
@@ -197,7 +193,7 @@ export function Timer({
                   className={BTN_CLASS}
                   style={btnStyle(locked || (!running && !!startBlockedReason))}
                 >
-                  {running ? "Pause" : "Start"}
+                  {running ? "Pause" : startWillRecord ? "⏺ Record" : "Start"}
                 </button>
                 <button
                   onClick={onSkipPreread}

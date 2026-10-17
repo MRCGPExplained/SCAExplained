@@ -61,6 +61,11 @@ export interface StudyRoomTimerValue {
    * consultation that could never be recorded. Null outside a room.
    */
   startBlockedReason: string | null;
+  /**
+   * True when pressing start begins a graded, recorded consultation rather
+   * than just running a clock, so the button can say which it is.
+   */
+  startWillRecord: boolean;
   start: () => void;
   /**
    * Halts the clock where it stands. In PREREAD that reads as a pause and

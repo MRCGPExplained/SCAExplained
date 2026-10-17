@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { JoinStudyRoomCard } from "./JoinStudyRoomCard";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,9 @@ export default async function DashboardPage() {
               </div>
             </Link>
           ))}
+
+          <JoinStudyRoomCard />
+
           {credits === 0 && (
             <Link
               href="/redeem"

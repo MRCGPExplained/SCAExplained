@@ -301,7 +301,7 @@ export function StudyRoomProvider({
     leaveDailyCall: () => Promise<void>;
     startLocalRecording: (recordingId: string, role: "doctor" | "patient") => Promise<void>;
     stopLocalRecording: () => void;
-    cancelRecordingDueToDailyFailure: (recordingId: string) => Promise<void>;
+    cancelRecordingDueToDailyFailure: (recordingId: string, why?: string) => Promise<void>;
   });
 
   // Doctor and patient come straight from the synced room row. The doctor is
@@ -388,11 +388,19 @@ export function StudyRoomProvider({
     ? null
     : stationNumber === null
       ? "Open a station to start a session."
-      : !rolesReady
-        ? "Set a doctor and a patient before starting."
-        : doctorUserId === patientUserId
-          ? "Doctor and patient must be different people."
-          : null;
+      : // The debrief is the trap here. After a take stops, recordingState sits
+        // at "done" and the call stays open for three minutes — and the normal
+        // rhythm is "stop, quick chat, next station". Start was not blocked in
+        // that window and `startWillRecord` was false, so pressing it skipped
+        // the confirmation and ran a full twelve-minute consultation with no
+        // room, no recorder and no error: a whole station done twice over.
+        recordingState !== "idle" || debriefSecondsLeft !== null
+        ? "Finish the last consultation first — end the call to start another."
+        : !rolesReady
+          ? "Set a doctor and a patient before starting."
+          : doctorUserId === patientUserId
+            ? "Doctor and patient must be different people."
+            : null;
 
   /** True when pressing Start will end in a recorded, graded consultation. */
   function startWillRecord() {
@@ -607,6 +615,13 @@ export function StudyRoomProvider({
         // and a clock left running at 00:00 keeps firing this handler.
         setTimerRunning(false);
         if (await handleConfirmRecord(extra)) return;
+        // It tried and could not — expired access, the session taken over on
+        // another device, the recording row refused. The error is already on
+        // screen; what must not follow it is twelve minutes of consultation
+        // that nothing is recording. Stop, and let them read the banner.
+        logStatus("recording could not start — not running an unrecorded consultation");
+        resetTimerLocal();
+        return;
       }
       await beginConsultation(extra);
     } finally {
@@ -800,6 +815,8 @@ export function StudyRoomProvider({
   // Set once a guest has actually landed on a station in this room. Before
   // that, a `navigate` broadcast is how an invite link finds its way to the
   // right case, so it must be followed from wherever the guest landed.
+  // Set once we have been seen in the participant list of the current room.
+  const wasParticipantRef = useRef(false);
   const hasLandedRef = useRef(false);
   useEffect(() => {
     if (room && stationNumber !== null) hasLandedRef.current = true;
@@ -862,7 +879,7 @@ export function StudyRoomProvider({
       .eq("room_id", roomId)
       .returns<{ user_id: string; joined_at: string; muted: boolean }[]>();
 
-    if (!data) return;
+    if (!data) return true;
 
     const profileIds = data.map((p) => p.user_id);
     const { data: profiles } = await supabase
@@ -901,6 +918,14 @@ export function StudyRoomProvider({
 
     setParticipants(plist);
     setHostNameState(plist.find((p) => p.isHost)?.displayName ?? null);
+
+    // Returned so callers can tell whether the caller is still in the room.
+    // Being removed is otherwise invisible from inside the room: the panel
+    // keeps rendering off local state and the only sign is your own name
+    // quietly leaving the list.
+    const stillHere = plist.some((p) => p.isSelf);
+    if (stillHere) wasParticipantRef.current = true;
+    return stillHere;
   }, [supabase, userId]);
 
   // On join/rejoin: seed currentHostIdRef, and send the guest to the host's
@@ -992,7 +1017,22 @@ export function StudyRoomProvider({
     channel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "room_participants", filter: `room_id=eq.${room.id}` },
-      () => { refreshParticipants(room.id); }
+      () => {
+        refreshParticipants(room.id).then((stillHere) => {
+          // Only once we have seen ourselves in the list, so an insert that has
+          // not landed yet cannot read as a removal and eject us from a room
+          // we are in the middle of joining.
+          if (stillHere || !wasParticipantRef.current) return;
+          logStatus("removed from the room — clearing the saved session");
+          // The saved id goes too. Without that, a refresh would hand the room
+          // straight back: the restore path repairs a missing participant row,
+          // which is right when the row was lost and wrong when it was taken
+          // away, and it cannot tell the difference on its own.
+          sessionStorage.removeItem("studyRoomId");
+          clearSession();
+          setJoinError("You were removed from the study room.");
+        });
+      }
     );
 
     // Chat — new messages from other participants via postgres realtime
@@ -1127,9 +1167,9 @@ export function StudyRoomProvider({
     // host (who holds the credit) acts on this, cancelling for everyone.
     channel.on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
       if (!latest.current.iAmHost) return;
-      const { recordingId } = payload as { recordingId: string };
-      logStatus("voice-call-failed received (host)", { recordingId });
-      latest.current.cancelRecordingDueToDailyFailure(recordingId);
+      const { recordingId, reason } = payload as { recordingId: string; reason?: string };
+      logStatus("voice-call-failed received (host)", { recordingId, reason });
+      latest.current.cancelRecordingDueToDailyFailure(recordingId, reason);
     });
 
     // Recording was cancelled (voice call failed for an essential
@@ -1577,12 +1617,12 @@ export function StudyRoomProvider({
    * room. Called either for the host's own failed join, or in response to a
    * guest's voice-call-failed broadcast.
    */
-  async function cancelRecordingDueToDailyFailure(recordingId: string) {
-    logStatus("cancelling recording — voice call failed", { recordingId });
+  async function cancelRecordingDueToDailyFailure(recordingId: string, why?: string) {
+    logStatus("cancelling recording", { recordingId, why: why ?? "voice call failed" });
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
     if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
-    const reason = result.error ?? "There was an issue connecting the voice call — please try again.";
+    const reason = result.error ?? why ?? "There was an issue connecting the voice call — please try again.";
 
     channelRef.current?.send({
       type: "broadcast",
@@ -1667,6 +1707,28 @@ export function StudyRoomProvider({
       pendingStopRef.current = false;
       setRecordingState("error");
       setRecordingError("Microphone access denied. Please allow microphone access and try again.");
+
+      // And stop the whole take, rather than only this browser.
+      //
+      // Only the doctor and the patient ever reach here, and the pipeline needs
+      // both their tracks before it will start. Failing quietly meant the
+      // consultation ran its full twelve minutes, one track uploaded, the other
+      // never arrived, and the partner watched a spinner until it timed out and
+      // claimed the marking had failed. Nobody got a report and nobody was told
+      // why. A missing microphone is worse than the failed voice call this path
+      // was built for — that at least still records — so it takes the same
+      // route: refund the credit, delete the row, unwind everyone.
+      const who = role === "doctor" ? "The doctor" : "The patient";
+      const reason = `${who} could not start their microphone, so the consultation was not recorded. Allow microphone access and try again.`;
+      if (latest.current.iAmHost) {
+        await latest.current.cancelRecordingDueToDailyFailure(recordingId, reason);
+      } else {
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "voice-call-failed",
+          payload: { recordingId, reason },
+        });
+      }
     }
   }
 
@@ -2137,6 +2199,7 @@ export function StudyRoomProvider({
     debriefClosedRef.current = true;
     takeFinishedRef.current = false;
     hasLandedRef.current = false;
+    wasParticipantRef.current = false;
 
     // State first, teardown second. `leaveDailyCall` has no timeout, and
     // everything visible — the dock, the channel, the clock — hangs off this
@@ -2261,6 +2324,7 @@ export function StudyRoomProvider({
       isTimerHost: !room || iAmHost,
       locked: recordingState === "recording",
       startBlockedReason,
+      startWillRecord: startWillRecord(),
       start: handleTimerStart,
       stop: () => { handleTimerStop(); },
       skipPreread: handleSkipPreread,

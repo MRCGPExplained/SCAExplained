@@ -7,6 +7,20 @@ function sha256hex(text: string): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
+/**
+ * Escapes a value that is about to be used as a LIKE/ILIKE pattern.
+ *
+ * ilike treats its argument as a pattern, so an email containing an underscore
+ * or a percent sign matches more addresses than its own. Matching an admin
+ * address that way admitted anyone who could register a single-character
+ * variant of it: "b_enfah@hotmail.com" matches "btenfah@hotmail.com", and
+ * Outlook allows underscores in a local part. That is admin access to anyone
+ * willing to sign up for the right lookalike.
+ */
+function likeEscape(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 // Two independent ways in, mirrored in middleware.ts:
 // 1. The /master passcode fail-safe (master_session cookie) — works even if
 //    Supabase auth or the examiners table is unavailable.
@@ -28,7 +42,7 @@ export async function isAdmin(): Promise<boolean> {
     .from("examiners")
     .select("id")
     .eq("is_admin", true)
-    .ilike("email", user.email)
+    .ilike("email", likeEscape(user.email))
     .maybeSingle();
 
   return !!data;
@@ -47,7 +61,7 @@ export async function getCurrentAdminName(): Promise<string> {
   const { data } = await admin
     .from("examiners")
     .select("name")
-    .ilike("email", user.email)
+    .ilike("email", likeEscape(user.email))
     .maybeSingle<{ name: string }>();
 
   return data?.name ?? "SCA Focus Team";

@@ -361,7 +361,11 @@ export async function createStudyRoomAction(stationNumber: number): Promise<
     user_id: user.id,
   });
   if (joinErr) {
-    await supabase.from("study_rooms").delete().eq("id", room.id);
+    // Through the service-role client: study_rooms has no DELETE policy, so
+    // the same statement on the user's client matches nothing, reports no
+    // error, and leaves the half-made room behind exactly as if it had worked.
+    const admin = getSupabaseAdmin();
+    if (admin) await admin.from("study_rooms").delete().eq("id", room.id);
     return { error: "Could not set up the room. Please try again." };
   }
 
@@ -370,7 +374,7 @@ export async function createStudyRoomAction(stationNumber: number): Promise<
 
 export async function joinStudyRoomAction(
   roomCode: string
-): Promise<ActionResult & { roomId?: string }> {
+): Promise<ActionResult & { roomId?: string; stationNumber?: number | null }> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -379,9 +383,12 @@ export async function joinStudyRoomAction(
 
   const { data: room } = await supabase
     .from("study_rooms")
-    .select("id, host_user_id")
+    // current_station_number comes back too, so a caller outside the case
+    // bank can send the joiner straight to the case the room is on rather than
+    // dropping them at the station list to find it themselves.
+    .select("id, host_user_id, current_station_number")
     .eq("room_code", roomCode.toUpperCase())
-    .single<{ id: string; host_user_id: string }>();
+    .single<{ id: string; host_user_id: string; current_station_number: number | null }>();
 
   if (!room) return { error: "Room not found. Check the code and try again." };
 
@@ -419,7 +426,7 @@ export async function joinStudyRoomAction(
     .from("room_participants")
     .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
 
-  return { success: true, roomId: room.id };
+  return { success: true, roomId: room.id, stationNumber: room.current_station_number };
 }
 
 /**
@@ -448,9 +455,28 @@ export async function ensureRoomParticipantAction(roomId: string): Promise<Actio
     .maybeSingle();
   if (existing) return { success: true };
 
-  // Only room capacity stands in the way — this repairs a membership that was
-  // meant to exist, so it does not re-run the host-present check that guards a
-  // fresh join.
+  // Held to the same bar as a fresh join. This started as a repair, so it
+  // skipped the host-present check — which quietly made it the weakest door
+  // into any room: a guest the host had removed could press refresh and the
+  // repair would put them straight back, because from here "my row is missing"
+  // looks identical whether it was lost or taken away.
+  const { data: room } = await supabase
+    .from("study_rooms")
+    .select("host_user_id")
+    .eq("id", roomId)
+    .maybeSingle<{ host_user_id: string }>();
+  if (!room) return { error: "Room not found." };
+
+  if (user.id !== room.host_user_id) {
+    const { data: hostRow } = await supabase
+      .from("room_participants")
+      .select("user_id")
+      .eq("room_id", roomId)
+      .eq("user_id", room.host_user_id)
+      .maybeSingle();
+    if (!hostRow) return { error: "This room's host isn't in it anymore." };
+  }
+
   const { count } = await supabase
     .from("room_participants")
     .select("user_id", { count: "exact", head: true })
