@@ -116,7 +116,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const goTo = (delta: 1 | -1) => setPos((p) => p + delta);
 
   return (
-    <section className="px-10 pb-16 max-md:px-6">
+    <section className="px-10 py-16 max-md:px-6">
       <div className="max-w-[1250px] mx-auto">
         <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
           What trainees say

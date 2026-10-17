@@ -62,7 +62,7 @@ export default async function HomePage() {
         tell they differ but not why.
       */}
       {/* HERO */}
-      <section className="px-10 pt-14 pb-16 max-md:px-6">
+      <section className="px-10 py-16 max-md:px-6">
         <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 
           {/* Left: message + CTAs */}
@@ -132,8 +132,8 @@ export default async function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
-        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: "white" }}>
+        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-5" style={{ color: DARK }}>
               Every step is designed to help you improve.
@@ -168,8 +168,8 @@ export default async function HomePage() {
       */}
 
       {/* CASE BANK */}
-      <section className="px-10 py-16 max-md:px-6">
-        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
+        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
               Case bank
@@ -216,8 +216,8 @@ export default async function HomePage() {
       </section>
 
       {/* STUDY ROOM */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: DARK }}>
-        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: DARK }}>
+        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="lg:order-2">
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
               Study room
@@ -301,7 +301,7 @@ export default async function HomePage() {
       {/* CONTACT LINE — rides the same dark band as the price rather than
           sitting on a 67px strip of cream between it and the dark footer,
           which read as a gap rather than a section. */}
-      <section className="px-10 pb-14 max-md:px-6" style={{ background: DARK }}>
+      <section className="px-10 pb-16 max-md:px-6" style={{ background: DARK }}>
         <div className="max-w-[900px] mx-auto text-center">
           <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
             Have questions?{" "}
