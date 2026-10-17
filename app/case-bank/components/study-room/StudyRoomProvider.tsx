@@ -600,6 +600,19 @@ export function StudyRoomProvider({
     if (enteringConsultationRef.current) return;
     enteringConsultationRef.current = true;
     try {
+      // Checked again here, not only when Start was pressed. The pre-read is
+      // three minutes long and the host can wander in them — open the station
+      // list, read a report — and nothing resets a run already counting down.
+      // Arriving at the end of it off the case meant the room rolled into a
+      // twelve-minute consultation that could never be recorded, which is the
+      // thing Start refuses to begin in the first place.
+      if (room && iAmHost && startBlockedReason) {
+        logStatus("pre-read ended but the session can no longer start", { startBlockedReason });
+        setRecordingError(startBlockedReason);
+        resetTimerLocal();
+        return;
+      }
+
       const canRecord =
         !!room &&
         iAmHost &&

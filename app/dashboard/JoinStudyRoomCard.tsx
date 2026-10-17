@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { joinStudyRoomAction } from "../case-bank/actions";
 
 const DARK = "#333333";
-const YELLOW = "#F6D44B";
 
 /**
  * Joining a room used to mean finding the panel, which only exists once you are
@@ -47,7 +46,7 @@ export function JoinStudyRoomCard() {
 
   return (
     <div
-      className="bg-white rounded-2xl p-6"
+      className="bg-white rounded-2xl p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
       style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
     >
       <div className="flex items-center gap-5">
@@ -89,9 +88,9 @@ export function JoinStudyRoomCard() {
           disabled={pending || !code.trim()}
           className="shrink-0 rounded-lg px-5 py-2.5 text-[14px] font-bold"
           style={{
-            background: YELLOW,
+            background: DARK,
             border: "none",
-            color: DARK,
+            color: "white",
             cursor: pending || !code.trim() ? "not-allowed" : "pointer",
             opacity: pending || !code.trim() ? 0.5 : 1,
           }}

@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCaseBankAccess } from "@/lib/case-bank-access";
 import { isAdmin } from "@/lib/admin-auth";
 import type { Station } from "@/lib/case-bank-types";
@@ -37,7 +38,15 @@ export default async function StationPage({ params }: PageProps) {
 
   // Fetch station. Admins can view hidden (unpublished) stations directly so
   // they can find their way back to the publish toggle after hiding one.
-  let stationQuery = supabase.from("stations").select("*").eq("number", num);
+  //
+  // That needs the service-role client, not a dropped filter. The only SELECT
+  // policy on `stations` is `published = true AND auth.uid() IS NOT NULL` with
+  // no admin bypass, so on the user's client Postgres re-applies the filter
+  // whatever the query says — which made hiding a case 404 it for the person
+  // who hid it, and made a newly authored case impossible to preview at all.
+  // isAdmin() has already been checked on the server by this point.
+  const stationReader = admin ? (getSupabaseAdmin() ?? supabase) : supabase;
+  let stationQuery = stationReader.from("stations").select("*").eq("number", num);
   if (!admin) stationQuery = stationQuery.eq("published", true);
   const { data: station } = await stationQuery.single<Station>();
 
