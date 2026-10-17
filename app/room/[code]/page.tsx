@@ -78,10 +78,36 @@ export default async function RoomGatewayPage({ params }: PageProps) {
         .from("room_participants")
         .select("user_id", { count: "exact", head: true })
         .eq("room_id", room.id);
-      if ((total ?? 0) < 4) {
-        await supabase.from("room_participants").upsert(
-          { room_id: room.id, user_id: user.id },
-          { onConflict: "room_id,user_id" }
+
+      // Joining has to succeed before the redirect, not alongside it. Being in
+      // a room is a row in this table: without one you still get the panel —
+      // the provider only needs to be able to read the room — but nobody can
+      // see you in the participant list, and every action that checks
+      // membership refuses you, including assigning roles. Silently redirecting
+      // a full room's fifth person, or a failed insert, produced exactly that:
+      // someone sitting in a room they were not actually in.
+      const { error: joinErr } =
+        (total ?? 0) < 4
+          ? await supabase.from("room_participants").upsert(
+              { room_id: room.id, user_id: user.id },
+              { onConflict: "room_id,user_id" }
+            )
+          : { error: { message: "full" } };
+
+      if (joinErr) {
+        return (
+          <main className="min-h-screen flex items-center justify-center px-6" style={{ background: "#FAFAF8" }}>
+            <div className="text-center max-w-[380px]">
+              <h1 className="font-display font-extrabold text-[22px] mb-2" style={{ color: "#333333" }}>
+                {joinErr.message === "full" ? "Room is full" : "Could not join"}
+              </h1>
+              <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.6)" }}>
+                {joinErr.message === "full"
+                  ? "This room already has four people in it — one doctor, one patient and two observers."
+                  : "Something went wrong joining this room. Ask the host to share the link again."}
+              </p>
+            </div>
+          </main>
         );
       }
     }

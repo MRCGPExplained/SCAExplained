@@ -379,7 +379,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
               running={timerRunning}
               isHost={true}
               onStart={() => setTimerRunning(true)}
-              onPause={() => setTimerRunning(false)}
+              onStop={() => setTimerRunning(false)}
               onSkipPreread={() => {
                 setTimerPhase("CONSULT");
                 setTimeLeft(PHASE_DURATIONS.CONSULT);

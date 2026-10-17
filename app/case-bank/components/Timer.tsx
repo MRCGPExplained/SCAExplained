@@ -7,14 +7,23 @@ import { PHASE_DURATIONS } from "@/lib/case-bank-types";
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 
+const BTN_CLASS = "rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40";
+const btnStyle = (disabled?: boolean) => ({
+  background: "transparent",
+  border: "1px solid rgba(26,27,82,0.15)",
+  color: "rgba(26,27,82,0.5)",
+  cursor: disabled ? ("not-allowed" as const) : ("pointer" as const),
+});
+
 export function Timer({
   phase,
   timeLeft,
   running,
   isHost,
   locked,
+  startBlockedReason,
   onStart,
-  onPause,
+  onStop,
   onSkipPreread,
   onReset,
   onTick,
@@ -24,10 +33,22 @@ export function Timer({
   timeLeft: number;
   running: boolean;
   isHost: boolean;
-  /** While true (a recording is in progress), Pause and Reset are disabled — the consultation must be seen through. */
+  /**
+   * True while a recording is in progress. Start, Skip and Reset are disabled —
+   * the consultation must be seen through. Stop is deliberately exempt: it is
+   * the one way out, and the note below promises it.
+   */
   locked?: boolean;
+  /**
+   * Set when the clock cannot be started at all — in a room with no station
+   * open, or with the roles unfilled. Start and Skip are disabled and the
+   * reason is shown, because in a room the clock is what begins a recorded
+   * consultation, and running it toward one that cannot happen is worse than
+   * not running it.
+   */
+  startBlockedReason?: string | null;
   onStart: () => void;
-  onPause: () => void;
+  onStop: () => void;
   onSkipPreread: () => void;
   onReset: () => void;
   onTick: (newTime: number) => void;
@@ -98,7 +119,23 @@ export function Timer({
   const phaseLabel = phase === "PREREAD" ? "Preparation" : "Consultation";
 
   const borderColor = isOrange ? "#F97316" : "rgba(31,41,55,0.15)";
-  const digitColor = isOrange ? "#F97316" : NAVY;
+  // A stopped clock is greyed rather than hidden or dimmed to nothing: the
+  // number still matters when it is not moving — it is what you resume from,
+  // and what you were left on when the consultation ended — so it stays fully
+  // legible and only loses its weight.
+  const digitColor = running
+    ? isOrange
+      ? "#F97316"
+      : NAVY
+    : isOrange
+      ? "rgba(249,115,22,0.45)"
+      : "rgba(31,41,55,0.38)";
+  const labelColor = isOrange
+    ? running ? "#F97316" : "rgba(249,115,22,0.45)"
+    : running ? "rgba(31,41,55,0.4)" : "rgba(31,41,55,0.25)";
+  const barColor = running
+    ? isOrange ? "#F97316" : NAVY
+    : isOrange ? "rgba(249,115,22,0.3)" : "rgba(31,41,55,0.2)";
 
   return (
     <div
@@ -110,7 +147,7 @@ export function Timer({
       }}
     >
       {/* Phase label */}
-      <div className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: isOrange ? "#F97316" : "rgba(31,41,55,0.4)", transition: "color 0.5s" }}>
+      <div className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: labelColor, transition: "color 0.5s" }}>
         {phaseLabel}
       </div>
 
@@ -131,7 +168,7 @@ export function Timer({
           className="h-full rounded-full"
           style={{
             width: `${progress}%`,
-            background: isOrange ? "#F97316" : NAVY,
+            background: barColor,
             transition: "width 1s linear, background 0.5s",
           }}
         />
@@ -141,53 +178,69 @@ export function Timer({
       {isHost && (
         <div className="flex flex-col items-center gap-1.5 mt-2">
           <div className="flex gap-1.5 justify-center">
-            <button
-              onClick={running ? onPause : onStart}
-              disabled={locked}
-              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
-              style={{
-                background: "transparent",
-                border: "1px solid rgba(26,27,82,0.15)",
-                color: "rgba(26,27,82,0.5)",
-                cursor: locked ? "not-allowed" : "pointer",
-              }}
-            >
-              {running ? "Pause" : "Start"}
-            </button>
-            {phase === "PREREAD" && (
-              <button
-                onClick={onSkipPreread}
-                disabled={locked}
-                className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
-                style={{
-                  background: "transparent",
-                  border: "1px solid rgba(26,27,82,0.15)",
-                  color: "rgba(26,27,82,0.5)",
-                  cursor: locked ? "not-allowed" : "pointer",
-                }}
-              >
-                Skip
+            {/*
+              What is offered depends on the phase, because the two phases are
+              not the same kind of clock. The pre-read is preparation: it can be
+              paused, resumed and skipped. The consultation is the assessment:
+              it runs its 12 minutes or the candidate ends it early, and there
+              is nothing in between. Skip is therefore only ever rendered in
+              PREREAD, and Stop only ever in CONSULT.
+            */}
+            {phase === "PREREAD" ? (
+              <>
+                <button
+                  onClick={() => (running ? onStop() : onStart())}
+                  // Pausing a run already under way is never blocked — only
+                  // beginning one is.
+                  disabled={locked || (!running && !!startBlockedReason)}
+                  title={!running && startBlockedReason ? startBlockedReason : undefined}
+                  className={BTN_CLASS}
+                  style={btnStyle(locked || (!running && !!startBlockedReason))}
+                >
+                  {running ? "Pause" : "Start"}
+                </button>
+                <button
+                  onClick={onSkipPreread}
+                  disabled={locked || !!startBlockedReason}
+                  title={startBlockedReason ?? undefined}
+                  className={BTN_CLASS}
+                  style={btnStyle(locked || !!startBlockedReason)}
+                >
+                  Skip
+                </button>
+                <button onClick={onReset} disabled={locked} className={BTN_CLASS} style={btnStyle(locked)}>
+                  Reset
+                </button>
+              </>
+            ) : running ? (
+              // While a recording is live, the panel's Stop is the only correct
+              // way out — it ends the recorder and the clock together, behind a
+              // confirmation. A second Stop here would stop only the clock and
+              // leave the recorder running, so the note below points there
+              // instead.
+              locked ? null : (
+                <button onClick={() => onStop()} className={BTN_CLASS} style={btnStyle(false)}>
+                  Stop
+                </button>
+              )
+            ) : (
+              <button onClick={onReset} disabled={locked} className={BTN_CLASS} style={btnStyle(locked)}>
+                Reset
               </button>
             )}
-            <button
-              onClick={onReset}
-              disabled={locked}
-              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40"
-              style={{
-                background: "transparent",
-                border: "1px solid rgba(26,27,82,0.15)",
-                color: "rgba(26,27,82,0.5)",
-                cursor: locked ? "not-allowed" : "pointer",
-              }}
-            >
-              Reset
-            </button>
           </div>
-          {locked && (
+          {locked ? (
             <p className="text-[10px] font-semibold" style={{ color: "#F97316" }}>
               Recording in progress — use Stop to end it early
             </p>
-          )}
+          ) : startBlockedReason && phase === "PREREAD" && !running ? (
+            // Said here rather than only on the disabled button, so the host
+            // knows what is missing before reaching for a control that will not
+            // respond.
+            <p className="text-[10px] font-semibold text-center" style={{ color: "rgba(26,27,82,0.45)" }}>
+              {startBlockedReason}
+            </p>
+          ) : null}
         </div>
       )}
     </div>

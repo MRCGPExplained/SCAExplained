@@ -351,11 +351,19 @@ export async function createStudyRoomAction(stationNumber: number): Promise<
 
   if (error || !room) return { error: error?.message ?? "Failed to create room." };
 
-  // Add host as participant
-  await supabase.from("room_participants").insert({
+  // Add host as participant. The result is checked because both join paths
+  // refuse a room whose host is not in it — so a silently dropped insert here
+  // does not produce a slightly-odd room, it produces a room nobody can ever
+  // join, whose code and invite link both answer "this room's host isn't in it
+  // anymore". Better to fail the creation and let them try again.
+  const { error: joinErr } = await supabase.from("room_participants").insert({
     room_id: room.id,
     user_id: user.id,
   });
+  if (joinErr) {
+    await supabase.from("study_rooms").delete().eq("id", room.id);
+    return { error: "Could not set up the room. Please try again." };
+  }
 
   return { success: true, roomId: room.id, roomCode: room.room_code };
 }
@@ -412,6 +420,50 @@ export async function joinStudyRoomAction(
     .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
 
   return { success: true, roomId: room.id };
+}
+
+/**
+ * Makes sure the caller actually has a participant row in a room they are
+ * already looking at. Membership is that row, and the panel does not depend on
+ * it — the provider only needs to be able to read the room — so the two can
+ * come apart: an invite that redirected before its insert landed, a row removed
+ * while the tab stayed open, a logout that cleared it. The result is someone
+ * sitting in a room that refuses everything they try, most visibly assigning
+ * roles, with nothing on screen explaining why.
+ *
+ * Called on every room adoption, so those cases repair themselves rather than
+ * needing the user to work out that rejoining would fix it. A no-op when the
+ * row is already there.
+ */
+export async function ensureRoomParticipantAction(roomId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const { data: existing } = await supabase
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", roomId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existing) return { success: true };
+
+  // Only room capacity stands in the way — this repairs a membership that was
+  // meant to exist, so it does not re-run the host-present check that guards a
+  // fresh join.
+  const { count } = await supabase
+    .from("room_participants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("room_id", roomId);
+  if ((count ?? 0) >= 4) {
+    return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+  }
+
+  const { error } = await supabase
+    .from("room_participants")
+    .upsert({ room_id: roomId, user_id: user.id }, { onConflict: "room_id,user_id" });
+  if (error) return { error: error.message };
+  return { success: true };
 }
 
 /**

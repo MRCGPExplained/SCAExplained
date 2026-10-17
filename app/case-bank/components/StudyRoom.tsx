@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useStudyRoom } from "./study-room/context";
+import { useStudyRoom, type ReviewStage } from "./study-room/context";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -16,10 +16,108 @@ function PhoneIcon({ color = "currentColor" }: { color?: string }) {
 }
 
 /**
+ * The four stages a finished take passes through, in order. Everything before
+ * "review" is work still in progress; "review" is the report being ready to
+ * read, and is the only stage that goes anywhere.
+ */
+const REVIEW_STAGES: { key: ReviewStage; label: string }[] = [
+  { key: "uploading", label: "Uploading" },
+  { key: "transcribing", label: "Transcribing" },
+  { key: "marking", label: "Marking" },
+  { key: "review", label: "Review" },
+];
+
+function ReviewStageChip({
+  stage,
+  recordingId,
+  onDismiss,
+}: {
+  stage: ReviewStage;
+  recordingId: string | null;
+  onDismiss: () => void;
+}) {
+  if (stage === "failed") {
+    // Dismissable, because this can be wrong: a poll that lost the network
+    // reports failure over a pipeline that went on to finish. The report is
+    // still worth opening, so keep the link and let the chip be cleared.
+    return (
+      <span className="text-[10px] flex items-center gap-1.5" style={{ color: "#FCA5A5" }}>
+        {recordingId ? (
+          <a
+            href={`/recordings/${recordingId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#FCA5A5", textDecoration: "underline", textUnderlineOffset: 2 }}
+          >
+            Marking failed — open anyway
+          </a>
+        ) : (
+          "Marking failed"
+        )}
+        <button
+          onClick={onDismiss}
+          title="Dismiss"
+          style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", padding: 0, lineHeight: 1 }}
+        >
+          ✕
+        </button>
+      </span>
+    );
+  }
+
+  const index = REVIEW_STAGES.findIndex((s) => s.key === stage);
+  const label = REVIEW_STAGES[index]?.label ?? "";
+  const done = stage === "review";
+
+  // Only the finished stage is a link — the earlier ones have nothing to open
+  // yet, and a dead link that becomes live is worse than a label that becomes
+  // one. The report page is readable by both candidates, not just the doctor.
+  const body = (
+    <>
+      {done ? (
+        <span style={{ fontSize: 11 }}>✓</span>
+      ) : (
+        <svg width="11" height="11" viewBox="0 0 18 18" fill="none" style={{ animation: "sr-spin 0.9s linear infinite" }}>
+          {/* Kept with the element that uses it, as the other spinners in this
+              codebase do — there is no shared keyframe stylesheet. */}
+          <style>{`@keyframes sr-spin { to { transform: rotate(360deg) } }`}</style>
+          <circle cx="9" cy="9" r="7" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5" />
+          <path d="M9 2a7 7 0 0 1 7 7" stroke="rgba(255,255,255,0.75)" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      )}
+      {label}
+      <span style={{ color: "rgba(255,255,255,0.3)" }}>
+        {index + 1}/{REVIEW_STAGES.length}
+      </span>
+    </>
+  );
+
+  const className = "text-[10px] flex items-center gap-1.5";
+  const color = done ? "rgba(134,239,172,0.9)" : "rgba(255,255,255,0.6)";
+
+  return done && recordingId ? (
+    <a
+      href={`/recordings/${recordingId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+      style={{ color, textDecoration: "underline", textUnderlineOffset: 2 }}
+    >
+      {body}
+    </a>
+  ) : (
+    <span className={className} style={{ color }}>
+      {body}
+    </span>
+  );
+}
+
+/**
  * Presentational only. Every piece of session state lives in StudyRoomProvider,
- * which is mounted in the case-bank layout and therefore survives station
- * navigation. This panel remounts freely with the page; that is cheap now,
- * because it holds nothing but its own transient UI state.
+ * which is mounted in the root layout and therefore survives navigation. This
+ * panel remounts freely with the page; that is cheap now, because it holds
+ * nothing but its own transient UI state. It renders in the station page's
+ * sidebar, and inside StudyRoomDock everywhere else.
  */
 export function StudyRoomPanel() {
   const {
@@ -45,12 +143,17 @@ export function StudyRoomPanel() {
     sendChat: sendChatMessage,
     recordingState,
     recordingError,
-    setRecordingError,
+    reviewStage,
+    reviewRecordingId,
+    dismissReviewStage,
     clearRecordingError,
-    startRecording,
+    showStartWarning,
+    confirmStart,
+    cancelStart,
     stopRecording,
     dailyConnecting,
     callConnected,
+    dailyReconnecting,
     dailyFailed,
     debriefSecondsLeft,
     endDebrief,
@@ -66,7 +169,6 @@ export function StudyRoomPanel() {
   const [chatInput, setChatInput] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
-  const [showStartWarning, setShowStartWarning] = useState(false);
   const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +188,6 @@ export function StudyRoomPanel() {
   const handleShareReport = shareRecentReport;
   const handleJoin = () => joinRoom(joinCode);
   const sendChat = () => { const t = chatInput; setChatInput(""); return sendChatMessage(t); };
-  const handleConfirmRecord = () => { setShowStartWarning(false); return startRecording(); };
 
   const hostName = participants.find((p) => p.isHost)?.displayName ?? "host";
 
@@ -149,6 +250,11 @@ export function StudyRoomPanel() {
   // ── In a room ──────────────────────────────────────────────────────────────
   return (
     <>
+    {/* The "Starting…" and "REC" dots below have always asked for this and
+        never had it: the only @keyframes pulse in the app is defined locally
+        inside the examiner review client, so both were rendering here as plain
+        static circles. */}
+    <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(26,27,82,0.10)" }}>
       {/* Header */}
       <div
@@ -164,30 +270,16 @@ export function StudyRoomPanel() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Recording controls */}
-          {recordingState === "idle" && iAmHost && (
-            <button
-              onClick={() => {
-                if (!rolesReady) {
-                  setRecordingError("Set both a doctor and a patient before recording.");
-                  return;
-                }
-                setRecordingError("");
-                setShowStartWarning(true);
-              }}
-              disabled={!rolesReady}
-              title={rolesReady ? "Record — free AI review, GP review is a separate step afterwards" : "Set a doctor and a patient first"}
-              className="text-[10px] px-2 py-1 rounded flex items-center gap-1"
-              style={{
-                background: "rgba(239,68,68,0.2)",
-                color: "#FCA5A5",
-                border: "none",
-                cursor: rolesReady ? "pointer" : "not-allowed",
-                opacity: rolesReady ? 1 : 0.5,
-              }}
-            >
-              ⏺ Record
-            </button>
+          {/*
+            No Record button. The timer starts the session now: Start runs the
+            three-minute preparation, then the voice call connects and the
+            consultation records itself. This header only reports what is
+            happening.
+          */}
+          {recordingState === "idle" && iAmHost && !rolesReady && (
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Set a doctor and a patient
+            </span>
           )}
           {(recordingState === "recording" || recordingState === "starting") && (
             <div className="flex items-center gap-1.5">
@@ -207,9 +299,19 @@ export function StudyRoomPanel() {
                   <PhoneIcon color="rgba(255,255,255,0.5)" /> Connecting…
                 </span>
               )}
-              {callConnected && (
+              {callConnected && !dailyReconnecting && (
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
                   <PhoneIcon color="rgba(134,239,172,0.9)" /> Call Connected
+                </span>
+              )}
+              {callConnected && dailyReconnecting && (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCD34D" }}>
+                  <PhoneIcon color="#FCD34D" /> Reconnecting…
+                </span>
+              )}
+              {!callConnected && !dailyConnecting && !dailyFailed && (
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <PhoneIcon color="rgba(255,255,255,0.4)" /> Call ended
                 </span>
               )}
               {dailyFailed && !callConnected && (
@@ -228,12 +330,7 @@ export function StudyRoomPanel() {
               )}
             </div>
           )}
-          {recordingState === "uploading" && (
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>Uploading…</span>
-          )}
-          {recordingState === "done" && (
-            <span className="text-[10px]" style={{ color: "rgba(134,239,172,0.8)" }}>✓ Sent for review</span>
-          )}
+          {reviewStage && <ReviewStageChip stage={reviewStage} recordingId={reviewRecordingId} onDismiss={dismissReviewStage} />}
           {debriefSecondsLeft !== null && (
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(96,165,250,0.9)" }}>
@@ -479,6 +576,8 @@ export function StudyRoomPanel() {
             </h2>
           </div>
           <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
+            <li>• You get <strong>3 minutes</strong> to read the case, then the voice call connects on its own.</li>
+            <li>• Recording and transcription start the moment it connects — there is nothing else to press.</li>
             <li>• AI review is free and starts immediately — no credit is used yet.</li>
             <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
             <li>• Recording stops automatically at the 12-minute mark.</li>
@@ -487,21 +586,18 @@ export function StudyRoomPanel() {
 
           <div className="flex gap-2.5">
             <button
-              onClick={() => setShowStartWarning(false)}
+              onClick={cancelStart}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
               style={{ background: LIGHT_BG, border: "none", color: NAVY, cursor: "pointer" }}
             >
               Back
             </button>
             <button
-              onClick={() => {
-                setShowStartWarning(false);
-                handleConfirmRecord();
-              }}
+              onClick={confirmStart}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
               style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
             >
-              I Understand, Start
+              I Understand, Start Preparation
             </button>
           </div>
         </div>

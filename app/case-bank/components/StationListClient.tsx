@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS } from "@/lib/case-bank-types";
+import { useStudyRoomStatus } from "./study-room/context";
 
 const NAVY = "#333333";
 const YELLOW = "#F6D44B";
@@ -32,6 +33,45 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
       </div>
       {label}
     </button>
+  );
+}
+
+/**
+ * Shown to guests only, and only on this page. Arriving at the list while your
+ * group is mid-case is the one moment you are most likely to be lost, and the
+ * floating dock — fine as an ambient reminder everywhere else — is a small pill
+ * in the corner that is easy to miss against a full page of stations. Guests
+ * are no longer dragged to the host's case automatically, so this is how they
+ * get back: one click, their choice.
+ *
+ * The host is deliberately excluded. They are the one choosing the case; being
+ * told where they already are is noise.
+ */
+function GroupCaseBanner() {
+  const { inRoom, iAmHost, hostStationNumber, hostName } = useStudyRoomStatus();
+  if (!inRoom || iAmHost || hostStationNumber === null) return null;
+
+  return (
+    <Link
+      href={`/case-bank/${hostStationNumber}`}
+      className="flex items-center justify-between gap-3 mb-5 rounded-xl px-4 py-3 no-underline"
+      style={{ background: NAVY, border: "1px solid rgba(51,51,51,0.1)" }}
+    >
+      <span className="flex flex-col min-w-0">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
+          Your group is on Station {hostStationNumber}
+        </span>
+        <span className="text-[12px] mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.55)" }}>
+          {hostName ? `${hostName} is navigating` : "Browsing here will not move anyone else"}
+        </span>
+      </span>
+      <span
+        className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold"
+        style={{ background: YELLOW, color: NAVY }}
+      >
+        Join them →
+      </span>
+    </Link>
   );
 }
 
@@ -84,6 +124,8 @@ export function StationListClient({
   return (
     <main style={{ minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
+
+        <GroupCaseBanner />
 
         {/* Back to dashboard */}
         <div className="mb-5">
