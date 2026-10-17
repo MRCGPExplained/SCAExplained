@@ -13,9 +13,6 @@ export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
-// The one dark band on the page, under the price. Matches the study room's
-// panel header so the marketing and the product are the same two colours.
-const NAVY = "#1F2937";
 
 function SmallCheck() {
   return (
@@ -70,6 +67,18 @@ export default async function HomePage() {
 
   return (
     <main style={{ background: "#FAFAF8" }}>
+      {/*
+        Three tones and no more: cream (the page), white, and the dark the navbar
+        and footer already use. They alternate strictly — cream, white, cream,
+        dark, white, cream, dark — so every section is marked off from the one
+        before it without the page acquiring a palette.
+
+        It had drifted to five: two darks that were nearly the same (#333333 at
+        the top and bottom, #1F2937 in the middle) and three lights (cream,
+        white, and a nine-percent yellow wash over cream). Near-misses like
+        that read as carelessness rather than as design, because the eye can
+        tell they differ but not why.
+      */}
       {/* HERO */}
       <section className="px-10 pt-14 pb-16 max-md:px-6">
         <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -141,7 +150,7 @@ export default async function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: "rgba(246,212,75,0.09)" }}>
+      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
         <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-5" style={{ color: DARK }}>
@@ -177,7 +186,7 @@ export default async function HomePage() {
       */}
 
       {/* CASE BANK */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
+      <section className="px-10 py-16 max-md:px-6">
         <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
@@ -206,7 +215,7 @@ export default async function HomePage() {
       </section>
 
       {/* STUDY ROOM */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: NAVY }}>
+      <section className="px-10 py-16 max-md:px-6" style={{ background: DARK }}>
         <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="lg:order-2">
             <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -235,15 +244,6 @@ export default async function HomePage() {
       </section>
 
       {/* WHAT YOU GET: the programme's four parts, and why a human still reads it */}
-      {/*
-        The page used to run on one flat cream from the nav to the footer, with a
-        single faint yellow wash on How It Works — five of six sections had no
-        background at all. Nothing marked where one idea ended and the next
-        began, so the whole thing read as one column rather than a sequence of
-        sections. The bands now alternate cream → yellow wash → white → cream →
-        dark → cream, and the dark one under the price is the page's one strong
-        beat, placed where the decision is.
-      */}
       <section className="px-10 pb-16 pt-16 max-md:px-6" style={{ background: "white" }}>
         <div className="max-w-[1250px] mx-auto">
           <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
@@ -329,7 +329,7 @@ export default async function HomePage() {
       <TestimonialsSection testimonials={testimonials} />
 
       {/* PRICING */}
-      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: NAVY }}>
+      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: DARK }}>
         <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white"
@@ -382,7 +382,7 @@ export default async function HomePage() {
       {/* CONTACT LINE — rides the same dark band as the price rather than
           sitting on a 67px strip of cream between it and the dark footer,
           which read as a gap rather than a section. */}
-      <section className="px-10 pb-14 max-md:px-6" style={{ background: NAVY }}>
+      <section className="px-10 pb-14 max-md:px-6" style={{ background: DARK }}>
         <div className="max-w-[900px] mx-auto text-center">
           <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
             Have questions?{" "}
