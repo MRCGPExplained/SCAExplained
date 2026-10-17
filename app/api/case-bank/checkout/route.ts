@@ -23,7 +23,7 @@ export async function POST() {
           unit_amount: 29500,
           product_data: {
             name: "The Complete SCA Programme",
-            description: "250+ case bank access, unlimited AI review, 20 GP reviews. Valid for 4 months.",
+            description: "240+ case bank access, unlimited AI review, 20 GP reviews. Valid for 4 months.",
           },
         },
         quantity: 1,

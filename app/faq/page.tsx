@@ -29,7 +29,7 @@ const FAQS = [
   },
   {
     q: "What's included in the programme?",
-    a: "A one-off £295 payment gives you access to 250+ cases, unlimited AI review, and 20 GP reviews, valid for 4 months.",
+    a: "A one-off £295 payment gives you access to 240+ cases, unlimited AI review, and 20 GP reviews, valid for 4 months.",
   },
 ] as const;
 

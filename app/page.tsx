@@ -12,15 +12,6 @@ export const dynamic = "force-dynamic";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
-function TickIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.5" stroke={DARK} strokeWidth="1.6"/>
-      <path d="M7.5 12.5l3 3 6-6.5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
 function SmallCheck() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -54,16 +45,13 @@ type Testimonial = { id: string; quote: string; name: string; vts: string | null
 export default async function HomePage() {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const stationsResult = supabaseAdmin
-    ? await supabaseAdmin
-        .from("stations")
-        .select("title")
-        .eq("published", true)
-        .order("number", { ascending: true })
-        .limit(32)
-    : { data: [] };
-
-  const stationTitles = ((stationsResult.data ?? []) as { title: string }[]).map((s) => s.title);
+  // The case count is stated as "240+" here and in the terms, the FAQ, the
+  // upgrade page and the Stripe charge description — one claim, in one form,
+  // that stays true as cases are added. Three figures had drifted apart before
+  // this: 250+ in the hero and the pricing, 256 in the case-bank card, against
+  // a bank of 246, so two were wrong and one overstated what was being sold.
+  // There was also a query here fetching 32 station titles for a list that no
+  // longer exists; it has gone with them.
 
   const testimonialsResult = supabaseAdmin
     ? await supabaseAdmin
@@ -100,7 +88,7 @@ export default async function HomePage() {
             </h1>
 
             <div className="flex items-center gap-5 flex-wrap mb-7">
-              {(["Access to 250+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
+              {(["Access to 240+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
                   <SmallCheck /> {item}
                 </span>
@@ -168,22 +156,26 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* EXAMPLES: full sample report, straight from /recordings/sample */}
+      {/* WHAT YOU GET: the programme's four parts, and why a human still reads it */}
       <section className="px-10 pb-16 pt-16 max-md:px-6">
         <div className="max-w-[1250px] mx-auto">
           <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
-            Everything Included In Your Programme
+            Everything included in your programme
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[3fr_5fr] gap-9">
+          {/* Equal columns and top-aligned. At 3fr/5fr the four-item card was
+              squeezed into the narrow side and ran far taller than its
+              neighbour, which stretched to match and left a slab of empty grey
+              under two short items. */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-9 items-start">
             {/* Value props */}
-            <div className="rounded-[28px] p-7 sm:p-8" style={{ background: "rgba(246,212,75,0.14)" }}>
+            <div className="rounded-[28px] p-7 sm:p-9" style={{ background: "rgba(246,212,75,0.14)" }}>
               {(
                 [
-                  { icon: AwardIcon, title: "Built by Experienced GP Educators", body: "Built by experienced GP educators who understand the SCA inside out." },
-                  { icon: SparklesIcon, title: "AI Feedback Attuned to the SCA", body: "Instant feedback aligned with the RCGP SCA marking domains." },
-                  { icon: StethoscopeIcon, title: "Every Consultation Expertly Reviewed", body: "Every submitted consultation reviewed by an experienced GP." },
-                  { icon: BooksIcon, title: "Complete Case Bank", body: "256 consultations covering every SCA clinical domain." },
+                  { icon: AwardIcon, title: "Built by GP educators", body: "Written by GPs who teach the SCA and know what the examiners are looking for." },
+                  { icon: SparklesIcon, title: "AI feedback within minutes", body: "A provisional score against the three RCGP marking domains, as soon as you finish." },
+                  { icon: StethoscopeIcon, title: "Every consultation read by a GP", body: "Nothing is graded by the AI alone — a GP reviews each one before you see it." },
+                  { icon: BooksIcon, title: "Complete case bank", body: "240+ cases covering every SCA clinical domain." },
                 ] as const
               ).map(({ icon: Icon, title, body }, i) => (
                 <div
@@ -193,12 +185,12 @@ export default async function HomePage() {
                 >
                   <span
                     className="shrink-0 flex items-center justify-center rounded-full"
-                    style={{ width: 48, height: 48, background: "white" }}
+                    style={{ width: 44, height: 44, background: "white" }}
                   >
-                    <Icon size={26} />
+                    <Icon size={22} />
                   </span>
                   <div>
-                    <h3 className="font-display font-extrabold mb-1 text-[16px]" style={{ color: DARK }}>{title}</h3>
+                    <h3 className="font-display font-extrabold mb-1 text-[15px]" style={{ color: DARK }}>{title}</h3>
                     <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
                   </div>
                 </div>
@@ -210,8 +202,8 @@ export default async function HomePage() {
               className="rounded-[28px] p-7 sm:p-9"
               style={{ background: "#F4F4F2", border: "1px solid rgba(51,51,51,0.10)" }}
             >
-              <h3 className="font-display font-extrabold text-[22px] mb-3" style={{ color: DARK }}>
-                Why Human Review Matters
+              <h3 className="font-display font-extrabold text-[17px] mb-3" style={{ color: DARK }}>
+                Why human review matters
               </h3>
               <p className="text-[14.5px] leading-[1.7] mb-2" style={{ color: "rgba(51,51,51,0.65)" }}>
                 AI is excellent for speed — it gives you a provisional score within minutes of finishing
@@ -220,8 +212,8 @@ export default async function HomePage() {
               </p>
               {(
                 [
-                  { icon: ChatIcon, title: "Personalised Comments", body: "Feedback speaks to what actually happened in your consultation." },
-                  { icon: ShieldCheckIcon, title: "Feedback You Can Trust", body: "Verified judgement, not just an algorithm's best guess." },
+                  { icon: ChatIcon, title: "Personalised comments", body: "Feedback speaks to what actually happened in your consultation." },
+                  { icon: ShieldCheckIcon, title: "Feedback you can trust", body: "Verified judgement, not just an algorithm's best guess." },
                 ] as const
               ).map(({ icon: Icon, title, body }, i) => (
                 <div
@@ -256,18 +248,9 @@ export default async function HomePage() {
             className="relative rounded-2xl p-8 bg-white"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
-            <span
-              className="absolute top-5 right-5 text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: "#3B82F6", color: "white" }}
-            >
-              Paid
-            </span>
-            <div className="flex items-center gap-2 mb-2">
-              <TickIcon />
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
-            </div>
-            <h2 className="font-display font-extrabold text-[24px] leading-[1.2] mb-1" style={{ color: DARK }}>
-              The Complete SCA Programme
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
+            <h2 className="font-display font-extrabold text-[22px] leading-[1.2] mb-1" style={{ color: DARK }}>
+              The complete SCA programme
             </h2>
             <div className="flex items-end gap-2 mb-5">
               <span className="font-extrabold leading-none" style={{ fontSize: 36, color: DARK }}>£295</span>
@@ -277,7 +260,7 @@ export default async function HomePage() {
             <ul className="flex flex-col gap-2 mb-6">
               {(
                 [
-                  "Access to 250+ cases",
+                  "Access to 240+ cases",
                   "Unlimited AI review",
                   "20 GP reviews",
                   "Access lasts 4 months",

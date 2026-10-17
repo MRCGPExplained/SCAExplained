@@ -48,7 +48,7 @@ export default function TermsPage() {
       <H2>3. The Complete SCA Programme — purchases and refunds</H2>
       <P>
         The Complete SCA Programme is a single paid package priced at £295
-        that gives you access to our full case bank of 250+ stations,
+        that gives you access to our full case bank of 240+ stations,
         unlimited AI-graded practice, and 20 GP review credits, for a period
         of 4 months from the date of purchase.
       </P>
