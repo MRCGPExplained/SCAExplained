@@ -133,6 +133,8 @@ export interface StudyRoomValue {
   callConnected: boolean;
   /** Signalling dropped, SDK still retrying — not yet a failure. */
   dailyReconnecting: boolean;
+  /** A call was up and has since ended — distinct from never having had one. */
+  callEnded: boolean;
   dailyFailed: boolean;
   debriefSecondsLeft: number | null;
   endDebrief: () => void;

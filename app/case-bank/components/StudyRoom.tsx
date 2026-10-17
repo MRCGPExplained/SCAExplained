@@ -154,6 +154,7 @@ export function StudyRoomPanel() {
     dailyConnecting,
     callConnected,
     dailyReconnecting,
+    callEnded,
     dailyFailed,
     debriefSecondsLeft,
     endDebrief,
@@ -309,7 +310,7 @@ export function StudyRoomPanel() {
                   <PhoneIcon color="#FCD34D" /> Reconnecting…
                 </span>
               )}
-              {!callConnected && !dailyConnecting && !dailyFailed && (
+              {callEnded && !callConnected && !dailyConnecting && !dailyFailed && (
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
                   <PhoneIcon color="rgba(255,255,255,0.4)" /> Call ended
                 </span>

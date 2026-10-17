@@ -614,11 +614,24 @@ export function StudyRoomProvider({
         // consultation actually begins, so nothing is lost by stopping here —
         // and a clock left running at 00:00 keeps firing this handler.
         setTimerRunning(false);
-        if (await handleConfirmRecord(extra)) return;
+        let started = false;
+        try {
+          started = await handleConfirmRecord(extra);
+        } catch (err) {
+          // Every await in there is a network call, and a dropped connection
+          // during the pre-read used to escape as an unhandled rejection with
+          // recordingState stranded at "starting" — a state with no banner and
+          // no Try Again, which left the roles locked and every later Start
+          // refused. There is no recovering from that without rejoining.
+          logError("starting the consultation", err);
+          setRecordingState("error");
+          setRecordingError("Could not start the consultation. Please try again.");
+        }
+        if (started) return;
         // It tried and could not — expired access, the session taken over on
-        // another device, the recording row refused. The error is already on
-        // screen; what must not follow it is twelve minutes of consultation
-        // that nothing is recording. Stop, and let them read the banner.
+        // another device, the recording row refused, the network. The error is
+        // already on screen; what must not follow it is twelve minutes of
+        // consultation that nothing is recording.
         logStatus("recording could not start — not running an unrecorded consultation");
         resetTimerLocal();
         return;
@@ -715,6 +728,10 @@ export function StudyRoomProvider({
   // Signalling dropped but the SDK is still trying. Distinct from failed: a
   // blip that recovers in two seconds should not read as a dead call.
   const [dailyReconnecting, setDailyReconnecting] = useState(false);
+  // Distinguishes "no call yet" from "the call ended". Without it the ended
+  // state is also the initial state, so every take opened with a few seconds
+  // of "Call ended" while the room was still being created.
+  const [callEnded, setCallEnded] = useState(false);
   const dailyCallRef = useRef<DailyCall | null>(null);
   const dailyAudioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const dailyPrewarmingRef = useRef(false);
@@ -1163,6 +1180,14 @@ export function StudyRoomProvider({
       setReviewStage(stage);
     });
 
+    // The host closed the call early. Their action deleted the DailyCo room
+    // out from under everyone, so the only thing left to do here is stop
+    // counting down toward a close that has already happened.
+    channel.on("broadcast", { event: "debrief-ended" }, () => {
+      logStatus("debrief ended by the host");
+      latest.current.endDebrief();
+    });
+
     // A doctor/patient participant's voice call failed to connect — only the
     // host (who holds the credit) acts on this, cancelling for everyone.
     channel.on("broadcast", { event: "voice-call-failed" }, ({ payload }) => {
@@ -1329,6 +1354,14 @@ export function StudyRoomProvider({
         // newcomer and pulled onto whatever station the host is reading.
         restoredFromStorageRef.current = !invited;
         if (!invited) hasLandedRef.current = true;
+        // A reload on the station list is someone who was deliberately
+        // browsing it. browsingListRef is a ref and does not survive the
+        // reload, so without this the arrival logic reads the restore as a
+        // fresh arrival and pulls them onto the host's case — the one thing
+        // the step-back exception exists to prevent.
+        if (!invited && window.location.pathname === "/case-bank") {
+          browsingListRef.current = true;
+        }
         setRoom(data);
         // Being able to read the room is not the same as being in it. This is
         // the path an invite link arrives on, and the one that adopts a room
@@ -1414,6 +1447,7 @@ export function StudyRoomProvider({
     // is the one moment someone actually looks at it.
     call.on("left-meeting", (() => {
       logStatus("DailyCo left meeting");
+      setCallEnded(true);
       setCallConnected(false);
       setDailyReconnecting(false);
       setDailyConnecting(false);
@@ -1447,6 +1481,8 @@ export function StudyRoomProvider({
   async function joinDailyCall(roomName: string, roomUrl: string): Promise<boolean> {
     setDailyConnecting(true);
     setDailyFailed(false);
+    setDailyReconnecting(false);
+    setCallEnded(false);
     const t0 = Date.now();
     try {
       const tokenResult = await getDailyTokenAction(roomName, displayName, iAmHost);
@@ -1493,6 +1529,7 @@ export function StudyRoomProvider({
     setDailyConnecting(false);
     setCallConnected(false);
     setDailyReconnecting(false);
+    setCallEnded(false);
     setDailyFailed(false);
     setDailyRoomName(null);
   }
@@ -1531,6 +1568,22 @@ export function StudyRoomProvider({
 
   // Actually closes the call, whether the debrief window ran out or someone
   // ended it early.
+  /**
+   * Ends the debrief for everyone, not just the person who pressed it.
+   *
+   * The host closing the call deletes the DailyCo room, which ejects all three
+   * participants — but nothing told the other two. Their counter carried on
+   * saying "call closes in 2:41" while they talked into a call that no longer
+   * existed. The host is the only one who can end it for the room, so only the
+   * host announces it.
+   */
+  function endDebriefForEveryone() {
+    if (iAmHost) {
+      channelRef.current?.send({ type: "broadcast", event: "debrief-ended", payload: {} });
+    }
+    endDebrief();
+  }
+
   function endDebrief() {
     clearDebriefTimers();
     setDebriefSecondsLeft(null);
@@ -2375,9 +2428,10 @@ export function StudyRoomProvider({
       dailyConnecting,
       callConnected,
       dailyReconnecting,
+      callEnded,
       dailyFailed,
       debriefSecondsLeft,
-      endDebrief,
+      endDebrief: endDebriefForEveryone,
       recentReportId,
       shareRecentReport: handleShareReport,
       showScreenTip,
@@ -2391,7 +2445,7 @@ export function StudyRoomProvider({
       doctorUserId, patientUserId, myAssignedRole, rolesReady, sessionIdle,
       rolesSaving, iAmHost, loading, joinError, messages, recordingState,
       recordingError, myRecordingRole, activeRecordingId, dailyConnecting,
-      callConnected, dailyReconnecting, dailyFailed, debriefSecondsLeft, recentReportId,
+      callConnected, dailyReconnecting, callEnded, dailyFailed, debriefSecondsLeft, recentReportId,
       showScreenTip, dontShowScreenTip, reviewStage, reviewRecordingId, showStartWarning,
     ]
   );
