@@ -87,7 +87,7 @@ const STEPS = [
     id: "gp",
     label: "GP Review",
     title: "GP Review",
-    description: "An experienced GP reviews every consultation, verifies the scoring and provides personalised feedback before your report is finalised.",
+    description: "Every consultation is read by an experienced GP — one of the educators who wrote the cases — who verifies the scoring and writes feedback on what actually happened in yours.",
     icon: StethoscopeOutline,
   },
   {

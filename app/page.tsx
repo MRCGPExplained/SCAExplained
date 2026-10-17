@@ -3,7 +3,6 @@ import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { CaseBankMockup } from "./components/CaseBankMockup";
 import { StudyRoomMockup } from "./components/StudyRoomMockup";
-import { ExaminerFeedbackMockup } from "./components/ExaminerFeedbackMockup";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
 import { AwardIcon } from "./components/TrustIcons";
@@ -241,65 +240,6 @@ export default async function HomePage() {
           </div>
           <div className="lg:order-1 max-w-[420px] w-full mx-auto">
             <StudyRoomMockup />
-          </div>
-        </div>
-      </section>
-
-      {/*
-        GP REVIEW. This replaced a four-item "everything included" grid that had
-        turned into a recap of the page: the case bank had gained its own block,
-        the AI pass is covered by How It Works, and "every consultation read by
-        a GP" sat directly beside a card making the same point at length. What
-        is included is itemised on the pricing card anyway, where someone is
-        actually deciding.
-
-        It gets a block of its own because it is the argument. The competition
-        sells marking at volume; this sells a GP reading yours. The panel shows
-        the examiner's writing and voice note rather than the score card in the
-        hero — a number is the part a machine could have produced.
-      */}
-      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
-        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
-              GP review
-            </p>
-            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
-              A GP reads every consultation
-            </h2>
-            <p className="text-[15.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.6)" }}>
-              The AI gives you a provisional score within minutes of finishing — useful, and
-              instant. But a score is not feedback. Every submitted consultation is then read by an
-              experienced GP, who writes about what actually happened in yours and records a voice
-              note walking you through it.
-            </p>
-            <ul className="flex flex-col gap-2.5 mb-6">
-              {(
-                [
-                  ["Written by the people who wrote the cases", "The GP educators marking your consultation are the ones who built the case bank."],
-                  ["About your consultation, not a template", "Comments name the moment — the question you did not ask, the cue you moved past."],
-                  ["Twenty reviews included", "Enough to work through a weakness and find out whether it has gone."],
-                ] as const
-              ).map(([title, body]) => (
-                <li key={title} className="flex items-start gap-2.5">
-                  <span className="shrink-0 mt-[3px]"><SmallCheck /></span>
-                  <span>
-                    <span className="block font-bold text-[14px]" style={{ color: DARK }}>{title}</span>
-                    <span className="block text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.55)" }}>{body}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/recordings/sample"
-              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: DARK, color: "white" }}
-            >
-              Read a full report →
-            </Link>
-          </div>
-          <div>
-            <ExaminerFeedbackMockup />
           </div>
         </div>
       </section>
