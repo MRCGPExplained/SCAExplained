@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
+// The one dark band on the page, under the price. Matches the study room's
+// panel header so the marketing and the product are the same two colours.
+const NAVY = "#1F2937";
 
 function SmallCheck() {
   return (
@@ -139,7 +142,7 @@ export default async function HomePage() {
       <section className="px-10 py-16 max-md:px-6" style={{ background: "rgba(246,212,75,0.09)" }}>
         <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <h2 className="font-display font-extrabold text-[38px] leading-[1.2] mb-5" style={{ color: DARK }}>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-5" style={{ color: DARK }}>
               Every step is designed to help you improve.
             </h2>
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
@@ -148,18 +151,27 @@ export default async function HomePage() {
             </p>
           </div>
           <div>
-            <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
-              How It Works
-            </h2>
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-4" style={{ color: "rgba(51,51,51,0.40)" }}>
+              How it works
+            </p>
             <HowItWorks />
           </div>
         </div>
       </section>
 
       {/* WHAT YOU GET: the programme's four parts, and why a human still reads it */}
-      <section className="px-10 pb-16 pt-16 max-md:px-6">
+      {/*
+        The page used to run on one flat cream from the nav to the footer, with a
+        single faint yellow wash on How It Works — five of six sections had no
+        background at all. Nothing marked where one idea ended and the next
+        began, so the whole thing read as one column rather than a sequence of
+        sections. The bands now alternate cream → yellow wash → white → cream →
+        dark → cream, and the dark one under the price is the page's one strong
+        beat, placed where the decision is.
+      */}
+      <section className="px-10 pb-16 pt-16 max-md:px-6" style={{ background: "white" }}>
         <div className="max-w-[1250px] mx-auto">
-          <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
+          <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
             Everything included in your programme
           </h2>
 
@@ -202,7 +214,7 @@ export default async function HomePage() {
               className="rounded-[28px] p-7 sm:p-9"
               style={{ background: "#F4F4F2", border: "1px solid rgba(51,51,51,0.10)" }}
             >
-              <h3 className="font-display font-extrabold text-[17px] mb-3" style={{ color: DARK }}>
+              <h3 className="font-display font-extrabold text-[19px] mb-3" style={{ color: DARK }}>
                 Why human review matters
               </h3>
               <p className="text-[14.5px] leading-[1.7] mb-2" style={{ color: "rgba(51,51,51,0.65)" }}>
@@ -242,14 +254,14 @@ export default async function HomePage() {
       <TestimonialsSection testimonials={testimonials} />
 
       {/* PRICING */}
-      <section className="px-10 pb-16 max-md:px-6">
+      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: NAVY }}>
         <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white"
             style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
           >
             <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
-            <h2 className="font-display font-extrabold text-[22px] leading-[1.2] mb-1" style={{ color: DARK }}>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-1" style={{ color: DARK }}>
               The complete SCA programme
             </h2>
             <div className="flex items-end gap-2 mb-5">
@@ -292,16 +304,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CONTACT LINE */}
-      <section className="px-10 pb-12 max-md:px-6">
+      {/* CONTACT LINE — rides the same dark band as the price rather than
+          sitting on a 67px strip of cream between it and the dark footer,
+          which read as a gap rather than a section. */}
+      <section className="px-10 pb-14 max-md:px-6" style={{ background: NAVY }}>
         <div className="max-w-[900px] mx-auto text-center">
-          <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.45)" }}>
+          <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
             Have questions?{" "}
-            <Link href="/faq" className="font-semibold no-underline" style={{ color: DARK }}>
+            <Link href="/faq" className="font-semibold no-underline" style={{ color: "white" }}>
               Read our FAQ
             </Link>{" "}
             or email{" "}
-            <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: DARK }}>
+            <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: "white" }}>
               mrcgpexplained@outlook.com
             </a>
           </p>

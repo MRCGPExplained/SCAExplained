@@ -118,7 +118,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   return (
     <section className="px-10 pb-16 max-md:px-6">
       <div className="max-w-[1250px] mx-auto">
-        <h2 className="font-display font-extrabold text-[22px] mb-6" style={{ color: DARK }}>
+        <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
           What trainees say
         </h2>
         <div className="flex items-center gap-4">
