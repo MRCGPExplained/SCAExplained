@@ -3,9 +3,10 @@ import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { CaseBankMockup } from "./components/CaseBankMockup";
 import { StudyRoomMockup } from "./components/StudyRoomMockup";
+import { ExaminerFeedbackMockup } from "./components/ExaminerFeedbackMockup";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
-import { AwardIcon, SparklesIcon, StethoscopeIcon, BooksIcon } from "./components/TrustIcons";
+import { AwardIcon } from "./components/TrustIcons";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import Link from "next/link";
 
@@ -19,24 +20,6 @@ function SmallCheck() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="10" fill={YELLOW} />
       <path d="M7.5 12.5l3 3 6-6.5" stroke={DARK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function ChatIcon({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 5.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H10l-4.5 4V17H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z" fill={YELLOW} />
-      <path d="M7.5 9.5h9M7.5 13h6" stroke={DARK} strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ShieldCheckIcon({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 2.5l7.5 3v6c0 5-3.2 8.6-7.5 10-4.3-1.4-7.5-5-7.5-10v-6l7.5-3z" fill={YELLOW} />
-      <path d="M8.5 12.2l2.4 2.4 4.6-5" stroke={DARK} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -208,8 +191,27 @@ export default async function HomePage() {
               See a sample case →
             </Link>
           </div>
-          <div style={{ transform: "rotate(-2deg)" }}>
-            <CaseBankMockup />
+          {/* A deck, not a card. The tilt only reads as composed when there is
+              something behind it for the top card to be sitting on — alone it
+              reads as slipped. It also says 240+ better than the number does. */}
+          <div className="relative">
+            {([[-8, -18, 14, 0.5], [-5, -9, 7, 0.75]] as const).map(([deg, x, y, opacity]) => (
+              <div
+                key={deg}
+                aria-hidden="true"
+                className="absolute inset-0 rounded-xl pointer-events-none"
+                style={{
+                  transform: `rotate(${deg}deg) translate(${x}px, ${y}px)`,
+                  background: "white",
+                  border: "1px solid rgba(31,41,55,0.10)",
+                  boxShadow: "0 6px 24px rgba(31,41,55,0.07)",
+                  opacity,
+                }}
+              />
+            ))}
+            <div className="relative" style={{ transform: "rotate(-2deg)" }}>
+              <CaseBankMockup />
+            </div>
           </div>
         </div>
       </section>
@@ -237,90 +239,67 @@ export default async function HomePage() {
               Register Now →
             </Link>
           </div>
-          <div className="lg:order-1 max-w-[420px] w-full mx-auto" style={{ transform: "rotate(2deg)" }}>
+          <div className="lg:order-1 max-w-[420px] w-full mx-auto">
             <StudyRoomMockup />
           </div>
         </div>
       </section>
 
-      {/* WHAT YOU GET: the programme's four parts, and why a human still reads it */}
-      <section className="px-10 pb-16 pt-16 max-md:px-6" style={{ background: "white" }}>
-        <div className="max-w-[1250px] mx-auto">
-          <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
-            Everything included in your programme
-          </h2>
+      {/*
+        GP REVIEW. This replaced a four-item "everything included" grid that had
+        turned into a recap of the page: the case bank had gained its own block,
+        the AI pass is covered by How It Works, and "every consultation read by
+        a GP" sat directly beside a card making the same point at length. What
+        is included is itemised on the pricing card anyway, where someone is
+        actually deciding.
 
-          {/* Equal columns and top-aligned. At 3fr/5fr the four-item card was
-              squeezed into the narrow side and ran far taller than its
-              neighbour, which stretched to match and left a slab of empty grey
-              under two short items. */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-9 items-start">
-            {/* Value props */}
-            <div className="rounded-[28px] p-7 sm:p-9" style={{ background: "rgba(246,212,75,0.14)" }}>
+        It gets a block of its own because it is the argument. The competition
+        sells marking at volume; this sells a GP reading yours. The panel shows
+        the examiner's writing and voice note rather than the score card in the
+        hero — a number is the part a machine could have produced.
+      */}
+      <section className="px-10 py-16 max-md:px-6" style={{ background: "white" }}>
+        <div className="max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
+              GP review
+            </p>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
+              A GP reads every consultation
+            </h2>
+            <p className="text-[15.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.6)" }}>
+              The AI gives you a provisional score within minutes of finishing — useful, and
+              instant. But a score is not feedback. Every submitted consultation is then read by an
+              experienced GP, who writes about what actually happened in yours and records a voice
+              note walking you through it.
+            </p>
+            <ul className="flex flex-col gap-2.5 mb-6">
               {(
                 [
-                  { icon: AwardIcon, title: "Built by GP educators", body: "Written by GPs who teach the SCA and know what the examiners are looking for." },
-                  { icon: SparklesIcon, title: "AI feedback within minutes", body: "A provisional score against the three RCGP marking domains, as soon as you finish." },
-                  { icon: StethoscopeIcon, title: "Every consultation read by a GP", body: "Nothing is graded by the AI alone — a GP reviews each one before you see it." },
-                  { icon: BooksIcon, title: "Complete case bank", body: "240+ cases covering every SCA clinical domain." },
+                  ["Written by the people who wrote the cases", "The GP educators marking your consultation are the ones who built the case bank."],
+                  ["About your consultation, not a template", "Comments name the moment — the question you did not ask, the cue you moved past."],
+                  ["Twenty reviews included", "Enough to work through a weakness and find out whether it has gone."],
                 ] as const
-              ).map(({ icon: Icon, title, body }, i) => (
-                <div
-                  key={title}
-                  className="flex items-start gap-4 py-5"
-                  style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
-                >
-                  <span
-                    className="shrink-0 flex items-center justify-center rounded-full"
-                    style={{ width: 44, height: 44, background: "white" }}
-                  >
-                    <Icon size={22} />
+              ).map(([title, body]) => (
+                <li key={title} className="flex items-start gap-2.5">
+                  <span className="shrink-0 mt-[3px]"><SmallCheck /></span>
+                  <span>
+                    <span className="block font-bold text-[14px]" style={{ color: DARK }}>{title}</span>
+                    <span className="block text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.55)" }}>{body}</span>
                   </span>
-                  <div>
-                    <h3 className="font-display font-extrabold mb-1 text-[15px]" style={{ color: DARK }}>{title}</h3>
-                    <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
-                  </div>
-                </div>
+                </li>
               ))}
-            </div>
-
-            {/* Why Human Review Matters */}
-            <div
-              className="rounded-[28px] p-7 sm:p-9"
-              style={{ background: "#F4F4F2", border: "1px solid rgba(51,51,51,0.10)" }}
+            </ul>
+            <Link
+              href="/recordings/sample"
+              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
+              style={{ background: DARK, color: "white" }}
             >
-              <h3 className="font-display font-extrabold text-[19px] mb-3" style={{ color: DARK }}>
-                Why human review matters
-              </h3>
-              <p className="text-[14.5px] leading-[1.7] mb-2" style={{ color: "rgba(51,51,51,0.65)" }}>
-                AI is excellent for speed — it gives you a provisional score within minutes of finishing
-                your consultation. But exam feedback needs judgement AI can&apos;t fully replace, so every
-                single consultation is reviewed by an experienced GP before your feedback is finalised.
-              </p>
-              {(
-                [
-                  { icon: ChatIcon, title: "Personalised comments", body: "Feedback speaks to what actually happened in your consultation." },
-                  { icon: ShieldCheckIcon, title: "Feedback you can trust", body: "Verified judgement, not just an algorithm's best guess." },
-                ] as const
-              ).map(({ icon: Icon, title, body }, i) => (
-                <div
-                  key={title}
-                  className="flex items-start gap-4 py-4"
-                  style={i > 0 ? { borderTop: "1px solid rgba(51,51,51,0.1)" } : undefined}
-                >
-                  <span
-                    className="shrink-0 flex items-center justify-center rounded-full"
-                    style={{ width: 44, height: 44, background: "white" }}
-                  >
-                    <Icon size={22} />
-                  </span>
-                  <div>
-                    <h4 className="font-display font-extrabold mb-0.5 text-[15px]" style={{ color: DARK }}>{title}</h4>
-                    <p className="text-[13px] leading-[1.6]" style={{ color: "rgba(51,51,51,0.65)" }}>{body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+              Read a full report →
+            </Link>
+          </div>
+          <div>
+            <ExaminerFeedbackMockup />
           </div>
         </div>
       </section>
