@@ -1,3 +1,5 @@
+import { StudyRoomClock } from "./StudyRoomClock";
+
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 
@@ -101,19 +103,9 @@ export function StudyRoomMockup() {
         <Person initials="AO" name="Dr Amara Osei" role="Patient" />
       </div>
 
-      {/* Consultation clock */}
+      {/* Consultation clock. Its own client component — see StudyRoomClock. */}
       <div className="px-3.5 pb-3.5">
-        <div className="rounded-xl px-4 py-3 text-center" style={{ background: "white", border: `2px solid ${NAVY}` }}>
-          <div className="font-bold uppercase" style={{ fontSize: 9, letterSpacing: "0.1em", color: "rgba(31,41,55,0.4)" }}>
-            Consultation
-          </div>
-          <div className="font-extrabold" style={{ fontSize: 26, color: NAVY, fontVariantNumeric: "tabular-nums", letterSpacing: "0.02em" }}>
-            08:14
-          </div>
-          <div className="rounded-full overflow-hidden" style={{ height: 3, background: "rgba(31,41,55,0.08)", marginTop: 6 }}>
-            <div style={{ width: "68%", height: "100%", background: NAVY, borderRadius: 999 }} />
-          </div>
-        </div>
+        <StudyRoomClock />
       </div>
     </div>
   );

@@ -99,6 +99,50 @@ const STEPS = [
   },
 ] as const;
 
+/**
+ * The countdown to the next step, drawn around the one that is current.
+ *
+ * The timeline already advanced on its own; nothing showed that it was about
+ * to, so the change arrived unannounced and a reader part-way through the
+ * description lost it with no idea why. A ring closing over the same 4.5
+ * seconds makes the thing predictable: you can see how long you have, and
+ * that the movement is the component working rather than a misclick.
+ *
+ * Keyed on the active step so it remounts and redraws from zero each time,
+ * and absent once someone takes control — at that point nothing is counting
+ * down and a ring would be describing something that is not happening.
+ */
+function ProgressRing({ size, durationMs }: { size: number; durationMs: number }) {
+  const stroke = 2.5;
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+      className="absolute pointer-events-none"
+      // Rotated so the stroke starts at twelve o'clock rather than three.
+      style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%) rotate(-90deg)" }}
+    >
+      <motion.circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={DARK}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        initial={{ strokeDashoffset: circumference }}
+        animate={{ strokeDashoffset: 0 }}
+        transition={{ duration: durationMs / 1000, ease: "linear" }}
+      />
+    </svg>
+  );
+}
+
 const DESKTOP_CIRCLE = 56;
 const DESKTOP_ICON = 22;
 const MOBILE_CIRCLE = 76;
@@ -130,6 +174,11 @@ export function HowItWorks() {
     stopAutoPlay();
     setActive(i);
   }
+
+  // Only while something is actually counting down. Once a reader takes
+  // control the component stops advancing, and a ring would then be drawing
+  // toward an event that is never going to happen.
+  const showCountdown = autoPlaying && !reduceMotion && inView;
 
   const ActiveIcon = STEPS[active].icon;
 
@@ -166,7 +215,7 @@ export function HowItWorks() {
                 <motion.div
                   animate={{ scale: isActive ? 1.04 : 1 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="flex items-center justify-center rounded-full"
+                  className="relative flex items-center justify-center rounded-full"
                   style={{
                     width: DESKTOP_CIRCLE,
                     height: DESKTOP_CIRCLE,
@@ -177,6 +226,9 @@ export function HowItWorks() {
                   }}
                 >
                   <Icon size={DESKTOP_ICON} />
+                  {isActive && showCountdown && (
+                    <ProgressRing key={active} size={DESKTOP_CIRCLE + 11} durationMs={AUTO_CYCLE_MS} />
+                  )}
                 </motion.div>
               </motion.div>
               <motion.span
@@ -224,7 +276,7 @@ export function HowItWorks() {
                   onClick={() => selectStep(i)}
                   aria-current={isActive ? "step" : undefined}
                   aria-label={step.title}
-                  className="flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="relative flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{
                     width: MOBILE_CIRCLE,
                     height: MOBILE_CIRCLE,
@@ -236,6 +288,9 @@ export function HowItWorks() {
                   }}
                 >
                   <Icon size={MOBILE_ICON} />
+                  {isActive && showCountdown && (
+                    <ProgressRing key={active} size={MOBILE_CIRCLE + 12} durationMs={AUTO_CYCLE_MS} />
+                  )}
                 </button>
                 {i < STEPS.length - 1 && (
                   <div className="relative w-1 flex-1 my-1.5 rounded-full" style={{ minHeight: 36 }}>
