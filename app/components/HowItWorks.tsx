@@ -55,7 +55,7 @@ function FileTextOutline({ size = 22 }: { size?: number }) {
 
 function ArrowIcon({ highlighted }: { highlighted: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M4 12h15M13 6l6 6-6 6"
         stroke={highlighted ? YELLOW : "rgba(51,51,51,0.28)"}
@@ -113,7 +113,7 @@ const STEPS = [
  * down and a ring would be describing something that is not happening.
  *
  * It lives on the large icon only. It was on the small chips first, and two
- * rings drawing the same countdown in the same card was one too many: the
+ * rings drawing the same countdown in the same band was one too many: the
  * chips say which step, the big one says how long.
  */
 function ProgressRing({ size, durationMs, stroke = 2.5 }: { size: number; durationMs: number; stroke?: number }) {
@@ -146,20 +146,18 @@ function ProgressRing({ size, durationMs, stroke = 2.5 }: { size: number; durati
   );
 }
 
-// The chips shrank when the large icon arrived. They are now a progress
-// strip rather than the subject of the card, and at the old 56px they were
-// competing with the thing they are meant to be indexing.
-const CHIP_CIRCLE = 46;
-const CHIP_ICON = 19;
+// The chips are a progress strip, not the subject of the band. They index
+// the four steps; the large icon is the one you are meant to look at.
+const CHIP_CIRCLE = 54;
+const CHIP_ICON = 22;
 const MOBILE_CIRCLE = 60;
 const MOBILE_ICON = 26;
 
-// The whole point of the left column. 156 against a 46px chip is a ratio of
-// roughly three and a half, which is the smallest gap that still reads as
-// "this is the step you are on" from across the page rather than as two
-// sizes of the same thing.
-const BIG_CIRCLE = 156;
-const BIG_ICON = 62;
+// The subject. It took over the whole left column of the band when the
+// heading that used to live there moved above the card, so it is no longer
+// boxed in by a 176px gutter and can be the size it wants to be.
+const BIG_CIRCLE = 220;
+const BIG_ICON = 88;
 
 export function HowItWorks() {
   const [active, setActive] = useState(0);
@@ -196,87 +194,95 @@ export function HowItWorks() {
   const ActiveIcon = STEPS[active].icon;
 
   return (
+    /*
+      The whole band, not just the card: the large icon takes the left
+      column where the heading and its sub-paragraph used to sit, and the
+      heading moved to the top of the right column in place of the "How it
+      works" eyebrow. The icon is the better use of that half — it is the
+      thing that moves, and a heading plus a sentence restating the heading
+      was the page explaining itself twice before showing anything.
+    */
     <div
       ref={sectionRef}
       onMouseEnter={stopAutoPlay}
       onFocusCapture={stopAutoPlay}
-      className="rounded-[28px] p-7 sm:p-10"
-      style={{ background: "white", boxShadow: "0 8px 40px rgba(51,51,51,0.07)", border: "1px solid rgba(51,51,51,0.04)" }}
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-x-14 gap-y-8 lg:items-center"
     >
       {/*
-        Two columns: the step you are on, large, on the left; the route
-        through all four and what this one involves on the right. The card
-        used to be the timeline with a caption under it, which made the
-        four chips the subject — and the four chips are the least
-        interesting thing here, because they are the same four chips on
-        every step. Side by side splits the work properly: the right column
-        answers "where am I", the left answers "in what".
-
-        Stacked below md, where the right column would be too narrow for
-        the horizontal strip to breathe.
+        First in the DOM, placed into the right column from lg. Stacked,
+        that puts the heading above the icon, where a section heading
+        belongs — reading a 220px icon and a step name before being told
+        what the section is about is backwards. It also keeps the h2 ahead
+        of the step name underneath the icon.
       */}
-      <div className="grid grid-cols-1 md:grid-cols-[176px_minmax(0,1fr)] gap-8 md:gap-9 items-center">
+      <h2
+        className="lg:col-start-2 lg:row-start-1 font-display font-extrabold text-[32px] leading-[1.2] max-sm:text-[26px]"
+        style={{ color: DARK }}
+      >
+        Every step is designed to help you improve.
+      </h2>
 
-        {/* LEFT — the active step, large */}
-        <div className="flex flex-col items-center text-center">
-          <div
-            aria-hidden="true"
-            className="relative flex items-center justify-center rounded-full shrink-0"
-            style={{
-              width: BIG_CIRCLE,
-              height: BIG_CIRCLE,
-              background: YELLOW,
-              boxShadow: "0 18px 44px rgba(246,212,75,0.45), 0 4px 12px rgba(51,51,51,0.06)",
-            }}
-          >
-            {/*
-              Keyed remount rather than an AnimatePresence cross-fade. With
-              mode="wait" the outgoing step has to finish fading before the
-              incoming one mounts, so the icon, the title and the paragraph
-              all sat blank together for a fifth of a second on every step
-              — on a four-and-a-half second cycle that is a visible gap, and
-              this card changes often enough to notice it. Swapping on the
-              key and fading the new one in reads as the same animation with
-              nothing missing in the middle.
-            */}
-            <motion.div
-              key={STEPS[active].id}
-              initial={reduceMotion ? false : { opacity: 0, scale: 0.72 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.26, ease: "easeOut" }}
-              className="flex items-center justify-center"
-            >
-              <ActiveIcon size={BIG_ICON} />
-            </motion.div>
-            {showCountdown && (
-              <ProgressRing key={active} size={BIG_CIRCLE + 16} durationMs={AUTO_CYCLE_MS} stroke={3.5} />
-            )}
-          </div>
-
+      {/* LEFT — the step you are on */}
+      <div className="lg:col-start-1 lg:row-start-1 lg:row-span-2 flex flex-col items-center text-center">
+        <div
+          aria-hidden="true"
+          className="relative flex items-center justify-center rounded-full shrink-0"
+          style={{
+            width: BIG_CIRCLE,
+            height: BIG_CIRCLE,
+            background: YELLOW,
+            boxShadow: "0 24px 60px rgba(246,212,75,0.45), 0 6px 16px rgba(51,51,51,0.06)",
+          }}
+        >
           {/*
-            The step's full name, not the chip's short label. It is the only
-            place the title appears now — the description panel used to
-            repeat it under its own copy of the icon, which was the same
-            words twice within 200px.
+            Keyed remount rather than an AnimatePresence cross-fade. With
+            mode="wait" the outgoing step has to finish fading before the
+            incoming one mounts, so the icon and the name below it sat blank
+            together for a fifth of a second on every step — on a four-and-
+            a-half second cycle that is a visible gap.
           */}
-          <motion.h3
+          <motion.div
             key={STEPS[active].id}
-            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
-            // Two of the four titles wrap to a second line and two do not,
-            // so without a floor the whole card grew and shrank by 21px as
-            // the cycle came round. Held at two lines, the left column is a
-            // fixed 218px and the card stops breathing.
-            className="font-display font-extrabold text-[17px] leading-[1.25] mt-5 min-h-[43px]"
-            style={{ color: DARK }}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.72 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.26, ease: "easeOut" }}
+            className="flex items-center justify-center"
           >
-            {STEPS[active].title}
-          </motion.h3>
+            <ActiveIcon size={BIG_ICON} />
+          </motion.div>
+          {showCountdown && (
+            <ProgressRing key={active} size={BIG_CIRCLE + 20} durationMs={AUTO_CYCLE_MS} stroke={4} />
+          )}
         </div>
 
-        {/* RIGHT — the route, and what this step involves */}
-        <div className="min-w-0">
+        {/*
+          A paragraph, not a heading. It names a piece of UI state that
+          changes every few seconds, which is not a document section, and
+          the chips already carry which-of-four through aria-current. It is
+          still read out as text.
+
+          The floor holds two lines: two of the four titles wrap and two do
+          not, and without it the column grew and shrank as the cycle came
+          round.
+        */}
+        <motion.p
+          key={STEPS[active].id}
+          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.24, ease: "easeOut" }}
+          className="font-display font-extrabold text-[20px] leading-[1.25] mt-6 min-h-[50px]"
+          style={{ color: DARK }}
+        >
+          {STEPS[active].title}
+        </motion.p>
+      </div>
+
+      {/* RIGHT — the route, and what this step involves */}
+      <div className="lg:col-start-2 lg:row-start-2 min-w-0">
+        <div
+          className="rounded-[28px] p-7 sm:p-9"
+          style={{ background: "white", boxShadow: "0 8px 40px rgba(51,51,51,0.07)", border: "1px solid rgba(51,51,51,0.04)" }}
+        >
           {/* Horizontal strip, tablet and up */}
           <div className="hidden sm:flex items-start justify-between">
             {STEPS.flatMap((step, i) => {
@@ -319,7 +325,7 @@ export function HowItWorks() {
                     initial={reduceMotion ? false : { opacity: 0 }}
                     animate={inView ? { opacity: 1 } : {}}
                     transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.15 + 0.1 }}
-                    className="font-display font-bold whitespace-nowrap text-[11px] leading-none"
+                    className="font-display font-bold whitespace-nowrap text-[11.5px] leading-none"
                     style={{ color: isActive ? DARK : "rgba(51,51,51,0.4)" }}
                   >
                     {step.label}
@@ -333,7 +339,7 @@ export function HowItWorks() {
                 <motion.div
                   key={`${step.id}-arrow`}
                   className="flex items-center justify-center shrink-0"
-                  style={{ width: 16, height: CHIP_CIRCLE }}
+                  style={{ width: 18, height: CHIP_CIRCLE }}
                   initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
                   animate={{ opacity: connectorHighlighted ? 1 : inView ? 0.6 : 0 }}
                   transition={{ duration: 0.3, delay: reduceMotion ? 0 : i * 0.15 + 0.35, ease: "easeOut" }}
@@ -401,14 +407,12 @@ export function HowItWorks() {
           </div>
 
           {/*
-            What this step involves. The floor is set only from xl, where
-            this column is a fixed 383px and the longest of the four runs
-            to exactly four lines. Below xl the column is anywhere from
-            400px to 860px wide, so a reserve tight enough to matter at one
-            width is dead space at another — and it is not needed there,
-            because the left column is the taller of the two.
+            What this step involves. The floor is measured against the
+            narrowest this column gets, so the card does not change height
+            as the cycle reaches a longer description and goes back to a
+            shorter one.
           */}
-          <div className="mt-7 pt-6 xl:min-h-[120px]" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
+          <div className="mt-7 pt-6 sm:min-h-[96px]" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
             <motion.p
               key={STEPS[active].id}
               initial={reduceMotion ? false : { opacity: 0, y: 6 }}
@@ -421,7 +425,6 @@ export function HowItWorks() {
             </motion.p>
           </div>
         </div>
-
       </div>
     </div>
   );

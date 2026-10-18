@@ -131,36 +131,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: "white" }}>
-        {/*
-          Not an even split. The card now carries a large active icon beside
-          the timeline, and at an even split it was 445px wide at 1024 — the
-          right-hand column came out around 190px, which is not a column.
-          The heading needs far less room than the thing it introduces, so
-          it gets less, and the two-up only starts at xl: below that the
-          card takes the full width rather than being squeezed.
-        */}
-        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] gap-10 items-center">
-          <div className="max-w-[620px]">
-            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-5" style={{ color: DARK }}>
-              Every step is designed to help you improve.
-            </h2>
-            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              From recording your consultation to receiving expert feedback, we make SCA
-              preparation simple and effective.
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-4" style={{ color: "rgba(51,51,51,0.40)" }}>
-              How it works
-            </p>
-            <HowItWorks />
-          </div>
-        </div>
-      </section>
-
-
       {/*
         FEATURE BLOCKS. One capability per band, each with the actual interface
         beside it rather than a sentence describing it — the product is a thing
@@ -175,28 +145,33 @@ export default async function HomePage() {
         enough that nobody has to read text on a slant.
       */}
 
-      {/* CASE BANK */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
+      {/*
+        CASE BANK, and the first band after the hero. The cases are the
+        thing people came to see — the four-step explanation of what
+        happens to a recording only matters once you believe there is
+        something worth recording against, so it follows rather than leads.
+
+        No eyebrow. "Case bank" above a heading that already says "cases"
+        is the same noun twice in two lines; the study room keeps its one
+        because that heading never names the feature.
+      */}
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: "white" }}>
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
-              Case bank
-            </p>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
               240+ cases, written like the real thing
             </h2>
-            <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(51,51,51,0.6)" }}>
+            {/*
+              No button. It pointed at /case-bank/sample, which is exactly
+              where the hero's "See Demo Case" already sends people — the
+              same destination offered twice on one screen, the second time
+              with no new reason to take it.
+            */}
+            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
               Every station comes with the doctor&apos;s brief, the patient&apos;s story, what to gather,
               how to manage it, and a worked example of the conversation. Star the ones you want to
               come back to and keep your own notes against each.
             </p>
-            <Link
-              href="/case-bank/sample"
-              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: DARK, color: "white" }}
-            >
-              See a sample case →
-            </Link>
           </div>
           {/* A deck, not a card. The tilt only reads as composed when there is
               something behind it for the top card to be sitting on — alone it
@@ -220,6 +195,18 @@ export default async function HomePage() {
               <CaseBankMockup />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/*
+        HOW IT WORKS. The band is the component now — the large active
+        step takes the left column where a heading and a sentence
+        restating that heading used to sit, and the heading moved to the
+        top of the right column in place of the "How it works" eyebrow.
+      */}
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
+        <div className="w-full max-w-[1150px] mx-auto">
+          <HowItWorks />
         </div>
       </section>
 
