@@ -2,7 +2,6 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { CaseBankMockup } from "./components/CaseBankMockup";
-import { StudyRoomMockup } from "./components/StudyRoomMockup";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
 import { AwardIcon } from "./components/TrustIcons";
@@ -13,6 +12,15 @@ export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
+
+// The alternate band tone: the page's own yellow laid over the cream at
+// eighteen percent. A nine percent wash was tried here before and taken out
+// for being a near-miss — far enough from cream that the eye could tell, not
+// far enough that it could tell why. White replaced it and had the opposite
+// problem: #FAFAF8 against #FFFFFF is five points in one channel, so the
+// bands it was meant to separate read as one unbroken slab. This is a tone
+// you can actually see, and still quiet enough to sit under body copy.
+const WASH = "#F9F3D9";
 
 function SmallCheck() {
   return (
@@ -50,16 +58,24 @@ export default async function HomePage() {
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/*
-        Three tones and no more: cream (the page), white, and the dark the navbar
-        and footer already use. They alternate strictly — cream, white, cream,
-        dark, white, cream, dark — so every section is marked off from the one
-        before it without the page acquiring a palette.
+        Three tones and no more: cream (the page), the yellow wash, and the
+        dark the footer uses. The five light bands alternate strictly —
+        cream, wash, cream, wash, cream — so every section is marked off
+        from the one before it without the page acquiring a palette.
 
-        It had drifted to five: two darks that were nearly the same (#333333 at
-        the top and bottom, #1F2937 in the middle) and three lights (cream,
-        white, and a nine-percent yellow wash over cream). Near-misses like
-        that read as carelessness rather than as design, because the eye can
-        tell they differ but not why.
+        An odd number of light bands means the two ends share a tone, and
+        which tone that is follows from where the price sits. The price is
+        slot five and is cream, so slot one is cream, and the wash lands on
+        the case bank and the testimonials. The reverse arrangement works
+        too — it just puts the hero and the price on yellow instead.
+
+        The light pair used to be cream and white, which is five points in a
+        single channel: invisible on most screens, at most angles. The hero,
+        the case bank and How It Works read as one pale slab seventeen
+        hundred pixels tall, and then everything below it went dark at once.
+        Two blocks, no rhythm. No dividers were added for it — a hairline
+        between two tones that are already indistinguishable patches over the
+        symptom, and the tones were the symptom.
       */}
       {/* HERO */}
       <section className="px-10 py-16 max-md:px-6">
@@ -155,7 +171,7 @@ export default async function HomePage() {
         is the same noun twice in two lines; the study room keeps its one
         because that heading never names the feature.
       */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: "white" }}>
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: WASH }}>
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
@@ -210,44 +226,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* STUDY ROOM */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: DARK }}>
-        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="lg:order-2">
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Study room
-            </p>
-            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: "white" }}>
-              Practise with a partner, in the browser
-            </h2>
-            <p className="text-[15.5px] leading-[1.7] mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Share a code and you are in the same room. Three minutes to read the case, then the
-              voice call connects and the consultation records itself — twelve minutes, the same as
-              the exam. Nothing to install, no Zoom, no third-party software.
-            </p>
-            <Link
-              href="/register"
-              className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-              style={{ background: YELLOW, color: DARK }}
-            >
-              Register Now →
-            </Link>
-          </div>
-          <div className="lg:order-1 max-w-[420px] w-full mx-auto">
-            <StudyRoomMockup />
-          </div>
-        </div>
-      </section>
-
       {/* TESTIMONIALS */}
       <TestimonialsSection testimonials={testimonials} />
 
       {/* PRICING */}
-      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: DARK }}>
+      <section className="px-10 pt-16 pb-10 max-md:px-6">
         <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white"
-            style={{ border: "1.5px solid rgba(246,212,75,0.55)" }}
+            style={{ border: "1.5px solid rgba(246,212,75,0.55)", boxShadow: "0 12px 44px rgba(51,51,51,0.10)" }}
           >
             <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-1" style={{ color: DARK }}>
@@ -293,18 +280,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CONTACT LINE — rides the same dark band as the price rather than
-          sitting on a 67px strip of cream between it and the dark footer,
+      {/* CONTACT LINE — rides the same band as the price rather than
+          sitting on a 67px strip of its own between it and the footer,
           which read as a gap rather than a section. */}
-      <section className="px-10 pb-16 max-md:px-6" style={{ background: DARK }}>
+      <section className="px-10 pb-16 max-md:px-6">
         <div className="max-w-[900px] mx-auto text-center">
-          <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+          <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.55)" }}>
             Have questions?{" "}
-            <Link href="/faq" className="font-semibold no-underline" style={{ color: "white" }}>
+            <Link href="/faq" className="font-semibold no-underline" style={{ color: DARK }}>
               Read our FAQ
             </Link>{" "}
             or email{" "}
-            <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: "white" }}>
+            <a href="mailto:mrcgpexplained@outlook.com" className="font-semibold no-underline" style={{ color: DARK }}>
               mrcgpexplained@outlook.com
             </a>
           </p>

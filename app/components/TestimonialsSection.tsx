@@ -116,7 +116,12 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const goTo = (delta: 1 | -1) => setPos((p) => p + delta);
 
   return (
-    <section className="px-10 py-16 max-md:px-6">
+    // The yellow wash — slot four of the homepage's strict cream/wash
+    // alternation, see the palette note in app/page.tsx. This band renders
+    // nothing at all when there are no published testimonials, which is the
+    // one case where the alternation doubles up: How It Works and the price
+    // are then both cream with nothing between them.
+    <section className="px-10 py-16 max-md:px-6" style={{ background: "#F9F3D9" }}>
       <div className="max-w-[1250px] mx-auto">
         <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-7" style={{ color: DARK }}>
           What trainees say

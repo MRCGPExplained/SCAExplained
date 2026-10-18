@@ -166,19 +166,46 @@ export function HowItWorks() {
   const inView = useInView(sectionRef, { once: true, margin: "-80px" });
   const reduceMotion = useReducedMotion();
 
-  // Auto-cycles through the steps until the user does anything with the
-  // component — click, hover, or tab into it. Interaction wins permanently;
-  // we never resume auto-play once a person has taken control.
+  // Auto-cycles through the steps, but only once the band is on screen.
+  // Started at mount it ran the whole sequence below the fold: a reader who
+  // spent five seconds on the hero arrived at step two, one who spent ten
+  // arrived at step three, and "Record Consultation" — the step this exists
+  // to put first — was never the one they saw. Gating on the same inView the
+  // ring uses also puts the two in phase, so the first ring anyone sees
+  // draws a whole 4.5 seconds instead of whatever was left of a tick that
+  // started while they were somewhere else on the page.
   useEffect(() => {
-    if (!autoPlaying || reduceMotion) return;
+    if (!autoPlaying || reduceMotion || !inView) return;
     const id = setInterval(() => {
       setActive((a) => (a + 1) % STEPS.length);
     }, AUTO_CYCLE_MS);
     return () => clearInterval(id);
-  }, [autoPlaying, reduceMotion]);
+  }, [autoPlaying, reduceMotion, inView]);
+
+  // A card sliding under a stationary cursor dispatches mouseenter exactly
+  // as though the reader had moved onto it, and during a wheel scroll the
+  // cursor is usually parked mid-viewport — right where this band passes.
+  // Pausing on that killed the cycle permanently for most desktop readers
+  // before they had done anything at all, leaving the card frozen on
+  // whatever step it had reached with no ring and no hint the chips are
+  // live. Movement is the signal; anything arriving in the slipstream of a
+  // scroll is not.
+  const lastScrollAt = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      lastScrollAt.current = performance.now();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   function stopAutoPlay() {
     setAutoPlaying(false);
+  }
+
+  function handlePointerMove() {
+    if (performance.now() - lastScrollAt.current < 300) return;
+    stopAutoPlay();
   }
 
   function selectStep(i: number) {
@@ -204,7 +231,7 @@ export function HowItWorks() {
     */
     <div
       ref={sectionRef}
-      onMouseEnter={stopAutoPlay}
+      onPointerMove={handlePointerMove}
       onFocusCapture={stopAutoPlay}
       className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-x-14 gap-y-8 lg:items-center"
     >
@@ -296,9 +323,9 @@ export function HowItWorks() {
                   type="button"
                   onClick={() => selectStep(i)}
                   aria-current={isActive ? "step" : undefined}
-                  aria-label={step.title}
+                  aria-label={step.label}
                   className="flex flex-col items-center gap-2 shrink-0 rounded-2xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
-                  style={{ background: "none", border: "none", cursor: "pointer", outlineColor: YELLOW }}
+                  style={{ background: "none", border: "none", cursor: "pointer", outlineColor: DARK }}
                 >
                   <motion.div
                     initial={reduceMotion ? false : { opacity: 0, y: 12 }}
@@ -365,7 +392,7 @@ export function HowItWorks() {
                       type="button"
                       onClick={() => selectStep(i)}
                       aria-current={isActive ? "step" : undefined}
-                      aria-label={step.title}
+                      aria-label={step.label}
                       className="flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                       style={{
                         width: MOBILE_CIRCLE,
@@ -374,7 +401,7 @@ export function HowItWorks() {
                         border: `2px solid ${isActive ? YELLOW : "rgba(51,51,51,0.15)"}`,
                         boxShadow: isActive ? "0 8px 20px rgba(246,212,75,0.4)" : "none",
                         cursor: "pointer",
-                        outlineColor: YELLOW,
+                        outlineColor: DARK,
                       }}
                     >
                       <Icon size={MOBILE_ICON} />
@@ -412,7 +439,7 @@ export function HowItWorks() {
             as the cycle reaches a longer description and goes back to a
             shorter one.
           */}
-          <div className="mt-7 pt-6 sm:min-h-[96px]" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
+          <div className="mt-7 pt-6 min-h-[168px] min-[500px]:min-h-[120px] sm:min-h-[96px]" style={{ borderTop: "1px solid rgba(51,51,51,0.08)" }}>
             <motion.p
               key={STEPS[active].id}
               initial={reduceMotion ? false : { opacity: 0, y: 6 }}
