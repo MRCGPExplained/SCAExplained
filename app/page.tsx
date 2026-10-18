@@ -133,8 +133,16 @@ export default async function HomePage() {
 
       {/* HOW IT WORKS */}
       <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: "white" }}>
-        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
+        {/*
+          Not an even split. The card now carries a large active icon beside
+          the timeline, and at an even split it was 445px wide at 1024 — the
+          right-hand column came out around 190px, which is not a column.
+          The heading needs far less room than the thing it introduces, so
+          it gets less, and the two-up only starts at xl: below that the
+          card takes the full width rather than being squeezed.
+        */}
+        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] gap-10 items-center">
+          <div className="max-w-[620px]">
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-5" style={{ color: DARK }}>
               Every step is designed to help you improve.
             </h2>
