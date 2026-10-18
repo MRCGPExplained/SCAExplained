@@ -58,16 +58,17 @@ export default async function HomePage() {
   return (
     <main style={{ background: "#FAFAF8" }}>
       {/*
-        Three tones and no more: cream (the page), the yellow wash, and the
+        Three tones and no more: the yellow wash, cream (the page), and the
         dark the footer uses. The five light bands alternate strictly —
-        cream, wash, cream, wash, cream — so every section is marked off
+        wash, cream, wash, cream, wash — so every section is marked off
         from the one before it without the page acquiring a palette.
 
         An odd number of light bands means the two ends share a tone, and
-        which tone that is follows from where the price sits. The price is
-        slot five and is cream, so slot one is cream, and the wash lands on
-        the case bank and the testimonials. The reverse arrangement works
-        too — it just puts the hero and the price on yellow instead.
+        there are only two ways to seat it. This one puts the wash on the
+        hero, How It Works and the price, with the case bank and the
+        testimonials on cream; the other starts on cream and lands the wash
+        on the case bank and the testimonials instead. Either alternates
+        strictly — the choice is only which three sections carry yellow.
 
         The light pair used to be cream and white, which is five points in a
         single channel: invisible on most screens, at most angles. The hero,
@@ -78,7 +79,7 @@ export default async function HomePage() {
         symptom, and the tones were the symptom.
       */}
       {/* HERO */}
-      <section className="px-10 py-16 max-md:px-6">
+      <section className="px-10 py-16 max-md:px-6" style={{ background: WASH }}>
         <div className="max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 
           {/* Left: message + CTAs */}
@@ -171,7 +172,7 @@ export default async function HomePage() {
         is the same noun twice in two lines; the study room keeps its one
         because that heading never names the feature.
       */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: WASH }}>
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
@@ -220,7 +221,7 @@ export default async function HomePage() {
         restating that heading used to sit, and the heading moved to the
         top of the right column in place of the "How it works" eyebrow.
       */}
-      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
+      <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]" style={{ background: WASH }}>
         <div className="w-full max-w-[1150px] mx-auto">
           <HowItWorks />
         </div>
@@ -230,7 +231,7 @@ export default async function HomePage() {
       <TestimonialsSection testimonials={testimonials} />
 
       {/* PRICING */}
-      <section className="px-10 pt-16 pb-10 max-md:px-6">
+      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: WASH }}>
         <div className="max-w-[900px] mx-auto">
           <div
             className="relative rounded-2xl p-8 bg-white"
@@ -283,7 +284,7 @@ export default async function HomePage() {
       {/* CONTACT LINE — rides the same band as the price rather than
           sitting on a 67px strip of its own between it and the footer,
           which read as a gap rather than a section. */}
-      <section className="px-10 pb-16 max-md:px-6">
+      <section className="px-10 pb-16 max-md:px-6" style={{ background: WASH }}>
         <div className="max-w-[900px] mx-auto text-center">
           <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.55)" }}>
             Have questions?{" "}
