@@ -26,15 +26,21 @@ export default async function StationPage({ params }: PageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/case-bank/login");
 
+  // Together, not one after the other. Neither needs the other's answer, and
+  // each is a round trip to a database in Ireland from a function in
+  // Washington, which measured at 150-300ms a time — the admin lookup itself
+  // runs in a tenth of a millisecond, so what it costs is the distance, not
+  // the query. The station fetch below genuinely cannot join them: it picks
+  // both its client and its filter out of `admin`.
+  //
   // Guests (anonymous auth, joined via a room invite) never had anything to
   // buy — they can't be doctor so they never touch AI grading or GP review,
   // the whole reason the paywall exists. Let them browse freely.
-  if (!user.is_anonymous) {
-    const access = await getCaseBankAccess(supabase, user.id);
-    if (!access.hasAccess) redirect("/case-bank/upgrade");
-  }
-
-  const admin = await isAdmin();
+  const [access, admin] = await Promise.all([
+    user.is_anonymous ? null : getCaseBankAccess(supabase, user.id),
+    isAdmin(),
+  ]);
+  if (access && !access.hasAccess) redirect("/case-bank/upgrade");
 
   // Fetch station. Admins can view hidden (unpublished) stations directly so
   // they can find their way back to the publish toggle after hiding one.

@@ -114,7 +114,7 @@ export function CaseBankMockup() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 3 }}>Patient</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Sarah Okonkwo</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Sarah Marsden</div>
               <div style={{ fontSize: 11, color: "rgba(26,27,82,0.60)" }}>38 years old</div>
             </div>
             <div>

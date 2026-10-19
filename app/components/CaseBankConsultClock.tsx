@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 const NAVY = "#1F2937";
 
-// Twelve minutes is the exam, and the panel opens part-way through one so
-// the bar has somewhere to go in both directions.
+// Twelve minutes is the exam, and the panel starts at the top of one. It
+// opened part-way through at first, on the theory that a half-drained bar
+// shows what the bar is for, but a consultation that begins at 08:14 is a
+// consultation someone has to explain. Starting where the real one starts
+// needs no explaining, and the bar drains while you watch anyway.
 const TOTAL_SECONDS = 12 * 60;
-const START_SECONDS = 8 * 60 + 14;
+const START_SECONDS = TOTAL_SECONDS;
 
 function mmss(total: number) {
   const mm = String(Math.floor(total / 60)).padStart(2, "0");
