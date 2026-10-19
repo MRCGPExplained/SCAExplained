@@ -176,12 +176,80 @@ export function CaseBankMockup() {
             <div style={{ fontSize: 10, color: "rgba(26,27,82,0.35)", textAlign: "center" }}>Skip to consult →</div>
           </div>
 
+          {/*
+            The group, mid-consultation, rather than a sentence saying one
+            exists. "Practise with others in real time" asked the reader to
+            take the live part on trust; four names and a recording light
+            show it. This is the only place the group feature appears on the
+            homepage now that its own band has gone, so it is worth the room.
+          */}
           <div
             className="rounded-xl p-3"
             style={{ background: "white", border: "1px solid rgba(31,41,55,0.09)" }}
           >
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 8 }}>Study Group</div>
-            <div style={{ fontSize: 11, color: "rgba(26,27,82,0.50)", lineHeight: 1.5 }}>Practise with others in real time.</div>
+            <style>{`
+              @keyframes cb-rec-pulse {
+                0%, 100% { opacity: 1;    transform: scale(1); }
+                50%      { opacity: 0.35; transform: scale(0.78); }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .cb-rec-dot { animation: none !important; }
+              }
+            `}</style>
+
+            <div className="flex items-center gap-1.5" style={{ marginBottom: 9 }}>
+              <span
+                className="cb-rec-dot"
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  display: "inline-block",
+                  animation: "cb-rec-pulse 1.25s ease-in-out infinite",
+                }}
+              />
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#ef4444" }}>
+                Recording
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-[7px]">
+              {(
+                [
+                  ["KS", "Kate Snow", "Doctor"],
+                  ["OH", "Olivia Hartley", "Patient"],
+                  ["TB", "Tom Bradshaw", "Observer"],
+                  ["DA", "Daniel Ashworth", "Observer"],
+                ] as const
+              ).map(([initials, name, role]) => (
+                <div key={name} className="flex items-center gap-1.5">
+                  <span
+                    className="shrink-0 flex items-center justify-center rounded-full"
+                    style={{
+                      width: 17,
+                      height: 17,
+                      // The doctor is the one being marked, so they carry the
+                      // accent and everyone else recedes.
+                      background: role === "Doctor" ? YELLOW : LIGHT_BG,
+                      color: NAVY,
+                      fontSize: 7.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {initials}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate" style={{ fontSize: 9.5, fontWeight: 700, color: NAVY, lineHeight: 1.25 }}>
+                      {name}
+                    </span>
+                    <span className="block" style={{ fontSize: 8, color: "rgba(26,27,82,0.45)", lineHeight: 1.25 }}>
+                      {role}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
