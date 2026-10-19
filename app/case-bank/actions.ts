@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail, sendExaminerNotificationEmail, sendReportFeedbackDisagreeEmail } from "@/lib/email";
-import type { Highlight, HighlightColor } from "@/lib/case-bank-types";
+import type { Highlight, HighlightColor, StudyRoom } from "@/lib/case-bank-types";
 import { isDailyCoEnabled, createDailyRoom, createDailyMeetingToken, deleteDailyRoom } from "@/lib/daily";
 
 export interface ActionResult {
@@ -328,8 +328,22 @@ function generateRoomCode(): string {
   ).join("");
 }
 
+/**
+ * Returns the whole room row, not just its id.
+ *
+ * The caller used to take the id and re-read the room through the BROWSER
+ * Supabase client. That read is the only part of creating a group that
+ * depends on the browser client having a session, and it is the part that
+ * was failing: this action proves the user is signed in by calling
+ * auth.getUser() on the server, so by the time it returns the room exists
+ * and is theirs — but the browser client is a separate thing with its own
+ * startup, and when its session was not yet in place the re-read came back
+ * empty, the panel never opened, and a real room was left behind with
+ * nobody in it. Returning the row removes the second read, and with it the
+ * window the two clients could disagree in.
+ */
 export async function createStudyRoomAction(stationNumber: number): Promise<
-  ActionResult & { roomId?: string; roomCode?: string }
+  ActionResult & { roomId?: string; roomCode?: string; room?: StudyRoom }
 > {
   const supabase = await createSupabaseServerClient();
   const {
@@ -346,8 +360,8 @@ export async function createStudyRoomAction(stationNumber: number): Promise<
     // effect) so an invite link copied right after creation always has
     // somewhere to send a guest, instead of a brief window where it's null.
     .insert({ room_code: roomCode, host_user_id: user.id, doctor_user_id: user.id, current_station_number: stationNumber })
-    .select("id,room_code")
-    .single<{ id: string; room_code: string }>();
+    .select("*")
+    .single<StudyRoom>();
 
   if (error || !room) return { error: error?.message ?? "Failed to create room." };
 
@@ -369,12 +383,12 @@ export async function createStudyRoomAction(stationNumber: number): Promise<
     return { error: "Could not set up the room. Please try again." };
   }
 
-  return { success: true, roomId: room.id, roomCode: room.room_code };
+  return { success: true, roomId: room.id, roomCode: room.room_code, room };
 }
 
 export async function joinStudyRoomAction(
   roomCode: string
-): Promise<ActionResult & { roomId?: string; stationNumber?: number | null }> {
+): Promise<ActionResult & { roomId?: string; stationNumber?: number | null; room?: StudyRoom }> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -386,9 +400,9 @@ export async function joinStudyRoomAction(
     // current_station_number comes back too, so a caller outside the case
     // bank can send the joiner straight to the case the room is on rather than
     // dropping them at the station list to find it themselves.
-    .select("id, host_user_id, current_station_number")
+    .select("*")
     .eq("room_code", roomCode.toUpperCase())
-    .single<{ id: string; host_user_id: string; current_station_number: number | null }>();
+    .single<StudyRoom>();
 
   if (!room) return { error: "Room not found. Check the code and try again." };
 
@@ -426,7 +440,7 @@ export async function joinStudyRoomAction(
     .from("room_participants")
     .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
 
-  return { success: true, roomId: room.id, stationNumber: room.current_station_number };
+  return { success: true, roomId: room.id, stationNumber: room.current_station_number, room };
 }
 
 /**

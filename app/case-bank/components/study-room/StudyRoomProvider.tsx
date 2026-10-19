@@ -2165,26 +2165,38 @@ export function StudyRoomProvider({
     }
   }
 
+  /**
+   * Both of the ways this used to fail without saying anything are gone.
+   *
+   * It opened with a bare `if (stationNumber === null) return`, so pressing
+   * the button anywhere the URL is not a station did nothing at all — no
+   * error, no spinner, no clue. And after the action succeeded it re-read
+   * the room through the browser client and only acted `if (data)`, so a
+   * browser client whose session was not yet in place read nothing, the
+   * panel stayed on the create screen, and a real room was left in the
+   * database with nobody in it. Four of the first six rooms ever created
+   * ended up that way.
+   *
+   * The action returns the row now, so there is no second read to disagree
+   * with the first, and every remaining exit tells the user something.
+   */
   async function handleCreate() {
-    if (stationNumber === null) return;
+    if (stationNumber === null) {
+      setJoinError("Open a case first — a study group always starts on a station.");
+      return;
+    }
     setLoading(true);
+    setJoinError("");
     const result = await createStudyRoomAction(stationNumber);
-    if (result.error) {
-      logError("createStudyRoomAction", result.error);
-      setJoinError(result.error);
+    if (result.error || !result.room) {
+      logError("createStudyRoomAction", result.error ?? "action returned no room");
+      setJoinError(result.error ?? "Could not open the group. Please try again.");
       setLoading(false);
       return;
     }
-    logStatus("room created", { roomId: result.roomId });
-    const { data } = await supabase
-      .from("study_rooms")
-      .select("*")
-      .eq("id", result.roomId!)
-      .single<StudyRoom>();
-    if (data) {
-      sessionStorage.setItem("studyRoomId", data.id);
-      setRoom(data);
-    }
+    logStatus("room created", { roomId: result.room.id });
+    sessionStorage.setItem("studyRoomId", result.room.id);
+    setRoom(result.room);
     setLoading(false);
   }
 
@@ -2199,16 +2211,16 @@ export function StudyRoomProvider({
       setLoading(false);
       return;
     }
-    logStatus("joined room", { roomId: result.roomId });
-    const { data } = await supabase
-      .from("study_rooms")
-      .select("*")
-      .eq("id", result.roomId!)
-      .single<StudyRoom>();
-    if (data) {
-      sessionStorage.setItem("studyRoomId", data.id);
-      setRoom(data);
+    // Same re-read, same silent failure as creating one — see handleCreate.
+    if (!result.room) {
+      logError("joinStudyRoomAction", "action returned no room");
+      setJoinError("Could not open the group. Please try again.");
+      setLoading(false);
+      return;
     }
+    logStatus("joined room", { roomId: result.room.id });
+    sessionStorage.setItem("studyRoomId", result.room.id);
+    setRoom(result.room);
     setLoading(false);
   }
 
