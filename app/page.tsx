@@ -191,11 +191,21 @@ export default async function HomePage() {
               come back to and keep your own notes against each.
             </p>
           </div>
-          {/* A deck, not a card. The tilt only reads as composed when there is
-              something behind it for the top card to be sitting on — alone it
-              reads as slipped. It also says 240+ better than the number does. */}
+          {/*
+            A deck, not a card: it says 240+ better than the number does.
+
+            The top sheet is square and only the ones under it are askew.
+            All three used to lean the same way, -8, -5 and -2, which is a
+            fan — and a fan reads as one slab rotated rather than as loose
+            sheets. Squaring the top gets more apparent depth out of less
+            rotation, and it matters more now that this panel carries the
+            group's names at 9.5px, which is exactly the size that stops
+            being readable on a slant. It is also the only tilt left on the
+            page since the study room band went, and a lone tilted panel is
+            one judgement away from looking crooked rather than composed.
+          */}
           <div className="relative">
-            {([[-8, -18, 14, 0.5], [-5, -9, 7, 0.75]] as const).map(([deg, x, y, opacity]) => (
+            {([[-7, -17, 13, 0.5], [-3.5, -8, 6, 0.75]] as const).map(([deg, x, y, opacity]) => (
               <div
                 key={deg}
                 aria-hidden="true"
@@ -209,7 +219,7 @@ export default async function HomePage() {
                 }}
               />
             ))}
-            <div className="relative" style={{ transform: "rotate(-2deg)" }}>
+            <div className="relative">
               <CaseBankMockup />
             </div>
           </div>
