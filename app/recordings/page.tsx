@@ -52,12 +52,12 @@ type RecordingRow = {
   candidate_viewed_at: string | null;
 };
 
-export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string }> }) {
+export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string; topped_up?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { purchased } = await searchParams;
+  const { purchased, topped_up } = await searchParams;
 
   const admin = getSupabaseAdmin();
   const [recordingsResult, creditsResult] = await Promise.all([
@@ -120,6 +120,12 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             )}
           </div>
         </div>
+
+        {topped_up === "1" && (
+          <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
+            Top-up successful — 20 GP reviews have been added to your balance.
+          </div>
+        )}
 
         {purchased === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>

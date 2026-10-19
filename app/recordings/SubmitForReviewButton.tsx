@@ -42,6 +42,23 @@ export function SubmitForReviewButton({
     return () => window.removeEventListener("keydown", onKey);
   }, [asking]);
 
+  const [toppingUp, setToppingUp] = useState(false);
+  const [topUpError, setTopUpError] = useState("");
+
+  async function topUp() {
+    setToppingUp(true);
+    setTopUpError("");
+    try {
+      const res = await fetch("/api/review-credits/checkout", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout failed");
+      window.location.href = data.url;
+    } catch (err) {
+      setTopUpError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setToppingUp(false);
+    }
+  }
+
   async function submit() {
     setAsking(false);
     setPhase("submitting");
@@ -155,16 +172,30 @@ export function SubmitForReviewButton({
                   >
                     Close
                   </button>
-                  {/* Same destination and wording as the button the page
-                      already shows beside the credit count at zero. */}
-                  <Link
-                    href="/case-bank/upgrade"
-                    className="flex-1 rounded-lg py-2.5 text-[13px] font-bold no-underline text-center"
-                    style={{ background: YELLOW, color: DARK }}
+                  {/* A top-up, not a renewal: it adds reviews and leaves
+                      access and its expiry alone. Renewing the whole
+                      programme is still offered on the page itself, beside
+                      the credit count. */}
+                  <button
+                    type="button"
+                    onClick={topUp}
+                    disabled={toppingUp}
+                    className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+                    style={{
+                      background: YELLOW,
+                      border: "none",
+                      color: DARK,
+                      cursor: toppingUp ? "default" : "pointer",
+                      opacity: toppingUp ? 0.7 : 1,
+                    }}
                   >
-                    Renew Programme
-                  </Link>
+                    {toppingUp ? "Redirecting…" : "Top up 20 — £50"}
+                  </button>
                 </div>
+
+                {topUpError && (
+                  <p className="text-[12px] text-center mt-3" style={{ color: "#B91C1C" }}>{topUpError}</p>
+                )}
 
                 <p className="text-[12px] text-center mt-3.5" style={{ color: "rgba(51,51,51,0.5)" }}>
                   Have a webinar code?{" "}
