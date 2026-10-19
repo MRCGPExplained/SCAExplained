@@ -111,9 +111,10 @@ export default async function HomePage() {
             <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
               Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
               the consultation skills RCGP examiners assess—ICE, shared decision-making, managing
-              uncertainty and responding to patient emotion. Every consultation is reviewed by an
-              experienced GP, giving you clear, personalised feedback so you know exactly what to
-              improve before exam day.
+              uncertainty and responding to patient emotion. Every consultation is graded by AI within
+              minutes, and your programme includes 20 reviews by an experienced GP — clear,
+              personalised feedback on what you actually did, so you know what to improve before
+              exam day.
             </p>
 
             <div className="flex items-center gap-3 flex-wrap mb-7">
@@ -169,8 +170,8 @@ export default async function HomePage() {
         something worth recording against, so it follows rather than leads.
 
         No eyebrow. "Case bank" above a heading that already says "cases"
-        is the same noun twice in two lines; the study room keeps its one
-        because that heading never names the feature.
+        is the same noun twice in two lines. The eyebrows elsewhere survive
+        that test, because those headings never name the feature.
       */}
       <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

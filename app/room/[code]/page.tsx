@@ -30,7 +30,7 @@ export default async function RoomGatewayPage({ params }: PageProps) {
             Room not found
           </h1>
           <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.6)" }}>
-            This link doesn&apos;t match an active study room. Double-check it with whoever shared it.
+            This link doesn&apos;t match an active study group. Double-check it with whoever shared it.
           </p>
         </div>
       </main>
@@ -99,12 +99,12 @@ export default async function RoomGatewayPage({ params }: PageProps) {
           <main className="min-h-screen flex items-center justify-center px-6" style={{ background: "#FAFAF8" }}>
             <div className="text-center max-w-[380px]">
               <h1 className="font-display font-extrabold text-[22px] mb-2" style={{ color: "#333333" }}>
-                {joinErr.message === "full" ? "Room is full" : "Could not join"}
+                {joinErr.message === "full" ? "Study group is full" : "Could not join"}
               </h1>
               <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.6)" }}>
                 {joinErr.message === "full"
-                  ? "This room already has four people in it — one doctor, one patient and two observers."
-                  : "Something went wrong joining this room. Ask the host to share the link again."}
+                  ? "This study group already has four people in it — one doctor, one patient and two observers."
+                  : "Something went wrong joining this study group. Ask the host to share the link again."}
               </p>
             </div>
           </main>

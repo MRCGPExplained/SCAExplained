@@ -1060,7 +1060,7 @@ export function StudyRoomProvider({
           // away, and it cannot tell the difference on its own.
           sessionStorage.removeItem("studyRoomId");
           clearSession();
-          setJoinError("You were removed from the study room.");
+          setJoinError("You were removed from the study group.");
         });
       }
     );

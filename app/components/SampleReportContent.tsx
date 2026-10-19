@@ -291,7 +291,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
         <div className="mt-8 rounded-2xl p-7 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
           <h2 className="font-display font-extrabold text-[20px] mb-2" style={{ color: NAVY }}>Ready to get your own report?</h2>
           <p className="text-[13.5px] mb-5" style={{ color: "rgba(51,51,51,0.55)" }}>
-            Record a consultation, get it graded by AI, and reviewed by a GP. Usually back within 5 working days.
+            Record a consultation, get it graded by AI in minutes, then send it to a GP for a human read. Usually back within 5 working days.
           </p>
           <Link
             href="/register"

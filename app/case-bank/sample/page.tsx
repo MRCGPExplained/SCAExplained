@@ -306,14 +306,14 @@ I'd like to see you again in four to six weeks to see how you're getting on with
           >Record</NavBtn>
 
           <NavBtn
-            message="Create a free account to access study rooms and sync your case with a partner to record together."
+            message="Create a free account to access study groups and sync your case with a partner to record together."
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             }
-          >Study Room</NavBtn>
+          >Study Group</NavBtn>
 
           <NavBtn
             message="Create a free account to star cases and track your progress across the full case bank."

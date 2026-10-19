@@ -5,11 +5,11 @@ const DARK = "#333333";
 const FAQS = [
   {
     q: "Who reviews consultations?",
-    a: "Every consultation is reviewed by a qualified, experienced GP — the same kind of examiner who marks the real SCA.",
+    a: "A qualified, experienced GP — the same kind of examiner who marks the real SCA. Every consultation you record is graded by AI, and you then choose which ones to send for GP review. Twenty reviews are included in the programme.",
   },
   {
     q: "How quickly is feedback returned?",
-    a: "AI analysis is available within minutes of submitting. Full, GP-reviewed feedback is usually returned within 5 working days.",
+    a: "AI analysis is available within minutes of recording. When you submit a consultation for GP review, that feedback is usually returned within 5 working days.",
   },
   {
     q: "How does recording work?",
@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: "Is AI used?",
-    a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback. A GP examiner then reviews it, verifies the scoring and finalises your feedback.",
+    a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback, and that part is unlimited. When you submit one for GP review, an examiner verifies the scoring and writes your final feedback.",
   },
   {
     q: "What's included in the programme?",

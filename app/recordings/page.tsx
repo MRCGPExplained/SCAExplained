@@ -98,7 +98,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               My Recordings
             </h1>
             <p className="text-[13.5px] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
-              AI-graded consultations reviewed by an RCGP examiner.
+              AI-graded consultations. Submit any of them for RCGP-examiner review.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -134,7 +134,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           >
             <p className="text-[15px] font-semibold mb-2" style={{ color: NAVY }}>No recordings yet</p>
             <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>
-              Open a station, start a study room, and press <strong>Record</strong> when you&apos;re ready.
+              Open a station, start a study group, and press <strong>Record</strong> when you&apos;re ready.
             </p>
           </div>
         ) : (

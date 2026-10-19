@@ -905,7 +905,7 @@ export function StationPageClient({
               <line x1="12" y1="17" x2="12" y2="21"/>
               <line x1="9" y1="21" x2="15" y2="21"/>
             </svg>
-            Study Room
+            Study Group
           </button>
 
           <button

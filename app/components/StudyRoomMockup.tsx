@@ -81,7 +81,7 @@ export function StudyRoomMockup() {
       <div className="px-3.5 py-3 flex items-center justify-between gap-3" style={{ background: NAVY }}>
         <span>
           <span className="block font-bold uppercase" style={{ fontSize: 10.5, letterSpacing: "0.08em", color: "white" }}>
-            Study Room
+            Study Group
           </span>
           <span className="block" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.4)" }}>Station 42 · Chest pain</span>
         </span>

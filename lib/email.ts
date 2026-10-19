@@ -373,7 +373,7 @@ export async function sendAccessExpiryEmail(args: {
           Your access expires soon, ${escapeHtml(args.firstName)}.</p>
         <p style="font-size:14px;line-height:1.6;color:#555555;margin:0;">
           Your Case Bank access expires on <strong>${expiry}</strong>.
-          Renew now to keep access to all 246 stations, study rooms, and notes.
+          Renew now to keep access to all 246 stations, study groups, and notes.
         </p>
       </td></tr>
       <tr><td style="padding:20px 28px;">

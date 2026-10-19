@@ -198,7 +198,7 @@ export function CleanupClient({
   return (
     <div className="flex flex-col gap-4 max-w-[600px]">
       <CleanupCard
-        title="Empty Study Rooms"
+        title="Empty Study Groups"
         description="Rooms with no participants left in them. Safe to remove — nothing else references them."
         count={roomsCount}
         loading={roomsLoading}

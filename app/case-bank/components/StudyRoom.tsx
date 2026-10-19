@@ -201,7 +201,7 @@ export function StudyRoomPanel() {
       >
         <div className="px-4 py-3" style={{ background: NAVY }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
-            Study Room
+            Study Group
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
             Practice with friends in real time
@@ -264,7 +264,7 @@ export function StudyRoomPanel() {
       >
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
-            Study Room
+            Study Group
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
             {iAmHost ? "You are navigating" : `${hostName} is navigating`}

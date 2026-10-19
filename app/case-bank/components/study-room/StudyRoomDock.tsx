@@ -82,7 +82,7 @@ export function StudyRoomDock() {
         >
           <span className="flex flex-col min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
-              Study Room
+              Study Group
             </span>
             <span className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.45)" }}>
               {room.room_code} · {here} here

@@ -250,7 +250,7 @@ export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEna
             <div style={{ paddingTop: 16, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
               <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>DailyCo Live Audio</div>
               <p className="text-[12px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
-                When enabled, study room participants get a live audio call for the 12-minute consultation. When disabled, the call feature is hidden — participants only record locally as before.
+                When enabled, study group participants get a live audio call for the 12-minute consultation. When disabled, the call feature is hidden — participants only record locally as before.
               </p>
               <div className="flex items-center gap-4">
                 <button
@@ -277,7 +277,7 @@ export default function ApiSettingsClient({ aiPrompt, defaultPrompt, deepgramEna
                 </button>
                 <span className="text-[12px]" style={{ color: "rgba(51,51,51,0.4)" }}>
                   {dailyCoOn
-                    ? "Live audio call is available in study rooms."
+                    ? "Live audio call is available in study groups."
                     : "Live audio call is disabled."}
                 </span>
                 {dailyCoErr && <span className="text-[12px] text-red-600">{dailyCoErr}</span>}

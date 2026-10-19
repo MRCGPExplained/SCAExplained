@@ -36,7 +36,7 @@ export function CaseBankMockup() {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {["Study Room", "Star", "Feedback"].map((label) => (
+          {["Study Group", "Star", "Feedback"].map((label) => (
             <span
               key={label}
               className="rounded"
@@ -180,7 +180,7 @@ export function CaseBankMockup() {
             className="rounded-xl p-3"
             style={{ background: "white", border: "1px solid rgba(31,41,55,0.09)" }}
           >
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 8 }}>Study Room</div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 8 }}>Study Group</div>
             <div style={{ fontSize: 11, color: "rgba(26,27,82,0.50)", lineHeight: 1.5 }}>Practise with others in real time.</div>
           </div>
         </div>

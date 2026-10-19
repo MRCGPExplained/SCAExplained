@@ -303,7 +303,7 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
 
         <Card title="Daily analytics">
           <Stat label="Avg participants" value={dailyParticipants.length ? mean(dailyParticipants).toFixed(1) : "—"} />
-          <Stat label="Avg room duration" value={dailyDurations.length ? `${(mean(dailyDurations) / 60).toFixed(1)} min` : "—"} />
+          <Stat label="Avg group duration" value={dailyDurations.length ? `${(mean(dailyDurations) / 60).toFixed(1)} min` : "—"} />
           <Stat label="Avg participant minutes" value={dailyPMins.length ? mean(dailyPMins).toFixed(1) : "—"} />
           <Stat label="Avg Daily cost" value={dailyCosts.length ? gbp(mean(dailyCosts)) : "—"} />
           <div className="mt-2 pt-2" style={{ borderTop: "1px solid rgba(51,51,51,0.06)" }}>

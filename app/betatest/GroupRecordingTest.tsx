@@ -698,7 +698,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setBusy(false);
     if (result.error || !result.roomId) {
       logError("createStudyRoomAction", result.error);
-      setJoinErr(result.error ?? "Failed to create room.");
+      setJoinErr(result.error ?? "Failed to create study group.");
       return;
     }
     logStatus("room created", { roomId: result.roomId, roomCode: result.roomCode });
@@ -721,7 +721,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
     setBusy(false);
     if (result.error || !result.roomId) {
       logError("joinStudyRoomAction", result.error, { code: joinInput.trim() });
-      setJoinErr(result.error ?? "Room not found.");
+      setJoinErr(result.error ?? "Study group not found.");
       return;
     }
     logStatus("joined room", { roomId: result.roomId });
@@ -953,7 +953,7 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
                 opacity: busy ? 0.6 : 1,
               }}
             >
-              {busy ? "Creating…" : "Create Room"}
+              {busy ? "Creating…" : "Create Group"}
             </button>
           </div>
 

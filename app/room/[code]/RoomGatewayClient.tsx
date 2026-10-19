@@ -40,7 +40,7 @@ export function RoomGatewayClient({ roomCode }: { roomCode: string }) {
             SCA Focus
           </p>
           <h1 className="font-display font-extrabold text-[26px]" style={{ color: DARK }}>
-            Join Study Room
+            Join Study Group
           </h1>
           <p className="text-[13px] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
             Code: <span className="font-mono font-bold">{roomCode}</span>
@@ -98,7 +98,7 @@ export function RoomGatewayClient({ roomCode }: { roomCode: string }) {
               className="text-[14px] font-bold py-3 rounded-xl transition-opacity disabled:opacity-50"
               style={{ background: DARK, color: "white", border: "none", cursor: joining ? "not-allowed" : "pointer" }}
             >
-              {joining ? "Joining…" : "Join Room"}
+              {joining ? "Joining…" : "Join Group"}
             </button>
             <button
               type="button"

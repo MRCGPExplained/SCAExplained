@@ -58,7 +58,7 @@ export function JoinStudyRoomCard() {
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>Join a study room</p>
+          <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>Join a study group</p>
           <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>
             Got a code from a friend? Go straight to the case they are on.
           </p>

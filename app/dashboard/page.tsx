@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     {
       href: "/case-bank",
       label: "Case Bank",
-      description: "240+ practice stations · study rooms · notes",
+      description: "240+ practice stations · study groups · notes",
       badge: null,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
