@@ -16,7 +16,7 @@ const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "SCA Focus — Learn What Scores Marks in the SCA",
+  title: "SCA Focus: Learn What Scores Marks in the SCA",
   description: "Premium SCA coaching for GP trainees. Free training, live practice sessions, and the SCA Focus Programme.",
 };
 

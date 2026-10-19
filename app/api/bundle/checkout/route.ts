@@ -30,7 +30,7 @@ export async function POST() {
           currency: "gbp",
           unit_amount: 5000,
           product_data: {
-            name: "SCA Focus Bundle — Video Course + Case Bank",
+            name: "SCA Focus Bundle: Video Course + Case Bank",
             description: "Complete SCA preparation package. Save £10 vs buying separately. 90-day access.",
           },
         },

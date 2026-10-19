@@ -123,13 +123,13 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
 
         {topped_up === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
-            Top-up successful — 20 GP reviews have been added to your balance.
+            Top-up successful: 20 GP reviews have been added to your balance.
           </div>
         )}
 
         {purchased === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
-            Purchase successful — your programme access is now active.
+            Purchase successful: your programme access is now active.
           </div>
         )}
 

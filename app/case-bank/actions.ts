@@ -432,7 +432,7 @@ export async function joinStudyRoomAction(
       .eq("room_id", room.id);
 
     if ((count ?? 0) >= 4) {
-      return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+      return { error: "Room is full: max 4 people (1 doctor, 1 patient, 2 observers)." };
     }
   }
 
@@ -496,7 +496,7 @@ export async function ensureRoomParticipantAction(roomId: string): Promise<Actio
     .select("user_id", { count: "exact", head: true })
     .eq("room_id", roomId);
   if ((count ?? 0) >= 4) {
-    return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+    return { error: "Room is full: max 4 people (1 doctor, 1 patient, 2 observers)." };
   }
 
   const { error } = await supabase
@@ -553,7 +553,7 @@ export async function guestJoinRoomAction(
     .select("user_id", { count: "exact", head: true })
     .eq("room_id", room.id);
   if ((count ?? 0) >= 4) {
-    return { error: "Room is full — max 4 people (1 doctor, 1 patient, 2 observers)." };
+    return { error: "Room is full: max 4 people (1 doctor, 1 patient, 2 observers)." };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -615,7 +615,7 @@ export async function removeParticipantAction(
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated." };
-  if (user.id === targetUserId) return { error: "Can't remove yourself — use Leave instead." };
+  if (user.id === targetUserId) return { error: "Can't remove yourself. Use Leave instead." };
 
   const { data: room } = await supabase
     .from("study_rooms")

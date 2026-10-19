@@ -31,7 +31,7 @@ export function PurchaseButton() {
         className="font-bold text-[15px] px-8 py-3.5 rounded-xl transition-opacity hover:opacity-90"
         style={{ background: YELLOW, color: DARK, border: "none", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}
       >
-        {loading ? "Redirecting to checkout…" : "Purchase — £295"}
+        {loading ? "Redirecting to checkout…" : "Purchase: £295"}
       </button>
       {error && <p className="text-[13px]" style={{ color: "#B91C1C" }}>{error}</p>}
     </div>

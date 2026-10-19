@@ -189,7 +189,7 @@ export function SubmitForReviewButton({
                       opacity: toppingUp ? 0.7 : 1,
                     }}
                   >
-                    {toppingUp ? "Redirecting…" : "Top up 20 — £50"}
+                    {toppingUp ? "Redirecting…" : "Top up 20 (£50)"}
                   </button>
                 </div>
 

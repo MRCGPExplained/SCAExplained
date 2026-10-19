@@ -1,3 +1,5 @@
+import { CaseBankConsultClock } from "./CaseBankConsultClock";
+
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
@@ -125,7 +127,7 @@ export function CaseBankMockup() {
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Past Medical History</div>
             <div className="flex flex-col gap-1.5">
-              {["Hypothyroidism — on Levothyroxine", "Anxiety — not on medication"].map((item) => (
+              {["Hypothyroidism, on Levothyroxine", "Anxiety, not on medication"].map((item) => (
                 <div key={item} className="flex gap-2.5 items-start">
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
                   <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>{item}</span>
@@ -139,7 +141,7 @@ export function CaseBankMockup() {
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Drug &amp; Allergy History</div>
             <div className="flex gap-2.5 items-start">
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
-              <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>Levothyroxine 75mcg daily — NKDA</span>
+              <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>Levothyroxine 75mcg daily, NKDA</span>
             </div>
           </div>
 
@@ -159,32 +161,15 @@ export function CaseBankMockup() {
             style={{ background: "white", border: "1px solid rgba(31,41,55,0.09)" }}
           >
             {/*
-              Mid-consultation, not waiting to start. The card underneath
-              shows four people and a recording light, so a pre-read clock
-              with a Start button under it was the panel contradicting
-              itself — the one state this timer must not be in is the one
-              where nothing has happened yet.
+              Mid-consultation and actually running — see CaseBankConsultClock.
+              A pre-read clock with a Start button under a card showing four
+              people and a recording light had the panel contradicting itself,
+              and a painted-on time is a strange thing to show on a page
+              selling a timed exam. There is no Stop button: the red fought
+              the recording light for the same attention, and a control is
+              the one thing in a mockup nobody can press.
             */}
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)" }}>Consultation</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: NAVY, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>08:14</div>
-            {/* Remaining, out of the twelve minutes the exam allows. */}
-            <div className="rounded-full overflow-hidden" style={{ height: 3, width: "100%", background: "rgba(31,41,55,0.10)" }}>
-              <div style={{ width: "69%", height: "100%", background: NAVY, borderRadius: 999 }} />
-            </div>
-            <div
-              className="rounded-lg text-center"
-              style={{
-                background: "#DC2626",
-                color: "white",
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "6px 20px",
-                width: "100%",
-              }}
-            >
-              Stop
-            </div>
-            <div style={{ fontSize: 10, color: "rgba(26,27,82,0.35)", textAlign: "center" }}>Stops itself at 12:00</div>
+            <CaseBankConsultClock />
           </div>
 
           {/*

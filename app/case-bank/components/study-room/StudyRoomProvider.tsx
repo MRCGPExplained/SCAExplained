@@ -395,7 +395,7 @@ export function StudyRoomProvider({
         // the confirmation and ran a full twelve-minute consultation with no
         // room, no recorder and no error: a whole station done twice over.
         recordingState !== "idle" || debriefSecondsLeft !== null
-        ? "Finish the last consultation first — end the call to start another."
+        ? "Finish the last consultation first. End the call to start another."
         : !rolesReady
           ? "Set a doctor and a patient before starting."
           : doctorUserId === patientUserId
@@ -1218,7 +1218,7 @@ export function StudyRoomProvider({
       latest.current.stopLocalRecording();
       latest.current.leaveDailyCall();
       setRecordingState("error");
-      setRecordingError(reason ?? "Recording was cancelled — the voice call failed to connect.");
+      setRecordingError(reason ?? "Recording was cancelled. The voice call failed to connect.");
       setActiveRecordingId(null);
       setMyRecordingRole(null);
     });
@@ -1688,7 +1688,7 @@ export function StudyRoomProvider({
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
     if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
-    const reason = result.error ?? why ?? "There was an issue connecting the voice call — please try again.";
+    const reason = result.error ?? why ?? "There was an issue connecting the voice call. Please try again.";
 
     channelRef.current?.send({
       type: "broadcast",
@@ -2194,7 +2194,7 @@ export function StudyRoomProvider({
   async function handleCreate() {
     const station = stationNumberRef.current;
     if (station === null) {
-      setJoinError("Open a case first — a study group always starts on a station.");
+      setJoinError("Open a case first. A study group always starts on a station.");
       return;
     }
     setLoading(true);

@@ -58,7 +58,7 @@ function LoginForm() {
 
         <p className="text-center text-[12px] mt-6" style={{ color: "rgba(26,27,82,0.4)" }}>
           No access yet?{" "}
-          <Link href="/programme" className="font-semibold no-underline" style={{ color: NAVY }}>Get 90-day access — £60</Link>
+          <Link href="/programme" className="font-semibold no-underline" style={{ color: NAVY }}>Get 90-day access: £60</Link>
         </p>
       </div>
     </div>

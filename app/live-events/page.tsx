@@ -51,7 +51,7 @@ export default async function LiveEventsPage() {
               <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>Monthly Live SCA Teaching</p>
             </div>
             <h2 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3" style={{ color: DARK }}>
-              How To Pass Your SCA — Monthly Webinar
+              How To Pass Your SCA: Monthly Webinar
             </h2>
             <p className="text-[14.5px] leading-[1.7] mb-5" style={{ color: "rgba(51,51,51,0.65)" }}>
               A free 1-hour Zoom session every month. Learn what the RCGP
@@ -92,7 +92,7 @@ export default async function LiveEventsPage() {
               </div>
             ) : (
               <p className="text-[14px] font-semibold pt-4" style={{ color: "rgba(51,51,51,0.45)", borderTop: "1px solid rgba(51,51,51,0.08)" }}>
-                Next date coming soon — check back shortly.
+                Next date coming soon. Check back shortly.
               </p>
             )}
           </div>

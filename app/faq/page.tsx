@@ -13,11 +13,11 @@ const FAQS = [
   },
   {
     q: "How does recording work?",
-    a: "You record directly in your browser with a study partner — no downloads or extra software. One of you plays the doctor, the other the patient, for a fixed 12-minute consultation, just like the real exam.",
+    a: "You record directly in your browser with a study partner, no downloads or extra software. One of you plays the doctor, the other the patient, for a fixed 12-minute consultation, just like the real exam.",
   },
   {
     q: "Do I need Zoom?",
-    a: "No — consultations are recorded directly in your browser. Our free monthly teaching session is hosted on Zoom separately.",
+    a: "No. Consultations are recorded directly in your browser. Our free monthly teaching session is hosted on Zoom separately.",
   },
   {
     q: "How long are consultations?",

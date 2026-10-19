@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { withoutEmDashes } from "@/lib/prose";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract, buildOutputSchema } from "@/lib/ai-defaults";
 import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, buildAlignmentPrompt, type CaseRule, type CaseRuleAnswer, type FiredRule } from "@/lib/case-rules";
 import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
@@ -670,7 +671,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       // refuse instead, and let the fallback below leave it ungraded.
       const wordCount = transcriptFormatted.trim().split(/\s+/).filter(Boolean).length;
       if (wordCount < 15) {
-        throw new Error(`Transcript too short to grade (${wordCount} words) — audio may be silent, unintelligible, or failed to capture.`);
+        throw new Error(`Transcript too short to grade (${wordCount} words). The audio may be silent, unintelligible, or it failed to capture.`);
       }
 
       // Build station context for the grading prompt
@@ -946,10 +947,12 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_data_gathering: finalGrades.data_gathering,
         ai_clinical_management: finalGrades.clinical_management,
         ai_relating_to_others: finalGrades.relating_to_others,
-        ai_comment_data_gathering: comments.data_gathering,
-        ai_comment_clinical_management: comments.clinical_management,
-        ai_comment_relating_to_others: comments.relating_to_others,
-        ai_focus_for_next_time: comments.focus,
+        // Cleaned on the way in, not on the way out, so the stored text and
+        // the text the candidate reads are the same thing. See lib/prose.
+        ai_comment_data_gathering: withoutEmDashes(comments.data_gathering),
+        ai_comment_clinical_management: withoutEmDashes(comments.clinical_management),
+        ai_comment_relating_to_others: withoutEmDashes(comments.relating_to_others),
+        ai_focus_for_next_time: withoutEmDashes(comments.focus),
         ai_graded_at: new Date().toISOString(),
         status: "ai_graded",
         // Null when skill grading is off, which is what keeps the report's

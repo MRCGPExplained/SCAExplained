@@ -124,7 +124,7 @@ export async function sendConfirmationEmail(
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `You're booked: ${args.eventTitle} — ${longDate(args.startTime)}`,
+      subject: `You're booked: ${args.eventTitle}, ${longDate(args.startTime)}`,
       html,
     });
     if (error) {
@@ -165,13 +165,13 @@ export async function sendFeedbackEmail(args: {
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">${label} received</p>
         <p style="font-size:13px;line-height:1.6;color:#6b6c85;margin:0;">
-          This is a notification only — reply from the admin portal, not this email.</p>
+          This is a notification only. Reply from the admin portal, not this email.</p>
       </td></tr>
       <tr><td style="padding:16px 28px;">
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:14px 16px;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
-            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber}: ${escapeHtml(args.stationTitle)}</p>
           </td></tr>
         </table>
       </td></tr>
@@ -191,7 +191,7 @@ export async function sendFeedbackEmail(args: {
         </a>
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
-        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Focus Case Bank — ${label}</p>
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">SCA Focus Case Bank: ${label}</p>
       </td></tr>
     </table>
   </div>`;
@@ -200,7 +200,7 @@ export async function sendFeedbackEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `${label}: Station #${args.stationNumber} — ${args.stationTitle}`,
+      subject: `${label}: Station #${args.stationNumber}, ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -240,7 +240,7 @@ export async function sendFeedbackReplyEmail(args: {
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
           Reply to your ${label}, ${escapeHtml(args.userName)}</p>
         <p style="font-size:13px;line-height:1.6;color:#6b6c85;margin:0;">
-          On Station #${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+          On Station #${args.stationNumber}: ${escapeHtml(args.stationTitle)}</p>
       </td></tr>
       <tr><td style="padding:16px 28px 8px;">
         <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Your message</p>
@@ -250,7 +250,7 @@ export async function sendFeedbackReplyEmail(args: {
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:16px;">
             <p style="margin:0;font-size:14px;line-height:1.65;color:${NAVY};white-space:pre-wrap;">${escapeHtml(args.replyText)}</p>
-            <p style="margin:12px 0 0;font-size:12.5px;color:#6b6c85;">— ${escapeHtml(args.adminName)}, SCA Focus</p>
+            <p style="margin:12px 0 0;font-size:12.5px;color:#6b6c85;">${escapeHtml(args.adminName)}, SCA Focus</p>
           </td></tr>
         </table>
       </td></tr>
@@ -271,7 +271,7 @@ export async function sendFeedbackReplyEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `Re: ${args.kind === "help" ? "Help" : "Feedback"} — Station #${args.stationNumber}: ${args.stationTitle}`,
+      subject: `Re: ${args.kind === "help" ? "Help" : "Feedback"}, Station #${args.stationNumber}: ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -311,7 +311,7 @@ export async function sendVideoRequestEmail(args: {
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:14px 16px;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
-            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber}: ${escapeHtml(args.stationTitle)}</p>
             <p style="margin:4px 0 0;font-size:12px;color:#6b6c85;">${escapeHtml(args.stationSubject)}</p>
           </td></tr>
         </table>
@@ -326,7 +326,7 @@ export async function sendVideoRequestEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          SCA Focus Case Bank — Video Request</p>
+          SCA Focus Case Bank: Video Request</p>
       </td></tr>
     </table>
   </div>`;
@@ -335,7 +335,7 @@ export async function sendVideoRequestEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: "mrcgpexplained@outlook.com",
-      subject: `Video Request: Station #${args.stationNumber} — ${args.stationTitle}`,
+      subject: `Video Request: Station #${args.stationNumber}, ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -444,7 +444,7 @@ export async function sendExaminerNotificationEmail(args: {
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:14px 16px;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
-            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber}: ${escapeHtml(args.stationTitle)}</p>
             <p style="margin:6px 0 0;font-size:12px;color:#6b6c85;">Candidate: ${escapeHtml(args.candidateName)}</p>
           </td></tr>
         </table>
@@ -467,7 +467,7 @@ export async function sendExaminerNotificationEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `New recording to review: Station #${args.stationNumber} — ${args.stationTitle}`,
+      subject: `New recording to review: Station #${args.stationNumber}, ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -508,7 +508,7 @@ export async function sendExaminerReportEmail(args: {
     };
     const labels: Record<string, string> = { CF: "Clear Fail", F: "Fail", P: "Pass", CP: "Clear Pass" };
     const s = styles[g] ?? "";
-    return `<span style="display:inline-block;padding:2px 10px;border-radius:6px;font-weight:700;font-size:12px;${s}">${g} — ${labels[g] ?? g}</span>`;
+    return `<span style="display:inline-block;padding:2px 10px;border-radius:6px;font-weight:700;font-size:12px;${s}">${g}: ${labels[g] ?? g}</span>`;
   }
 
   function domainRow(label: string, max: string, grade: string, comment: string): string {
@@ -571,7 +571,7 @@ export async function sendExaminerReportEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `SCA Report: Station ${args.stationNumber} — ${args.stationTitle}`,
+      subject: `SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }
@@ -615,7 +615,7 @@ export async function sendReportFeedbackDisagreeEmail(args: {
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
           <tr><td style="padding:14px 16px;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Station</p>
-            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber} — ${escapeHtml(args.stationTitle)}</p>
+            <p style="margin:0;font-size:15px;color:${NAVY};font-weight:600;">#${args.stationNumber}: ${escapeHtml(args.stationTitle)}</p>
           </td></tr>
         </table>
       </td></tr>
@@ -632,7 +632,7 @@ export async function sendReportFeedbackDisagreeEmail(args: {
       </td></tr>
       <tr><td style="background:${NAVY};padding:14px 28px;">
         <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
-          SCA Focus — AI Report Feedback</p>
+          SCA Focus: AI Report Feedback</p>
       </td></tr>
     </table>
   </div>`;
@@ -641,7 +641,7 @@ export async function sendReportFeedbackDisagreeEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `Report feedback: disagreement on Station ${args.stationNumber} — ${args.stationTitle}`,
+      subject: `Report feedback: disagreement on Station ${args.stationNumber}, ${args.stationTitle}`,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }

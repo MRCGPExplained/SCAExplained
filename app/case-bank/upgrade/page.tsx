@@ -24,7 +24,7 @@ export default async function CaseBankUpgradePage() {
         </h1>
         <p className="text-[14px] leading-[1.65] mb-6" style={{ color: "rgba(51,51,51,0.6)" }}>
           The Complete SCA Programme gives you access to 240+ cases, unlimited AI review, and
-          20 GP reviews — valid for 4 months.
+          20 GP reviews, valid for 4 months.
         </p>
         <PurchaseButton />
         <p className="text-[12px] mt-6" style={{ color: "rgba(51,51,51,0.4)" }}>

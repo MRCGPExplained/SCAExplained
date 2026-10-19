@@ -49,7 +49,7 @@ function ReviewStageChip({
             rel="noopener noreferrer"
             style={{ color: "#FCA5A5", textDecoration: "underline", textUnderlineOffset: 2 }}
           >
-            Marking failed — open anyway
+            Marking failed: open anyway
           </a>
         ) : (
           "Marking failed"
@@ -317,7 +317,7 @@ export function StudyRoomPanel() {
               )}
               {dailyFailed && !callConnected && (
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  <PhoneIcon color="rgba(255,255,255,0.4)" /> Voice call off — connection failed
+                  <PhoneIcon color="rgba(255,255,255,0.4)" /> Voice call off: connection failed
                 </span>
               )}
               {iAmHost && recordingState === "recording" && (
@@ -335,7 +335,7 @@ export function StudyRoomPanel() {
           {debriefSecondsLeft !== null && (
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(96,165,250,0.9)" }}>
-                <PhoneIcon color="rgba(96,165,250,0.9)" /> Debrief — call closes in {Math.floor(debriefSecondsLeft / 60)}:{String(debriefSecondsLeft % 60).padStart(2, "0")}
+                <PhoneIcon color="rgba(96,165,250,0.9)" /> Debrief: call closes in {Math.floor(debriefSecondsLeft / 60)}:{String(debriefSecondsLeft % 60).padStart(2, "0")}
               </span>
               <button
                 onClick={endDebrief}
@@ -411,11 +411,11 @@ export function StudyRoomPanel() {
                   opacity: !sessionIdle ? 0.7 : 1,
                 }}
               >
-                <option value="">— None —</option>
+                <option value="">None</option>
                 {participants.map((p) => (
                   <option key={p.userId} value={p.userId} disabled={role === "doctor" && p.isGuest}>
                     {p.isSelf ? `You (${p.displayName})` : p.displayName}
-                    {role === "doctor" && p.isGuest ? " (guest — can't be doctor)" : ""}
+                    {role === "doctor" && p.isGuest ? " (guest, can't be doctor)" : ""}
                   </option>
                 ))}
               </select>
@@ -578,8 +578,8 @@ export function StudyRoomPanel() {
           </div>
           <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
             <li>• You get <strong>3 minutes</strong> to read the case, then the voice call connects on its own.</li>
-            <li>• Recording and transcription start the moment it connects — there is nothing else to press.</li>
-            <li>• AI review is free and starts immediately — no credit is used yet.</li>
+            <li>• Recording and transcription start the moment it connects. There is nothing else to press.</li>
+            <li>• AI review is free and starts immediately. No credit is used yet.</li>
             <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
             <li>• Recording stops automatically at the 12-minute mark.</li>
             <li>• You can choose to submit for GP review afterwards, which uses 1 credit.</li>
@@ -653,7 +653,7 @@ export function StudyRoomPanel() {
           </div>
           <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
             {stopConfirmMode === "leave"
-              ? "Leaving now ends the consultation early for everyone in the room — only what's been recorded so far will be transcribed and AI-reviewed."
+              ? "Leaving now ends the consultation early for everyone in the room. Only what's been recorded so far will be transcribed and AI-reviewed."
               : "If you stop now, the consultation ends early and only what's been recorded so far will be transcribed and AI-reviewed."}
           </p>
 

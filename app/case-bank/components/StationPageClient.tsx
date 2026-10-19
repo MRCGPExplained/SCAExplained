@@ -72,7 +72,7 @@ function TrainerInsightAudio({
       body: file,
       headers: { "Content-Type": file.type || "audio/webm" },
     });
-    if (!uploadRes.ok) return { error: "Upload failed — try again." };
+    if (!uploadRes.ok) return { error: "Upload failed. Try again." };
     const confirmResult = await confirmTrainerInsightAudioUploadAction(stationId, urlResult.path);
     if ("error" in confirmResult) return { error: confirmResult.error };
     router.refresh();
@@ -1115,7 +1115,7 @@ export function StationPageClient({
                         </p>
                       ) : (
                         <p className="text-[14px] italic m-0" style={{ color: "rgba(133,77,14,0.55)" }}>
-                          No note yet — use the pencil to add one.
+                          No note yet. Use the pencil to add one.
                         </p>
                       )}
                     </EditableField>

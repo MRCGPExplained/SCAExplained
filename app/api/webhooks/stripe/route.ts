@@ -227,7 +227,7 @@ async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
     await sendConfirmationEmail({
       to: userEmail,
       customerName: userEmail,
-      eventTitle: "The SCA Focus Programme — 90-Day Access",
+      eventTitle: "The SCA Focus Programme: 90-Day Access",
       ticketName: "Access granted",
       startTime: now.toISOString(),
       endTime: newExpiry,
@@ -284,7 +284,7 @@ async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
       to: userEmail,
       customerName: userEmail,
       eventTitle: "The Complete SCA Programme",
-      ticketName: "Access granted — 240+ cases, unlimited AI review, 20 GP reviews",
+      ticketName: "Access granted: 240+ cases, unlimited AI review, 20 GP reviews",
       startTime: now.toISOString(),
       endTime: newExpiry,
       zoomLink: null,

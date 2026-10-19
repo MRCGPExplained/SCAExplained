@@ -110,9 +110,9 @@ export default async function HomePage() {
 
             <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
               Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
-              the consultation skills RCGP examiners assess—ICE, shared decision-making, managing
+              the consultation skills RCGP examiners assess: ICE, shared decision-making, managing
               uncertainty and responding to patient emotion. Every consultation is graded by AI within
-              minutes, and your programme includes 20 reviews by an experienced GP — clear,
+              minutes, and your programme includes 20 reviews by an experienced GP: clear,
               personalised feedback on what you actually did, so you know what to improve before
               exam day.
             </p>

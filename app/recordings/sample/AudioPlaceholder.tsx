@@ -34,7 +34,7 @@ export function AudioPlaceholder({ disabled = false }: { disabled?: boolean }) {
           </div>
           <div className="flex justify-between">
             <span className="text-[10px] font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>0:00</span>
-            <span className="text-[10px] font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>—:——</span>
+            <span className="text-[10px] font-mono" style={{ color: "rgba(51,51,51,0.3)" }}>--:--</span>
           </div>
         </div>
       </button>

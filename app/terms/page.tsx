@@ -1,7 +1,7 @@
 import { ContentPage, H2, H3, P, UL, LI, Divider } from "@/app/components/ContentPage";
 
 export const metadata = {
-  title: "Terms & Conditions — SCA Focus",
+  title: "Terms & Conditions, SCA Focus",
   description: "Booking terms and conditions for SCA Focus sessions.",
 };
 
@@ -40,12 +40,12 @@ export default function TermsPage() {
         this is taken in full at the time of booking via our payment processor,
         Stripe. A booking is confirmed once payment is successfully processed
         or, for free sessions, once you receive a confirmation email. Your
-        Zoom joining link will be sent to you by email — please keep this safe
+        Zoom joining link will be sent to you by email. Please keep this safe
         as we do not display session links publicly.
       </P>
 
       <Divider />
-      <H2>3. The Complete SCA Programme — purchases and refunds</H2>
+      <H2>3. The Complete SCA Programme: purchases and refunds</H2>
       <P>
         The Complete SCA Programme is a single paid package priced at £295
         that gives you access to our full case bank of 240+ stations,
@@ -112,8 +112,8 @@ export default function TermsPage() {
       <Divider />
       <H2>5. Intellectual property</H2>
       <P>
-        All content delivered in our sessions — including materials, feedback
-        frameworks, case structures, and improvement plans — is the intellectual
+        All content delivered in our sessions (including materials, feedback
+        frameworks, case structures, and improvement plans) is the intellectual
         property of SCA Focus. You may use it for your own personal exam
         preparation only. You may not reproduce, distribute, or resell any part
         of our content without our written permission.
@@ -124,7 +124,7 @@ export default function TermsPage() {
       <P>
         SCA Focus provides coaching and educational content to support your
         SCA preparation. Our sessions are designed to help you develop skills
-        and understand examiner expectations — they are not a guarantee of any
+        and understand examiner expectations. They are not a guarantee of any
         particular exam outcome.
       </P>
       <P>

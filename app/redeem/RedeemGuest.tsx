@@ -16,7 +16,7 @@ export function RedeemGuest() {
         Get your GP review credits
       </h1>
       <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.50)" }}>
-        Enter your details and the code from the webinar — your account and bonus GP review credits are set up in one step.
+        Enter your details and the code from the webinar. Your account and bonus GP review credits are set up in one step.
       </p>
 
       {state.error && (
@@ -107,7 +107,7 @@ export function RedeemGuest() {
       </p>
 
       <p className="text-center text-[11px] mt-3" style={{ color: "rgba(51,51,51,0.30)" }}>
-        No email confirmation needed — access is instant.
+        No email confirmation needed: access is instant.
       </p>
     </div>
   );

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { withoutEmDashes } from "@/lib/prose";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
@@ -89,7 +90,9 @@ Write a brief overall comment that summarises performance and highlights the sin
 
   if (!res.ok) return { error: "AI request failed." };
   const data = await res.json();
-  const text = (data.content?.[0]?.text ?? "").trim();
+  // The prompt asks for no em dashes twice and they still arrive. Asking is
+  // a preference; this is the part that decides.
+  const text = withoutEmDashes((data.content?.[0]?.text ?? "").trim());
   await recordExaminerClaudeUsage("overall_comment", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
 }
@@ -116,7 +119,7 @@ export async function grammarCheckAction(args: { text: string; recordingId?: str
 
   if (!res.ok) return { error: "AI request failed." };
   const data = await res.json();
-  const text = (data.content?.[0]?.text ?? "").trim();
+  const text = withoutEmDashes((data.content?.[0]?.text ?? "").trim());
   await recordExaminerClaudeUsage("grammar_check", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
 }

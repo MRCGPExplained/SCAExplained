@@ -65,7 +65,7 @@ export function RoomGatewayClient({ roomCode }: { roomCode: string }) {
               Continue as Guest
             </button>
             <p className="text-[11.5px] text-center mt-2" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Guests join as the patient only — no account needed, access lasts 24 hours.
+              Guests join as the patient only: no account needed, access lasts 24 hours.
             </p>
           </div>
         )}

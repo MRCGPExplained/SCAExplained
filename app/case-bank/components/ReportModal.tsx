@@ -60,7 +60,7 @@ export function FeedbackModal({
               {isHelp ? "Help request sent" : "Feedback sent"}
             </div>
             <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Thanks — we&apos;ll reply by email shortly.
+              Thanks. We&apos;ll reply by email shortly.
             </div>
           </div>
         ) : (
@@ -69,7 +69,7 @@ export function FeedbackModal({
               {isHelp ? "Get Help" : "Share Feedback"}
             </h2>
             <p className="text-[12.5px] mb-4" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Station {stationNumber} — {stationTitle}
+              Station {stationNumber}: {stationTitle}
             </p>
 
             {error && (
@@ -84,7 +84,7 @@ export function FeedbackModal({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={isHelp ? "What's not working, or what do you need help with?" : "A typo, a clinical concern, a suggestion — anything helpful…"}
+              placeholder={isHelp ? "What's not working, or what do you need help with?" : "A typo, a clinical concern, a suggestion: anything helpful…"}
               className="w-full rounded-lg px-4 py-3 text-[13px] leading-relaxed resize-y min-h-[120px]"
               style={{
                 border: "1px solid rgba(26,27,82,0.15)",

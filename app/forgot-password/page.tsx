@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
 
           {"success" in state && state.success ? (
             <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)", color: "#166534" }}>
-              Check your email — a reset link is on its way.
+              Check your email: a reset link is on its way.
             </div>
           ) : (
             <form action={formAction} className="flex flex-col gap-4">

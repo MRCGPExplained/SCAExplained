@@ -98,7 +98,7 @@ function BriefTab() {
       </div>
       <div>
         <Label>Drug &amp; Allergy History</Label>
-        <BulletList items={["Clenil Modulite 100mcg MDI — 2 puffs twice daily (beclometasone)", "Salbutamol 100mcg MDI — 2 puffs as required", "No known drug allergies"]} />
+        <BulletList items={["Clenil Modulite 100mcg MDI: 2 puffs twice daily (beclometasone)", "Salbutamol 100mcg MDI: 2 puffs as required", "No known drug allergies"]} />
       </div>
       <div>
         <Label>Recent Notes</Label>
@@ -215,11 +215,11 @@ export default function SampleCasePage() {
     "Frequency of SABA use: how many times per week is the patient using their blue reliever inhaler? More than twice a week indicates poor control. More than 3 canisters per year is a marker of serious risk.",
     "Preventer adherence: ask specifically about timing, frequency, and missed doses. Many patients take ICS once daily rather than twice, halving its efficacy.",
     "Inhaler technique: spacer use, actuation timing, breath-hold duration. Poor technique is a common and correctable cause of apparent treatment failure.",
-    "Triggers: cold air, exercise, occupational exposures (ask explicitly — occupational asthma accounts for 15% of adult cases), pets, pollen, aspirin or NSAID sensitivity.",
+    "Triggers: cold air, exercise, occupational exposures (ask explicitly: occupational asthma accounts for 15% of adult cases), pets, pollen, aspirin or NSAID sensitivity.",
     "Exacerbation history: last severe episode, oral steroid courses in past year, A&E attendances, any previous ITU admissions (the highest-risk marker).",
     "Peak flow: current reading and comparison to personal best or predicted for age and height.",
     "Smoking history: current or past smoking. Smoking worsens asthma control and reduces ICS efficacy.",
-    "Atopic history: eczema, allergic rhinitis, food allergies — supports atopic asthma diagnosis.",
+    "Atopic history: eczema, allergic rhinitis, food allergies (supports atopic asthma diagnosis).",
     "ICE: specifically explore concerns about steroid use, as this is a common reason for non-adherence and will heavily influence the Relating to Others score.",
   ];
 

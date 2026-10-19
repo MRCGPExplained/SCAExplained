@@ -1,7 +1,7 @@
 import { ContentPage, H2, H3, P, UL, LI, Divider } from "@/app/components/ContentPage";
 
 export const metadata = {
-  title: "Privacy Policy — SCA Focus",
+  title: "Privacy Policy, SCA Focus",
   description: "How SCA Focus collects, uses, and protects your personal data.",
 };
 
@@ -43,15 +43,15 @@ export default function PrivacyPage() {
         <LI>Contact you about your booking if anything changes.</LI>
       </UL>
       <P>
-        The lawful basis for this processing is <strong>contract performance</strong>{" "}
-        — we need your details to provide the service you&apos;ve booked.
+        The lawful basis for this processing is <strong>contract performance</strong>:{" "}
+        we need your details to provide the service you&apos;ve booked.
       </P>
 
       <H3>Payment data</H3>
       <P>
         Payments for the SCA Intensive are processed by{" "}
         <strong>Stripe</strong>. We never receive or store your card number,
-        CVV, or other sensitive payment details — these go directly to Stripe
+        CVV, or other sensitive payment details. These go directly to Stripe
         and are subject to their own privacy policy. We do store a Stripe
         checkout session reference alongside your booking record, so we can
         confirm payment status.
@@ -89,22 +89,22 @@ export default function PrivacyPage() {
       </P>
       <UL>
         <LI>
-          <strong>Stripe</strong> — to process your payment. Stripe processes
+          <strong>Stripe</strong>: to process your payment. Stripe processes
           payment data as an independent data controller under their own terms.
         </LI>
         <LI>
-          <strong>Resend</strong> — to send transactional emails (booking
+          <strong>Resend</strong>: to send transactional emails (booking
           confirmations). Your email address is passed to Resend solely to
           deliver your confirmation.
         </LI>
         <LI>
-          <strong>Supabase / Vercel</strong> — infrastructure providers that
+          <strong>Supabase / Vercel</strong>: infrastructure providers that
           host the database and website. These act as data processors on our
           behalf and are contractually bound to appropriate data protection
           standards.
         </LI>
         <LI>
-          <strong>Zoom</strong> — you join sessions via a Zoom link. Zoom
+          <strong>Zoom</strong>: you join sessions via a Zoom link. Zoom
           processes data about session participants under their own terms. We
           do not share your personal data with Zoom; your name and email are
           not transmitted to Zoom by us.
@@ -120,26 +120,26 @@ export default function PrivacyPage() {
       <P>Under UK GDPR you have the right to:</P>
       <UL>
         <LI>
-          <strong>Access</strong> — request a copy of the personal data we hold
+          <strong>Access</strong>: request a copy of the personal data we hold
           about you.
         </LI>
         <LI>
-          <strong>Rectification</strong> — ask us to correct inaccurate data.
+          <strong>Rectification</strong>: ask us to correct inaccurate data.
         </LI>
         <LI>
-          <strong>Erasure</strong> — ask us to delete your data, where we have
+          <strong>Erasure</strong>: ask us to delete your data, where we have
           no overriding legal obligation to retain it.
         </LI>
         <LI>
-          <strong>Restriction</strong> — ask us to limit how we process your
+          <strong>Restriction</strong>: ask us to limit how we process your
           data in certain circumstances.
         </LI>
         <LI>
-          <strong>Portability</strong> — receive your data in a structured,
+          <strong>Portability</strong>: receive your data in a structured,
           machine-readable format.
         </LI>
         <LI>
-          <strong>Object</strong> — object to processing based on legitimate
+          <strong>Object</strong>: object to processing based on legitimate
           interests. (We do not rely on legitimate interests as a basis for any
           processing described in this policy.)
         </LI>

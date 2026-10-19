@@ -60,7 +60,7 @@ export default async function RecordedConsultationsPage() {
 
       {(!consultations || consultations.length === 0) ? (
         <div className="rounded-2xl px-8 py-12 text-center" style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)" }}>
-          <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.45)" }}>Consultations are being recorded — check back soon.</p>
+          <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.45)" }}>Consultations are being recorded. Check back soon.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

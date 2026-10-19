@@ -291,7 +291,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span>
-                <strong>AI review complete.</strong> This is provisional — submit it to get GP-reviewed feedback (uses 1 of your credits).
+                <strong>AI review complete.</strong> This is provisional. Submit it to get GP-reviewed feedback (uses 1 of your credits).
               </span>
               <SubmitForReviewButton recordingId={rec.id} stationTitle={rec.station_title} />
             </div>
@@ -309,7 +309,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
             style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#92400E" }}
           >
-            <strong>Provisional scores only.</strong> Full examiner feedback is on its way — usually within 5 working days.
+            <strong>Provisional scores only.</strong> Full examiner feedback is on its way, usually within 5 working days.
           </div>
         )}
 

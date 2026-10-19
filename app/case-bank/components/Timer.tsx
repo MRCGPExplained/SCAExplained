@@ -227,7 +227,7 @@ export function Timer({
           </div>
           {locked ? (
             <p className="text-[10px] font-semibold" style={{ color: "#F97316" }}>
-              Recording in progress — use Stop to end it early
+              Recording in progress: use Stop to end it early
             </p>
           ) : startBlockedReason && phase === "PREREAD" && !running ? (
             // Said here rather than only on the disabled button, so the host

@@ -42,7 +42,7 @@ export default async function LiveSessionPage() {
         </h1>
         <p className="text-[15px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.60)" }}>
           A live session run on Zoom each month. The host works through a real SCA consultation
-          in real time — coaching the active candidate, explaining the examiner&apos;s perspective,
+          in real time, coaching the active candidate, explaining the examiner&apos;s perspective,
           and showing exactly what scores marks in the moment.
         </p>
       </div>
@@ -51,9 +51,9 @@ export default async function LiveSessionPage() {
         <h2 className="font-display font-bold text-[17px] mb-3" style={{ color: NAVY }}>How it works</h2>
         <ul className="flex flex-col gap-2.5">
           {[
-            "Register via Zoom — the link is sent to you automatically",
+            "Register via Zoom (the link is sent to you automatically)",
             "The host picks active candidates on the day from those who put themselves forward",
-            "Observers are always welcome — no pressure to participate",
+            "Observers are always welcome (no pressure to participate)",
             "Sessions run monthly, typically on an evening",
           ].map((item) => (
             <li key={item} className="flex items-start gap-2.5">
@@ -87,7 +87,7 @@ export default async function LiveSessionPage() {
       ) : (
         <div className="rounded-xl py-4 px-6 text-center" style={{ background: "rgba(26,27,82,0.05)", border: "1px solid rgba(26,27,82,0.10)" }}>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(26,27,82,0.45)" }}>
-            No sessions currently scheduled — check back soon.
+            No sessions currently scheduled. Check back soon.
           </p>
         </div>
       )}

@@ -55,7 +55,7 @@ export function NotesPanel({
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Your notes — visible only to you, even in a study group…"
+        placeholder="Your notes: visible only to you, even in a study group…"
         className="w-full min-h-[200px] px-4 py-3.5 text-[13px] leading-relaxed resize-y"
         style={{
           border: "none",

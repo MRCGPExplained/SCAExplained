@@ -103,7 +103,7 @@ export default async function RoomGatewayPage({ params }: PageProps) {
               </h1>
               <p className="text-[14px]" style={{ color: "rgba(51,51,51,0.6)" }}>
                 {joinErr.message === "full"
-                  ? "This study group already has four people in it — one doctor, one patient and two observers."
+                  ? "This study group already has four people in it: one doctor, one patient and two observers."
                   : "Something went wrong joining this study group. Ask the host to share the link again."}
               </p>
             </div>

@@ -20,7 +20,7 @@ export default function MasterPage() {
             Master Access
           </h1>
           <p className="text-[12.5px] text-navy/50 mt-2">
-            Emergency fail-safe only — everyday admin access goes through your normal login.
+            Emergency fail-safe only. Everyday admin access goes through your normal login.
           </p>
         </div>
 

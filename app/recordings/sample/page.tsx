@@ -26,7 +26,7 @@ export default function SampleReportPage() {
               Station 7
             </span>
             <h1 className="font-bold text-[15px] leading-tight" style={{ color: NAVY }}>
-              Asthma Review — Uncontrolled Symptoms in a 29-Year-Old
+              Asthma Review: Uncontrolled Symptoms in a 29-Year-Old
             </h1>
           </div>
 

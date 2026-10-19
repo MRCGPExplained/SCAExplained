@@ -53,7 +53,7 @@ export function VideoRequestModal({
               Request sent
             </div>
             <div className="text-[13px]" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Thanks — this will help me prioritise what to record next.
+              Thanks. This will help me prioritise what to record next.
             </div>
           </div>
         ) : (
@@ -62,7 +62,7 @@ export function VideoRequestModal({
               Request a Video Lesson
             </h2>
             <p className="text-[12.5px] mb-4" style={{ color: "rgba(26,27,82,0.55)" }}>
-              Station {stationNumber} — {stationTitle}
+              Station {stationNumber}: {stationTitle}
             </p>
 
             {error && (
