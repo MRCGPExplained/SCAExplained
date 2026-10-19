@@ -109,8 +109,9 @@ const STEPS = [
  * that the movement is the component working rather than a misclick.
  *
  * Keyed on the active step so it remounts and redraws from zero each time,
- * and absent once someone takes control — at that point nothing is counting
- * down and a ring would be describing something that is not happening.
+ * Keyed on the pick as well as the step: clicking the chip that is already
+ * active leaves the step unchanged, and without that the interval would
+ * restart while the ring carried on from where it was.
  *
  * It lives on the large icon only. It was on the small chips first, and two
  * rings drawing the same countdown in the same band was one too many: the
@@ -161,7 +162,11 @@ const BIG_ICON = 88;
 
 export function HowItWorks() {
   const [active, setActive] = useState(0);
-  const [autoPlaying, setAutoPlaying] = useState(true);
+  // Bumped when a reader picks a step, purely to restart the interval from
+  // that moment. Without it the step they chose inherits whatever was left
+  // of the tick already running and can flip away a few hundred
+  // milliseconds after they clicked it.
+  const [pickedAt, setPickedAt] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-80px" });
   const reduceMotion = useReducedMotion();
@@ -174,49 +179,31 @@ export function HowItWorks() {
   // ring uses also puts the two in phase, so the first ring anyone sees
   // draws a whole 4.5 seconds instead of whatever was left of a tick that
   // started while they were somewhere else on the page.
+  // `active` is deliberately not a dependency: the interval keeps its own
+  // steady cadence as it advances, and only a deliberate pick restarts it.
   useEffect(() => {
-    if (!autoPlaying || reduceMotion || !inView) return;
+    if (reduceMotion || !inView) return;
     const id = setInterval(() => {
       setActive((a) => (a + 1) % STEPS.length);
     }, AUTO_CYCLE_MS);
     return () => clearInterval(id);
-  }, [autoPlaying, reduceMotion, inView]);
+  }, [reduceMotion, inView, pickedAt]);
 
-  // A card sliding under a stationary cursor dispatches mouseenter exactly
-  // as though the reader had moved onto it, and during a wheel scroll the
-  // cursor is usually parked mid-viewport — right where this band passes.
-  // Pausing on that killed the cycle permanently for most desktop readers
-  // before they had done anything at all, leaving the card frozen on
-  // whatever step it had reached with no ring and no hint the chips are
-  // live. Movement is the signal; anything arriving in the slipstream of a
-  // scroll is not.
-  const lastScrollAt = useRef(0);
-  useEffect(() => {
-    const onScroll = () => {
-      lastScrollAt.current = performance.now();
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  function stopAutoPlay() {
-    setAutoPlaying(false);
-  }
-
-  function handlePointerMove() {
-    if (performance.now() - lastScrollAt.current < 300) return;
-    stopAutoPlay();
-  }
-
+  // Nothing stops the cycle. Hovering used to, and it was worse than it
+  // sounds: a card sliding under a stationary cursor fires the same events
+  // as a reader moving onto it, and on a wheel scroll the cursor is usually
+  // parked mid-viewport, right where this band passes — so the cycle died
+  // for most desktop readers before they had touched anything. Clicking a
+  // chip jumps to that step and the cycle carries on from there.
+  //
+  // Readers who do not want it have prefers-reduced-motion, which stops the
+  // interval outright and leaves the card on step one.
   function selectStep(i: number) {
-    stopAutoPlay();
     setActive(i);
+    setPickedAt((n) => n + 1);
   }
 
-  // Only while something is actually counting down. Once a reader takes
-  // control the component stops advancing, and a ring would then be drawing
-  // toward an event that is never going to happen.
-  const showCountdown = autoPlaying && !reduceMotion && inView;
+  const showCountdown = !reduceMotion && inView;
 
   const ActiveIcon = STEPS[active].icon;
 
@@ -231,8 +218,6 @@ export function HowItWorks() {
     */
     <div
       ref={sectionRef}
-      onPointerMove={handlePointerMove}
-      onFocusCapture={stopAutoPlay}
       className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-x-14 gap-y-8 lg:items-center"
     >
       {/*
@@ -278,7 +263,7 @@ export function HowItWorks() {
             <ActiveIcon size={BIG_ICON} />
           </motion.div>
           {showCountdown && (
-            <ProgressRing key={active} size={BIG_CIRCLE + 20} durationMs={AUTO_CYCLE_MS} stroke={4} />
+            <ProgressRing key={`${active}-${pickedAt}`} size={BIG_CIRCLE + 20} durationMs={AUTO_CYCLE_MS} stroke={4} />
           )}
         </div>
 
