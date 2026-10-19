@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { submitForReviewAction } from "@/app/case-bank/actions";
 
 const DARK = "#333333";
@@ -24,9 +25,10 @@ export function SubmitForReviewButton({
   const [asking, setAsking] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
-  // createPortal needs a document, which the server render does not have.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // No mounted flag is needed for the portal below: it is guarded by
+  // `asking`, which is false on the server and on the first client render
+  // and only becomes true from a click, so `document.body` is never
+  // evaluated during SSR and the two renders agree.
 
   // Escape closes it, the same as clicking Cancel. Nothing has happened at
   // this point, so backing out is always the safe default.
@@ -98,7 +100,7 @@ export function SubmitForReviewButton({
         button row as the "Before you start" confirm in the study group
         panel — in this page's own #333333 rather than the panel's navy.
       */}
-      {mounted && asking && createPortal(
+      {asking && createPortal(
         <div
           className="fixed inset-0 flex items-center justify-center z-50 px-6"
           style={{ background: "rgba(51,51,51,0.55)" }}
@@ -112,61 +114,119 @@ export function SubmitForReviewButton({
             style={{ background: "white", boxShadow: "0 20px 60px rgba(51,51,51,0.25)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              id="submit-review-heading"
-              className="font-display font-extrabold text-[16px] mb-2"
-              style={{ color: DARK }}
-            >
-              Submit for GP review?
-            </h2>
+            {/*
+              Out of reviews is its own dialog, not the asking dialog with a
+              dead button in it. There is nothing to confirm — the server
+              would refuse this — so it answers the question the state
+              actually raises, which is how to get another one.
+            */}
+            {noneLeft ? (
+              <>
+                <h2
+                  id="submit-review-heading"
+                  className="font-display font-extrabold text-[16px] mb-2"
+                  style={{ color: DARK }}
+                >
+                  No GP reviews left
+                </h2>
 
-            <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
-              {what} will be sent to an experienced GP, who verifies the scoring and writes
-              feedback on what actually happened in yours. Usually back within 5 working days.
-            </p>
+                <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
+                  You have used all the GP reviews in your programme, so {what} cannot be sent
+                  for a GP to read just yet.
+                </p>
 
-            <div
-              className="rounded-xl px-3.5 py-3 mb-5 text-[12.5px] leading-[1.55]"
-              style={{ background: "#F9F3D9", color: DARK }}
-            >
-              This uses <strong>one of your GP reviews</strong> and cannot be undone.
-              {typeof creditsRemaining === "number" && (
-                <>
-                  {" "}
-                  You have{" "}
-                  <strong>
-                    {creditsRemaining} review{creditsRemaining === 1 ? "" : "s"}
-                  </strong>{" "}
-                  left.
-                </>
-              )}
-            </div>
+                <div
+                  className="rounded-xl px-3.5 py-3 mb-5 text-[12.5px] leading-[1.55]"
+                  style={{ background: "#F9F3D9", color: DARK }}
+                >
+                  <strong>AI grading carries on as normal.</strong> It is unlimited, so you can
+                  keep recording and scoring consultations while you decide.
+                </div>
 
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setAsking(false)}
-                className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
-                style={{ background: "#F4F4F2", border: "none", color: DARK, cursor: "pointer" }}
-              >
-                Cancel
-              </button>
-              <button
-                ref={confirmRef}
-                type="button"
-                onClick={submit}
-                className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
-                style={{
-                  background: noneLeft ? "rgba(51,51,51,0.12)" : YELLOW,
-                  border: "none",
-                  color: noneLeft ? "rgba(51,51,51,0.45)" : DARK,
-                  cursor: noneLeft ? "not-allowed" : "pointer",
-                }}
-                disabled={noneLeft}
-              >
-                {noneLeft ? "No reviews left" : "Submit for review"}
-              </button>
-            </div>
+                <div className="flex gap-2.5">
+                  {/* Takes the focus in this branch, since there is no
+                      confirm button to put it on. */}
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    onClick={() => setAsking(false)}
+                    className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+                    style={{ background: "#F4F4F2", border: "none", color: DARK, cursor: "pointer" }}
+                  >
+                    Close
+                  </button>
+                  {/* Same destination and wording as the button the page
+                      already shows beside the credit count at zero. */}
+                  <Link
+                    href="/case-bank/upgrade"
+                    className="flex-1 rounded-lg py-2.5 text-[13px] font-bold no-underline text-center"
+                    style={{ background: YELLOW, color: DARK }}
+                  >
+                    Renew Programme
+                  </Link>
+                </div>
+
+                <p className="text-[12px] text-center mt-3.5" style={{ color: "rgba(51,51,51,0.5)" }}>
+                  Have a webinar code?{" "}
+                  <Link href="/redeem" className="font-semibold no-underline" style={{ color: DARK }}>
+                    Redeem it
+                  </Link>{" "}
+                  for bonus reviews.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2
+                  id="submit-review-heading"
+                  className="font-display font-extrabold text-[16px] mb-2"
+                  style={{ color: DARK }}
+                >
+                  Submit for GP review?
+                </h2>
+
+                <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
+                  {what} will be sent to an experienced GP, who verifies the scoring and writes
+                  feedback on what actually happened in yours. Usually back within 5 working days.
+                </p>
+
+                <div
+                  className="rounded-xl px-3.5 py-3 mb-5 text-[12.5px] leading-[1.55]"
+                  style={{ background: "#F9F3D9", color: DARK }}
+                >
+                  This uses <strong>one of your GP reviews</strong> and cannot be undone.
+                  {typeof creditsRemaining === "number" && (
+                    <>
+                      {" "}
+                      You have{" "}
+                      <strong>
+                        {creditsRemaining} review{creditsRemaining === 1 ? "" : "s"}
+                      </strong>{" "}
+                      left.
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setAsking(false)}
+                    className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
+                    style={{ background: "#F4F4F2", border: "none", color: DARK, cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    onClick={submit}
+                    className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
+                    style={{ background: YELLOW, border: "none", color: DARK, cursor: "pointer" }}
+                  >
+                    Submit for review
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>,
         document.body
