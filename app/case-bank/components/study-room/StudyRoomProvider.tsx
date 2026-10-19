@@ -2166,38 +2166,55 @@ export function StudyRoomProvider({
   }
 
   /**
-   * Both of the ways this used to fail without saying anything are gone.
+   * Reads the station through the ref, not through the closure. This is the
+   * reason "create group" did nothing until you reloaded.
    *
-   * It opened with a bare `if (stationNumber === null) return`, so pressing
-   * the button anywhere the URL is not a station did nothing at all — no
-   * error, no spinner, no clue. And after the action succeeded it re-read
-   * the room through the browser client and only acted `if (data)`, so a
-   * browser client whose session was not yet in place read nothing, the
-   * panel stayed on the create screen, and a real room was left in the
-   * database with nobody in it. Four of the first six rooms ever created
-   * ended up that way.
+   * This function is handed to the panel inside the roomValue memo below,
+   * and that memo's dependency list does not include stationNumber. The
+   * provider lives in the root layout, so it never remounts either. Arrive
+   * at a case by client-side navigation — from the dashboard, or from the
+   * case list — and nothing in that dependency list has changed, so the
+   * panel is still holding the handleCreate captured while stationNumber
+   * was null. The guard then returned before the request, before the
+   * spinner, before any log: the button was simply dead. Reloading
+   * recomputed the memo with a real station in scope, which is exactly why
+   * a refresh "fixed" it, and a failed Join also fixed it because
+   * joinError and loading ARE in that list — hence "many times" rather
+   * than always.
    *
-   * The action returns the row now, so there is no second read to disagree
-   * with the first, and every remaining exit tells the user something.
+   * The ref is maintained by an effect on every stationNumber change, and
+   * the provider does re-render on navigation (usePathname), so it is
+   * current whichever copy of this function ends up running. The same file
+   * already uses it this way for the channel callbacks.
+   *
+   * The try/finally is the other half: without it a server action that
+   * threw left `loading` stuck true, and the button stayed disabled until
+   * a reload.
    */
   async function handleCreate() {
-    if (stationNumber === null) {
+    const station = stationNumberRef.current;
+    if (station === null) {
       setJoinError("Open a case first — a study group always starts on a station.");
       return;
     }
     setLoading(true);
     setJoinError("");
-    const result = await createStudyRoomAction(stationNumber);
-    if (result.error || !result.room) {
-      logError("createStudyRoomAction", result.error ?? "action returned no room");
-      setJoinError(result.error ?? "Could not open the group. Please try again.");
+    try {
+      const result = await createStudyRoomAction(station);
+      if (result.error || !result.room) {
+        logError("createStudyRoomAction", result.error ?? "action returned no room");
+        setJoinError(result.error ?? "Could not open the group. Please try again.");
+        return;
+      }
+      logStatus("room created", { roomId: result.room.id });
+      sessionStorage.setItem("studyRoomId", result.room.id);
+      setRoom(result.room);
+    } catch (err) {
+      logError("createStudyRoomAction", err instanceof Error ? err.message : "threw");
+      setJoinError("Could not open the group. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    logStatus("room created", { roomId: result.room.id });
-    sessionStorage.setItem("studyRoomId", result.room.id);
-    setRoom(result.room);
-    setLoading(false);
   }
 
   async function handleJoin(code: string) {

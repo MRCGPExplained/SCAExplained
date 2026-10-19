@@ -98,7 +98,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               My Recordings
             </h1>
             <p className="text-[13.5px] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
-              AI-graded consultations. Send the ones you want read by a GP.
+              AI-graded consultations. Submit the ones you want read by a GP.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -232,7 +232,13 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         </div>
                       )}
 
-                      {rec.status === "ai_graded" && <SubmitForReviewButton recordingId={rec.id} />}
+                      {rec.status === "ai_graded" && (
+                        <SubmitForReviewButton
+                          recordingId={rec.id}
+                          stationTitle={rec.station_title}
+                          creditsRemaining={credits}
+                        />
+                      )}
                     </div>
                   </div>
                 </Link>

@@ -41,7 +41,7 @@ export default async function DashboardPage() {
     {
       href: "/recordings",
       label: "My Reviews",
-      description: "AI graded, with GP review on the ones you send",
+      description: "AI graded, with GP review on the ones you submit",
       badge: `${credits} credit${credits !== 1 ? "s" : ""}`,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">

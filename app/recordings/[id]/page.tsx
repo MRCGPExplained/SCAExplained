@@ -293,7 +293,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <span>
                 <strong>AI review complete.</strong> This is provisional — submit it to get GP-reviewed feedback (uses 1 of your credits).
               </span>
-              <SubmitForReviewButton recordingId={rec.id} />
+              <SubmitForReviewButton recordingId={rec.id} stationTitle={rec.station_title} />
             </div>
             {isRealCandidate && (
               <div className="mt-2">
