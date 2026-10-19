@@ -5,7 +5,7 @@ const DARK = "#333333";
 const FAQS = [
   {
     q: "Who reviews consultations?",
-    a: "A qualified, experienced GP — the same kind of examiner who marks the real SCA. Every consultation you record is graded by AI, and you then choose which ones to send for GP review. Twenty reviews are included in the programme.",
+    a: "An experienced GP who teaches SCA preparation and writes the cases here. Every consultation you record is graded by AI, and you then choose which ones to send for GP review. Twenty reviews are included in the programme.",
   },
   {
     q: "How quickly is feedback returned?",
