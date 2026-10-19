@@ -28,21 +28,60 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const type = session.metadata?.type;
-    if (type === "programme") {
-      await confirmProgrammePurchase(session);
-    } else if (type === "recording_credits") {
-      await confirmRecordingCreditsPurchase(session);
-    } else if (type === "case_bank_programme") {
-      await confirmCaseBankPurchase(session);
+  // ── Idempotency ───────────────────────────────────────────────────────────
+  // Stripe retries a delivery on any non-2xx and on a timeout, reusing the
+  // same event id. None of the handlers below are safe to run twice: a second
+  // run of the credits one adds another twenty reviews, and every retry logs
+  // a second revenue event into the economics dashboard. Claiming the id
+  // first makes a repeat delivery a no-op.
+  //
+  // This mattered less when nothing could be bought with credits. It matters
+  // now that the top-up exists.
+  const admin = getSupabaseAdmin();
+  if (admin) {
+    const { error: claimErr } = await admin
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, event_type: event.type });
+
+    if (claimErr) {
+      // 23505 is the primary key conflict: this one has been handled.
+      if (claimErr.code === "23505") {
+        console.log("[webhook] duplicate delivery ignored:", event.id);
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      // Anything else and we cannot tell whether this is a repeat. Fail, so
+      // Stripe retries, rather than granting without the guard in place.
+      console.error("[webhook] could not claim event:", claimErr.message);
+      return NextResponse.json({ error: "could not record event" }, { status: 500 });
     }
-    // Record actual revenue + Stripe fee for every recognised purchase, for
-    // the economics dashboard. Best-effort — never fails the webhook.
-    if (type === "programme" || type === "recording_credits" || type === "case_bank_programme") {
-      await recordRevenueEvent(stripe, session, type);
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const type = session.metadata?.type;
+      if (type === "programme") {
+        await confirmProgrammePurchase(session);
+      } else if (type === "recording_credits") {
+        await confirmRecordingCreditsPurchase(session);
+      } else if (type === "case_bank_programme") {
+        await confirmCaseBankPurchase(session);
+      }
+      // Record actual revenue + Stripe fee for every recognised purchase, for
+      // the economics dashboard. Best-effort — it swallows its own errors and
+      // so can never release the claim below or trigger a retry that would
+      // grant the purchase a second time.
+      if (type === "programme" || type === "recording_credits" || type === "case_bank_programme") {
+        await recordRevenueEvent(stripe, session, type);
+      }
     }
+  } catch (err) {
+    // The claim is taken before the work, so a failure here would otherwise
+    // leave the event marked handled with nothing granted. Release it and let
+    // Stripe's retry do the work properly.
+    if (admin) await admin.from("stripe_webhook_events").delete().eq("event_id", event.id);
+    console.error("[webhook] handler failed, released event for retry:", err);
+    return NextResponse.json({ error: "handler failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

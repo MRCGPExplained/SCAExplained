@@ -158,12 +158,23 @@ export function CaseBankMockup() {
             className="rounded-xl p-3 flex flex-col items-center gap-2"
             style={{ background: "white", border: "1px solid rgba(31,41,55,0.09)" }}
           >
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)" }}>Pre-read</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: NAVY, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>2:00</div>
+            {/*
+              Mid-consultation, not waiting to start. The card underneath
+              shows four people and a recording light, so a pre-read clock
+              with a Start button under it was the panel contradicting
+              itself — the one state this timer must not be in is the one
+              where nothing has happened yet.
+            */}
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)" }}>Consultation</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: NAVY, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>08:14</div>
+            {/* Remaining, out of the twelve minutes the exam allows. */}
+            <div className="rounded-full overflow-hidden" style={{ height: 3, width: "100%", background: "rgba(31,41,55,0.10)" }}>
+              <div style={{ width: "69%", height: "100%", background: NAVY, borderRadius: 999 }} />
+            </div>
             <div
               className="rounded-lg text-center"
               style={{
-                background: NAVY,
+                background: "#DC2626",
                 color: "white",
                 fontSize: 11,
                 fontWeight: 600,
@@ -171,9 +182,9 @@ export function CaseBankMockup() {
                 width: "100%",
               }}
             >
-              Start
+              Stop
             </div>
-            <div style={{ fontSize: 10, color: "rgba(26,27,82,0.35)", textAlign: "center" }}>Skip to consult →</div>
+            <div style={{ fontSize: 10, color: "rgba(26,27,82,0.35)", textAlign: "center" }}>Stops itself at 12:00</div>
           </div>
 
           {/*
