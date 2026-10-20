@@ -263,29 +263,20 @@ export default async function HomePage() {
       */}
       <section id="pricing" className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: WASH }}>
         <div className="max-w-[1150px] mx-auto">
+          {/*
+            Eyebrow only. The heading and the paragraph under it both said
+            what the cards say a few centimetres lower: every plan has the
+            case bank, recording is unlimited, what differs is the marking.
+            The cards carry all of that as ticked lines against a price,
+            which is the form someone comparing plans actually reads.
+          */}
           <div className="text-center max-w-[620px] mx-auto mb-10">
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
+            <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(51,51,51,0.40)" }}>
               Pricing
-            </p>
-            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4 max-sm:text-[26px]" style={{ color: DARK }}>
-              Every plan has the whole case bank.
-            </h2>
-            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              240+ cases, study groups, and unlimited recording on all three. What changes is how
-              much marking you get, and how much of it is read by a GP.
             </p>
           </div>
 
           <PlanCards />
-
-          <p className="text-center text-[13px] mt-9" style={{ color: "rgba(51,51,51,0.5)" }}>
-            Recording and transcription are unlimited on every plan and never cost a credit. You
-            choose which consultations are worth marking once you have seen how they went.{" "}
-            <Link href="/recordings/sample" className="font-semibold no-underline" style={{ color: DARK }}>
-              See a sample report
-            </Link>
-            .
-          </p>
         </div>
       </section>
 
