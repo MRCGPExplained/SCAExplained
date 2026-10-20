@@ -913,7 +913,7 @@ export async function setRecordingCreditsAction(
     if (error) return { error: error.message };
   }
 
-  revalidatePath("/admin/examiners");
+  revalidatePath("/admin/case-bank-users");
   return { ok: true };
 }
 
