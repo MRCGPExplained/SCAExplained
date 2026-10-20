@@ -917,6 +917,60 @@ export async function setRecordingCreditsAction(
   return { ok: true };
 }
 
+/**
+ * Adjusts a user's AI grading allowance.
+ *
+ * Mirrors the GP credits action above, but the arithmetic is not the same
+ * shape. GP reviews are a balance that goes down as they are spent; AI
+ * gradings are an allowance granted against a lifetime counter the pipeline
+ * increments, so what is left is allowance minus used. "Set" therefore means
+ * "give them this many from here", which is allowance = used + amount, not
+ * allowance = amount — otherwise setting someone to 50 who had already used
+ * 60 would leave them with minus ten.
+ */
+export async function setAiAllowanceAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult & { ok?: boolean }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const mode = String(formData.get("mode") ?? "set"); // "set" | "add" | "subtract"
+  const amount = parseInt(String(formData.get("amount") ?? "0"), 10);
+
+  if (!userId || isNaN(amount) || amount < 0) return { error: "Invalid input." };
+
+  const { data: existing } = await supabase
+    .from("user_access")
+    .select("ai_allowance, ai_uses_count")
+    .eq("user_id", userId)
+    .maybeSingle<{ ai_allowance: number; ai_uses_count: number }>();
+
+  if (!existing) return { error: "This user has no access record to adjust." };
+
+  const used = existing.ai_uses_count ?? 0;
+  const current = existing.ai_allowance ?? 0;
+
+  const newAllowance =
+    mode === "set"
+      ? used + amount
+      : mode === "add"
+      ? current + amount
+      : Math.max(used, current - amount); // never below what is already spent
+
+  const { error } = await supabase
+    .from("user_access")
+    .update({ ai_allowance: newAllowance })
+    .eq("user_id", userId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/case-bank-users");
+  return { ok: true };
+}
+
 // ── Examiner management ───────────────────────────────────────────────────────
 
 async function findAuthUserByEmail(supabase: ReturnType<typeof getSupabaseAdmin>, email: string): Promise<string | null> {

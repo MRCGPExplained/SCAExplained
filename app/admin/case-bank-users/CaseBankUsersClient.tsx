@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction, setRecordingCreditsAction } from "../actions";
+import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction, setRecordingCreditsAction, setAiAllowanceAction } from "../actions";
 
 type UserAccess = { has_programme: boolean; expires_at: string; renewal_reminder_sent_at: string | null } | null;
 
@@ -12,6 +12,7 @@ export type CaseBankUser = {
   profile: { id: string; display_name: string; initials: string; beta: boolean } | null;
   access: UserAccess;
   credits: number;
+  ai: { allowance: number; used: number };
 };
 
 function defaultExpiry() {
@@ -185,7 +186,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                           onClick={() => setOpenCredits(isCreditsOpen ? null : user.id)}
                           className="text-[12px] font-semibold text-navy/60 hover:text-navy transition"
                         >
-                          {user.credits} cr
+                          {user.credits} GP · {Math.max(0, user.ai.allowance - user.ai.used)} AI
                         </button>
                       </td>
                       <td className="px-5 py-3">
@@ -254,6 +255,54 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                               <button type="submit" disabled={isPending} className="bg-green-700 text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50">+ 5 credits</button>
                             </form>
                             <button type="button" onClick={() => setOpenCredits(null)} className="text-[12px] text-navy/40 hover:text-navy/70 transition">Cancel</button>
+                          </div>
+
+                          {/* AI gradings. Not a balance: an allowance granted
+                              against the lifetime count the pipeline keeps,
+                              so "set to" means "give them this many from
+                              here" rather than overwriting the total. */}
+                          <div className="flex items-end gap-4 flex-wrap mt-3 pt-3 border-t border-navy/[0.08]">
+                            <span className="text-[13px] font-semibold text-navy">
+                              AI gradings — <strong>{Math.max(0, user.ai.allowance - user.ai.used)}</strong> left
+                              <span className="text-navy/45 font-normal"> ({user.ai.used} used of {user.ai.allowance})</span>
+                            </span>
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.currentTarget);
+                                startTransition(async () => {
+                                  await setAiAllowanceAction({}, fd);
+                                  setOpenCredits(null);
+                                  window.location.reload();
+                                });
+                              }}
+                              className="flex items-end gap-2 flex-wrap"
+                            >
+                              <input type="hidden" name="user_id" value={user.id} />
+                              <input type="hidden" name="mode" value="set" />
+                              <div>
+                                <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Give them</label>
+                                <input name="amount" type="number" min="0" defaultValue={Math.max(0, user.ai.allowance - user.ai.used)} required className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] w-24 outline-none focus:border-navy/50" />
+                              </div>
+                              <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50">Set</button>
+                            </form>
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.currentTarget);
+                                startTransition(async () => {
+                                  await setAiAllowanceAction({}, fd);
+                                  setOpenCredits(null);
+                                  window.location.reload();
+                                });
+                              }}
+                              className="flex items-end gap-2"
+                            >
+                              <input type="hidden" name="user_id" value={user.id} />
+                              <input type="hidden" name="mode" value="add" />
+                              <input type="hidden" name="amount" value="50" />
+                              <button type="submit" disabled={isPending} className="bg-green-700 text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50">+ 50 gradings</button>
+                            </form>
                           </div>
                         </td>
                       </tr>

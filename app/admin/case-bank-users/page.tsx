@@ -10,7 +10,7 @@ async function getData() {
   const [authResult, profilesResult, accessResult, creditsResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("user_profiles").select("id, display_name, initials, beta"),
-    supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at"),
+    supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at, ai_allowance, ai_uses_count"),
     supabase.from("gp_review_credits").select("user_id, balance"),
   ]);
 
@@ -22,6 +22,14 @@ async function getData() {
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
   const accessMap = new Map(access.map((a) => [a.user_id, a]));
   const creditsMap = new Map(credits.map((c) => [c.user_id, c.balance]));
+  // AI is granted rather than decremented, so what is left is the allowance
+  // minus the lifetime count the grading pipeline keeps.
+  const aiMap = new Map(
+    (access as { user_id: string; ai_allowance?: number; ai_uses_count?: number }[]).map((a) => [
+      a.user_id,
+      { allowance: a.ai_allowance ?? 0, used: a.ai_uses_count ?? 0 },
+    ])
+  );
 
   const users = authUsers.map((u) => ({
     id: u.id,
@@ -30,6 +38,7 @@ async function getData() {
     profile: profileMap.get(u.id) ? { ...profileMap.get(u.id)!, beta: profileMap.get(u.id)?.beta ?? false } : null,
     access: accessMap.get(u.id) ?? null,
     credits: creditsMap.get(u.id) ?? 0,
+    ai: aiMap.get(u.id) ?? { allowance: 0, used: 0 },
   }));
 
   const now = new Date();
