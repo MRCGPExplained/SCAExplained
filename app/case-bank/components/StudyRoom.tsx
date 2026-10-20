@@ -65,6 +65,26 @@ function ReviewStageChip({
     );
   }
 
+  if (stage === "decide") {
+    // Deliberately not one of REVIEW_STAGES. The pipeline has not stalled
+    // here, it has finished the free half and stopped to be asked: grading
+    // costs a credit. A spinner would be claiming work is happening, and the
+    // progress count would read 0/4 for a stage that is not progress.
+    return (
+      <span className="text-[10px] flex items-center gap-1.5" style={{ color: "#F6D44B" }}>
+        <span style={{ fontSize: 11 }}>●</span>
+        <a
+          href="/recordings"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#F6D44B", textDecoration: "underline", textUnderlineOffset: 2 }}
+        >
+          Transcribed: choose what to do
+        </a>
+      </span>
+    );
+  }
+
   const index = REVIEW_STAGES.findIndex((s) => s.key === stage);
   const label = REVIEW_STAGES[index]?.label ?? "";
   const done = stage === "review";

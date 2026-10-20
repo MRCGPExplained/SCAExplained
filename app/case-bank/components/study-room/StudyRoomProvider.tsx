@@ -1904,7 +1904,17 @@ export function StudyRoomProvider({
           continue;
         }
 
-        if (s.status !== "uploading" && s.status !== "processing") {
+        // Thrown away on purpose. Nothing to wait for and nothing to link to.
+        if (s.status === "discarded") {
+          logStatus("review poll stopped — take discarded", { recordingId });
+          return;
+        }
+
+        const inFlight =
+          s.status === "uploading" || s.status === "processing" ||
+          s.status === "transcribed" || s.status === "grading";
+
+        if (!inFlight) {
           // "ai_graded" is written on success and on failure alike, so status
           // cannot be the signal on its own. ai_error is: a failed run sets it,
           // and a run that never graded because Deepgram is switched off leaves
@@ -1919,6 +1929,26 @@ export function StudyRoomProvider({
           return;
         }
 
+        // Transcribed and waiting on the doctor. Keep polling, because the
+        // answer arrives as a status change, but stop counting this against
+        // the pipeline's budget: the clock that matters now is a person's,
+        // and they may take minutes or never come back. Giving up here is
+        // silent rather than "failed" — nothing has gone wrong, and the same
+        // three choices are still on /recordings whenever they return.
+        if (s.status === "transcribed") {
+          publish("decide");
+          if (Date.now() > waitingUntil) {
+            logStatus("review poll stopped — still waiting on a decision", {
+              recordingId,
+              waitedSeconds: Math.round((Date.now() - t0) / 1000),
+            });
+            return;
+          }
+          deadline = Date.now() + 300_000;
+          await new Promise((r) => setTimeout(r, 4000));
+          continue;
+        }
+
         if (!s.audio_complete) {
           publish("uploading");
           if (Date.now() > waitingUntil) {
@@ -1931,8 +1961,8 @@ export function StudyRoomProvider({
           }
           // The pipeline's clock has not started, so neither should its budget.
           deadline = Date.now() + 300_000;
-        } else if (!s.has_transcript) publish("transcribing");
-        else publish("marking");
+        } else if (s.status === "grading") publish("marking");
+        else publish("transcribing");
 
         await new Promise((r) => setTimeout(r, 4000));
       }

@@ -12,7 +12,14 @@ export type RecordingState = "idle" | "starting" | "recording" | "uploading" | "
  * Keeping the two apart is what lets the panel hand the Record button back for
  * the next station while the last one is still being marked.
  */
-export type ReviewStage = "uploading" | "transcribing" | "marking" | "review" | "failed";
+/**
+ * "decide" is the one stage that is not the pipeline working. Transcribing is
+ * free and happens to every take; grading costs a credit, so the pipeline
+ * stops and waits to be asked. A take sits in `decide` until the doctor
+ * grades it, sends it to a GP, or throws it away, which may be a while or
+ * never — it is not a failure and must not be shown as one.
+ */
+export type ReviewStage = "uploading" | "transcribing" | "decide" | "marking" | "review" | "failed";
 
 export interface Participant {
   userId: string;

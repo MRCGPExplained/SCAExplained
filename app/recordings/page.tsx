@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
+import { TranscribedChoice } from "./TranscribedChoice";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
   const { purchased, topped_up } = await searchParams;
 
   const admin = getSupabaseAdmin();
-  const [recordingsResult, creditsResult] = await Promise.all([
+  const [recordingsResult, creditsResult, accessResult] = await Promise.all([
     admin
       ? admin
           .from("station_recordings")
@@ -72,10 +73,17 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
     admin
       ? admin.from("gp_review_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
       : Promise.resolve({ data: null }),
+    // AI allowance is granted rather than decremented, so what is left is
+    // allowance minus the lifetime count the pipeline keeps.
+    admin
+      ? admin.from("user_access").select("ai_allowance, ai_uses_count").eq("user_id", user.id).single<{ ai_allowance: number; ai_uses_count: number }>()
+      : Promise.resolve({ data: null }),
   ]);
 
   const recordings = (recordingsResult.data ?? []) as RecordingRow[];
   const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
+  const access = (accessResult as { data: { ai_allowance: number; ai_uses_count: number } | null }).data;
+  const aiRemaining = Math.max(0, (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0));
 
   const NAVY = "#333333";
 
@@ -108,6 +116,15 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             >
               <span className="font-bold text-[17px]">{credits}</span>{" "}
               <span style={{ color: "rgba(51,51,51,0.5)" }}>GP review credit{credits !== 1 ? "s" : ""} remaining</span>
+            </div>
+            {/* Two meters, because there are two costs. An AI grading is
+                pennies and plentiful; a GP review is a person's time. */}
+            <div
+              className="rounded-xl px-4 py-2 text-[13px]"
+              style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)", color: NAVY }}
+            >
+              <span className="font-bold text-[17px]">{aiRemaining}</span>{" "}
+              <span style={{ color: "rgba(51,51,51,0.5)" }}>AI grading{aiRemaining !== 1 ? "s" : ""} remaining</span>
             </div>
             {credits === 0 && (
               <Link
@@ -196,8 +213,12 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         style={
                           isReviewed
                             ? { background: "rgba(34,197,94,0.1)", color: "#166534" }
-                            : rec.status === "processing"
+                            : rec.status === "processing" || rec.status === "grading"
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
+                            : rec.status === "transcribed"
+                            ? { background: "rgba(246,212,75,0.28)", color: "#333333" }
+                            : rec.status === "discarded"
+                            ? { background: "rgba(51,51,51,0.06)", color: "rgba(51,51,51,0.38)" }
                             : rec.status === "ai_graded"
                             ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
                             : rec.status === "pending_examiner" || rec.status === "reviewing"
@@ -208,7 +229,13 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         {isReviewed
                           ? "Reviewed"
                           : rec.status === "processing"
-                          ? "Processing…"
+                          ? "Transcribing…"
+                          : rec.status === "grading"
+                          ? "Grading…"
+                          : rec.status === "transcribed"
+                          ? "Your call"
+                          : rec.status === "discarded"
+                          ? "Discarded"
                           : rec.status === "ai_graded"
                           ? "AI graded"
                           : rec.status === "pending_examiner" || rec.status === "reviewing"
@@ -236,6 +263,18 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             {totalPoints(rec)}
                           </span>
                         </div>
+                      )}
+
+                      {/* Transcribed and waiting on a decision. The safety
+                          net for anything left undecided in the study room,
+                          so no take can be stranded with nothing to press. */}
+                      {rec.status === "transcribed" && (
+                        <TranscribedChoice
+                          recordingId={rec.id}
+                          stationTitle={rec.station_title}
+                          aiRemaining={aiRemaining}
+                          gpRemaining={credits}
+                        />
                       )}
 
                       {rec.status === "ai_graded" && (
