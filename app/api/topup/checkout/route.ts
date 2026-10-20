@@ -27,6 +27,29 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
+  // The paragraph above was the whole policy and nothing enforced it, so an
+  // expired customer could buy 200 gradings they had no way to spend: the
+  // page that sells these had no access check either and showed them the
+  // shop. Checked here as well as there, because the page only hides a form
+  // and this is the route that takes the money.
+  const { data: access } = await supabase
+    .from("user_access")
+    .select("has_case_bank, case_bank_expires_at")
+    .eq("user_id", user.id)
+    .single<{ has_case_bank: boolean; case_bank_expires_at: string | null }>();
+
+  const accessLive =
+    !!access?.has_case_bank &&
+    !!access.case_bank_expires_at &&
+    access.case_bank_expires_at > new Date().toISOString();
+
+  if (!accessLive) {
+    return NextResponse.json(
+      { error: "Your access has ended. Choose a plan to start again; a top-up would not give you access." },
+      { status: 403 }
+    );
+  }
+
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const session = await stripe.checkout.sessions.create({

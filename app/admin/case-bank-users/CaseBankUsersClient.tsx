@@ -3,7 +3,17 @@
 import { Fragment, useState, useTransition } from "react";
 import { createCaseBankUser, grantUserAccess, revokeUserAccess, deleteCaseBankUser, toggleBetaAction, setRecordingCreditsAction, setAiAllowanceAction } from "../actions";
 
-type UserAccess = { has_programme: boolean; expires_at: string; renewal_reminder_sent_at: string | null } | null;
+// expires_at and case_bank_expires_at are both genuinely nullable: a plan
+// purchase writes only the case bank pair, and the retired programme wrote
+// only the other. Typing expires_at as string is what let .slice() through
+// the compiler and crashed this page on any plan customer.
+type UserAccess = {
+  has_programme: boolean;
+  expires_at: string | null;
+  has_case_bank: boolean;
+  case_bank_expires_at: string | null;
+  renewal_reminder_sent_at: string | null;
+} | null;
 
 export type CaseBankUser = {
   id: string;
@@ -46,7 +56,12 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
   const guestCount = users.filter((u) => !u.email).length;
   const visibleUsers = showGuests ? users : users.filter((u) => u.email);
 
-  const activeCount = users.filter((u) => u.access?.has_programme && u.access.expires_at > now).length;
+  // Case bank columns, same as the per-row badge. On the programme pair this
+  // counted none of the plan customers, so the header said 0 active while the
+  // table listed paying ones.
+  const activeCount = users.filter(
+    (u) => u.access?.has_case_bank && !!u.access.case_bank_expires_at && u.access.case_bank_expires_at > now
+  ).length;
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -147,7 +162,8 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                 const isCreditsOpen = openCredits === user.id;
                 const isLast = i === users.length - 1;
                 const rowBorder = !isLast || isGrantOpen || isCreditsOpen ? "border-b border-navy/[0.06]" : "";
-                const active = user.access?.has_programme && user.access.expires_at > now;
+                const expiry = user.access?.case_bank_expires_at ?? null;
+                const active = !!user.access?.has_case_bank && !!expiry && expiry > now;
 
                 return (
                   <Fragment key={user.id}>
@@ -168,7 +184,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                         </span>
                       </td>
                       <td className="px-5 py-3 text-navy/50 text-[12px] whitespace-nowrap">
-                        {user.access ? new Date(user.access.expires_at).toLocaleDateString("en-GB") : "—"}
+                        {expiry ? new Date(expiry).toLocaleDateString("en-GB") : "—"}
                       </td>
                       <td className="px-5 py-3">
                         {user.profile ? (
@@ -204,7 +220,7 @@ export default function CaseBankUsersClient({ users }: { users: CaseBankUser[] }
                             <input type="hidden" name="user_id" value={user.id} />
                             <div>
                               <label className="block text-[11px] font-bold text-navy/50 uppercase tracking-wide mb-1">Expires</label>
-                              <input name="expires_at" type="date" required defaultValue={user.access ? user.access.expires_at.slice(0, 10) : defaultExpiry()} className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50" />
+                              <input name="expires_at" type="date" required defaultValue={expiry ? expiry.slice(0, 10) : defaultExpiry()} className="border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50" />
                             </div>
                             <button type="submit" disabled={isPending} className="bg-navy text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#F6D44B] hover:text-[#333333] transition disabled:opacity-50">Grant Programme Access</button>
                             <button type="button" onClick={() => setOpenGrant(null)} className="text-[12px] text-navy/40 hover:text-navy/70 transition">Cancel</button>

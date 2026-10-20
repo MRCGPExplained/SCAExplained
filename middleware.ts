@@ -10,8 +10,9 @@ async function sha256hex(text: string): Promise<string> {
 // now redirects to /register, which is public in its own right. Leaving the
 // entry here would keep a hole open on a path that no longer serves anything.
 const CASE_BANK_PUBLIC = ["/case-bank/login", "/case-bank/purchase", "/case-bank/sample"];
-const VIDEO_COURSE_PUBLIC = ["/video-course/purchase"];
-const BUNDLE_PUBLIC = ["/bundle/purchase"];
+// No public list for the video course any more: its purchase page is gone
+// along with the checkout behind it, so every /video-course path needs a
+// session. /bundle is gone entirely.
 
 const GUEST_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -156,15 +157,6 @@ export async function middleware(req: NextRequest) {
 
   // ── Video course ──────────────────────────────────────────────────────────
   if (pathname.startsWith("/video-course")) {
-    const isPublic = VIDEO_COURSE_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    if (isPublic) return NextResponse.next();
-    return sessionPreFilter(req, "/login");
-  }
-
-  // ── Bundle ────────────────────────────────────────────────────────────────
-  if (pathname.startsWith("/bundle")) {
-    const isPublic = BUNDLE_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    if (isPublic) return NextResponse.next();
     return sessionPreFilter(req, "/login");
   }
 
@@ -194,7 +186,6 @@ export const config = {
     "/admin/:path*",
     "/case-bank/:path*",
     "/video-course/:path*",
-    "/bundle/:path*",
     "/dashboard",
     "/dashboard/:path*",
     "/recordings",

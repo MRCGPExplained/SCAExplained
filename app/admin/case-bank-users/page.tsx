@@ -10,7 +10,7 @@ async function getData() {
   const [authResult, profilesResult, accessResult, creditsResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("user_profiles").select("id, display_name, initials, beta"),
-    supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at, ai_allowance, ai_uses_count"),
+    supabase.from("user_access").select("user_id, has_programme, expires_at, has_case_bank, case_bank_expires_at, renewal_reminder_sent_at, ai_allowance, ai_uses_count"),
     supabase.from("gp_review_credits").select("user_id, balance"),
   ]);
 
@@ -41,10 +41,15 @@ async function getData() {
     ai: aiMap.get(u.id) ?? { allowance: 0, used: 0 },
   }));
 
+  // Sorted on the case bank columns, which are what a plan grants. Sorting on
+  // has_programme/expires_at put every plan customer below the retired
+  // programme accounts, because a plan never sets either.
   const now = new Date();
+  const liveUntil = (a: { has_case_bank?: boolean; case_bank_expires_at?: string | null } | null) =>
+    a?.has_case_bank && a.case_bank_expires_at && new Date(a.case_bank_expires_at) > now ? 1 : 0;
   users.sort((a, b) => {
-    const aActive = a.access && a.access.has_programme && new Date(a.access.expires_at) > now ? 1 : 0;
-    const bActive = b.access && b.access.has_programme && new Date(b.access.expires_at) > now ? 1 : 0;
+    const aActive = liveUntil(a.access);
+    const bActive = liveUntil(b.access);
     if (aActive !== bActive) return bActive - aActive;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });

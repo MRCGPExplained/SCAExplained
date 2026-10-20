@@ -181,7 +181,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     await admin.from("station_recordings").update({ candidate_viewed_at: new Date().toISOString() }).eq("id", rec.id);
   }
 
-  const [voiceResult, doctorResult, patientResult] = await Promise.all([
+  const [voiceResult, doctorResult, patientResult, gpCreditsResult] = await Promise.all([
     showExaminerGrades && rec.examiner_voice_note_path
       ? admin.storage.from("consultation-recordings").createSignedUrl(rec.examiner_voice_note_path, 3600)
       : Promise.resolve({ data: null }),
@@ -191,8 +191,14 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     rec.patient_audio_path
       ? admin.storage.from("consultation-recordings").createSignedUrl(rec.patient_audio_path, 3600)
       : Promise.resolve({ data: null }),
+    // The GP balance, which this page never loaded. Without it
+    // SubmitForReviewButton saw creditsRemaining undefined, so its
+    // "No GP reviews left" branch could not fire here and someone with
+    // nothing left got the ordinary confirm dialog and a failed submit.
+    admin.from("gp_review_credits").select("balance").eq("user_id", rec.doctor_user_id).single<{ balance: number }>(),
   ]);
 
+  const gpCreditsRemaining = (gpCreditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
   const voiceNoteUrl = voiceResult.data?.signedUrl ?? null;
   const doctorAudioUrl = doctorResult.data?.signedUrl ?? null;
   const patientAudioUrl = patientResult.data?.signedUrl ?? null;
@@ -291,9 +297,9 @@ export default async function RecordingDetailPage({ params }: PageProps) {
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span>
-                <strong>AI review complete.</strong> This is provisional. Submit it to get GP-reviewed feedback (uses 1 of your credits).
+                <strong>AI review complete.</strong> This is provisional. Submit it to get GP-reviewed feedback (uses 1 of your GP reviews).
               </span>
-              <SubmitForReviewButton recordingId={rec.id} stationTitle={rec.station_title} />
+              <SubmitForReviewButton recordingId={rec.id} stationTitle={rec.station_title} creditsRemaining={gpCreditsRemaining} />
             </div>
             {isRealCandidate && (
               <div className="mt-2">

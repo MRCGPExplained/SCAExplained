@@ -1217,7 +1217,7 @@ export async function requestAiGradingAction(recordingId: string): Promise<Actio
       .single<{ ai_allowance: number; ai_uses_count: number }>();
 
     const remaining = (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0);
-    if (remaining < 1) return { error: "No AI credits remaining." };
+    if (remaining < 1) return { error: "No AI gradings remaining." };
   }
 
   if (!(await claimForGrading(admin, recordingId))) {

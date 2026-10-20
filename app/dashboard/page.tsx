@@ -14,16 +14,42 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const [{ data: profile }, creditsResult] = await Promise.all([
+  const [{ data: profile }, creditsResult, accessResult] = await Promise.all([
     supabase.from("user_profiles").select("display_name").eq("id", user.id).single(),
     getSupabaseAdmin()
       ? getSupabaseAdmin()!.from("gp_review_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
+      : Promise.resolve({ data: null }),
+    // The other meter. The badge read the GP balance alone and called it
+    // "credits", so a Starter customer with 120 AI gradings and no GP reviews
+    // (which is what Starter is) saw "0 credits" and could reasonably think
+    // they had bought nothing that works.
+    getSupabaseAdmin()
+      ? getSupabaseAdmin()!
+          .from("user_access")
+          .select("ai_allowance, ai_uses_count, has_case_bank, case_bank_expires_at")
+          .eq("user_id", user.id)
+          .single<{ ai_allowance: number; ai_uses_count: number; has_case_bank: boolean; case_bank_expires_at: string | null }>()
       : Promise.resolve({ data: null }),
   ]);
 
   const name = profile?.display_name ?? null;
   const firstName = name ? name.trim().split(" ")[0] : null;
   const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
+  const access = (accessResult as { data: { ai_allowance: number; ai_uses_count: number; has_case_bank: boolean; case_bank_expires_at: string | null } | null }).data;
+  const aiRemaining = Math.max(0, (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0));
+  const accessLive =
+    !!access?.has_case_bank &&
+    !!access.case_bank_expires_at &&
+    access.case_bank_expires_at > new Date().toISOString();
+
+  // Expiry outranks both numbers: once access has ended neither balance is
+  // spendable, and showing "120 AI" to someone who cannot record is the more
+  // misleading of the two. The GP figure is dropped when it is zero rather
+  // than shown as "0 GP", because on Starter zero is the plan working as
+  // sold, not something that ran out.
+  const reviewsBadge = !accessLive
+    ? "Expired"
+    : [`${aiRemaining} AI`, credits > 0 ? `${credits} GP` : null].filter(Boolean).join(" · ");
 
   const items = [
     {
@@ -42,7 +68,7 @@ export default async function DashboardPage() {
       href: "/recordings",
       label: "My Reviews",
       description: "AI graded, with GP review on the ones you submit",
-      badge: `${credits} credit${credits !== 1 ? "s" : ""}`,
+      badge: reviewsBadge,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <circle cx="11" cy="11" r="8.5" stroke={DARK} strokeWidth="1.5"/>

@@ -1,15 +1,16 @@
 import type { NextConfig } from "next";
 
-// TEMPORARY: payment pages disabled. Remove this redirects block to re-enable.
+// Pages for products that are no longer sold. These are not "temporarily
+// disabled" any more, which is how the £50 bundle and the £30 video course
+// came to be sitting behind switched-off pages with their checkout APIs still
+// live and still able to charge: the redirect only ever covered page paths.
+// Those two routes and their pages are deleted now, so what is left here is
+// the retired single-product programme and its old checkout flow.
 const DISABLED_PAYMENT_PATHS = [
   "/checkout",
   "/confirmation",
   "/case-bank/purchase",
   "/case-bank/purchase/success",
-  "/video-course/purchase",
-  "/video-course/purchase/success",
-  "/bundle/purchase",
-  "/bundle/purchase/success",
   "/programme",
 ];
 

@@ -31,7 +31,11 @@ export default async function VideoModulePage({ params }: { params: Promise<{ id
     .gt("expires_at", new Date().toISOString())
     .single<{ expires_at: string }>();
 
-  if (!access) redirect("/programme");
+  // /programme does not exist: it was the £60 single product, and its page
+  // redirects to the homepage, so this sent a signed-in user without access
+  // to the front page with no explanation. The dashboard at least tells them
+  // what they do have.
+  if (!access) redirect("/dashboard");
 
   const { data: modules } = await supabase
     .from("video_course_systems")

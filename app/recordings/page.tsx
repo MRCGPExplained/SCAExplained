@@ -55,6 +55,13 @@ type RecordingRow = {
   candidate_viewed_at: string | null;
 };
 
+interface AccessRow {
+  ai_allowance: number;
+  ai_uses_count: number;
+  has_case_bank: boolean;
+  case_bank_expires_at: string | null;
+}
+
 export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string; topped_up?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -88,14 +95,21 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
     // AI allowance is granted rather than decremented, so what is left is
     // allowance minus the lifetime count the pipeline keeps.
     admin
-      ? admin.from("user_access").select("ai_allowance, ai_uses_count").eq("user_id", user.id).single<{ ai_allowance: number; ai_uses_count: number }>()
+      ? admin.from("user_access").select("ai_allowance, ai_uses_count, has_case_bank, case_bank_expires_at").eq("user_id", user.id).single<AccessRow>()
       : Promise.resolve({ data: null }),
   ]);
 
   const recordings = (recordingsResult.data ?? []) as RecordingRow[];
   const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
-  const access = (accessResult as { data: { ai_allowance: number; ai_uses_count: number } | null }).data;
+  const access = (accessResult as { data: AccessRow | null }).data;
   const aiRemaining = Math.max(0, (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0));
+
+  // Expiry outranks either meter. Someone whose four months have ended cannot
+  // record, so they cannot spend anything, and selling them gradings would be
+  // taking money for something they have no way to use: the top-up shop was
+  // being shown to them anyway, because this page had no access check at all.
+  const expiresAt = access?.case_bank_expires_at ?? null;
+  const accessLive = !!access?.has_case_bank && !!expiresAt && expiresAt > new Date().toISOString();
 
   const NAVY = "#333333";
 
@@ -138,15 +152,44 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               <span className="font-bold text-[17px]">{aiRemaining}</span>{" "}
               <span style={{ color: "rgba(51,51,51,0.5)" }}>AI grading{aiRemaining !== 1 ? "s" : ""} remaining</span>
             </div>
-            {credits === 0 && (
+            {/*
+              One button, and which one depends on what has actually run out.
+              It used to be a single "Renew Programme" shown whenever the GP
+              balance hit zero, which meant every Starter customer saw it on
+              every load: Starter grants no GP reviews by design, so zero is
+              its normal state, not an exhausted one. It also pointed at
+              /case-bank/upgrade, which redirects anyone with live access
+              straight back here, so pressing it did nothing at all.
+
+              Expiry first, because a plan is the only answer to it. Then the
+              empty meter, which a top-up answers without resetting the clock.
+              Nothing at all while there is stock in both.
+            */}
+            {!accessLive ? (
               <Link
                 href="/case-bank/upgrade"
                 className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
                 style={{ background: NAVY, color: "white" }}
               >
-                Renew Programme
+                Choose a plan
               </Link>
-            )}
+            ) : aiRemaining === 0 ? (
+              <Link
+                href="#topups"
+                className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
+                style={{ background: NAVY, color: "white" }}
+              >
+                Top up AI gradings
+              </Link>
+            ) : credits === 0 ? (
+              <Link
+                href="#topups"
+                className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
+                style={{ background: NAVY, color: "white" }}
+              >
+                Add GP reviews
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -156,7 +199,27 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           </div>
         )}
 
-        <TopUps />
+        {accessLive ? (
+          <TopUps />
+        ) : (
+          <div className="rounded-2xl p-5 mb-6" style={{ background: "#F9F3D9", border: "1px solid #F6D44B" }}>
+            <p className="font-display font-extrabold text-[15px] mb-1" style={{ color: NAVY }}>
+              Your access has ended
+            </p>
+            <p className="text-[12.5px] leading-[1.55] mb-3" style={{ color: "rgba(51,51,51,0.6)" }}>
+              {expiresAt
+                ? `It ran to ${new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Everything below is still here, and anything left on your balances is still yours when you come back.`
+                : "Everything below is still here, and anything left on your balances is still yours when you come back."}
+            </p>
+            <Link
+              href="/case-bank/upgrade"
+              className="inline-block rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
+              style={{ background: NAVY, color: "white" }}
+            >
+              Choose a plan
+            </Link>
+          </div>
+        )}
 
         {purchased === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
