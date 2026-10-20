@@ -501,7 +501,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
               <TrainerInsightTab
                 onLocked={() =>
                   setModal(
-                    "Every station has a trainer insight, written and recorded. Create a free account to listen."
+                    "Trainer insight is available with an account. Create a free account to see what the GPs who wrote the station say about it."
                   )
                 }
               />
