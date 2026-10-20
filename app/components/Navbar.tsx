@@ -67,7 +67,8 @@ export function Navbar({
             </>
           ) : (
             <>
-              <Link href="/" className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100" style={{ color: "rgba(255,255,255,0.60)" }}>Home</Link>
+              {/* No "Home": the wordmark to its left is the link home, and
+                  every site puts it there. */}
               <Link href="/about" className="text-[13px] font-semibold no-underline transition-opacity hover:opacity-100" style={{ color: "rgba(255,255,255,0.60)" }}>About</Link>
               <Link
                 href="/login"
