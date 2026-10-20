@@ -27,7 +27,6 @@ export interface Plan {
   /** GP reviews granted. The scarce one: twenty minutes of a person. */
   gpReviews: number;
   months: number;
-  blurb: string;
   /** Shown on the card, in order. */
   features: string[];
 }
@@ -40,7 +39,6 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 120,
     gpReviews: 0,
     months: 4,
-    blurb: "Access to the entire case bank and enough AI marking to find out your strengths and weaknesses.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
@@ -55,7 +53,6 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 300,
     gpReviews: 5,
     months: 4,
-    blurb: "Access to the entire case bank and enough AI marking to cover all of it. Includes 5 GP reviews.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
@@ -71,7 +68,6 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 400,
     gpReviews: 20,
     months: 4,
-    blurb: "Access to the entire case bank and enough AI marking to cover all of it. Includes 20 GP reviews, for registrars seeking tailored feedback more frequently.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
@@ -89,6 +85,27 @@ export function isPlanKey(value: string): value is PlanKey {
 }
 
 /** "£90" — whole pounds, since every plan is priced in them. */
+/**
+ * The one-line sell under the plan name.
+ *
+ * Generated rather than typed, because the last hand-written set said
+ * "enough recordings" for the thing every card calls unlimited, and the set
+ * before that promised twenty GP reviews on all three. Any number in here
+ * now comes from the same fields the bullets and the Stripe line item read,
+ * so a blurb cannot claim an allowance the plan does not grant.
+ */
+export function planBlurb(plan: Plan): string {
+  if (plan.key === "starter") {
+    return `Starter pack to identify strengths and weaknesses. Access to all 240+ cases and ${plan.aiGradings} instant AI reviews.`;
+  }
+  const reviews = `${plan.gpReviews} GP review${plan.gpReviews === 1 ? "" : "s"}`;
+  const tail =
+    plan.key === "intensive"
+      ? `, for GP registrars seeking tailored feedback and support`
+      : "";
+  return `Access to the entire case bank and enough AI reviews to cover the entire bank. Includes ${reviews}${tail}.`;
+}
+
 export function planPrice(plan: Plan): string {
   return `£${Math.round(plan.pricePence / 100)}`;
 }

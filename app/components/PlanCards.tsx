@@ -1,4 +1,4 @@
-import { PLANS, PLAN_ORDER, planPrice } from "@/lib/plans";
+import { PLANS, PLAN_ORDER, planPrice, planBlurb } from "@/lib/plans";
 import { PlanButton } from "./PlanButton";
 
 const DARK = "#333333";
@@ -63,8 +63,17 @@ export function PlanCards() {
             <p className="font-display font-extrabold text-[19px] mb-1" style={{ color: DARK }}>
               {plan.name}
             </p>
-            <p className="text-[13px] leading-[1.6] mb-5" style={{ color: "rgba(51,51,51,0.6)" }}>
-              {plan.blurb}
+            {/*
+              Fixed height, so the three prices sit on one line. The blurbs
+              are different lengths and the Intensive one runs to four, which
+              pushed its price a line lower than the other two and made the
+              cards look misaligned rather than merely different.
+            */}
+            <p
+              className="text-[13px] leading-[1.6] mb-5 lg:min-h-[83px]"
+              style={{ color: "rgba(51,51,51,0.6)" }}
+            >
+              {planBlurb(plan)}
             </p>
 
             {/*

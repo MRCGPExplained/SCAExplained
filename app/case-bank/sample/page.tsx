@@ -118,96 +118,121 @@ function BriefTab() {
 }
 
 /**
- * The trainer's take on the station, with the audio version locked.
+ * The trainer insight, as it will actually appear on a station: a recording,
+ * a short note on what it covers, and a transcript that unlocks with it.
  *
- * The player is deliberately inert: there is no <audio> element and no file
- * behind it, because a sample page that played the whole thing would have
- * nothing left to sign up for. It is a button, not a decorative div, so it
- * reaches the keyboard and announces itself; pressing it opens the same
- * account dialog as every other locked control here rather than doing
- * nothing, which is what an unexplained dead play button amounts to.
- *
- * The written insight above it is real and complete. The point of the tab is
- * that this exists on every station, and that is only convincing if the
- * sample actually shows one.
+ * The audio is deliberately inert. There is no <audio> element and no file
+ * behind it, because a sample that played the whole thing leaves nothing to
+ * sign up for. It is a button rather than a decorative div, so it takes
+ * focus and announces itself, and pressing it opens the same account dialog
+ * as the other locked controls here. A play button that silently does
+ * nothing is worse than one that says why.
  */
 function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
-  // A fixed set of heights rather than anything generated: this is a drawing
-  // of a waveform, and it should look the same on every render.
-  const bars = [9, 15, 22, 31, 24, 17, 28, 36, 29, 20, 13, 19, 27, 34, 26, 18, 11, 16, 23, 30, 25, 15, 10, 14, 21, 28, 20, 12, 8, 13];
+  // Fixed heights, not generated: this is a drawing of a waveform and it
+  // should look the same on every render.
+  const bars = [
+    9, 15, 22, 31, 24, 17, 28, 36, 29, 20, 13, 19, 27, 34, 26, 18, 11, 16, 23, 30,
+    25, 15, 10, 14, 21, 28, 20, 12, 8, 13, 19, 26, 33, 27, 18, 12, 17, 24, 31, 22,
+  ];
+
+  const chapters = [
+    { at: "0:00", label: "What this station is really testing" },
+    { at: "1:12", label: "Reading the prescription data before you start" },
+    { at: "2:05", label: "Handling the steroid concern" },
+    { at: "3:20", label: "Choosing and explaining the step up" },
+  ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
         <Label>Trainer Insight</Label>
         <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
-          This case is won and lost on the step before the prescription. Almost everyone spots
-          that Amy is uncontrolled, because the RCP 3 questions and five salbutamol inhalers in
-          three months make it hard to miss, and almost everyone reaches for a combination
-          inhaler. The candidates who pass comfortably do one more thing first: they establish
-          what she is actually taking and how. Stepping up treatment for someone using a
-          quarter of their prescribed preventer dose, with technique nobody has checked,
-          treats the wrong problem and the examiner knows it.
+          A recorded walk-through of this station from one of the GPs who wrote it, covering
+          how to approach it and where candidates most often drop marks.
         </p>
       </div>
 
-      <div>
-        <Label>What to watch for</Label>
-        <BulletList
-          items={[
-            "Her steroid worry is the consultation, not an aside. If you address it after you have prescribed, you are asking her to accept a decision she has already decided to be anxious about.",
-            "She tells you she stopped yoga. That is activity limitation, and it is also what she cares about. Use her words when you agree the plan and Relating to Others takes care of itself.",
-            "Occupational history is the most commonly dropped mark in adult asthma. She works from home, which sounds like it rules it out, and does not.",
-          ]}
-        />
-      </div>
-
-      <div>
-        <Label>Listen</Label>
-        <button
-          type="button"
-          onClick={onLocked}
-          aria-label="Play trainer insight audio. Available with an account."
-          className="w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left"
-          style={{ background: LIGHT_BG, border: "1px solid rgba(31,41,55,0.10)", cursor: "pointer" }}
-        >
+      <button
+        type="button"
+        onClick={onLocked}
+        aria-label="Play trainer insight audio. Available with an account."
+        className="w-full rounded-xl px-5 py-4 text-left"
+        style={{ background: "white", border: "1px solid rgba(31,41,55,0.12)", cursor: "pointer" }}
+      >
+        <span className="flex items-center gap-4">
           <span
             className="shrink-0 flex items-center justify-center rounded-full"
-            style={{ width: 42, height: 42, background: YELLOW }}
+            style={{ width: 46, height: 46, background: YELLOW }}
             aria-hidden="true"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={NAVY}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill={NAVY}>
               <path d="M8 5.5v13l11-6.5z" />
             </svg>
           </span>
 
           <span className="flex-1 min-w-0">
-            <span className="block text-[14px] font-bold mb-1.5" style={{ color: NAVY }}>
-              Trainer insight: where this one is won and lost
+            <span className="flex items-center gap-2 mb-2">
+              <span className="text-[14px] font-bold truncate" style={{ color: NAVY }}>
+                Station 14: Asthma review
+              </span>
+              <span
+                className="shrink-0 flex items-center gap-1 rounded text-[9px] font-bold uppercase tracking-[0.06em]"
+                style={{ background: "rgba(31,41,55,0.07)", color: "rgba(26,27,82,0.45)", padding: "2px 6px" }}
+              >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2.5" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+                Locked
+              </span>
             </span>
-            <span className="flex items-end gap-[2px] h-[36px]" aria-hidden="true">
+
+            <span className="flex items-end gap-[2px] h-[34px]" aria-hidden="true">
               {bars.map((h, i) => (
                 <span
                   key={i}
                   className="flex-1 rounded-full"
-                  style={{ height: h, background: "rgba(31,41,55,0.16)" }}
+                  style={{ height: h, background: "rgba(31,41,55,0.15)" }}
                 />
               ))}
             </span>
-          </span>
 
-          <span className="shrink-0 flex flex-col items-end gap-1">
-            <span className="text-[12px] tabular-nums" style={{ color: "rgba(26,27,82,0.5)" }}>4:18</span>
-            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.38)" }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Locked
+            <span className="flex items-center justify-between mt-1.5">
+              <span className="text-[11px] tabular-nums" style={{ color: "rgba(26,27,82,0.4)" }}>0:00</span>
+              <span className="text-[11px] tabular-nums" style={{ color: "rgba(26,27,82,0.4)" }}>4:18</span>
             </span>
           </span>
-        </button>
+        </span>
+      </button>
+
+      <div>
+        <Label>In this recording</Label>
+        <div className="flex flex-col">
+          {chapters.map(({ at, label }, i) => (
+            <button
+              key={at}
+              type="button"
+              onClick={onLocked}
+              className="flex items-center gap-3 py-2.5 text-left w-full"
+              style={{
+                borderTop: i === 0 ? "none" : "1px solid rgba(31,41,55,0.07)",
+                background: "transparent",
+                cursor: "pointer",
+              }}
+            >
+              <span className="text-[12px] tabular-nums shrink-0" style={{ color: "rgba(26,27,82,0.4)", minWidth: 34 }}>
+                {at}
+              </span>
+              <span className="text-[14px]" style={{ color: "rgba(26,27,82,0.75)" }}>{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      <p className="text-[13px]" style={{ color: "rgba(26,27,82,0.45)" }}>
+        A full transcript is available alongside the audio.
+      </p>
     </div>
   );
 }

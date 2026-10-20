@@ -145,12 +145,45 @@ export function CaseBankMockup() {
             </div>
           </div>
 
+          {/* Recent notes */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Recent Notes</div>
+            <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "rgba(26,27,82,0.80)", margin: 0 }}>
+              Annual asthma review 11 months ago. PEFR 420 L/min. Advised to use preventer regularly.
+              Repeat prescription issued. Prescription records show 5 salbutamol inhalers collected in
+              the past 3 months.
+            </p>
+          </div>
+
           {/* Reason */}
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Reason for Consultation</div>
             <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "rgba(26,27,82,0.80)", margin: 0 }}>
-              Annual asthma review. Works from home. Prescription data flags 5 salbutamol inhalers collected in the past 3 months.
+              Amy is a 29-year-old graphic designer attending for her annual asthma review. She works
+              from home. Prescription data flags high salbutamol use over the past 3 months.
             </p>
+          </div>
+
+          {/*
+            The brief runs past the fold on a real station, so the panel ends
+            mid-sentence rather than on a tidy last line. A mockup that fits
+            its content exactly reads as a strip; this one reads as the top
+            of a page, which is what it is.
+          */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Examiner Focus</div>
+            <div className="flex flex-col gap-1.5">
+              {[
+                "Establishing control with the RCP 3 questions",
+                "Exploring adherence and inhaler technique before stepping up",
+                "Addressing steroid concerns without dismissing them",
+              ].map((item) => (
+                <div key={item} className="flex gap-2.5 items-start">
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
+                  <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
