@@ -30,14 +30,32 @@ function Tick() {
 export function PlanCards() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      {/*
+        Hover lives in CSS rather than React state: it is three identical
+        cards and a :hover rule costs nothing, where tracking a hovered index
+        would make this a client component for a colour change.
+
+        The background is set here and not in the inline style below, because
+        an inline background wins against a class and the hover would never
+        show.
+      */}
+      <style>{`
+        .plan-card {
+          background: #ffffff;
+          transition: background-color 0.18s ease-out;
+        }
+        .plan-card:hover { background: #FDFAEF; }
+        @media (prefers-reduced-motion: reduce) {
+          .plan-card { transition: none; }
+        }
+      `}</style>
       {PLAN_ORDER.map((key) => {
         const plan = PLANS[key];
         return (
           <div
             key={key}
-            className="rounded-[22px] p-7 flex flex-col"
+            className="plan-card rounded-[22px] p-7 flex flex-col"
             style={{
-              background: "white",
               border: "1px solid rgba(51,51,51,0.10)",
               boxShadow: "0 8px 30px rgba(51,51,51,0.06)",
             }}
@@ -49,14 +67,18 @@ export function PlanCards() {
               {plan.blurb}
             </p>
 
-            <div className="flex items-baseline gap-2 mb-1">
+            {/*
+              Both terms on one line under the price, rather than "one-off"
+              hanging off the figure and the term on its own line below. They
+              answer the same question, which is what the number buys.
+            */}
+            <div className="mb-1">
               <span className="font-display font-extrabold leading-none" style={{ fontSize: 40, color: DARK }}>
                 {planPrice(plan)}
               </span>
-              <span className="text-[13px]" style={{ color: "rgba(51,51,51,0.5)" }}>one-off</span>
             </div>
             <p className="text-[12.5px] mb-6" style={{ color: "rgba(51,51,51,0.45)" }}>
-              {plan.months} months access
+              One-off payment · {plan.months} months access
             </p>
 
             <PlanButton plan={plan.key} label={`Get ${plan.name}`} />

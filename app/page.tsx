@@ -170,8 +170,16 @@ export default async function HomePage() {
         case bank and a label pointing that out would be telling the reader
         what they can already see.
       */}
+      {/*
+        Same max width and gutter as the hero grid above, so this panel and
+        the report panel are the same width and share both edges. They were
+        1150 and 1450: identical up to about 1230px of viewport, where both
+        are capped by the window, and visibly out of step above it. At 1700
+        the report was 693px wide and this was 551, with its right edge 150px
+        short of the one directly above it.
+      */}
       <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
-        <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="w-full max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
               Build real exam confidence

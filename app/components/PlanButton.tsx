@@ -50,7 +50,7 @@ export function PlanButton({ plan, label }: { plan: PlanKey; label: string }) {
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? "Taking you to checkout…" : label}
+        {label}
       </button>
       {error && (
         <p className="text-[12px] text-center mt-2" style={{ color: "#B91C1C" }}>{error}</p>

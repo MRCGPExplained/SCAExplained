@@ -40,7 +40,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 120,
     gpReviews: 0,
     months: 4,
-    blurb: "The case bank and instant AI marking, to find out where you actually stand.",
+    blurb: "Access to the entire case bank and enough recordings to find out your strengths and weaknesses.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
@@ -55,7 +55,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 300,
     gpReviews: 5,
     months: 4,
-    blurb: "Enough AI marking to work through the whole bank, and a GP on the ones that matter.",
+    blurb: "Access to the entire case bank and enough recordings to cover all of it. Includes 5 GP reviews.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
@@ -71,7 +71,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     aiGradings: 400,
     gpReviews: 20,
     months: 4,
-    blurb: "The whole bank twice over, and a GP reading one consultation a week until you sit.",
+    blurb: "Access to the entire case bank and enough recordings to cover all of it. Includes 20 GP reviews, for registrars seeking tailored feedback more frequently.",
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
