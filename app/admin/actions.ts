@@ -886,7 +886,7 @@ export async function setRecordingCreditsAction(
   if (!userId || isNaN(amount) || amount < 0) return { error: "Invalid input." };
 
   if (mode === "set") {
-    const { error } = await supabase.from("recording_credits").upsert({
+    const { error } = await supabase.from("gp_review_credits").upsert({
       user_id: userId,
       balance: amount,
       total_purchased: amount,
@@ -895,7 +895,7 @@ export async function setRecordingCreditsAction(
     if (error) return { error: error.message };
   } else {
     const { data: existing } = await supabase
-      .from("recording_credits")
+      .from("gp_review_credits")
       .select("balance, total_purchased")
       .eq("user_id", userId)
       .single<{ balance: number; total_purchased: number }>();
@@ -904,7 +904,7 @@ export async function setRecordingCreditsAction(
     const newBalance = mode === "add" ? current + amount : Math.max(0, current - amount);
     const newTotal = mode === "add" ? (existing?.total_purchased ?? 0) + amount : (existing?.total_purchased ?? 0);
 
-    const { error } = await supabase.from("recording_credits").upsert({
+    const { error } = await supabase.from("gp_review_credits").upsert({
       user_id: userId,
       balance: newBalance,
       total_purchased: newTotal,

@@ -70,7 +70,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           .limit(50)
       : Promise.resolve({ data: [] }),
     admin
-      ? admin.from("recording_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
+      ? admin.from("gp_review_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
       : Promise.resolve({ data: null }),
   ]);
 

@@ -1080,7 +1080,7 @@ export async function submitForReviewAction(recordingId: string): Promise<Action
 
   if (!bypassed) {
     const { data: creditsData } = await admin
-      .from("recording_credits")
+      .from("gp_review_credits")
       .select("balance")
       .eq("user_id", user.id)
       .single<{ balance: number }>();
@@ -1090,7 +1090,7 @@ export async function submitForReviewAction(recordingId: string): Promise<Action
     }
 
     const { error: deductErr } = await admin
-      .from("recording_credits")
+      .from("gp_review_credits")
       .update({ balance: creditsData.balance - 1, updated_at: new Date().toISOString() })
       .eq("user_id", user.id)
       .eq("balance", creditsData.balance);

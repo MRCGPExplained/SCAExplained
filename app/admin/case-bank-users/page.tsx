@@ -11,7 +11,7 @@ async function getData() {
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("user_profiles").select("id, display_name, initials, beta"),
     supabase.from("user_access").select("user_id, has_programme, expires_at, renewal_reminder_sent_at"),
-    supabase.from("recording_credits").select("user_id, balance"),
+    supabase.from("gp_review_credits").select("user_id, balance"),
   ]);
 
   const authUsers = (authResult.data as { users?: { id: string; email?: string; created_at: string }[] })?.users ?? [];

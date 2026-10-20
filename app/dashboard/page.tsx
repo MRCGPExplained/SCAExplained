@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const [{ data: profile }, creditsResult] = await Promise.all([
     supabase.from("user_profiles").select("display_name").eq("id", user.id).single(),
     getSupabaseAdmin()
-      ? getSupabaseAdmin()!.from("recording_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
+      ? getSupabaseAdmin()!.from("gp_review_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
       : Promise.resolve({ data: null }),
   ]);
 

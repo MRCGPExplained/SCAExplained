@@ -160,7 +160,7 @@ async function addRecordingCredits(
   credits: number
 ) {
   // Upsert: add purchased credits to existing balance
-  const { error } = await supabase.rpc("add_recording_credits", {
+  const { error } = await supabase.rpc("add_gp_review_credits", {
     p_user_id: userId,
     p_credits: credits,
   });
@@ -168,12 +168,12 @@ async function addRecordingCredits(
   if (error) {
     // Fallback: manual upsert if RPC doesn't exist yet
     const { data: existing } = await supabase
-      .from("recording_credits")
+      .from("gp_review_credits")
       .select("balance, total_purchased")
       .eq("user_id", userId)
       .single<{ balance: number; total_purchased: number }>();
 
-    await supabase.from("recording_credits").upsert({
+    await supabase.from("gp_review_credits").upsert({
       user_id: userId,
       balance: (existing?.balance ?? 0) + credits,
       total_purchased: (existing?.total_purchased ?? 0) + credits,

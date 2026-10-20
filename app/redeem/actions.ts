@@ -144,12 +144,12 @@ async function redeemForUser(
   const credits = codeRow.recording_credits ?? 3;
 
   const { data: existing } = await admin
-    .from("recording_credits")
+    .from("gp_review_credits")
     .select("balance, total_purchased")
     .eq("user_id", userId)
     .single<{ balance: number; total_purchased: number }>();
 
-  const { error: upsertErr } = await admin.from("recording_credits").upsert(
+  const { error: upsertErr } = await admin.from("gp_review_credits").upsert(
     {
       user_id: userId,
       balance: (existing?.balance ?? 0) + credits,
