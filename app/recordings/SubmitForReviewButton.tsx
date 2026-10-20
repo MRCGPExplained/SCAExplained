@@ -49,7 +49,11 @@ export function SubmitForReviewButton({
     setToppingUp(true);
     setTopUpError("");
     try {
-      const res = await fetch("/api/review-credits/checkout", { method: "POST" });
+      const res = await fetch("/api/topup/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ topup: "gp20" }),
+      });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout failed");
       window.location.href = data.url;
@@ -189,7 +193,7 @@ export function SubmitForReviewButton({
                       opacity: toppingUp ? 0.7 : 1,
                     }}
                   >
-                    {toppingUp ? "Redirecting…" : "Top up 20 (£50)"}
+                    {toppingUp ? "Redirecting…" : "Top up 20 reviews"}
                   </button>
                 </div>
 

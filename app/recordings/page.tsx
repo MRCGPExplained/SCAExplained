@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
 import { TranscribedChoice } from "./TranscribedChoice";
+import { TopUps } from "./TopUps";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             Top-up successful: 20 GP reviews have been added to your balance.
           </div>
         )}
+
+        <TopUps />
 
         {purchased === "1" && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>

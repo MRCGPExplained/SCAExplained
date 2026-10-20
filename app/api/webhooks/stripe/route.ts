@@ -77,12 +77,14 @@ export async function POST(req: Request) {
         await confirmCaseBankPurchase(session);
       } else if (type === "plan") {
         await confirmPlanPurchase(session);
+      } else if (type === "topup") {
+        await confirmTopUpPurchase(session);
       }
       // Record actual revenue + Stripe fee for every recognised purchase, for
       // the economics dashboard. Best-effort — it swallows its own errors and
       // so can never release the claim below or trigger a retry that would
       // grant the purchase a second time.
-      if (type === "programme" || type === "recording_credits" || type === "case_bank_programme" || type === "plan") {
+      if (type === "programme" || type === "recording_credits" || type === "case_bank_programme" || type === "plan" || type === "topup") {
         await recordRevenueEvent(stripe, session, type);
       }
     }
@@ -190,6 +192,37 @@ async function addRecordingCredits(
       total_purchased: (existing?.total_purchased ?? 0) + credits,
       updated_at: new Date().toISOString(),
     });
+  }
+}
+
+// ── Top-up purchase ──────────────────────────────────────────────────────────
+
+/**
+ * Adds to one meter and nothing else. No access, no expiry: a top-up is for
+ * someone who is mid-plan and has run out of one of the two things, not for
+ * someone whose four months have ended.
+ *
+ * Which meter and how many come out of the session metadata rather than a
+ * fresh lookup, so a pack resized between paying and the webhook landing
+ * still grants what was advertised at the till.
+ */
+async function confirmTopUpPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.user_id;
+  const kind = session.metadata?.kind;
+  const units = parseInt(session.metadata?.units ?? "0", 10);
+
+  if (!userId || !units || (kind !== "ai" && kind !== "gp")) {
+    console.error("[webhook] topup with missing or bad metadata", { userId, kind, units });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  if (kind === "ai") {
+    await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: units });
+  } else {
+    await addRecordingCredits(supabase, userId, units);
   }
 }
 
