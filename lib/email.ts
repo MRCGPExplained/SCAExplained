@@ -441,6 +441,89 @@ export async function sendPurchaseEmail(args: {
   }
 }
 
+/**
+ * The receipt for a top-up.
+ *
+ * Top-ups sent nothing at all. Someone could spend £160 on 200 AI gradings
+ * and get no acknowledgement from us whatsoever, which looks like a failed
+ * payment and is the kind of silence that produces a chargeback.
+ *
+ * It says what the top-up did NOT do as well as what it did, because the one
+ * thing a buyer is likely to assume is that paying again bought them more
+ * time. It did not: a top-up adds to a balance and leaves the expiry alone.
+ */
+export async function sendTopUpEmail(args: {
+  to: string;
+  name: string;
+  /** e.g. "200 AI gradings" or "20 GP reviews". */
+  packLabel: string;
+  /** Null when the expiry could not be read; the line is then omitted rather
+   *  than guessed, since a wrong date here is worse than no date. */
+  expiresAt: string | null;
+}): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
+
+  const expiryLine = args.expiresAt
+    ? `<p style="margin:12px 0 0;font-size:13px;color:#6b6c85;">
+         Your access still runs to <strong>${longDate(args.expiresAt)}</strong>.
+         A top-up adds to your balance and does not change that date.</p>`
+    : `<p style="margin:12px 0 0;font-size:13px;color:#6b6c85;">
+         A top-up adds to your balance and does not change when your access
+         ends.</p>`;
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
+          Thanks, ${escapeHtml(args.name)}.</p>
+        <p style="font-size:14px;line-height:1.6;color:#3a3b66;margin:0;">
+          <strong>${escapeHtml(args.packLabel)}</strong> have been added to your balance.</p>
+        ${expiryLine}
+      </td></tr>
+      <tr><td style="padding:20px 28px;">
+        <a href="${origin}/recordings"
+           style="display:inline-block;background:${YELLOW};color:#333333;
+           font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;
+           font-size:15px;">See your balance</a>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <p style="font-size:12px;color:#9a9ab0;margin:0;">
+          Any questions, reply to this email or contact us at
+          <a href="mailto:mrcgpexplained@outlook.com" style="color:#9a9ab0;">mrcgpexplained@outlook.com</a>.</p>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          For educational purposes only. © 2026 SCA Focus.</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `${args.packLabel} added to your SCA Focus account`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
 export async function sendAccessExpiryEmail(args: {
   to: string;
   firstName: string;

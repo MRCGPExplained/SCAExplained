@@ -38,11 +38,11 @@ export default function AboutPage() {
         entries, and a life. The last thing you need is a course that pads its
         content to justify its price. SCA Focus is designed to give you the
         highest-yield insight in the least time. The free monthly webinar covers
-        the essentials clearly. The programme gives you 240+ cases to work
-        through with a study partner, a provisional score within minutes of
-        every consultation you record, and twenty of those read by a GP who
-        writes back about what actually happened in yours. Nothing is there to
-        fill time.
+        the essentials clearly. The plans give you 240+ cases to work through
+        with a study partner, a provisional score within minutes of any
+        consultation you send for AI grading, and the option to put one in
+        front of a GP who writes back about what actually happened in yours.
+        Nothing is there to fill time.
       </P>
 
       <Divider />

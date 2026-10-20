@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendConfirmationEmail, sendPurchaseEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendPurchaseEmail, sendTopUpEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -208,6 +208,7 @@ async function addRecordingCredits(
  */
 async function confirmTopUpPurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;
+  const userEmail = session.metadata?.user_email ?? "";
   const kind = session.metadata?.kind;
   const units = parseInt(session.metadata?.units ?? "0", 10);
 
@@ -223,6 +224,24 @@ async function confirmTopUpPurchase(session: Stripe.Checkout.Session) {
     await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: units });
   } else {
     await addRecordingCredits(supabase, userId, units);
+  }
+
+  // A receipt, which this used to send none of. The expiry is read rather
+  // than assumed so the email can say the date the top-up did not move; a
+  // failed read drops that sentence instead of printing a wrong date.
+  if (userEmail) {
+    const { data: access } = await supabase
+      .from("user_access")
+      .select("case_bank_expires_at")
+      .eq("user_id", userId)
+      .single<{ case_bank_expires_at: string | null }>();
+
+    await sendTopUpEmail({
+      to: userEmail,
+      name: userEmail,
+      packLabel: `${units} ${kind === "ai" ? "AI gradings" : `GP review${units === 1 ? "" : "s"}`}`,
+      expiresAt: access?.case_bank_expires_at ?? null,
+    });
   }
 }
 

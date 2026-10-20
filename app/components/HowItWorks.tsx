@@ -73,7 +73,7 @@ const STEPS = [
     id: "record",
     label: "Record",
     title: "Record Consultation",
-    description: "Record directly on SCA Focus with your study partner. No downloads. No Zoom. No third-party software.",
+    description: "Record directly on the SCA Focus website with your study partners. No third-party software required.",
     icon: MicOutline,
   },
   {
@@ -87,7 +87,7 @@ const STEPS = [
     id: "gp",
     label: "GP Review",
     title: "GP Review",
-    description: "Send a consultation to an experienced GP (one of the educators who wrote the cases) who verifies the scoring and writes feedback on what actually happened in yours. Twenty reviews are included.",
+    description: "Send a consultation to an experienced GP who reviews the consultation and verifies scoring. Tailored feedback is provided with each review.",
     icon: StethoscopeOutline,
   },
   {
