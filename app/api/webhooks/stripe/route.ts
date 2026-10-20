@@ -367,7 +367,13 @@ async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
   }
 }
 
-// ── Case Bank programme purchase (£295, 4 months, 20 GP reviews) ───────────────
+// ── Case Bank programme purchase (retired: £295, 4 months, 20 GP reviews) ─────
+//
+// Retired alongside confirmProgrammePurchase above, and kept for the same
+// reason: /api/case-bank/checkout is gone, so nothing can create a
+// case_bank_programme session, but one created before that deploy stays
+// payable for 24 hours and deleting the branch would take the money without
+// granting anything. Safe to remove with the other one.
 
 async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;
@@ -418,14 +424,16 @@ async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
   await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: INTENSIVE_AI_ALLOWANCE });
 
   if (userEmail) {
-    await sendConfirmationEmail({
+    // Says what this branch actually grants, which is the Intensive
+    // allowance. It used to promise "unlimited AI review" beside a line
+    // granting exactly 400 gradings.
+    await sendPurchaseEmail({
       to: userEmail,
-      customerName: userEmail,
-      eventTitle: "The Complete SCA Programme",
-      ticketName: "Access granted: 240+ cases, unlimited AI review, 20 GP reviews",
-      startTime: now.toISOString(),
-      endTime: newExpiry,
-      zoomLink: null,
+      name: userEmail,
+      planName: "Intensive",
+      aiGradings: INTENSIVE_AI_ALLOWANCE,
+      gpReviews: 20,
+      expiresAt: newExpiry,
     });
   }
 }

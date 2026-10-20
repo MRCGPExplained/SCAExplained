@@ -898,26 +898,33 @@ async function checkRecordingBypass(email: string | undefined): Promise<boolean>
   return bypassList.includes(normalEmail);
 }
 
-const AI_USE_SOFT_CAP = 500;
-
-/** Returns an error message if the user has no active Case Bank access or
- * has hit the AI-review soft cap; null if they're clear to record. */
-async function checkAiUsageCap(
+/** Returns an error message if the user has no active Case Bank access;
+ * null if they're clear to record.
+ *
+ * It used to also refuse anyone whose ai_uses_count had reached a 500 "fair
+ * use" cap, which was the right shape when AI review was unlimited and the
+ * cap was the only thing standing between the product and an unbounded bill.
+ * It is the wrong shape now and it was costing people recordings. Gradings
+ * are bought: a plan grants 120, 300 or 400 of them and top-ups add up to 200
+ * more, so someone who bought Intensive and two 100-packs owns 600 and would
+ * have been stopped at 500 with a hundred paid gradings still in hand. Worse,
+ * it stopped them RECORDING, which is free, unmetered and advertised as such
+ * on every plan card.
+ *
+ * The allowance is enforced where it is actually spent, in
+ * requestAiGradingAction. Recording only needs to know the access is live. */
+async function checkCaseBankAccess(
   admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   userId: string
 ): Promise<string | null> {
   const { data } = await admin
     .from("user_access")
-    .select("has_case_bank, case_bank_expires_at, ai_uses_count")
+    .select("has_case_bank, case_bank_expires_at")
     .eq("user_id", userId)
-    .single<{ has_case_bank: boolean; case_bank_expires_at: string | null; ai_uses_count: number }>();
+    .single<{ has_case_bank: boolean; case_bank_expires_at: string | null }>();
 
   const hasAccess = !!data?.has_case_bank && !!data.case_bank_expires_at && data.case_bank_expires_at > new Date().toISOString();
   if (!hasAccess) return "Your Case Bank access has expired or is not active.";
-
-  if ((data?.ai_uses_count ?? 0) >= AI_USE_SOFT_CAP) {
-    return "You've reached the fair-use limit for AI review on this programme. Contact us if you need more.";
-  }
 
   return null;
 }
@@ -937,7 +944,7 @@ export async function startSoloRecordingAction(args: {
 
   const bypassed = await checkRecordingBypass(user.email);
   if (!bypassed) {
-    const capError = await checkAiUsageCap(admin, user.id);
+    const capError = await checkCaseBankAccess(admin, user.id);
     if (capError) return { error: capError };
   }
 
@@ -994,7 +1001,7 @@ export async function startRecordingAction(args: {
   // regardless of who (host or patient role-player) actually clicks Start.
   const bypassed = await checkRecordingBypass(user.email);
   if (!bypassed) {
-    const capError = await checkAiUsageCap(admin, args.doctorUserId);
+    const capError = await checkCaseBankAccess(admin, args.doctorUserId);
     if (capError) return { error: capError };
   }
 
@@ -1028,9 +1035,10 @@ export async function startRecordingAction(args: {
 /**
  * Called by the host when the synced start aborts because the live audio
  * call failed to connect for an essential participant (doctor or patient).
- * Deletes the never-actually-recorded row — the attempt is treated as if
- * it never happened. No credit refund needed: starting a recording no
- * longer consumes one (AI review is unlimited; only Submit for GP Review does).
+ * Deletes the never-actually-recorded row, so the attempt is treated as if
+ * it never happened. No credit refund needed: recording and transcription
+ * are free, and both meters are spent later, by an explicit choice to send
+ * the transcript for AI grading or for GP review.
  */
 export async function cancelRecordingAction(recordingId: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
@@ -1046,10 +1054,11 @@ export async function cancelRecordingAction(recordingId: string): Promise<Action
 }
 
 /**
- * Candidate-initiated: consumes 1 of their 20 GP-review credits and moves
- * this specific AI-graded recording into the examiner queue. AI review
- * itself (reaching status "ai_graded") never consumes a credit — only an
- * explicit decision to submit does.
+ * Candidate-initiated: consumes one GP review credit and moves this specific
+ * AI-graded recording into the examiner queue. How many they have depends on
+ * the plan (Starter 0, Premium 5, Intensive 20) plus any top-up, so no number
+ * belongs in this comment. Reaching status "ai_graded" spends a grading from
+ * the other meter, not this one.
  */
 export async function submitForReviewAction(recordingId: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();

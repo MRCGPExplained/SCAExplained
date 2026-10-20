@@ -152,7 +152,7 @@ export function SubmitForReviewButton({
                 </h2>
 
                 <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
-                  You have used all the GP reviews in your programme, so {what} cannot be sent
+                  You have used all the GP reviews on your plan, so {what} cannot be sent
                   for a GP to read just yet.
                 </p>
 
@@ -160,8 +160,9 @@ export function SubmitForReviewButton({
                   className="rounded-xl px-3.5 py-3 mb-5 text-[12.5px] leading-[1.55]"
                   style={{ background: "#F9F3D9", color: DARK }}
                 >
-                  <strong>AI grading carries on as normal.</strong> It is unlimited, so you can
-                  keep recording and scoring consultations while you decide.
+                  <strong>Recording carries on as normal.</strong> Recording and transcription
+                  never cost anything, and AI grading draws on its own separate balance, so
+                  running out of GP reviews does not stop you practising.
                 </div>
 
                 <div className="flex gap-2.5">

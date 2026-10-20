@@ -1,11 +1,26 @@
 import { ContentPage } from "../components/ContentPage";
+import { PLANS, PLAN_ORDER, planPrice } from "@/lib/plans";
 
 const DARK = "#333333";
+
+/**
+ * Built from lib/plans.ts rather than typed out. This answer previously read
+ * "A one-off £295 payment gives you access to 240+ cases, unlimited AI
+ * review, and 20 GP reviews" — a single product at the top price, with an
+ * allowance no plan carries and a review count only Intensive carries. It was
+ * written when there was one plan and nothing made it move when there were
+ * three. Generated, it cannot say something the plans do not.
+ */
+const PLAN_SUMMARY = PLAN_ORDER.map((key) => {
+  const p = PLANS[key];
+  const reviews = p.gpReviews > 0 ? ` and ${p.gpReviews} GP review${p.gpReviews === 1 ? "" : "s"}` : "";
+  return `${p.name} at ${planPrice(p)} (${p.aiGradings} AI gradings${reviews})`;
+}).join(", ");
 
 const FAQS = [
   {
     q: "Who reviews consultations?",
-    a: "An experienced GP who teaches SCA preparation and writes the cases here. Every consultation you record is graded by AI, and you then choose which ones to send for GP review. Twenty reviews are included in the programme.",
+    a: "An experienced GP who teaches SCA preparation and writes the cases here. Once a consultation is transcribed you choose what happens to it: AI grading, GP review, or neither. How many GP reviews you have depends on your plan, and you can buy more at any time.",
   },
   {
     q: "How quickly is feedback returned?",
@@ -25,11 +40,11 @@ const FAQS = [
   },
   {
     q: "Is AI used?",
-    a: "Yes. Every consultation is transcribed and given an AI-generated provisional score for fast initial feedback, and that part is unlimited. When you submit one for GP review, an examiner verifies the scoring and writes your final feedback.",
+    a: "Yes. Recording and transcription are free and unlimited on every plan. Sending a transcript for AI grading returns a provisional score against the three domains within minutes and spends one of your AI gradings. Sending it for GP review instead puts it in front of a GP, who checks the scoring and writes your feedback.",
   },
   {
-    q: "What's included in the programme?",
-    a: "A one-off £295 payment gives you access to 240+ cases, unlimited AI review, and 20 GP reviews, valid for 4 months.",
+    q: "What's included, and what does it cost?",
+    a: `Three plans, each a one-off payment giving 4 months of access: ${PLAN_SUMMARY}. All three include the full case bank of 240+ stations, study groups, and unlimited recording and transcription. You can top up either balance at any time without changing your plan or its expiry date.`,
   },
 ] as const;
 

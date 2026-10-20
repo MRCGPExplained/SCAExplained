@@ -1027,7 +1027,8 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_failed_at: null,
       }).eq("id", recordingId);
 
-      // Count this toward the candidate's unlimited-but-soft-capped AI usage.
+      // Spend one grading. This is the only place the meter moves, and it
+      // moves on success, so a run that failed costs the candidate nothing.
       const { data: accessRow } = await admin
         .from("user_access")
         .select("ai_uses_count")

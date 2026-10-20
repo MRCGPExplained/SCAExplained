@@ -618,10 +618,10 @@ export function StudyRoomPanel() {
           <ul className="flex flex-col gap-2.5 mb-6 text-[13px]" style={{ color: "rgba(26,27,82,0.7)" }}>
             <li>• You get <strong>3 minutes</strong> to read the case, then the voice call connects on its own.</li>
             <li>• Recording and transcription start the moment it connects. There is nothing else to press.</li>
-            <li>• AI review is free and starts immediately. No credit is used yet.</li>
+            <li>• Recording and transcription are free. Nothing is spent by starting.</li>
             <li>• The consultation runs for a fixed <strong>12 minutes</strong> and cannot be paused or reset.</li>
             <li>• Recording stops automatically at the 12-minute mark.</li>
-            <li>• You can choose to submit for GP review afterwards, which uses 1 credit.</li>
+            <li>• Afterwards you choose what to do with the transcript: AI grading, GP review, or discard. Only the first two spend anything.</li>
           </ul>
 
           <div className="flex gap-2.5">

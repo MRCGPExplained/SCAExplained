@@ -45,27 +45,33 @@ export default function TermsPage() {
       </P>
 
       <Divider />
-      <H2>3. The Complete SCA Programme: purchases and refunds</H2>
+      <H2>3. Plans: purchases and refunds</H2>
       <P>
-        The Complete SCA Programme is a single paid package priced at £295
-        that gives you access to our full case bank of 240+ stations,
-        unlimited AI-graded practice, and 20 GP review credits, for a period
-        of 4 months from the date of purchase.
+        Access to the Case Bank is sold as one of three plans. Each is a
+        one-off payment giving access for 4 months from the date of purchase,
+        and each includes the full case bank of 240+ stations, study groups,
+        and unlimited recording and transcription. The plans differ in two
+        allowances: the number of AI gradings and the number of GP reviews
+        they include. The current plans, their prices and their allowances
+        are set out on our homepage, and the allowance granted to you is the
+        one shown at the point you paid.
       </P>
       <P>
-        Practising a station and receiving AI-graded provisional feedback
-        does not use a GP review credit. A GP review credit is only used
-        when you explicitly submit a recording for review, at which point
-        it is queued for a GP examiner to assess and finalise your feedback.
-        GP review credits are non-transferable and may not be shared between
-        accounts.
+        Recording a consultation and having it transcribed does not use
+        either allowance. An AI grading is used only when you choose to send
+        a transcript for AI grading, and a GP review credit is used only when
+        you choose to submit one for review, at which point it is queued for
+        a GP to assess and finalise your feedback. Where an AI grading fails
+        for technical reasons it is not counted against your allowance.
       </P>
       <P>
-        AI-graded practice is offered on a fair-use basis and is soft-capped
-        at 500 uses per programme purchase. This limit is intended to
-        accommodate genuine exam preparation; we may contact you if your
-        usage suggests the service is being shared or resold, and reserve
-        the right to suspend access in such cases.
+        Both allowances may be extended by purchasing a top-up. A top-up adds
+        to the relevant balance and does not change your plan or the date it
+        expires. Unused allowances expire with your access and are not
+        refundable. Allowances and access are personal to your account and
+        are non-transferable; we may contact you if usage suggests an account
+        is being shared or resold, and reserve the right to suspend access in
+        such cases.
       </P>
       <P>
         By completing a purchase you expressly request that the digital
