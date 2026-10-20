@@ -114,12 +114,12 @@ export function CaseBankMockup() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 3 }}>Patient</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Sarah Marsden</div>
-              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.60)" }}>38 years old</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Amy Clarke</div>
+              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.60)" }}>29 years old</div>
             </div>
             <div>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 3 }}>Type</div>
-              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.70)" }}>Standard</div>
+              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.70)" }}>Face to face</div>
             </div>
           </div>
 
@@ -127,7 +127,7 @@ export function CaseBankMockup() {
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Past Medical History</div>
             <div className="flex flex-col gap-1.5">
-              {["Hypothyroidism, on Levothyroxine", "Anxiety, not on medication"].map((item) => (
+              {["Asthma, diagnosed age 8", "PEFR 420 L/min at last review"].map((item) => (
                 <div key={item} className="flex gap-2.5 items-start">
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
                   <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>{item}</span>
@@ -141,7 +141,7 @@ export function CaseBankMockup() {
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Drug &amp; Allergy History</div>
             <div className="flex gap-2.5 items-start">
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
-              <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>Levothyroxine 75mcg daily, NKDA</span>
+              <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>Clenil Modulite 100mcg twice daily, salbutamol PRN, NKDA</span>
             </div>
           </div>
 
@@ -149,7 +149,7 @@ export function CaseBankMockup() {
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Reason for Consultation</div>
             <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "rgba(26,27,82,0.80)", margin: 0 }}>
-              Patient has booked to discuss persistent fatigue and weight gain over the past three months despite compliance with medication.
+              Annual asthma review. Works from home. Prescription data flags 5 salbutamol inhalers collected in the past 3 months.
             </p>
           </div>
         </div>

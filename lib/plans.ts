@@ -42,7 +42,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     blurb: "The case bank and instant AI marking, to find out where you actually stand.",
     features: [
-      "240+ cases, written like the real thing",
+      "240+ realistic SCA stations",
       "120 AI-graded consultations",
       "Study groups: record with a partner in the browser",
       "Unlimited recording and transcription",
@@ -58,7 +58,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     blurb: "Enough AI marking to work through the whole bank, and a GP on the ones that matter.",
     features: [
-      "240+ cases, written like the real thing",
+      "240+ realistic SCA stations",
       "300 AI-graded consultations",
       "5 consultations read by a GP",
       "Study groups: record with a partner in the browser",
@@ -75,7 +75,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     blurb: "The whole bank twice over, and a GP reading one consultation a week until you sit.",
     features: [
-      "240+ cases, written like the real thing",
+      "240+ realistic SCA stations",
       "400 AI-graded consultations",
       "20 consultations read by a GP",
       "Study groups: record with a partner in the browser",

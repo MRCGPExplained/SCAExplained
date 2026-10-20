@@ -113,7 +113,6 @@ export function CaseBankConsultClock() {
           }}
         />
       </div>
-      <div style={{ fontSize: 10, color: "rgba(26,27,82,0.35)", textAlign: "center" }}>Stops itself at 12:00</div>
     </div>
   );
 }

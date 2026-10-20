@@ -294,7 +294,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
 
         <div className="flex items-center gap-2 flex-wrap">
           <NavBtn
-            message="Recording credits start from £24 for 3 consultations. Create a free account to get started."
+            message="Create a free account to record your consultations and send them for AI feedback or a GP review."
             icon={
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="2" width="6" height="11" rx="3"/>
