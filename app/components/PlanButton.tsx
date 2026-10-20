@@ -6,15 +6,7 @@ import type { PlanKey } from "@/lib/plans";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
-export function PlanButton({
-  plan,
-  label,
-  featured,
-}: {
-  plan: PlanKey;
-  label: string;
-  featured: boolean;
-}) {
+export function PlanButton({ plan, label }: { plan: PlanKey; label: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,7 +24,7 @@ export function PlanButton({
       // under the button is a dead end. Send them to register and bring them
       // back to the plan they picked.
       if (res.status === 401) {
-        window.location.href = `/register?next=${encodeURIComponent("/pricing")}`;
+        window.location.href = `/register?next=${encodeURIComponent("/#pricing")}`;
         return;
       }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout failed");
@@ -51,8 +43,8 @@ export function PlanButton({
         disabled={loading}
         className="w-full font-bold text-[14px] py-3 rounded-xl transition-opacity hover:opacity-90"
         style={{
-          background: featured ? DARK : YELLOW,
-          color: featured ? "white" : DARK,
+          background: YELLOW,
+          color: DARK,
           border: "none",
           cursor: loading ? "default" : "pointer",
           opacity: loading ? 0.7 : 1,

@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
+import { PlanCards } from "./components/PlanCards";
 import { CaseBankMockup } from "./components/CaseBankMockup";
 import { SampleReportContent } from "./components/SampleReportContent";
 import { ScaledPreview } from "./components/ScaledPreview";
@@ -241,54 +242,43 @@ export default async function HomePage() {
       {/* TESTIMONIALS */}
       <TestimonialsSection testimonials={testimonials} />
 
-      {/* PRICING */}
-      <section className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: WASH }}>
-        <div className="max-w-[900px] mx-auto">
-          <div
-            className="relative rounded-2xl p-8 bg-white"
-            style={{ border: "1.5px solid rgba(246,212,75,0.55)", boxShadow: "0 12px 44px rgba(51,51,51,0.10)" }}
-          >
-            <p className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(51,51,51,0.40)" }}>Pricing</p>
-            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-1" style={{ color: DARK }}>
-              The complete SCA programme
+      {/*
+        PRICING. Three plans rather than one, sold here rather than on a
+        page of their own: this is where people already are by the time
+        they want the number, and a separate page is a second place to
+        keep correct.
+
+        They differ by GP reviews, nought, five and twenty, which is the
+        scarce thing and what each step up actually sells. Differing only
+        by how much AI marking you get would have been a quantity of the
+        cheap, abundant thing, and an invitation to do the arithmetic and
+        take the cheaper one.
+      */}
+      <section id="pricing" className="px-10 pt-16 pb-10 max-md:px-6" style={{ background: WASH }}>
+        <div className="max-w-[1150px] mx-auto">
+          <div className="text-center max-w-[620px] mx-auto mb-10">
+            <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "rgba(51,51,51,0.40)" }}>
+              Pricing
+            </p>
+            <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4 max-sm:text-[26px]" style={{ color: DARK }}>
+              Every plan has the whole case bank.
             </h2>
-            <div className="flex items-end gap-2 mb-5">
-              <span className="font-extrabold leading-none" style={{ fontSize: 36, color: DARK }}>£295</span>
-              <span className="text-[13px] mb-1" style={{ color: "rgba(51,51,51,0.5)" }}>one-off payment</span>
-            </div>
-
-            <ul className="flex flex-col gap-2 mb-6">
-              {(
-                [
-                  "Access to 240+ cases",
-                  "Unlimited AI review",
-                  "20 GP reviews",
-                  "Access lasts 4 months",
-                ] as const
-              ).map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-[14px]" style={{ color: DARK }}>
-                  <SmallCheck /> {item}
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <Link
-                href="/register"
-                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-opacity hover:opacity-90"
-                style={{ background: YELLOW, color: DARK }}
-              >
-                Register Now →
-              </Link>
-              <Link
-                href="/recordings/sample"
-                className="inline-block font-bold text-[14px] px-6 py-3 rounded-xl no-underline transition-colors"
-                style={{ border: "1.5px solid rgba(51,51,51,0.2)", color: DARK }}
-              >
-                Show Sample Review
-              </Link>
-            </div>
+            <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
+              240+ cases, study groups, and unlimited recording on all three. What changes is how
+              much marking you get, and how much of it is read by a GP.
+            </p>
           </div>
+
+          <PlanCards />
+
+          <p className="text-center text-[13px] mt-9" style={{ color: "rgba(51,51,51,0.5)" }}>
+            Recording and transcription are unlimited on every plan and never cost a credit. You
+            choose which consultations are worth marking once you have seen how they went.{" "}
+            <Link href="/recordings/sample" className="font-semibold no-underline" style={{ color: DARK }}>
+              See a sample report
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

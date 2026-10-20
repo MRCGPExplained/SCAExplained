@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     },
     customer_email: user.email,
     success_url: `${origin}/case-bank?purchased=1`,
-    cancel_url: `${origin}/pricing`,
+    cancel_url: `${origin}/#pricing`,
   });
 
   return NextResponse.json({ url: session.url });
