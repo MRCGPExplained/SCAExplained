@@ -85,7 +85,17 @@ export async function POST(req: Request) {
       // so can never release the claim below or trigger a retry that would
       // grant the purchase a second time.
       if (type === "programme" || type === "recording_credits" || type === "case_bank_programme" || type === "plan" || type === "topup") {
-        await recordRevenueEvent(stripe, session, type);
+        // The tier, not the kind. Logging a bare "plan" put Starter, Premium
+        // and Intensive in one bucket the dashboard could not tell apart, and
+        // "topup" did the same to five packs at five prices. Both carry their
+        // identity in the session metadata already.
+        const label =
+          type === "plan"
+            ? session.metadata?.plan ?? "plan"
+            : type === "topup"
+            ? session.metadata?.topup ?? "topup"
+            : type;
+        await recordRevenueEvent(stripe, session, label);
       }
     }
   } catch (err) {
@@ -105,7 +115,9 @@ export async function POST(req: Request) {
 async function recordRevenueEvent(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
-  planType: string
+  /** The tier or pack key ("intensive", "ai100"), falling back to the
+   *  purchase type for the retired flows that have no finer identity. */
+  label: string
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -135,7 +147,7 @@ async function recordRevenueEvent(
     const { error } = await supabase.from("revenue_events").upsert(
       {
         user_id: session.metadata?.user_id ?? null,
-        plan_type: planType,
+        plan_type: label,
         amount_gross_gbp: grossGbp,
         currency,
         stripe_fee_gbp: feeGbp,

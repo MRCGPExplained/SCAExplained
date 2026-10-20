@@ -4,6 +4,7 @@ import { getCurrentPricing } from "@/lib/pricing";
 import { createEconLogger } from "@/lib/econ-logger";
 import { mean, median, percentile, max as amax } from "@/lib/econ-stats";
 import { loadCustomerProfiles, buildProjections } from "@/lib/economics-data";
+import { PLANS, PLAN_ORDER, planPrice } from "@/lib/plans";
 import PricingEditor from "./PricingEditor";
 import { LineChart, BarChart, type Point } from "./Charts";
 
@@ -179,20 +180,46 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
 
   // ── Customers, subscription analytics, alerts, projections ───────────────────
   const customers = await loadCustomerProfiles(admin, logger);
-  const premium = customers.filter((c) => c.planType === "case_bank_programme");
 
-  const subAnalytics = premium.length
-    ? {
-        count: premium.length,
-        avgAi: mean(premium.map((c) => c.aiConsultations)),
-        avgGp: mean(premium.map((c) => c.gpReviews)),
-        avgCost: mean(premium.map((c) => c.totalCost)),
-        avgProfit: mean(premium.map((c) => c.grossProfit)),
-        avgMargin: mean(premium.filter((c) => c.margin !== null).map((c) => c.margin as number)),
-        highestCost: amax(premium.map((c) => c.totalCost)),
-        lowestMargin: premium.filter((c) => c.margin !== null).sort((a, b) => (a.margin as number) - (b.margin as number))[0] ?? null,
-      }
-    : null;
+  // One row per plan. This filtered on the retired "case_bank_programme" and
+  // nothing else, so it would have read "No £295 customers yet" forever however
+  // many people bought Starter, Premium or Intensive. Retired customers get a
+  // row of their own rather than being dropped, since their economics are
+  // still real money.
+  const planGroups = [
+    ...PLAN_ORDER.map((key) => ({ key, label: `${PLANS[key].name} (${planPrice(PLANS[key])})` })),
+    { key: "case_bank_programme", label: "Complete (£295, retired)" },
+    { key: "programme", label: "90-Day (£60, retired)" },
+  ]
+    .map(({ key, label }) => {
+      const rows = customers.filter((c) => c.planType === key);
+      if (!rows.length) return null;
+      const withMargin = rows.filter((c) => c.margin !== null);
+      return {
+        key,
+        label,
+        count: rows.length,
+        avgAi: mean(rows.map((c) => c.aiConsultations)),
+        avgGp: mean(rows.map((c) => c.gpReviews)),
+        avgCost: mean(rows.map((c) => c.totalCost)),
+        avgProfit: mean(rows.map((c) => c.grossProfit)),
+        avgMargin: withMargin.length ? mean(withMargin.map((c) => c.margin as number)) : null,
+        highestCost: amax(rows.map((c) => c.totalCost)),
+        lowestMargin: withMargin.sort((a, b) => (a.margin as number) - (b.margin as number))[0] ?? null,
+      };
+    })
+    .filter(Boolean) as {
+    key: string;
+    label: string;
+    count: number;
+    avgAi: number;
+    avgGp: number;
+    avgCost: number;
+    avgProfit: number;
+    avgMargin: number | null;
+    highestCost: number;
+    lowestMargin: { email: string; margin: number | null } | null;
+  }[];
 
   const projections = buildProjections(customers);
   const alerts = projections.filter((p) => p.reasons.length > 0).sort((a, b) => (a.projMargin ?? 1) - (b.projMargin ?? 1));
@@ -334,21 +361,33 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
         <Card title="Cost per consultation over time"><LineChart points={seriesCostPerConsult} format={gbp} color="#B45309" /></Card>
       </div>
 
-      {/* Subscription analytics */}
-      <Card title="Subscription analytics — Complete SCA Programme (£295)">
-        {subAnalytics ? (
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-            <Stat label="Customers on plan" value={String(subAnalytics.count)} />
-            <Stat label="Avg AI consultations" value={subAnalytics.avgAi.toFixed(1)} />
-            <Stat label="Avg GP reviews" value={subAnalytics.avgGp.toFixed(1)} />
-            <Stat label="Avg customer cost" value={gbp(subAnalytics.avgCost)} />
-            <Stat label="Avg customer profit" value={gbp(subAnalytics.avgProfit)} />
-            <Stat label="Avg margin" value={pct(subAnalytics.avgMargin)} />
-            <Stat label="Highest customer cost" value={gbp(subAnalytics.highestCost)} />
-            <Stat label="Lowest-margin customer" value={subAnalytics.lowestMargin ? `${pct(subAnalytics.lowestMargin.margin as number)}` : "—"} sub={subAnalytics.lowestMargin?.email} />
+      {/* Subscription analytics, one block per plan */}
+      <Card title="Subscription analytics by plan">
+        {planGroups.length ? (
+          <div className="flex flex-col gap-5">
+            {planGroups.map((g, i) => (
+              <div
+                key={g.key}
+                style={i === 0 ? undefined : { borderTop: "1px solid rgba(51,51,51,0.08)", paddingTop: "1.25rem" }}
+              >
+                <p className="text-[12px] font-bold uppercase tracking-[0.06em] mb-2.5" style={{ color: "rgba(51,51,51,0.45)" }}>
+                  {g.label}
+                </p>
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+                  <Stat label="Customers on plan" value={String(g.count)} />
+                  <Stat label="Avg AI consultations" value={g.avgAi.toFixed(1)} />
+                  <Stat label="Avg GP reviews" value={g.avgGp.toFixed(1)} />
+                  <Stat label="Avg customer cost" value={gbp(g.avgCost)} />
+                  <Stat label="Avg customer profit" value={gbp(g.avgProfit)} />
+                  <Stat label="Avg margin" value={g.avgMargin === null ? "—" : pct(g.avgMargin)} />
+                  <Stat label="Highest customer cost" value={gbp(g.highestCost)} />
+                  <Stat label="Lowest-margin customer" value={g.lowestMargin ? pct(g.lowestMargin.margin as number) : "—"} sub={g.lowestMargin?.email} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.4)" }}>No £295 customers yet.</p>
+          <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.4)" }}>No plan customers yet.</p>
         )}
       </Card>
 

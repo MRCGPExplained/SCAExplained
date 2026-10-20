@@ -88,12 +88,35 @@ export async function loadCustomerProfiles(admin: SupabaseClient, logger: EconLo
     return p;
   };
 
+  // Which rows name a plan rather than a top-up. Assigning planType from
+  // every row on a last-write-wins basis turned a Premium customer who bought
+  // an AI pack into an "ai100" customer, because the top-up was simply the
+  // most recent row. Top-up revenue still counts; it just stops renaming them.
+  const PLAN_ROWS = new Set([
+    "starter",
+    "premium",
+    "intensive",
+    // Retired flows, kept so historic customers still read sensibly.
+    "case_bank_programme",
+    "programme",
+  ]);
+  const planAt = new Map<string, string>();
+
   for (const r of revenue) {
     if (!r.user_id) continue;
     const p = ensure(r.user_id);
     p.revenue += n(r.amount_gross_gbp);
     p.stripeFee += n(r.stripe_fee_gbp);
-    p.planType = r.plan_type;
+    if (PLAN_ROWS.has(r.plan_type)) {
+      const seen = planAt.get(r.user_id);
+      if (!seen || r.created_at > seen) {
+        planAt.set(r.user_id, r.created_at);
+        p.planType = r.plan_type;
+      }
+    } else if (p.planType === null) {
+      // Nothing but top-ups: show what they did buy rather than a blank.
+      p.planType = r.plan_type;
+    }
     if (!p.subscriptionStart || r.created_at < p.subscriptionStart) p.subscriptionStart = r.created_at;
   }
 

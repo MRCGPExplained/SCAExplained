@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CustomerProfile } from "@/lib/economics-data";
 import { createEconLogger } from "@/lib/econ-logger";
+import { PLANS, PLAN_ORDER, planPrice } from "@/lib/plans";
+import { TOPUPS, type TopUpKey } from "@/lib/topups";
 
 const NAVY = "#333333";
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
@@ -29,10 +31,23 @@ const COLUMNS: { key: SortKey; label: string; numeric: boolean }[] = [
   { key: "margin", label: "Margin", numeric: true },
 ];
 
+// Built from lib/plans and lib/topups rather than hand-typed. The previous
+// map held only the three retired checkout types, so every Starter, Premium
+// and Intensive customer rendered as the raw string "plan" and the five packs
+// all rendered as "topup". Generated, it cannot drift from what is sold.
 const PLAN_LABEL: Record<string, string> = {
+  ...Object.fromEntries(
+    PLAN_ORDER.map((k) => [k, `${PLANS[k].name} (${planPrice(PLANS[k])})`])
+  ),
+  ...Object.fromEntries(
+    (Object.keys(TOPUPS) as TopUpKey[]).map((k) => [k, `Top-up: ${TOPUPS[k].label}`])
+  ),
+  // Retired checkout types, kept so historic rows still read sensibly.
   case_bank_programme: "Complete (£295)",
   programme: "90-Day",
   recording_credits: "Credits",
+  plan: "Plan (untiered)",
+  topup: "Top-up",
 };
 
 export default function CustomerTable({ customers, debug }: { customers: CustomerProfile[]; debug: boolean }) {
