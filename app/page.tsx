@@ -102,7 +102,7 @@ export default async function HomePage() {
             </h1>
 
             <div className="flex items-center gap-5 flex-wrap mb-7">
-              {(["Access to 240+ cases", "AI marking in minutes", "Up to 20 GP reviews"] as const).map((item) => (
+              {(["Access to 240+ cases", "AI feedback in minutes", "GP Reviews available on request"] as const).map((item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
                   <SmallCheck /> {item}
                 </span>
