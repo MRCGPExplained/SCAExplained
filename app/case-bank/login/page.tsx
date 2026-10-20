@@ -28,7 +28,7 @@ function LoginForm() {
           <h1 className="font-display font-bold text-[20px] mb-1" style={{ color: NAVY }}>Sign in</h1>
           <p className="text-[13px] mb-6" style={{ color: "rgba(26,27,82,0.5)" }}>
             Don&apos;t have an account?{" "}
-            <Link href="/case-bank/register" className="font-semibold no-underline" style={{ color: NAVY }}>Register</Link>
+            <Link href={`/register?next=${encodeURIComponent(next)}`} className="font-semibold no-underline" style={{ color: NAVY }}>Register</Link>
           </p>
 
           <form action={formAction}>
@@ -56,9 +56,17 @@ function LoginForm() {
           </form>
         </div>
 
+        {/*
+          Was "Get 90-day access: £60" pointing at /programme. No plan costs
+          £60, none runs for 90 days, and /programme redirects to the homepage,
+          so the only buy button a signed-out visitor could see advertised a
+          withdrawn price and then dropped them nowhere. The plans are on the
+          homepage and priced from one table, so this sends them there rather
+          than naming a figure that can go stale again.
+        */}
         <p className="text-center text-[12px] mt-6" style={{ color: "rgba(26,27,82,0.4)" }}>
           No access yet?{" "}
-          <Link href="/programme" className="font-semibold no-underline" style={{ color: NAVY }}>Get 90-day access: £60</Link>
+          <Link href="/#pricing" className="font-semibold no-underline" style={{ color: NAVY }}>See plans and pricing</Link>
         </p>
       </div>
     </div>

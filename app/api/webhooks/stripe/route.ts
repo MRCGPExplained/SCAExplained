@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendConfirmationEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendPurchaseEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -289,20 +289,31 @@ async function confirmPlanPurchase(session: Stripe.Checkout.Session) {
   }
 
   if (userEmail) {
-    const reviews = gpReviews > 0 ? `, ${gpReviews} GP review${gpReviews === 1 ? "" : "s"}` : "";
-    await sendConfirmationEmail({
+    // The purchase template, not the webinar one. See sendPurchaseEmail.
+    await sendPurchaseEmail({
       to: userEmail,
-      customerName: userEmail,
-      eventTitle: `SCA Focus ${planName.charAt(0).toUpperCase()}${planName.slice(1)}`,
-      ticketName: `Access granted: 240+ cases, ${aiGradings} AI gradings${reviews}`,
-      startTime: now.toISOString(),
-      endTime: newExpiry,
-      zoomLink: null,
+      name: userEmail,
+      planName: `${planName.charAt(0).toUpperCase()}${planName.slice(1)}`,
+      aiGradings,
+      gpReviews,
+      expiresAt: newExpiry,
     });
   }
 }
 
-// ── Programme purchase ────────────────────────────────────────────────────────
+// ── Programme purchase (retired: £60 for 90 days) ─────────────────────────────
+//
+// Nothing can create one of these any more. The route that did, POST
+// /api/programme/checkout, is deleted: it was still live and still charging
+// £60 for "90-Day Access" long after the three plans replaced it, and it only
+// survived because no page in the app linked to it.
+//
+// The handler stays because deleting it is the one change that could lose
+// money. A Stripe session created before that deploy stays payable for up to
+// 24 hours, and if one landed here with no branch to catch it the customer
+// would be charged and granted nothing. It is safe to delete this, and the
+// has_programme flag with it, once the dashboard shows no programme revenue
+// for a day.
 
 async function confirmProgrammePurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;

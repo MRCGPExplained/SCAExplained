@@ -346,6 +346,101 @@ export async function sendVideoRequestEmail(args: {
   }
 }
 
+/**
+ * The receipt for a plan purchase.
+ *
+ * Plan purchases used to go out on sendConfirmationEmail, which is the webinar
+ * booking template. A buyer got a subject line reading "You're booked", a body
+ * saying their place was confirmed and that a Zoom link would follow before
+ * the session, a "When" row that ran their four-month expiry through a time
+ * formatter and printed a range from one minute to the same minute, and a
+ * sign-off of "See you there". There was no session and no Zoom call: they had
+ * bought software. This says what they bought and when it runs out.
+ */
+export async function sendPurchaseEmail(args: {
+  to: string;
+  name: string;
+  planName: string;
+  aiGradings: number;
+  gpReviews: number;
+  expiresAt: string;
+}): Promise<boolean> {
+  if (!(await isResendEnabled())) return false;
+  const resend = getResend();
+  if (!resend) return false;
+
+  const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
+
+  // Only what this plan actually carries. Starter has no GP reviews, and a
+  // line reading "0 GP reviews" is worse than no line at all.
+  const items = [
+    "Full case bank access",
+    `${args.aiGradings} AI gradings`,
+    ...(args.gpReviews > 0 ? [`${args.gpReviews} GP review${args.gpReviews === 1 ? "" : "s"}`] : []),
+  ];
+
+  const html = `
+  <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;
+      overflow:hidden;border:1px solid rgba(26,27,82,0.10);">
+      <tr><td style="background:${NAVY};padding:24px 28px;">
+        <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 8px;">
+          You're all set, ${escapeHtml(args.name)}.</p>
+        <p style="font-size:14px;line-height:1.6;color:#3a3b66;margin:0;">
+          Your <strong>${escapeHtml(args.planName)}</strong> plan is active.</p>
+      </td></tr>
+      <tr><td style="padding:16px 28px 0;">
+        <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
+          <tr><td style="padding:14px 16px;">
+            <p style="margin:0;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+              color:#6b6c85;font-weight:700;">What you have</p>
+            <p style="margin:6px 0 0;font-size:14px;color:${NAVY};line-height:1.6;">
+              ${items.map(escapeHtml).join("<br>")}</p>
+            <p style="margin:12px 0 0;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+              color:#6b6c85;font-weight:700;">Access until</p>
+            <p style="margin:4px 0 0;font-size:15px;color:${NAVY};font-weight:600;">
+              ${longDate(args.expiresAt)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:20px 28px;">
+        <a href="${origin}/case-bank"
+           style="display:inline-block;background:${YELLOW};color:#333333;
+           font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;
+           font-size:15px;">Start a station</a>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <p style="font-size:12px;color:#9a9ab0;margin:0;">
+          Any questions, reply to this email or contact us at
+          <a href="mailto:mrcgpexplained@outlook.com" style="color:#9a9ab0;">mrcgpexplained@outlook.com</a>.</p>
+      </td></tr>
+      <tr><td style="background:${NAVY};padding:14px 28px;">
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.5);">
+          For educational purposes only. © 2026 SCA Focus.</p>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: `Your SCA Focus ${args.planName} plan is active`,
+      html,
+    });
+    if (error) { console.error("[email] Resend error:", error); return false; }
+    return true;
+  } catch (err) {
+    console.error("[email] send threw:", err);
+    return false;
+  }
+}
+
 export async function sendAccessExpiryEmail(args: {
   to: string;
   firstName: string;
@@ -377,7 +472,7 @@ export async function sendAccessExpiryEmail(args: {
         </p>
       </td></tr>
       <tr><td style="padding:20px 28px;">
-        <a href="https://www.scafocus.com/register"
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com"}/case-bank/upgrade"
            style="display:inline-block;background:${YELLOW};color:#333333;
            font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;
            font-size:15px;">

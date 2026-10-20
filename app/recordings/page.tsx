@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
 import { TranscribedChoice } from "./TranscribedChoice";
 import { TopUps } from "./TopUps";
+import { TOPUPS, isTopUpKey } from "@/lib/topups";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,16 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
   if (!user) redirect("/login");
 
   const { purchased, topped_up } = await searchParams;
+
+  // Named from the pack that was actually bought. "1" is the shape the old
+  // success_url used; a session created just before that change can still
+  // land here, and it is better to confirm the purchase vaguely than to name
+  // the wrong pack or show nothing at all.
+  const toppedUpMessage = !topped_up
+    ? null
+    : isTopUpKey(topped_up)
+      ? `Top-up successful: ${TOPUPS[topped_up].label.toLowerCase()} have been added to your balance.`
+      : "Top-up successful. Your balance has been updated.";
 
   const admin = getSupabaseAdmin();
   const [recordingsResult, creditsResult, accessResult] = await Promise.all([
@@ -139,9 +150,9 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           </div>
         </div>
 
-        {topped_up === "1" && (
+        {toppedUpMessage && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px] font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#166534", border: "1px solid rgba(34,197,94,0.2)" }}>
-            Top-up successful: 20 GP reviews have been added to your balance.
+            {toppedUpMessage}
           </div>
         )}
 

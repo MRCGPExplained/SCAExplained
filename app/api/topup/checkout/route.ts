@@ -56,7 +56,10 @@ export async function POST(req: Request) {
       user_email: user.email ?? "",
     },
     customer_email: user.email,
-    success_url: `${origin}/recordings?topped_up=1`,
+    // Which pack, not just "a pack". The success page used to be told only
+    // topped_up=1 and had to guess, so it named the GP pack and every one of
+    // the four AI packs came back saying 20 GP reviews had been added.
+    success_url: `${origin}/recordings?topped_up=${t.key}`,
     cancel_url: `${origin}/recordings`,
   });
 
