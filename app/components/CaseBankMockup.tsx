@@ -87,11 +87,13 @@ export function CaseBankMockup() {
             { label: "Data Gathering", active: false },
             { label: "Management", active: false },
             { label: "Example Conversation", active: false },
+            // Real tab, and the band above now advertises what is on it.
+            { label: "Trainer Insight", active: false },
           ].map(({ label, active }) => (
             <div
               key={label}
               style={{
-                padding: "9px 14px",
+                padding: "9px 8px",
                 fontSize: 11,
                 fontWeight: active ? 600 : 400,
                 color: active ? NAVY : "rgba(31,41,55,0.38)",
@@ -165,26 +167,14 @@ export function CaseBankMockup() {
           </div>
 
           {/*
-            The brief runs past the fold on a real station, so the panel ends
-            mid-sentence rather than on a tidy last line. A mockup that fits
-            its content exactly reads as a strip; this one reads as the top
-            of a page, which is what it is.
+            Nothing after Reason for Consultation, because that is where a
+            real Doctor's Brief ends. An "Examiner Focus" block sat here for
+            a while to give the panel some height; no such field exists on a
+            station, and inventing one to fill space is how a screenshot
+            stops being a screenshot. The brief is Patient, Type, Past
+            Medical History, Drug & Allergy History, Recent Notes and Reason
+            for Consultation, and that is all of it.
           */}
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Examiner Focus</div>
-            <div className="flex flex-col gap-1.5">
-              {[
-                "Establishing control with the RCP 3 questions",
-                "Exploring adherence and inhaler technique before stepping up",
-                "Addressing steroid concerns without dismissing them",
-              ].map((item) => (
-                <div key={item} className="flex gap-2.5 items-start">
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
-                  <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Timer sidebar */}
