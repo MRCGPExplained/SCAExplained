@@ -171,7 +171,7 @@ export default async function HomePage() {
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
-              240+ cases, written like the real thing
+              240+ complete stations, not case summaries
             </h2>
             {/*
               No button. It pointed at /case-bank/sample, and so did the
@@ -181,9 +181,13 @@ export default async function HomePage() {
               of them was.
             */}
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              Every station comes with the doctor&apos;s brief, the patient&apos;s story, what to gather,
-              how to manage it, and a worked example of the conversation. Star the ones you want to
-              come back to and keep your own notes against each.
+              Most practice falls down in the same place: your partner is improvising a patient
+              they half-remember, so the consultation never behaves like the real one. Every
+              station here briefs them properly, with the patient&apos;s story, what they volunteer
+              and what they only say if asked, their ideas, concerns and expectations, and the
+              question they put to you. You get the doctor&apos;s brief, what to gather, how to
+              manage it and a worked example of the conversation. Star the ones to come back to
+              and keep your own notes against each.
             </p>
           </div>
           {/*

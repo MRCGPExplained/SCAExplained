@@ -18,10 +18,10 @@ export function CaseBankMockup() {
     >
       {/* Top nav */}
       <div
-        className="flex items-center justify-between px-4 py-2.5 gap-3"
+        className="flex items-center justify-between px-3.5 py-2.5 gap-2 whitespace-nowrap"
         style={{ background: NAVY }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>← Case Bank</span>
           <span style={{ color: "rgba(255,255,255,0.18)" }}>|</span>
           <span
@@ -31,13 +31,13 @@ export function CaseBankMockup() {
               color: "rgba(255,255,255,0.65)",
               fontSize: 11,
               fontWeight: 600,
-              padding: "2px 9px",
+              padding: "2px 8px",
             }}
           >
             Station 14 / 246
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {["Study Group", "Star", "Feedback"].map((label) => (
             <span
               key={label}
@@ -46,7 +46,7 @@ export function CaseBankMockup() {
                 border: "1.5px solid rgba(255,255,255,0.18)",
                 color: "rgba(255,255,255,0.50)",
                 fontSize: 10,
-                padding: "2px 8px",
+                padding: "2px 7px",
               }}
             >
               {label}
