@@ -155,7 +155,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
         {/* Score card */}
         <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
-            Total Score
+            Predicted Score
           </div>
           <div className="flex items-end gap-2 mb-1">
             <span className="font-extrabold leading-none" style={{ fontSize: 44, color: NAVY }}>

@@ -1,11 +1,15 @@
 const YELLOW = "#F6D44B";
 
 export function AwardIcon({ size = 26 }: { size?: number }) {
+  // Grey with a white tick. It sits inside a yellow pill on the hero, and a
+  // yellow medal on a yellow background was two tones of the same colour
+  // doing the work of one shape. Grey separates it from the pill and the
+  // white tick reads against the grey.
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="6" fill={YELLOW} />
-      <path d="M8.5 12.8L6.5 21l5.5-3 5.5 3-2-8.2" fill={YELLOW} />
-      <path d="M9.7 8l1.3 1.5 3.3-3.5" stroke="#333333" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="6" fill="#6B7280" />
+      <path d="M8.5 12.8L6.5 21l5.5-3 5.5 3-2-8.2" fill="#6B7280" />
+      <path d="M9.7 8l1.3 1.5 3.3-3.5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

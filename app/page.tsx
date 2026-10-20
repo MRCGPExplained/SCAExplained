@@ -102,7 +102,7 @@ export default async function HomePage() {
             </h1>
 
             <div className="flex items-center gap-5 flex-wrap mb-7">
-              {(["Access to 240+ cases", "Unlimited AI review", "20 GP reviews"] as const).map((item) => (
+              {(["Access to 240+ cases", "AI marking in minutes", "Up to 20 GP reviews"] as const).map((item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: DARK }}>
                   <SmallCheck /> {item}
                 </span>
@@ -111,11 +111,11 @@ export default async function HomePage() {
 
             <p className="text-[16px] leading-[1.7] mb-7" style={{ color: "rgba(51,51,51,0.65)" }}>
               Passing the SCA isn&apos;t just about knowing more medicine. It&apos;s about demonstrating
-              the consultation skills RCGP examiners assess: ICE, shared decision-making, managing
-              uncertainty and responding to patient emotion. Every consultation is graded by AI within
-              minutes, and your programme includes 20 reviews by an experienced GP: clear,
-              personalised feedback on what you actually did, so you know what to improve before
-              exam day.
+              the consultation skills RCGP examiners assess: exploring and addressing ICE, shared
+              decision-making, managing uncertainty and responding to patient emotion. Record as
+              often as you like, get a consultation marked by AI in minutes, and send the ones that
+              matter to an experienced GP for clear, personalised feedback on what you actually did,
+              so you know what to improve before exam day.
             </p>
 
             <div className="flex items-center gap-3 flex-wrap mb-7">
@@ -125,13 +125,6 @@ export default async function HomePage() {
                 style={{ background: YELLOW, color: DARK }}
               >
                 Register Now →
-              </Link>
-              <Link
-                href="/case-bank/sample"
-                className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-colors"
-                style={{ border: `1.5px solid rgba(51,51,51,0.2)`, color: DARK }}
-              >
-                See Demo Case
               </Link>
             </div>
           </div>
@@ -181,10 +174,11 @@ export default async function HomePage() {
               240+ cases, written like the real thing
             </h2>
             {/*
-              No button. It pointed at /case-bank/sample, which is exactly
-              where the hero's "See Demo Case" already sends people — the
-              same destination offered twice on one screen, the second time
-              with no new reason to take it.
+              No button. It pointed at /case-bank/sample, and so did the
+              hero's "See Demo Case": the same destination offered twice on
+              one screen. Both are gone now and the panel itself is the way
+              in, which is a better invitation to open a case than either
+              of them was.
             */}
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
               Every station comes with the doctor&apos;s brief, the patient&apos;s story, what to gather,
@@ -220,9 +214,16 @@ export default async function HomePage() {
                 }}
               />
             ))}
-            <div className="relative">
+            {/* The panel is the door to a sample case now that the hero's
+                "See Demo Case" button has gone. Showing a case is a better
+                invitation to open one than the words were. */}
+            <Link
+              href="/case-bank/sample"
+              aria-label="Open a sample case"
+              className="relative block no-underline transition-transform duration-200 hover:-translate-y-1"
+            >
               <CaseBankMockup />
-            </div>
+            </Link>
           </div>
         </div>
       </section>

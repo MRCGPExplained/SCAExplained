@@ -328,7 +328,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             {/* Score card */}
             <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
-                Total Score
+                Predicted Score
               </div>
               <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
                 {/* Green at or above the pass mark, orange within striking
