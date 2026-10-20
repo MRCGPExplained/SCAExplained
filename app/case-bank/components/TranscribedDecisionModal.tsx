@@ -114,7 +114,7 @@ export function TranscribedDecisionModal({
         </span>
       </span>
       <span className="block text-[12px] leading-[1.5] mt-1" style={{ color: "rgba(51,51,51,0.6)" }}>
-        {disabled ? "None left on your plan. You can still discard it, or top up from My Reviews." : detail}
+        {disabled ? "None left on your plan." : detail}
       </span>
     </button>
   );
@@ -167,6 +167,22 @@ export function TranscribedDecisionModal({
             false
           )}
         </div>
+
+        {/*
+          A link, not a sentence. This used to read "top up from My Reviews"
+          inside the disabled option, where it could not be a link at all: an
+          anchor nested in a button is invalid, and the button swallows the
+          click anyway. So it named a place and left the reader to find it.
+        */}
+        {(ai === 0 || gp === 0) && (
+          <p className="text-[12px] mt-3" style={{ color: "rgba(51,51,51,0.6)" }}>
+            Out of {ai === 0 && gp === 0 ? "both" : ai === 0 ? "AI gradings" : "GP reviews"}?{" "}
+            <a href="/recordings#topups" className="font-semibold underline" style={{ color: DARK }}>
+              Top up from My Reviews
+            </a>
+            .
+          </p>
+        )}
 
         {error && (
           <p className="text-[12px] text-center mt-3" style={{ color: "#B91C1C" }}>{error}</p>

@@ -1,6 +1,10 @@
 /**
  * Top-ups, for when a plan's allowance runs out before the exam does.
  *
+ * A top-up also carries access to at least a month from the day of purchase,
+ * on the max(existing, now + 1 month) rule, so nobody buys gradings that
+ * expire before they can spend them. Only a live plan can be topped up.
+ *
  * Two rules decide every number here.
  *
  * First, a top-up may never be cheaper per unit than a plan. An AI grading

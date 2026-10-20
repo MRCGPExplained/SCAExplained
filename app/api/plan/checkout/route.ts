@@ -28,6 +28,33 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
+  // No plan on top of a live plan. /case-bank/upgrade already turns away
+  // anyone in date, but the homepage pricing buttons post straight here, so
+  // a customer one month into Intensive could buy Intensive again from the
+  // front page. They would not even get the time: the webhook takes
+  // max(existing expiry, now + 4 months), so £295 buys three extra months
+  // rather than four. Running out of an allowance is what top-ups are for,
+  // and those deliberately leave the expiry alone.
+  const { data: access } = await supabase
+    .from("user_access")
+    .select("has_case_bank, case_bank_expires_at")
+    .eq("user_id", user.id)
+    .single<{ has_case_bank: boolean; case_bank_expires_at: string | null }>();
+
+  if (
+    access?.has_case_bank &&
+    access.case_bank_expires_at &&
+    access.case_bank_expires_at > new Date().toISOString()
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your plan is still running. Plans cannot be changed part way through, but you can top up AI gradings or GP reviews at any time from My Reviews.",
+      },
+      { status: 409 }
+    );
+  }
+
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const reviews = plan.gpReviews > 0 ? `, ${plan.gpReviews} GP review${plan.gpReviews === 1 ? "" : "s"}` : "";
