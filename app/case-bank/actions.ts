@@ -1121,6 +1121,193 @@ export async function submitForReviewAction(recordingId: string): Promise<Action
   return { success: true };
 }
 
+// ── The decision a transcribed take waits on ─────────────────────────────────
+//
+// Transcribing costs 9p and happens to everything. Grading costs 30p and an
+// AI credit; a GP review costs twenty minutes of someone there is no more of.
+// So the pipeline stops at `transcribed` and the candidate chooses: grade it,
+// send it to a GP, or throw it away. Each option is offered at the point they
+// can actually judge whether it is worth spending on, which is after they
+// have seen how the consultation went.
+
+/** Kicks the second half of the pipeline. Fire-and-forget: grading takes
+ *  minutes and the caller is a form submission. */
+async function triggerGradingStage(recordingId: string) {
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  try {
+    const res = await fetch(`${origin}/api/recordings/${recordingId}/process?stage=grade`, {
+      method: "POST",
+      headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
+    });
+    if (!res.ok) console.error("[grading] trigger returned non-OK:", res.status);
+  } catch (e) {
+    console.error("[grading] failed to trigger:", e);
+  }
+}
+
+/** Claims a transcribed recording for grading. The conditional update is the
+ *  lock: two clicks race, one wins, the loser matches no row. */
+async function claimForGrading(
+  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  recordingId: string,
+  extra: Record<string, unknown> = {}
+): Promise<boolean> {
+  const { data } = await admin
+    .from("station_recordings")
+    .update({ status: "grading", ...extra })
+    .eq("id", recordingId)
+    .eq("status", "transcribed")
+    .select("id");
+  return !!data?.length;
+}
+
+type TranscribedRecording = {
+  id: string;
+  doctor_user_id: string;
+  status: string;
+  station_number: number;
+  station_title: string;
+  doctor_display_name: string;
+};
+
+/** Shared front half: who is asking, and is this theirs and ready. */
+async function loadTranscribedForOwner(recordingId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated." as const };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server config error." as const };
+
+  const { data: recording } = await admin
+    .from("station_recordings")
+    .select("id, doctor_user_id, status, station_number, station_title, doctor_display_name")
+    .eq("id", recordingId)
+    .single<TranscribedRecording>();
+
+  if (!recording) return { error: "Recording not found." as const };
+  if (recording.doctor_user_id !== user.id) return { error: "Not authorised." as const };
+  if (recording.status !== "transcribed") {
+    return { error: "This recording is not waiting for a decision." as const };
+  }
+  return { user, admin, recording };
+}
+
+/** Grade it. Spends one AI credit, which is counted on success by the
+ *  pipeline rather than here, so a run that fails costs nothing. */
+export async function requestAiGradingAction(recordingId: string): Promise<ActionResult> {
+  const loaded = await loadTranscribedForOwner(recordingId);
+  if ("error" in loaded) return { error: loaded.error };
+  const { user, admin } = loaded;
+
+  if (!(await checkRecordingBypass(user.email))) {
+    const { data: access } = await admin
+      .from("user_access")
+      .select("ai_allowance, ai_uses_count")
+      .eq("user_id", user.id)
+      .single<{ ai_allowance: number; ai_uses_count: number }>();
+
+    const remaining = (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0);
+    if (remaining < 1) return { error: "No AI credits remaining." };
+  }
+
+  if (!(await claimForGrading(admin, recordingId))) {
+    return { error: "This recording is already being graded." };
+  }
+  await triggerGradingStage(recordingId);
+  return { success: true };
+}
+
+/** Send it to a GP. One decision, one review credit: the AI pass runs on the
+ *  way because the examiner screen pre-fills every grade and comment from it,
+ *  so a GP handed an ungraded transcript marks from a blank page. */
+export async function requestGpReviewAction(recordingId: string): Promise<ActionResult> {
+  const loaded = await loadTranscribedForOwner(recordingId);
+  if ("error" in loaded) return { error: loaded.error };
+  const { user, admin, recording } = loaded;
+
+  const bypassed = await checkRecordingBypass(user.email);
+  if (!bypassed) {
+    const { data: creditsData } = await admin
+      .from("gp_review_credits")
+      .select("balance")
+      .eq("user_id", user.id)
+      .single<{ balance: number }>();
+
+    if (!creditsData || creditsData.balance < 1) {
+      return { error: "No GP review credits remaining." };
+    }
+
+    const { error: deductErr } = await admin
+      .from("gp_review_credits")
+      .update({ balance: creditsData.balance - 1, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("balance", creditsData.balance);
+
+    if (deductErr) return { error: "Could not deduct credit. Please try again." };
+  }
+
+  const claimed = await claimForGrading(admin, recordingId, {
+    gp_requested_at: new Date().toISOString(),
+    submitted_for_review_at: new Date().toISOString(),
+  });
+  if (!claimed) {
+    // Hand the credit back: the take moved on without us.
+    if (!bypassed) await admin.rpc("add_gp_review_credits", { p_user_id: user.id, p_credits: 1 });
+    return { error: "This recording is already being graded." };
+  }
+
+  await triggerGradingStage(recordingId);
+
+  const { data: examiners } = await admin.from("examiners").select("name, email");
+  await Promise.all(
+    (examiners ?? []).map((ex: { name: string; email: string }) =>
+      sendExaminerNotificationEmail({
+        to: ex.email,
+        examinerName: ex.name,
+        candidateName: recording.doctor_display_name,
+        stationNumber: recording.station_number,
+        stationTitle: recording.station_title,
+      })
+    )
+  );
+
+  return { success: true };
+}
+
+/** Throw it away. Nothing was charged, so nothing is refunded; the audio goes
+ *  and the row stays, so the study group history and the cost ledger still
+ *  line up with each other. */
+export async function discardRecordingAction(recordingId: string): Promise<ActionResult> {
+  const loaded = await loadTranscribedForOwner(recordingId);
+  if ("error" in loaded) return { error: loaded.error };
+  const { admin } = loaded;
+
+  const { data: paths } = await admin
+    .from("station_recordings")
+    .select("doctor_audio_path, patient_audio_path")
+    .eq("id", recordingId)
+    .single<{ doctor_audio_path: string | null; patient_audio_path: string | null }>();
+
+  const toRemove = [paths?.doctor_audio_path, paths?.patient_audio_path].filter(Boolean) as string[];
+  if (toRemove.length) {
+    await admin.storage.from("consultation-recordings").remove(toRemove);
+  }
+
+  const { error } = await admin
+    .from("station_recordings")
+    .update({
+      status: "discarded",
+      discarded_at: new Date().toISOString(),
+      audio_deleted_at: new Date().toISOString(),
+    })
+    .eq("id", recordingId)
+    .eq("status", "transcribed");
+
+  if (error) return { error: "Could not discard this recording." };
+  return { success: true };
+}
+
 export async function submitAiReportFeedbackAction(
   recordingId: string,
   agrees: boolean,

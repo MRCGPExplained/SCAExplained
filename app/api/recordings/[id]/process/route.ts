@@ -494,6 +494,22 @@ export async function POST(req: Request, { params }: RouteParams) {
   const url = new URL(req.url);
   const isSpike = url.searchParams.get("spike") === "1";
 
+  /*
+    The pipeline is two halves with a decision between them.
+
+    Transcribing is cheap (9p) and happens to every take. Grading is 30p,
+    which is most of the bill, and now costs the candidate an AI credit — so
+    it cannot happen just because a recording finished. `stage=transcribe`
+    stops at the transcript and leaves the recording in `transcribed`;
+    `stage=grade` picks it up from there once someone has decided to spend.
+
+    The seam already existed: the transcript is checkpointed the moment it
+    exists so a failed grading run can retry without re-billing Deepgram,
+    and the top of this route already reuses a stored transcript when it
+    finds one. All that is new is stopping in between.
+  */
+  const stage = url.searchParams.get("stage") === "grade" ? "grade" : "transcribe";
+
   // Validate internal caller
   const internalKey = req.headers.get("x-internal-key") ?? "";
   const expectedKey = process.env.INTERNAL_API_KEY ?? "";
@@ -507,7 +523,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   // Fetch recording + station data
   const { data: recording } = await admin
     .from("station_recordings")
-    .select("id, station_number, doctor_user_id, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw")
+    .select("id, station_number, doctor_user_id, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw, gp_requested_at")
     .eq("id", recordingId)
     .single<{
       id: string;
@@ -518,11 +534,24 @@ export async function POST(req: Request, { params }: RouteParams) {
       status: string;
       transcript_formatted: string | null;
       transcript_raw: unknown;
+      gp_requested_at: string | null;
     }>();
 
   if (!recording) return NextResponse.json({ error: "Recording not found" }, { status: 404 });
-  if (recording.status !== "processing") {
-    return NextResponse.json({ error: "Recording not in processing state" }, { status: 409 });
+
+  // Each stage has one state it may start from, so a double-fire cannot
+  // transcribe twice or, more expensively, grade twice. The caller claims
+  // `transcribed` -> `grading` with a conditional update before it gets
+  // here, so a second click finds nothing to claim and never reaches this.
+  const expectedStatus = stage === "grade" ? "grading" : "processing";
+  if (recording.status !== expectedStatus) {
+    return NextResponse.json(
+      { error: `Recording is ${recording.status}, expected ${expectedStatus} for stage=${stage}` },
+      { status: 409 }
+    );
+  }
+  if (stage === "grade" && !recording.transcript_formatted) {
+    return NextResponse.json({ error: "Nothing to grade: no transcript" }, { status: 409 });
   }
 
   // Fetch runtime settings once
@@ -669,9 +698,27 @@ export async function POST(req: Request, { params }: RouteParams) {
       // heavily mumbled audio. Grading from that would force Claude to
       // invent plausible-sounding scores and feedback with no real basis —
       // refuse instead, and let the fallback below leave it ungraded.
+      //
+      // Checked before the stage gate so a silent take is caught while it is
+      // still free. It used to reach the candidate as a graded recording with
+      // no scores, which they could then spend a GP review on.
       const wordCount = transcriptFormatted.trim().split(/\s+/).filter(Boolean).length;
       if (wordCount < 15) {
         throw new Error(`Transcript too short to grade (${wordCount} words). The audio may be silent, unintelligible, or it failed to capture.`);
+      }
+
+      /*
+        End of the free half. The transcript exists, it has words in it, and
+        nobody has been charged anything. What happens next is the
+        candidate's decision, so stop here and wait to be asked.
+      */
+      if (stage === "transcribe") {
+        await admin
+          .from("station_recordings")
+          .update({ status: "transcribed", transcribed_at: new Date().toISOString() })
+          .eq("id", recordingId);
+        console.log("[recordings/process] transcribed, awaiting a decision", recordingId);
+        return;
       }
 
       // Build station context for the grading prompt
@@ -954,7 +1001,10 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_comment_relating_to_others: withoutEmDashes(comments.relating_to_others),
         ai_focus_for_next_time: withoutEmDashes(comments.focus),
         ai_graded_at: new Date().toISOString(),
-        status: "ai_graded",
+        // Straight into the examiner queue when the candidate chose "send to
+        // a GP", since that decision already spent the review credit and the
+        // AI pass was only ever the draft the examiner verifies.
+        status: recording.gp_requested_at ? "pending_examiner" : "ai_graded",
         // Null when skill grading is off, which is what keeps the report's
         // Skills Assessment section hidden for those recordings.
         skills_assessment: adjusted

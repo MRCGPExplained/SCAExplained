@@ -76,3 +76,16 @@ grant execute on function public.add_ai_allowance(uuid, integer) to service_role
 -- Not renamed on purpose: webinar_codes.recording_credits is a column meaning
 -- "how many GP review credits this code grants", which is a different thing
 -- from the table and is referenced by the redeem flow and the admin screens.
+
+-- ── Applied 2026-10-20, second part: the state between the two halves ───────
+alter table public.station_recordings
+  add column if not exists transcribed_at  timestamptz,
+  add column if not exists gp_requested_at timestamptz,
+  add column if not exists discarded_at    timestamptz;
+
+comment on column public.station_recordings.transcribed_at is
+  'When transcription finished and the recording entered status=transcribed, awaiting the candidate''s decision to grade, send to a GP, or discard.';
+comment on column public.station_recordings.gp_requested_at is
+  'Set when the candidate chose "send to a GP" from the transcribed state. The grading run reads it to finish in pending_examiner rather than ai_graded.';
+comment on column public.station_recordings.discarded_at is
+  'Set when the candidate discarded a transcribed take rather than spending a credit on it. Audio is deleted; the row is kept.';
