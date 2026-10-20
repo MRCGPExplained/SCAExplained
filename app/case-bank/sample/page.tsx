@@ -146,7 +146,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
     {
       question: "She was given prednisolone at a walk-in three weeks ago. Does that change the management, or is it just background?",
       answer:
-        "It is the most important thing in the history. An exacerbation needing oral steroids moves her into the high-risk group, and it is evidence that her current regime has already failed once. Name it out loud when you justify stepping up and you have made the case for you.",
+        "It is the most important thing in the history. An exacerbation needing oral steroids proves her asthma is uncontrolled, and it is evidence that her current regime has already failed once.",
     },
     {
       question: "Do I need to sort out inhaler technique before stepping up, or can I do both?",
@@ -156,12 +156,12 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
     {
       question: "She works from home. Can I skip the occupational history?",
       answer:
-        "No, and working from home is not the same as having no exposures. Ask what the room is like, whether there are pets or damp, and whether symptoms ease at weekends or on holiday. It is the most commonly dropped data gathering mark on a station like this.",
+        "No. Working from home is not the same as having no exposures. Ask what the room is like, whether there are pets or damp, and whether symptoms ease at weekends or on holiday.",
     },
     {
       question: "How much time should I spend on the steroid worry when there is a lot of clinical ground to cover?",
       answer:
-        "Enough that she leaves believing you. It is not a tangent: it is the reason she has been under-using her preventer, so it is a clinical management issue as much as a relating to others one. Address it before you prescribe, not after, or you are asking her to accept a decision she has already decided to be anxious about.",
+        "Enough to actually resolve it. Addressing ideas, concerns and expectations is one of the highest-yield things you can do in twelve minutes, and this is the concern driving her behaviour. You want her to buy into the plan, and the surest way to get that buy-in is to answer what she is worried about before you ask her to agree to anything.",
     },
   ];
 
