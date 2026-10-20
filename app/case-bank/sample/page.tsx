@@ -118,15 +118,19 @@ function BriefTab() {
 }
 
 /**
- * The trainer insight, as it will actually appear on a station: a recording,
- * a short note on what it covers, and a transcript that unlocks with it.
+ * The Trainer Insight tab, built to match the real one in
+ * StationPageClient rather than invented: a recording at the top, then
+ * "Common Questions" from the station's trainer_qa, which is an array of
+ * { question, answer } and is populated on all 246 published stations.
  *
- * The audio is deliberately inert. There is no <audio> element and no file
- * behind it, because a sample that played the whole thing leaves nothing to
- * sign up for. It is a button rather than a decorative div, so it takes
- * focus and announces itself, and pressing it opens the same account dialog
- * as the other locked controls here. A play button that silently does
- * nothing is worse than one that says why.
+ * The first version of this tab had chapter markers and a transcript note.
+ * Neither exists. They were a plausible-looking guess at a feature that was
+ * already built, and a sample page that advertises things the product does
+ * not do is worse than one that shows less.
+ *
+ * The audio stays locked and inert: no <audio> element, nothing to fetch. It
+ * is a button so it takes focus and announces itself, and pressing it opens
+ * the account dialog rather than doing nothing.
  */
 function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
   // Fixed heights, not generated: this is a drawing of a waveform and it
@@ -136,20 +140,37 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
     25, 15, 10, 14, 21, 28, 20, 12, 8, 13, 19, 26, 33, 27, 18, 12, 17, 24, 31, 22,
   ];
 
-  const chapters = [
-    { at: "0:00", label: "What this station is really testing" },
-    { at: "1:12", label: "Reading the prescription data before you start" },
-    { at: "2:05", label: "Handling the steroid concern" },
-    { at: "3:20", label: "Choosing and explaining the step up" },
+  // Written for this station, in the shape and voice of the real trainer_qa
+  // rows: the question a trainee actually asks, answered straight.
+  const questions = [
+    {
+      question: "She was given prednisolone at a walk-in three weeks ago. Does that change the management, or is it just background?",
+      answer:
+        "It is the most important thing in the history. An exacerbation needing oral steroids moves her into the high-risk group, and it is evidence that her current regime has already failed once. Name it out loud when you justify stepping up and you have made the case for you.",
+    },
+    {
+      question: "Do I need to sort out inhaler technique before stepping up, or can I do both?",
+      answer:
+        "Both, but in that order, and say so. Stepping up for someone taking half her prescribed dose through poor technique treats a problem she does not have. Checking adherence and technique first, then stepping up, is the sequence the marking notes are looking for.",
+    },
+    {
+      question: "She works from home. Can I skip the occupational history?",
+      answer:
+        "No, and working from home is not the same as having no exposures. Ask what the room is like, whether there are pets or damp, and whether symptoms ease at weekends or on holiday. It is the most commonly dropped data gathering mark on a station like this.",
+    },
+    {
+      question: "How much time should I spend on the steroid worry when there is a lot of clinical ground to cover?",
+      answer:
+        "Enough that she leaves believing you. It is not a tangent: it is the reason she has been under-using her preventer, so it is a clinical management issue as much as a relating to others one. Address it before you prescribe, not after, or you are asking her to accept a decision she has already decided to be anxious about.",
+    },
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div>
         <Label>Trainer Insight</Label>
         <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
-          A recorded walk-through of this station from one of the GPs who wrote it, covering
-          how to approach it and where candidates most often drop marks.
+          A recorded walk-through of this station from one of the GPs who wrote it.
         </p>
       </div>
 
@@ -174,7 +195,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
           <span className="flex-1 min-w-0">
             <span className="flex items-center gap-2 mb-2">
               <span className="text-[14px] font-bold truncate" style={{ color: NAVY }}>
-                Station 14: Asthma review
+                Trainer insight
               </span>
               <span
                 className="shrink-0 flex items-center gap-1 rounded text-[9px] font-bold uppercase tracking-[0.06em]"
@@ -197,42 +218,29 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
                 />
               ))}
             </span>
-
-            <span className="flex items-center justify-between mt-1.5">
-              <span className="text-[11px] tabular-nums" style={{ color: "rgba(26,27,82,0.4)" }}>0:00</span>
-              <span className="text-[11px] tabular-nums" style={{ color: "rgba(26,27,82,0.4)" }}>4:18</span>
-            </span>
           </span>
         </span>
       </button>
 
-      <div>
-        <Label>In this recording</Label>
-        <div className="flex flex-col">
-          {chapters.map(({ at, label }, i) => (
-            <button
-              key={at}
-              type="button"
-              onClick={onLocked}
-              className="flex items-center gap-3 py-2.5 text-left w-full"
-              style={{
-                borderTop: i === 0 ? "none" : "1px solid rgba(31,41,55,0.07)",
-                background: "transparent",
-                cursor: "pointer",
-              }}
+      <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
+        <Label>Common Questions</Label>
+        <div className="flex flex-col gap-4">
+          {questions.map((qa) => (
+            <div
+              key={qa.question}
+              className="rounded-lg p-4"
+              style={{ background: LIGHT_BG, border: "1px solid rgba(26,27,82,0.08)" }}
             >
-              <span className="text-[12px] tabular-nums shrink-0" style={{ color: "rgba(26,27,82,0.4)", minWidth: 34 }}>
-                {at}
-              </span>
-              <span className="text-[14px]" style={{ color: "rgba(26,27,82,0.75)" }}>{label}</span>
-            </button>
+              <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>
+                {qa.question}
+              </p>
+              <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.8)" }}>
+                {qa.answer}
+              </p>
+            </div>
           ))}
         </div>
       </div>
-
-      <p className="text-[13px]" style={{ color: "rgba(26,27,82,0.45)" }}>
-        A full transcript is available alongside the audio.
-      </p>
     </div>
   );
 }
