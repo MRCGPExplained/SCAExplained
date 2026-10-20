@@ -10,7 +10,7 @@ const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "trainer" | "takeaways";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "trainer";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief",       label: "Doctor's Brief" },
@@ -19,7 +19,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "management",  label: "Management" },
   { key: "explanation", label: "Example Conversation" },
   { key: "trainer",     label: "Trainer Insight" },
-  { key: "takeaways",   label: "Key Takeaways" },
 ];
 
 // ── Shared "needs account" modal ──────────────────────────────────────────────
@@ -90,7 +89,7 @@ function BriefTab() {
         </div>
         <div>
           <Label>Type</Label>
-          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.75)" }}>Face to face</div>
+          <div className="text-[16px]" style={{ color: "rgba(26,27,82,0.75)" }}>Telephone Consultation</div>
         </div>
       </div>
       <div>
@@ -379,15 +378,6 @@ If you ever have an acute episode, use up to 10 puffs of your reliever one at a 
 
 I'd like to see you again in four to six weeks to see how you're getting on with the new inhaler. Do you have any questions?`;
 
-  const takeaways = [
-    "The RCP 3 questions are your fast screen for uncontrolled asthma: night symptoms, activity limitation, and daytime symptoms in the past week. Two or more positives mean the patient is uncontrolled.",
-    "Five salbutamol inhalers in three months is a serious red flag. More than 3 canisters per year is associated with significantly increased risk of death from asthma. Name this when discussing management.",
-    "Always check adherence and inhaler technique before stepping up treatment. A patient taking their ICS once daily instead of twice is receiving half the prescribed dose. Technique faults can account for most apparent treatment failure.",
-    "Steroid concerns are common and are a known driver of non-adherence. The distinction between inhaled and systemic steroids must be explained clearly. This directly affects both Clinical Management and Relating to Others marks.",
-    "The step-up from BTS/SIGN Step 2 to Step 3 adds a LABA to the ICS. Fostair (beclometasone/formoterol) as a MART inhaler is a strong choice: it replaces both inhalers, simplifies adherence, and reduces exacerbation risk.",
-    "A written personalised asthma action plan is a BTS/SIGN Grade A recommendation and one of the most commonly missed management points in the SCA. Name it explicitly and describe the zones.",
-    "Always ask about occupational triggers in adult asthma. It accounts for 15% of cases and is easily missed. A simple question about whether symptoms improve on days off or holidays is enough.",
-  ];
 
   function NavBtn({ children, icon, message }: { children: React.ReactNode; icon: React.ReactNode; message: string }) {
     return (
@@ -504,7 +494,6 @@ I'd like to see you again in four to six weeks to see how you're getting on with
                 }
               />
             )}
-            {activeTab === "takeaways"   && <BulletList items={takeaways} />}
           </div>
 
           {/* Right column: timer (same as real case bank) */}

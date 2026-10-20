@@ -121,7 +121,7 @@ export function CaseBankMockup() {
             </div>
             <div>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 3 }}>Type</div>
-              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.70)" }}>Face to face</div>
+              <div style={{ fontSize: 11, color: "rgba(26,27,82,0.70)" }}>Telephone Consultation</div>
             </div>
           </div>
 
@@ -129,7 +129,7 @@ export function CaseBankMockup() {
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(26,27,82,0.45)", marginBottom: 6 }}>Past Medical History</div>
             <div className="flex flex-col gap-1.5">
-              {["Asthma, diagnosed age 8", "PEFR 420 L/min at last review"].map((item) => (
+              {["Asthma, diagnosed age 8"].map((item) => (
                 <div key={item} className="flex gap-2.5 items-start">
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(31,41,55,0.22)", flexShrink: 0, marginTop: 4 }} />
                   <span style={{ fontSize: 11.5, color: "rgba(26,27,82,0.75)", lineHeight: 1.55 }}>{item}</span>
