@@ -159,19 +159,22 @@ export default async function HomePage() {
 
       {/*
         CASE BANK, and the first band after the hero. The cases are the
-        thing people came to see — the four-step explanation of what
-        happens to a recording only matters once you believe there is
-        something worth recording against, so it follows rather than leads.
+        thing people came to see: the four-step explanation of what happens
+        to a recording only matters once you believe there is something
+        worth recording against, so it follows rather than leads.
 
-        No eyebrow. "Case bank" above a heading that already says "cases"
-        is the same noun twice in two lines. The eyebrows elsewhere survive
-        that test, because those headings never name the feature.
+        Still no eyebrow, though the reason has changed. It used to be that
+        "Case bank" sat above a heading that already said "cases". The
+        heading now sells the outcome rather than naming the feature, so
+        the repetition is gone, but the panel beside it is unmistakably a
+        case bank and a label pointing that out would be telling the reader
+        what they can already see.
       */}
       <section className="px-10 py-16 max-md:px-6 flex items-center min-h-[520px]">
         <div className="w-full max-w-[1150px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
-              240+ realistic SCA stations
+              Build real exam confidence
             </h2>
             {/*
               No button. It pointed at /case-bank/sample, and so did the
@@ -181,11 +184,12 @@ export default async function HomePage() {
               of them was.
             */}
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              Every station runs under exam conditions: twelve minutes, a patient briefed well
-              enough to behave like a real one, and feedback marked against the same three
-              domains the examiners score you on. The point is volume under those conditions.
-              By the time you sit it, the format is familiar and you already know what a
-              passing consultation feels like.
+              Every plan includes 240+ realistic SCA stations, each built to mimic the exam:
+              a genuine patient dilemma to work through in twelve minutes. After each one you
+              get feedback marked against the same three domains the examiners score you on,
+              a predicted score, and specific pointers on what to do differently. Your
+              consultation skills sharpen with every station, and the exam itself stops being
+              an unknown.
             </p>
           </div>
           {/*
