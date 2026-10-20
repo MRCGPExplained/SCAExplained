@@ -32,6 +32,23 @@ function SmallCheck() {
   );
 }
 
+/**
+ * The hero's tick in grey, for the case bank band.
+ *
+ * Same shape so the two strips read as the same device, different weight so
+ * the second one does not compete with the first. The hero's yellow is the
+ * loudest thing above the fold and repeating it a screen later would make
+ * the page look like it starts twice.
+ */
+function GreyCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="rgba(51,51,51,0.14)" />
+      <path d="M7.5 12.5l3 3 6-6.5" stroke="rgba(51,51,51,0.62)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 
 type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
@@ -182,8 +199,27 @@ export default async function HomePage() {
         <div className="w-full max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="font-display font-extrabold text-[32px] leading-[1.2] mb-4" style={{ color: DARK }}>
-              Build real exam confidence
+              240+ Realistic SCA Cases
             </h2>
+
+            {/*
+              The hero's strip in grey, and deliberately not the hero's three
+              items. Repeating "Access to 240+ cases / AI feedback in minutes"
+              a screen below where it already appears would be the same
+              checklist twice; these name what is inside a case, which is what
+              this band is about and what the paragraph goes on to describe.
+            */}
+            <div className="flex items-center gap-5 flex-wrap mb-5">
+              {([
+                "Doctor's brief and patient's story",
+                "Reading material on every case",
+                "Trainer insight and worked example",
+              ] as const).map((item) => (
+                <span key={item} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.72)" }}>
+                  <GreyCheck /> {item}
+                </span>
+              ))}
+            </div>
             {/*
               No button. It pointed at /case-bank/sample, and so did the
               hero's "See Demo Case": the same destination offered twice on
@@ -192,12 +228,12 @@ export default async function HomePage() {
               of them was.
             */}
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              Every plan includes 240+ realistic SCA stations, each built to mimic the exam:
-              a genuine patient dilemma to work through in twelve minutes. After each one you
-              get feedback marked against the same three domains the examiners score you on,
-              a predicted score, and specific pointers on what to do differently. Your
-              consultation skills sharpen with every station, and the exam itself stops being
-              an unknown.
+              Every plan includes 240+ realistic SCA cases, designed to mimic the exam. Each one
+              is a genuine patient dilemma to work through in twelve minutes, and afterwards you
+              get a predicted score and feedback with specific pointers on how to improve. Each
+              case also carries the reading behind it: how to take the history, how to manage the
+              problem, a worked example of the conversation, and a trainer insight from the GP who
+              wrote it. It is built to give you real exam confidence and a better score on the day.
             </p>
           </div>
           {/*
