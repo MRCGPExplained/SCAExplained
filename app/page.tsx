@@ -209,14 +209,21 @@ export default async function HomePage() {
               checklist twice; these name what is inside a case, which is what
               this band is about and what the paragraph goes on to describe.
             */}
-            <div className="flex items-center gap-5 flex-wrap mb-5">
+            {/*
+              Stacked, not the hero's single row. The hero's three items are
+              three or four words each and fit on one line; these are
+              sentences, and in a row they broke two-then-one at desktop,
+              which reads as a wrap gone wrong rather than as a list.
+            */}
+            <div className="flex flex-col gap-2 mb-5">
               {([
-                "Doctor's brief and patient's story",
-                "Reading material on every case",
-                "Trainer insight and worked example",
+                "Realistic SCA cases",
+                "Data gathering and clinical management tips on every case",
+                "Trainer insight: commonly asked questions and misconceptions clarified",
               ] as const).map((item) => (
-                <span key={item} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.72)" }}>
-                  <GreyCheck /> {item}
+                <span key={item} className="flex items-start gap-1.5 text-[13px] font-semibold" style={{ color: "rgba(51,51,51,0.72)" }}>
+                  <span className="shrink-0 mt-[2px]"><GreyCheck /></span>
+                  <span>{item}</span>
                 </span>
               ))}
             </div>
