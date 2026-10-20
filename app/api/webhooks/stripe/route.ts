@@ -5,6 +5,15 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * The AI gradings granted by the £295 programme. Named here because the
+ * webhook is the only place a purchase turns into an allowance, and a bare
+ * 400 in the middle of a grant is the kind of number nobody can later tell
+ * is a tier or a typo. The tier table lives with the pricing page; this is
+ * the one it pays for.
+ */
+const INTENSIVE_AI_ALLOWANCE = 400;
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -278,6 +287,13 @@ async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
 
   // 20 GP reviews, on top of any credits already held
   await addRecordingCredits(supabase, userId, 20);
+
+  // And the AI gradings. Without this a purchase grants access and reviews
+  // but leaves ai_allowance at its column default of zero, so the buyer
+  // cannot grade a single consultation: the pipeline stops at `transcribed`
+  // and every option that costs an AI credit is refused. Added rather than
+  // set, so renewing tops up instead of discarding what is left.
+  await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: INTENSIVE_AI_ALLOWANCE });
 
   if (userEmail) {
     await sendConfirmationEmail({

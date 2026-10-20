@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useStudyRoom, type ReviewStage } from "./study-room/context";
+import { TranscribedDecisionModal } from "./TranscribedDecisionModal";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -166,6 +167,7 @@ export function StudyRoomPanel() {
     reviewStage,
     reviewRecordingId,
     dismissReviewStage,
+    myRecordingRole,
     clearRecordingError,
     showStartWarning,
     confirmStart,
@@ -580,6 +582,23 @@ export function StudyRoomPanel() {
       </div>
 
     </div>
+
+    {/*
+      The decision a finished consultation waits on, asked where the
+      consultation happened rather than on a page they have to find. Only
+      the doctor is asked: they own the recording and the credits, and the
+      server refuses anyone else. The partner sees the stage chip.
+
+      Dismissing it is not losing it. The take sits in My Reviews with the
+      same three choices for as long as they like, and grading still works
+      later because the transcript outlives the audio.
+    */}
+    {reviewStage === "decide" && reviewRecordingId && myRecordingRole === "doctor" && (
+      <TranscribedDecisionModal
+        recordingId={reviewRecordingId}
+        onClose={dismissReviewStage}
+      />
+    )}
 
     {showStartWarning && (
       <div
