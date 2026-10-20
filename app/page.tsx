@@ -217,7 +217,7 @@ export default async function HomePage() {
             */}
             <div className="flex flex-col gap-2 mb-5">
               {([
-                "Realistic SCA cases",
+                "Cases written and reviewed by practising GPs",
                 "Data gathering and clinical management tips on every case",
                 "Trainer insight: commonly asked questions and misconceptions clarified",
               ] as const).map((item) => (
