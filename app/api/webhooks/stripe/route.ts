@@ -75,12 +75,14 @@ export async function POST(req: Request) {
         await confirmRecordingCreditsPurchase(session);
       } else if (type === "case_bank_programme") {
         await confirmCaseBankPurchase(session);
+      } else if (type === "plan") {
+        await confirmPlanPurchase(session);
       }
       // Record actual revenue + Stripe fee for every recognised purchase, for
       // the economics dashboard. Best-effort — it swallows its own errors and
       // so can never release the claim below or trigger a retry that would
       // grant the purchase a second time.
-      if (type === "programme" || type === "recording_credits" || type === "case_bank_programme") {
+      if (type === "programme" || type === "recording_credits" || type === "case_bank_programme" || type === "plan") {
         await recordRevenueEvent(stripe, session, type);
       }
     }
@@ -187,6 +189,82 @@ async function addRecordingCredits(
       balance: (existing?.balance ?? 0) + credits,
       total_purchased: (existing?.total_purchased ?? 0) + credits,
       updated_at: new Date().toISOString(),
+    });
+  }
+}
+
+// ── Plan purchase (Starter / Premium / Intensive) ─────────────────────────────
+
+/**
+ * Grants exactly what the checkout session said it was selling.
+ *
+ * The allowances come out of the session metadata rather than being looked up
+ * from lib/plans here. The two are the same today, but a price or allowance
+ * edited between someone paying and this webhook landing would otherwise
+ * grant them something other than what they bought.
+ */
+async function confirmPlanPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.user_id;
+  const userEmail = session.metadata?.user_email ?? "";
+  const planName = session.metadata?.plan ?? "plan";
+  const aiGradings = parseInt(session.metadata?.ai_gradings ?? "0", 10);
+  const gpReviews = parseInt(session.metadata?.gp_reviews ?? "0", 10);
+  const months = parseInt(session.metadata?.months ?? "4", 10);
+
+  if (!userId) {
+    console.error("[webhook] plan checkout without user_id");
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setMonth(expiresAt.getMonth() + months);
+
+  // Buying again while still in date extends rather than truncates.
+  const { data: existing } = await supabase
+    .from("user_access")
+    .select("case_bank_expires_at")
+    .eq("user_id", userId)
+    .single<{ case_bank_expires_at: string | null }>();
+
+  const newExpiry =
+    existing?.case_bank_expires_at && existing.case_bank_expires_at > expiresAt.toISOString()
+      ? existing.case_bank_expires_at
+      : expiresAt.toISOString();
+
+  const { error } = await supabase.from("user_access").upsert({
+    user_id: userId,
+    has_case_bank: true,
+    case_bank_expires_at: newExpiry,
+  });
+
+  if (error) {
+    console.error("[webhook] failed to write plan access:", error.message);
+    return;
+  }
+
+  // Both meters are added to, never assigned, so a second purchase tops up
+  // instead of throwing away whatever was left of the first.
+  if (aiGradings > 0) {
+    await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: aiGradings });
+  }
+  if (gpReviews > 0) {
+    await addRecordingCredits(supabase, userId, gpReviews);
+  }
+
+  if (userEmail) {
+    const reviews = gpReviews > 0 ? `, ${gpReviews} GP review${gpReviews === 1 ? "" : "s"}` : "";
+    await sendConfirmationEmail({
+      to: userEmail,
+      customerName: userEmail,
+      eventTitle: `SCA Focus ${planName.charAt(0).toUpperCase()}${planName.slice(1)}`,
+      ticketName: `Access granted: 240+ cases, ${aiGradings} AI gradings${reviews}`,
+      startTime: now.toISOString(),
+      endTime: newExpiry,
+      zoomLink: null,
     });
   }
 }
