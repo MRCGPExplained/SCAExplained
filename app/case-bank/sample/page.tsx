@@ -193,19 +193,17 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
           </span>
 
           <span className="flex-1 min-w-0">
+            {/*
+              No "Locked" chip. Pressing the player explains itself, and a
+              badge saying so in advance only draws attention to the wall.
+              The aria-label on the button carries the state instead, which
+              matters more now than it did: with the chip gone it is the only
+              thing that tells a screen reader user what this does before
+              they activate it.
+            */}
             <span className="flex items-center gap-2 mb-2">
               <span className="text-[14px] font-bold truncate" style={{ color: NAVY }}>
                 Trainer insight
-              </span>
-              <span
-                className="shrink-0 flex items-center gap-1 rounded text-[9px] font-bold uppercase tracking-[0.06em]"
-                style={{ background: "rgba(31,41,55,0.07)", color: "rgba(26,27,82,0.45)", padding: "2px 6px" }}
-              >
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2.5" />
-                  <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-                Locked
               </span>
             </span>
 
