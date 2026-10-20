@@ -146,7 +146,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
     {
       question: "She was given prednisolone at a walk-in three weeks ago. Does that change the management, or is it just background?",
       answer:
-        "It is the most important thing in the history. An exacerbation needing oral steroids proves her asthma is uncontrolled, and it is evidence that her current regime has already failed once.",
+        "It is the most important thing in the history. Needing oral steroids at all proves her asthma is uncontrolled, and it is evidence that her current regime has already failed once.",
     },
     {
       question: "Do I need to sort out inhaler technique before stepping up, or can I do both?",
