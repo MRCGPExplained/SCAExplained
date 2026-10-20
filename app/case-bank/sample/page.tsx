@@ -10,7 +10,7 @@ const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
 const LIGHT_BG = "#F3F2FB";
 
-type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "takeaways";
+type TabKey = "brief" | "story" | "data" | "management" | "explanation" | "trainer" | "takeaways";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "brief",       label: "Doctor's Brief" },
@@ -18,6 +18,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "data",        label: "Data Gathering" },
   { key: "management",  label: "Management" },
   { key: "explanation", label: "Example Conversation" },
+  { key: "trainer",     label: "Trainer Insight" },
   { key: "takeaways",   label: "Key Takeaways" },
 ];
 
@@ -111,6 +112,101 @@ function BriefTab() {
         <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
           Amy is a 29-year-old graphic designer attending for her annual asthma review. She works from home. Prescription data flags high salbutamol use over the past 3 months.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The trainer's take on the station, with the audio version locked.
+ *
+ * The player is deliberately inert: there is no <audio> element and no file
+ * behind it, because a sample page that played the whole thing would have
+ * nothing left to sign up for. It is a button, not a decorative div, so it
+ * reaches the keyboard and announces itself; pressing it opens the same
+ * account dialog as every other locked control here rather than doing
+ * nothing, which is what an unexplained dead play button amounts to.
+ *
+ * The written insight above it is real and complete. The point of the tab is
+ * that this exists on every station, and that is only convincing if the
+ * sample actually shows one.
+ */
+function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
+  // A fixed set of heights rather than anything generated: this is a drawing
+  // of a waveform, and it should look the same on every render.
+  const bars = [9, 15, 22, 31, 24, 17, 28, 36, 29, 20, 13, 19, 27, 34, 26, 18, 11, 16, 23, 30, 25, 15, 10, 14, 21, 28, 20, 12, 8, 13];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <Label>Trainer Insight</Label>
+        <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
+          This case is won and lost on the step before the prescription. Almost everyone spots
+          that Amy is uncontrolled, because the RCP 3 questions and five salbutamol inhalers in
+          three months make it hard to miss, and almost everyone reaches for a combination
+          inhaler. The candidates who pass comfortably do one more thing first: they establish
+          what she is actually taking and how. Stepping up treatment for someone using a
+          quarter of their prescribed preventer dose, with technique nobody has checked,
+          treats the wrong problem and the examiner knows it.
+        </p>
+      </div>
+
+      <div>
+        <Label>What to watch for</Label>
+        <BulletList
+          items={[
+            "Her steroid worry is the consultation, not an aside. If you address it after you have prescribed, you are asking her to accept a decision she has already decided to be anxious about.",
+            "She tells you she stopped yoga. That is activity limitation, and it is also what she cares about. Use her words when you agree the plan and Relating to Others takes care of itself.",
+            "Occupational history is the most commonly dropped mark in adult asthma. She works from home, which sounds like it rules it out, and does not.",
+          ]}
+        />
+      </div>
+
+      <div>
+        <Label>Listen</Label>
+        <button
+          type="button"
+          onClick={onLocked}
+          aria-label="Play trainer insight audio. Available with an account."
+          className="w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left"
+          style={{ background: LIGHT_BG, border: "1px solid rgba(31,41,55,0.10)", cursor: "pointer" }}
+        >
+          <span
+            className="shrink-0 flex items-center justify-center rounded-full"
+            style={{ width: 42, height: 42, background: YELLOW }}
+            aria-hidden="true"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={NAVY}>
+              <path d="M8 5.5v13l11-6.5z" />
+            </svg>
+          </span>
+
+          <span className="flex-1 min-w-0">
+            <span className="block text-[14px] font-bold mb-1.5" style={{ color: NAVY }}>
+              Trainer insight: where this one is won and lost
+            </span>
+            <span className="flex items-end gap-[2px] h-[36px]" aria-hidden="true">
+              {bars.map((h, i) => (
+                <span
+                  key={i}
+                  className="flex-1 rounded-full"
+                  style={{ height: h, background: "rgba(31,41,55,0.16)" }}
+                />
+              ))}
+            </span>
+          </span>
+
+          <span className="shrink-0 flex flex-col items-end gap-1">
+            <span className="text-[12px] tabular-nums" style={{ color: "rgba(26,27,82,0.5)" }}>4:18</span>
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(26,27,82,0.38)" }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Locked
+            </span>
+          </span>
+        </button>
       </div>
     </div>
   );
@@ -367,6 +463,15 @@ I'd like to see you again in four to six weeks to see how you're getting on with
               <p className="text-[16px] leading-[1.85]" style={{ color: "rgba(26,27,82,0.82)", whiteSpace: "pre-line" }}>
                 {explanation}
               </p>
+            )}
+            {activeTab === "trainer"     && (
+              <TrainerInsightTab
+                onLocked={() =>
+                  setModal(
+                    "Every station has a trainer insight, written and recorded. Create a free account to listen."
+                  )
+                }
+              />
             )}
             {activeTab === "takeaways"   && <BulletList items={takeaways} />}
           </div>
