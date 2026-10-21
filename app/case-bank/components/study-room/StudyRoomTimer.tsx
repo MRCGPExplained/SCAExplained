@@ -21,7 +21,6 @@ export function StudyRoomTimer() {
       isHost={t.isTimerHost}
       locked={t.locked}
       startBlockedReason={t.startBlockedReason}
-      startWillRecord={t.startWillRecord}
       onStart={t.start}
       onStop={t.stop}
       onSkipPreread={t.skipPreread}

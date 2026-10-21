@@ -34,6 +34,24 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300; // up to 5 min for transcription + grading
 
+/**
+ * Deepgram returns nothing, or near-nothing, for silent, inaudible or heavily
+ * mumbled audio. Grading from that would force the model to invent
+ * plausible-sounding scores with no basis, so refuse instead.
+ *
+ * Checked while the take is still free, before anything is written, so a
+ * silent one never reaches the candidate as something they could spend a GP
+ * review on.
+ */
+function assertTranscribable(transcript: string): void {
+  const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount < 15) {
+    throw new Error(
+      `Transcript too short to grade (${wordCount} words). The audio may be silent, unintelligible, or it failed to capture.`
+    );
+  }
+}
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -665,58 +683,76 @@ export async function POST(req: Request, { params }: RouteParams) {
         transcriptFormatted = buildTranscript(doctorTx.utterances, patientTx.utterances);
         transcriptRaw = { doctor: doctorTx.utterances, patient: patientTx.utterances };
 
-        // Checkpoint the transcript as soon as it exists — if grading fails
-        // below, a retry can skip straight past Deepgram to Claude instead
-        // of re-downloading and re-transcribing audio it already has.
+        // The silent-audio guard runs here, before anything is written, so
+        // that the transcript and the status can go in together below. It used
+        // to sit after the checkpoint, which forced the write to be split in
+        // two.
+        assertTranscribable(transcriptFormatted);
+
+        /*
+          Transcript and status in ONE update.
+
+          These were two writes with the Deepgram billing insert between them,
+          and a recording was found afterwards holding a complete, readable
+          transcript while its status still said "transcribing". The catch
+          below had not run either, which is the signature of the function
+          being killed rather than throwing: maxDuration is 300s and two
+          twelve-minute tracks have to be downloaded and transcribed inside
+          it. Nothing in the system ever unsticks that row.
+
+          Written together, the recording is either untranscribed or
+          transcribed, and there is no window in between to die in.
+        */
         await admin
           .from("station_recordings")
-          .update({ transcript_formatted: transcriptFormatted, transcript_raw: transcriptRaw })
+          .update({
+            transcript_formatted: transcriptFormatted,
+            transcript_raw: transcriptRaw,
+            ...(stage === "transcribe"
+              ? { status: "transcribed", transcribed_at: new Date().toISOString() }
+              : {}),
+          })
           .eq("id", recordingId);
 
-        // Record Deepgram usage + cost for both tracks (fresh transcription
-        // only — a retry reuses the transcript and does not re-bill Deepgram).
+        // Deepgram usage + cost for both tracks, after the recording is safe
+        // and in its own try. This is a billing ledger: if it fails, the cost
+        // report is incomplete, which is a far smaller problem than losing
+        // someone's consultation because an insert into a reporting table
+        // threw.
         if (pricing) {
-          for (const [role, tx] of [["doctor", doctorTx], ["patient", patientTx]] as const) {
-            const billable = deepgramBillableMinutes(tx.durationSec);
-            const costUsd = deepgramCostUsd(billable, pricing);
-            await admin.from("deepgram_usage").insert({
-              recording_id: recordingId,
-              role,
-              audio_duration_s: tx.durationSec,
-              billable_min: billable,
-              model: DEEPGRAM_MODEL,
-              request_id: tx.requestId,
-              cost_usd: costUsd,
-              cost_gbp: usdToGbp(costUsd, pricing),
-              pricing_version_id: pricing.id,
-            });
+          try {
+            for (const [role, tx] of [["doctor", doctorTx], ["patient", patientTx]] as const) {
+              const billable = deepgramBillableMinutes(tx.durationSec);
+              const costUsd = deepgramCostUsd(billable, pricing);
+              await admin.from("deepgram_usage").insert({
+                recording_id: recordingId,
+                role,
+                audio_duration_s: tx.durationSec,
+                billable_min: billable,
+                model: DEEPGRAM_MODEL,
+                request_id: tx.requestId,
+                cost_usd: costUsd,
+                cost_gbp: usdToGbp(costUsd, pricing),
+                pricing_version_id: pricing.id,
+              });
+            }
+          } catch (e) {
+            console.error("[recordings/process] deepgram_usage insert failed", recordingId, e);
           }
         }
       }
 
-      // Deepgram returns nothing (or near-nothing) for silent, inaudible, or
-      // heavily mumbled audio. Grading from that would force Claude to
-      // invent plausible-sounding scores and feedback with no real basis —
-      // refuse instead, and let the fallback below leave it ungraded.
-      //
-      // Checked before the stage gate so a silent take is caught while it is
-      // still free. It used to reach the candidate as a graded recording with
-      // no scores, which they could then spend a GP review on.
-      const wordCount = transcriptFormatted.trim().split(/\s+/).filter(Boolean).length;
-      if (wordCount < 15) {
-        throw new Error(`Transcript too short to grade (${wordCount} words). The audio may be silent, unintelligible, or it failed to capture.`);
-      }
+      // Also guards a transcript reused from a previous run, which does not
+      // pass through the fresh-transcription branch above.
+      assertTranscribable(transcriptFormatted);
 
       /*
         End of the free half. The transcript exists, it has words in it, and
         nobody has been charged anything. What happens next is the
-        candidate's decision, so stop here and wait to be asked.
+        candidate's decision, so stop here and wait to be asked. The status
+        was already set alongside the transcript above.
       */
       if (stage === "transcribe") {
-        await admin
-          .from("station_recordings")
-          .update({ status: "transcribed", transcribed_at: new Date().toISOString() })
-          .eq("id", recordingId);
         console.log("[recordings/process] transcribed, awaiting a decision", recordingId);
         return;
       }
@@ -1041,14 +1077,29 @@ export async function POST(req: Request, { params }: RouteParams) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Processing failed";
       console.error("[recordings/process]", msg);
-      // Don't leave it stuck in processing — roll back so the candidate can
-      // still choose to submit, even with no AI pre-assessment to show.
-      // The failure reason is persisted alongside it: console logs are
-      // per-deployment and short-lived, so without this a failed run is
-      // indistinguishable from a successful one after the fact.
+      /*
+        Don't leave it stuck, and don't lie about what happened.
+
+        This set "ai_graded" whatever stage had failed, which was true enough
+        when grading was the only half there was. Under the two-stage model a
+        transcribe failure means nothing was graded and no allowance was
+        spent, so calling it graded tells the candidate they have used
+        something they have not, and hides a silent take behind a status that
+        reads like success.
+
+        A failed transcribe goes to "failed"; a failed grade still rolls back
+        to "ai_graded" so the candidate can submit for GP review with no AI
+        pre-assessment to show. The reason is persisted either way: console
+        logs are per-deployment and short-lived, so without this a failed run
+        is indistinguishable from a successful one after the fact.
+      */
       await admin
         .from("station_recordings")
-        .update({ status: "ai_graded", ai_error: msg.slice(0, 2000), ai_failed_at: new Date().toISOString() })
+        .update({
+          status: stage === "transcribe" ? "failed" : "ai_graded",
+          ai_error: msg.slice(0, 2000),
+          ai_failed_at: new Date().toISOString(),
+        })
         .eq("id", recordingId);
     } finally {
       // Record Daily live-audio usage (group consultations only) and build the

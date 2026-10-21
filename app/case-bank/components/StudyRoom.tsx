@@ -279,20 +279,26 @@ export function StudyRoomPanel() {
         static circles. */}
     <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(26,27,82,0.10)" }}>
-      {/* Header */}
+      {/*
+        Header. Wraps rather than overflowing: at panel widths this sits in on
+        a phone, "Study Group" was breaking across two lines, "Call Connected"
+        was splitting mid-phrase and the Leave button was being cut off at the
+        right edge. The title holds its width, each status chip stays on one
+        line, and the row drops to a second line when there is not room.
+      */}
       <div
-        className="px-3.5 py-3 flex items-center justify-between"
+        className="px-3.5 py-3 flex items-center justify-between flex-wrap gap-x-3 gap-y-2"
         style={{ background: NAVY }}
       >
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "white" }}>
+        <div className="shrink-0">
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: "white" }}>
             Study Group
           </div>
-          <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <div className="text-[10px] mt-0.5 whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>
             {iAmHost ? "You are navigating" : `${hostName} is navigating`}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
           {/*
             No Record button. The timer starts the session now: Start runs the
             three-minute preparation, then the voice call connects and the
@@ -307,45 +313,45 @@ export function StudyRoomPanel() {
           {(recordingState === "recording" || recordingState === "starting") && (
             <div className="flex items-center gap-1.5">
               {recordingState === "starting" ? (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
                   <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.4)", animation: "pulse 1.2s infinite" }} />
                   Starting…
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCA5A5" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "#FCA5A5" }}>
                   <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s infinite" }} />
                   REC
                 </span>
               )}
               {dailyConnecting && (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
                   <PhoneIcon color="rgba(255,255,255,0.5)" /> Connecting…
                 </span>
               )}
               {callConnected && !dailyReconnecting && (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(134,239,172,0.9)" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(134,239,172,0.9)" }}>
                   <PhoneIcon color="rgba(134,239,172,0.9)" /> Call Connected
                 </span>
               )}
               {callConnected && dailyReconnecting && (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "#FCD34D" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "#FCD34D" }}>
                   <PhoneIcon color="#FCD34D" /> Reconnecting…
                 </span>
               )}
               {callEnded && !callConnected && !dailyConnecting && !dailyFailed && (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>
                   <PhoneIcon color="rgba(255,255,255,0.4)" /> Call ended
                 </span>
               )}
               {dailyFailed && !callConnected && (
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>
                   <PhoneIcon color="rgba(255,255,255,0.4)" /> Voice call off: connection failed
                 </span>
               )}
               {iAmHost && recordingState === "recording" && (
                 <button
                   onClick={() => setStopConfirmMode("stop")}
-                  className="text-[10px] px-2 py-1 rounded"
+                  className="text-[10px] px-2 py-1 rounded shrink-0 whitespace-nowrap"
                   style={{ background: "rgba(239,68,68,0.25)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
                 >
                   Stop
@@ -355,13 +361,13 @@ export function StudyRoomPanel() {
           )}
           {reviewStage && <ReviewStageChip stage={reviewStage} recordingId={reviewRecordingId} onDismiss={dismissReviewStage} />}
           {debriefSecondsLeft !== null && (
-            <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(96,165,250,0.9)" }}>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(96,165,250,0.9)" }}>
                 <PhoneIcon color="rgba(96,165,250,0.9)" /> Debrief: call closes in {Math.floor(debriefSecondsLeft / 60)}:{String(debriefSecondsLeft % 60).padStart(2, "0")}
               </span>
               <button
                 onClick={endDebrief}
-                className="text-[10px] px-2 py-1 rounded"
+                className="text-[10px] px-2 py-1 rounded shrink-0 whitespace-nowrap"
                 style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
               >
                 End Call Now
@@ -376,7 +382,7 @@ export function StudyRoomPanel() {
                 handleLeave();
               }
             }}
-            className="text-[10px] px-2 py-1 rounded"
+            className="text-[10px] px-2 py-1 rounded shrink-0 whitespace-nowrap"
             style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
           >
             Leave

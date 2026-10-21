@@ -300,6 +300,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
                             : rec.status === "pending_examiner" || rec.status === "reviewing"
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
+                            : rec.status === "failed"
+                            ? { background: "rgba(239,68,68,0.1)", color: "#B91C1C" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
                       >
@@ -317,6 +319,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "AI graded"
                           : rec.status === "pending_examiner" || rec.status === "reviewing"
                           ? "Awaiting examiner"
+                          : rec.status === "failed"
+                          ? "Needs a retry"
                           : rec.status}
                       </span>
 

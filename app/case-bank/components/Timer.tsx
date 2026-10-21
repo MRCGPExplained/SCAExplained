@@ -22,7 +22,6 @@ export function Timer({
   isHost,
   locked,
   startBlockedReason,
-  startWillRecord,
   onStart,
   onStop,
   onSkipPreread,
@@ -48,12 +47,6 @@ export function Timer({
    * not running it.
    */
   startBlockedReason?: string | null;
-  /**
-   * Whether starting begins a recorded consultation or just runs the clock.
-   * The button says which — "Start" next to a countdown reads as a stopwatch,
-   * and this one spends a credit-free but graded twelve minutes.
-   */
-  startWillRecord?: boolean;
   onStart: () => void;
   onStop: () => void;
   onSkipPreread: () => void;
@@ -193,7 +186,7 @@ export function Timer({
                   className={BTN_CLASS}
                   style={btnStyle(locked || (!running && !!startBlockedReason))}
                 >
-                  {running ? "Pause" : startWillRecord ? "⏺ Record" : "Start"}
+                  {running ? "Pause" : "Start"}
                 </button>
                 <button
                   onClick={onSkipPreread}
