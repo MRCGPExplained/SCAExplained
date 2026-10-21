@@ -703,7 +703,7 @@ export async function POST(req: Request, { params }: RouteParams) {
           Written together, the recording is either untranscribed or
           transcribed, and there is no window in between to die in.
         */
-        await admin
+        const { error: saveErr } = await admin
           .from("station_recordings")
           .update({
             transcript_formatted: transcriptFormatted,
@@ -713,6 +713,16 @@ export async function POST(req: Request, { params }: RouteParams) {
               : {}),
           })
           .eq("id", recordingId);
+
+        // Throw on a refused write. supabase-js does not: it returns
+        // { data, error }, and this call used to discard the error unread.
+        // A CHECK constraint that had never been widened to allow
+        // "transcribed" rejected every one of these, the refusal went
+        // nowhere, the function returned as though it had worked, and the
+        // recording kept its old status forever with no exception and no log
+        // line. Silence is the worst possible outcome here: better to fail
+        // loudly and land in the catch, which records the reason on the row.
+        if (saveErr) throw new Error(`Could not save transcript: ${saveErr.message}`);
 
         // Deepgram usage + cost for both tracks, after the recording is safe
         // and in its own try. This is a billing ledger: if it fails, the cost
