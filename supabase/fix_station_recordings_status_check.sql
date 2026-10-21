@@ -1,68 +1,55 @@
--- station_recordings_status_check rejects the statuses the app now writes.
+-- station_recordings_status_check must allow every status the app writes.
 --
--- THIS IS THE ACTUAL CAUSE of a recording sitting on "Transcribing…" with a
--- complete transcript, and it has to be applied BEFORE the matching code
--- change, not after.
+-- WHY THIS EXISTS. The two-stage pipeline (transcribe, then grade only when
+-- the candidate asks) introduced the "transcribed" status. The constraint,
+-- last set in add_reviewing_status.sql, was never widened for it. supabase-js
+-- does not throw on a rejected write: it returns { data, error }, and the
+-- pipeline never read .error. So the update to "transcribed" was refused by
+-- Postgres, the refusal was discarded unread, the function returned as though
+-- it had worked, and the row kept status "processing" forever — rendered in
+-- the UI as "Transcribing…" over a complete, readable transcript.
 --
--- The two-stage pipeline (transcribe, then grade only when the candidate asks)
--- introduced the "transcribed" status. The CHECK constraint was never widened
--- to allow it. supabase-js does not throw on a rejected write: it returns
--- { data, error }, and the pipeline never read .error. So the update to
--- "transcribed" was refused by Postgres, the refusal was discarded unread,
--- the function returned normally, and the row kept its old status forever.
--- No exception, no log line, nothing to find afterwards.
---
--- Run step 1, read it, then step 2.
+-- ============================================================================
+-- IF YOU ALREADY RAN THE EARLIER VERSION OF THIS FILE, RUN SECTION 0 NOW.
+-- That version omitted 'sent', which app/examiner/actions.ts:256 still writes
+-- when a GP submits a review with send-now. With 'sent' missing the write is
+-- refused, and that call does not check its error either, so a GP's completed
+-- review would silently fail to reach the candidate. Section 0 is the whole
+-- fix and is safe to run on its own.
+-- ============================================================================
 
--- 1. WHAT THE CONSTRAINT ACTUALLY ALLOWS TODAY. Read this before changing it:
---    the list below is what the app uses, but your database is the authority
---    on what is currently in there and what rows already exist.
-select pg_get_constraintdef(oid) as current_definition
-from pg_constraint
-where conrelid = 'public.station_recordings'::regclass
-  and conname = 'station_recordings_status_check';
-
--- Every status value actually present in the table right now, so nothing in
--- use gets excluded by the new constraint.
-select status, count(*) as rows
-from public.station_recordings
-group by status
-order by rows desc;
-
--- 2. WIDEN IT. The full set the application reads or writes:
---      uploading        - audio still arriving
---      processing       - transcribing (what the UI shows as "Transcribing…")
---      transcribed      - transcript ready, waiting on the candidate's choice
---      grading          - AI grading in progress
---      ai_graded        - AI grading finished, or rolled back after a failure
---      pending_examiner - submitted for GP review
---      reviewing        - a GP has it open
---      reviewed         - GP review finished
---      discarded        - candidate threw the take away
---      failed           - transcription failed; needs a retry
---
--- Dropping and recreating in one statement so the table is never without a
--- constraint. If step 1 shows a status in use that is missing from this list,
--- ADD IT HERE before running this.
+-- 0. THE CORRECTED CONSTRAINT. Idempotent: run it even if you ran the earlier
+--    version, and run it instead of section 2 if you have not.
 alter table public.station_recordings
   drop constraint if exists station_recordings_status_check;
 
 alter table public.station_recordings
   add constraint station_recordings_status_check
   check (status in (
-    'uploading',
-    'processing',
-    'transcribed',
-    'grading',
-    'ai_graded',
-    'pending_examiner',
-    'reviewing',
-    'reviewed',
-    'discarded',
-    'failed'
+    'uploading',         -- audio still arriving
+    'processing',        -- transcribing; the UI shows "Transcribing…"
+    'transcribed',       -- transcript ready, waiting on the candidate's choice
+    'grading',           -- AI grading in progress
+    'ai_graded',         -- AI grading finished, or rolled back after a failure
+    'pending_examiner',  -- submitted for GP review
+    'reviewing',         -- a GP has it open
+    'reviewed',          -- GP review finished
+    'sent',              -- GP review sent to the candidate
+    'discarded',         -- candidate threw the take away
+    'failed'             -- transcription failed; needs a retry
   ));
 
--- 3. NOW the stuck rows can be moved. This is the update that was rejected.
+-- 1. VERIFY. Every status present in the table must appear in the list above;
+--    if this returns anything unexpected, add it and re-run section 0.
+select status, count(*) as rows
+from public.station_recordings
+group by status
+order by rows desc;
+
+-- 2. UNSTICK anything left on "processing" that already has a usable
+--    transcript. The pipeline refuses to grade under 15 words, so promoting a
+--    shorter one would offer a take that cannot be graded. transcribed_at is
+--    backfilled from started_at because the real completion time was lost.
 update public.station_recordings
 set status = 'transcribed',
     transcribed_at = coalesce(transcribed_at, started_at, now())
@@ -70,8 +57,12 @@ where status = 'processing'
   and transcript_formatted is not null
   and array_length(regexp_split_to_array(trim(transcript_formatted), '\s+'), 1) >= 15;
 
--- 4. CHECK.
-select id, station_number, station_title, status, transcribed_at
+-- 3. STUCK UPLOADS. Rows sitting on "uploading" never had both tracks arrive.
+--    Look before deciding: one missing path means that participant's browser
+--    never finished, and there is no retry or sweeper for it.
+select id, station_number, station_title, started_at,
+       doctor_audio_path  is not null as has_doctor_audio,
+       patient_audio_path is not null as has_patient_audio
 from public.station_recordings
-order by started_at desc
-limit 20;
+where status = 'uploading'
+order by started_at desc;
