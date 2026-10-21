@@ -134,6 +134,9 @@ export interface StudyRoomValue {
   reviewStage: ReviewStage | null;
   /** The recording `reviewStage` refers to — the target of the Review link. */
   reviewRecordingId: string | null;
+  /** True when the take being followed is one I recorded as doctor. Outlives
+   *  the debrief, unlike myRecordingRole. */
+  reviewMineAsDoctor: boolean;
   dismissReviewStage: () => void;
 
   dailyConnecting: boolean;

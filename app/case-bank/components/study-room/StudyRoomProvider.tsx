@@ -249,6 +249,18 @@ export function StudyRoomProvider({
   // the last station still visibly being marked.
   const [reviewStage, setReviewStage] = useState<ReviewStage | null>(null);
   const [reviewRecordingId, setReviewRecordingId] = useState<string | null>(null);
+  /**
+   * Whether the take currently being followed was one I recorded as doctor.
+   *
+   * Separate from myRecordingRole, which describes the LIVE take and is
+   * cleared by resetForNextTake the moment the three-minute debrief closes.
+   * The decision modal was gated on that, so a transcription slower than the
+   * debrief found the role already null and silently downgraded the ask to a
+   * chip: the candidate was never offered AI, GP or discard for a take they
+   * had just recorded. This latch belongs to the recording, not the session,
+   * so it survives the reset and is cleared only when the review is dismissed.
+   */
+  const [reviewMineAsDoctor, setReviewMineAsDoctor] = useState(false);
   // Guards against two poll loops running at once — a re-render, a rejoin, or
   // an observer receiving the host's relay must not start a second one.
   const pollingRecordingRef = useRef<string | null>(null);
@@ -291,6 +303,7 @@ export function StudyRoomProvider({
     followStation: (target: number) => void;
     shouldFollowHost: () => boolean;
     refreshParticipants: (roomId: string) => void;
+    refreshRoom: (roomId: string) => void;
     endDebrief: () => void;
     startDebrief: () => void;
     markTakeFinished: (takeId: string | null) => void;
@@ -902,6 +915,33 @@ export function StudyRoomProvider({
     if (target !== null && target !== undefined) followStation(target);
   }, [pathname, room?.id, room?.current_station_number, iAmHost, stationNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * Re-read the room row.
+   *
+   * Roles live on study_rooms and used to reach the other device through
+   * exactly one Realtime UPDATE frame, with nothing to fall back on. The
+   * writer updates itself optimistically, so whoever made the change always
+   * saw it work; the reader got one chance and, if it missed, stayed wrong
+   * until some unrelated write to the same row happened to carry the current
+   * roles along with it. A chat message would fix it. That is why it looked
+   * like a delay rather than a failure.
+   *
+   * Every other piece of shared state already had a repair: the host
+   * re-announces the timer and the station on reconnect, and participants are
+   * re-read. Roles were the only one without. This is that repair.
+   */
+  const refreshRoom = useCallback(async (roomId: string) => {
+    const { data, error } = await supabase
+      .from("study_rooms")
+      .select("*")
+      .eq("id", roomId)
+      .single();
+    if (error || !data) return;
+    // Whole row, like the Realtime handler, so anything else that drifted
+    // comes back with it.
+    setRoom(data);
+  }, [supabase]);
+
   const refreshParticipants = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("room_participants")
@@ -1190,6 +1230,7 @@ export function StudyRoomProvider({
       const { recordingId, stage } = payload as { recordingId: string; stage: ReviewStage };
       if (latest.current.myRecordingRole !== null) return;
       setReviewRecordingId(recordingId);
+      setReviewMineAsDoctor(false);
       setReviewStage(stage);
     });
 
@@ -1236,6 +1277,7 @@ export function StudyRoomProvider({
       if (status === "SUBSCRIBED") {
         await channel.track({ userId, displayName, initials });
         latest.current.refreshParticipants(room.id);
+        latest.current.refreshRoom(room.id);
         if (latest.current.iAmHost) {
           if (stationNumberRef.current !== null) {
             channel.send({
@@ -1846,6 +1888,7 @@ export function StudyRoomProvider({
       // started uploading would otherwise put take 5's "Review ✓" on a link
       // pointing at take 6, which has no report yet.
       setReviewRecordingId(recordingId);
+      setReviewMineAsDoctor(latest.current.myRecordingRole === "doctor");
       setReviewStage(stage);
       // Observers cannot read the row (RLS admits only doctor and patient) and
       // the status route 404s for them, so the host relays what it learns.
@@ -1988,6 +2031,7 @@ export function StudyRoomProvider({
     if (!stale) {
       setRecordingState("uploading");
       setReviewRecordingId(recordingId);
+      setReviewMineAsDoctor(latest.current.myRecordingRole === "doctor");
       setReviewStage("uploading");
     }
     const t0 = Date.now();
@@ -2414,6 +2458,7 @@ export function StudyRoomProvider({
     followStation,
     shouldFollowHost,
     refreshParticipants,
+    refreshRoom,
     endDebrief,
     startDebrief,
     markTakeFinished,
@@ -2496,7 +2541,8 @@ export function StudyRoomProvider({
       activeRecordingId,
       reviewStage,
       reviewRecordingId,
-      dismissReviewStage: () => { setReviewStage(null); setReviewRecordingId(null); },
+      reviewMineAsDoctor,
+      dismissReviewStage: () => { setReviewStage(null); setReviewRecordingId(null); setReviewMineAsDoctor(false); },
       dailyConnecting,
       callConnected,
       dailyReconnecting,

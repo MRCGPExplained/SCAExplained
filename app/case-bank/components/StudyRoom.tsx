@@ -168,6 +168,7 @@ export function StudyRoomPanel() {
     reviewRecordingId,
     dismissReviewStage,
     myRecordingRole,
+    reviewMineAsDoctor,
     clearRecordingError,
     showStartWarning,
     confirmStart,
@@ -599,7 +600,14 @@ export function StudyRoomPanel() {
       same three choices for as long as they like, and grading still works
       later because the transcript outlives the audio.
     */}
-    {reviewStage === "decide" && reviewRecordingId && myRecordingRole === "doctor" && (
+    {/*
+      Gated on reviewMineAsDoctor, not myRecordingRole. The latter describes
+      the live take and is cleared when the debrief closes, so a transcription
+      that took longer than three minutes used to find it null and show a chip
+      instead of asking. The decision belongs to whoever recorded the take,
+      however long the pipeline takes to get there.
+    */}
+    {reviewStage === "decide" && reviewRecordingId && reviewMineAsDoctor && (
       <TranscribedDecisionModal
         recordingId={reviewRecordingId}
         onClose={dismissReviewStage}
