@@ -14,10 +14,10 @@ const WASH = "#F9F3D9";
  * you want them at the moment a dialog tells you there is nothing left, and
  * this is the page both meters live on.
  *
- * A top-up adds to a meter and carries access to at least a month from the
- * day it is bought, so the units are always spendable. It is still not a
- * plan: someone whose access has already ended cannot buy one, because a
- * cheap pack would otherwise be a back door to a month of the case bank.
+ * A top-up adds to a meter and nothing else, which is why it is separate
+ * from the plans. Someone whose four months have ended needs a plan; selling
+ * them gradings would be taking money for something they cannot use, and
+ * letting a pack buy time would make an account that never has to expire.
  */
 export function TopUps() {
   const [busy, setBusy] = useState<TopUpKey | null>(null);
@@ -72,7 +72,7 @@ export function TopUps() {
         Top up
       </p>
       <p className="text-[12.5px] leading-[1.55] mb-4" style={{ color: "rgba(51,51,51,0.6)" }}>
-        Adds to your balance, and keeps your access open for at least a month from today.
+        Adds to your balance without changing your plan or when it expires.
       </p>
 
       <p className="text-[11px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>

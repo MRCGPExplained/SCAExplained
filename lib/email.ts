@@ -448,11 +448,9 @@ export async function sendPurchaseEmail(args: {
  * and get no acknowledgement from us whatsoever, which looks like a failed
  * payment and is the kind of silence that produces a chargeback.
  *
- * It always states the expiry date, because that is the thing a buyer is
- * most likely to guess wrong about. A top-up carries access to at least a
- * month from purchase, so it moves the date for someone near the end and
- * leaves it alone for someone with months left. Both cases get a sentence
- * rather than only the first, so nobody has to work out which one they are.
+ * It says what the top-up did NOT do as well as what it did, because the one
+ * thing a buyer is likely to assume is that paying again bought them more
+ * time. It did not: a top-up adds to a balance and leaves the expiry alone.
  */
 export async function sendTopUpEmail(args: {
   to: string;
@@ -462,9 +460,6 @@ export async function sendTopUpEmail(args: {
   /** Null when the expiry could not be read; the line is then omitted rather
    *  than guessed, since a wrong date here is worse than no date. */
   expiresAt: string | null;
-  /** True when this purchase actually moved the date, which only happens if
-   *  the plan had less than a month left. */
-  extended?: boolean;
 }): Promise<boolean> {
   if (!(await isResendEnabled())) return false;
   const resend = getResend();
@@ -473,16 +468,13 @@ export async function sendTopUpEmail(args: {
   const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
-  const expiryLine = !args.expiresAt
-    ? ""
-    : args.extended
+  const expiryLine = args.expiresAt
     ? `<p style="margin:12px 0 0;font-size:13px;color:#6b6c85;">
-         Your access now runs to <strong>${longDate(args.expiresAt)}</strong>,
-         a month from today, so there is time to use them.</p>`
+         Your access still runs to <strong>${longDate(args.expiresAt)}</strong>.
+         A top-up adds to your balance and does not change that date.</p>`
     : `<p style="margin:12px 0 0;font-size:13px;color:#6b6c85;">
-         Your access runs to <strong>${longDate(args.expiresAt)}</strong>,
-         which is already more than a month away, so this purchase leaves
-         that date where it is.</p>`;
+         A top-up adds to your balance and does not change when your access
+         ends.</p>`;
 
   const html = `
   <div style="background:#fafaf8;padding:32px 16px;font-family:Inter,Arial,sans-serif;">

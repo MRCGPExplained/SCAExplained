@@ -1,9 +1,10 @@
 /**
  * Top-ups, for when a plan's allowance runs out before the exam does.
  *
- * A top-up also carries access to at least a month from the day of purchase,
- * on the max(existing, now + 1 month) rule, so nobody buys gradings that
- * expire before they can spend them. Only a live plan can be topped up.
+ * A top-up buys units, never time. Extending access by the pack would turn
+ * the cheapest one into a renewal, and an account that can be kept alive
+ * indefinitely for £25 is an account worth handing to someone else. Only a
+ * live plan can be topped up.
  *
  * Two rules decide every number here.
  *

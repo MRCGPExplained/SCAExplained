@@ -210,10 +210,11 @@ async function addRecordingCredits(
 // ── Top-up purchase ──────────────────────────────────────────────────────────
 
 /**
- * Adds to one meter, and carries access to at least a month from the day of
- * purchase so the units bought can actually be spent. Still not a substitute
- * for a plan: /api/topup/checkout refuses anyone whose access has already
- * ended, so this can extend a live plan but never revive a dead one.
+ * Adds to one meter and nothing else. Not access and not its expiry: a
+ * top-up that bought time would be a renewal at a fraction of the price, and
+ * an account that never expires is one worth sharing. /api/topup/checkout
+ * also refuses anyone whose access has already ended, so a pack can never be
+ * a way back in.
  *
  * Which meter and how many come out of the session metadata rather than a
  * fresh lookup, so a pack resized between paying and the webhook landing
@@ -239,43 +240,23 @@ async function confirmTopUpPurchase(session: Stripe.Checkout.Session) {
     await addRecordingCredits(supabase, userId, units);
   }
 
-  // A top-up now carries access to at least a month from the day it was
-  // bought, so nobody buys gradings that expire before they can spend them.
-  //
-  // max(existing, now + 1 month), not existing + 1 month. Someone with three
-  // months left keeps three months; someone with a fortnight left gets a
-  // month from today. Additive would let a run of small packs buy a year of
-  // access a month at a time, which is the plan's job.
-  const now = new Date();
-  const floor = new Date(now);
-  floor.setMonth(floor.getMonth() + 1);
-
-  const { data: access } = await supabase
-    .from("user_access")
-    .select("case_bank_expires_at")
-    .eq("user_id", userId)
-    .single<{ case_bank_expires_at: string | null }>();
-
-  const newExpiry =
-    access?.case_bank_expires_at && access.case_bank_expires_at > floor.toISOString()
-      ? access.case_bank_expires_at
-      : floor.toISOString();
-
-  if (newExpiry !== access?.case_bank_expires_at) {
-    const { error } = await supabase
-      .from("user_access")
-      .update({ case_bank_expires_at: newExpiry, renewal_reminder_sent_at: null })
-      .eq("user_id", userId);
-    if (error) console.error("[webhook] topup could not extend access:", error.message);
-  }
-
+  // The expiry is read, not written. A top-up briefly extended access by a
+  // month, which turned a £25 pack into a renewal: an account could be kept
+  // alive indefinitely for a fraction of a plan, and an account that never
+  // expires is an account worth passing around. Someone who genuinely needs
+  // longer can ask.
   if (userEmail) {
+    const { data: access } = await supabase
+      .from("user_access")
+      .select("case_bank_expires_at")
+      .eq("user_id", userId)
+      .single<{ case_bank_expires_at: string | null }>();
+
     await sendTopUpEmail({
       to: userEmail,
       name: userEmail,
       packLabel: `${units} ${kind === "ai" ? "AI gradings" : `GP review${units === 1 ? "" : "s"}`}`,
-      expiresAt: newExpiry,
-      extended: newExpiry !== access?.case_bank_expires_at,
+      expiresAt: access?.case_bank_expires_at ?? null,
     });
   }
 }
