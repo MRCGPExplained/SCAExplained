@@ -1033,7 +1033,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       // Save transcript + grades to DB. Status lands on "ai_graded", not the
       // examiner queue — the candidate has to explicitly Submit for GP Review
       // (which is what actually consumes one of their 20 credits) to enter it.
-      await admin.from("station_recordings").update({
+      const { error: gradeSaveErr } = await admin.from("station_recordings").update({
         transcript_formatted: transcriptFormatted,
         transcript_raw: transcriptRaw,
         // The grades shown on the report are post-adjustment.
@@ -1072,6 +1072,13 @@ export async function POST(req: Request, { params }: RouteParams) {
         ai_error: null,
         ai_failed_at: null,
       }).eq("id", recordingId);
+
+      // Same reasoning as the transcript write: supabase-js reports a refused
+      // write by returning it, not by throwing, and an unread error here would
+      // leave the row on "grading" forever while the grades it carries are
+      // never written. Throw so it lands in the catch and the reason is
+      // recorded on the row instead of vanishing.
+      if (gradeSaveErr) throw new Error(`Could not save grades: ${gradeSaveErr.message}`);
 
       // Spend one grading. This is the only place the meter moves, and it
       // moves on success, so a run that failed costs the candidate nothing.
