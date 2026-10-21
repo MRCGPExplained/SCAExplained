@@ -322,7 +322,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Predicted Score
               </div>
-              <PredictedScore total={total} className="justify-between mb-5" />
+              <PredictedScore total={total} />
 
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Score Distribution

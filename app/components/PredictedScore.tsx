@@ -1,18 +1,21 @@
-import { MAX_SCORE, PASS_THRESHOLD, scoreColour, isPassingScore } from "@/lib/report-score";
+import { MAX_SCORE, scoreColour, isPassingScore } from "@/lib/report-score";
 
 /**
  * The score and its verdict, rendered once for both reports.
  *
- * lib/report-score already held the threshold and the colour bands, but each
- * report still sized its own type, and they had drifted: the real report let
- * "/10.5" inherit 44px while the sample overrode it to 28px, so the same
- * score looked like two different designs depending on which page you were
- * on. Moving the logic and leaving the typography behind is how that
- * happened, so the whole thing lives here now.
+ * lib/report-score holds the threshold and the colour bands, but each report
+ * used to size its own type and they had drifted: one let "/10.5" inherit
+ * 44px while the other overrode it to 28, so the same score looked like two
+ * designs depending which page you were on. The whole presentation lives here
+ * now.
  *
  * The denominator matches the number. It is part of the figure rather than a
  * footnote to it, and at a smaller size the eye reads "7" as the score and
  * has to go back for the scale.
+ *
+ * No caption naming the pass mark. It said "Pass threshold: 7 pts" under a
+ * number that is already green and already badged, which is the third way of
+ * saying the same thing on one line of a card.
  *
  * No hooks and no state, so a server component and a client component can
  * both render it.
@@ -23,43 +26,36 @@ export function PredictedScore({
   badgeFontSize = 30,
 }: {
   total: number;
-  /** Layout of the row, which differs between the hero panel and the full
-   *  report. Everything inside it is fixed. */
+  /** Extra layout for the row; the hero panel and the full report sit in
+   *  different widths. Everything inside it is fixed. */
   className?: string;
   badgeFontSize?: number;
 }) {
   return (
-    <>
-    <div className={`flex items-end gap-2.5 flex-wrap ${className}`}>
+    <div className={`flex items-end gap-2.5 mb-5 ${className}`}>
       {/* Green at or above the pass mark, orange within striking distance of
           it, red well short. A candidate reads where they stand off the
           number itself. */}
-      <span className="font-extrabold leading-none" style={{ fontSize: 44, color: scoreColour(total) }}>
+      <span className="font-extrabold leading-none shrink-0" style={{ fontSize: 44, color: scoreColour(total) }}>
         {total}
         <span className="font-extrabold">/{MAX_SCORE}</span>
       </span>
 
-      {/* Only a pass is named: the colour already carries the two bands of
-          shortfall, and saying it again in a word was noise. Set a little
-          below the number's own size because at matching type the padding
-          made the badge the tallest thing in the row. */}
-      {isPassingScore(total) && (
-        <span
-          className="font-extrabold uppercase px-4 py-1.5 rounded-xl leading-none tracking-[0.02em]"
-          style={{ fontSize: badgeFontSize, background: "rgba(34,197,94,0.11)", color: "#166534" }}
-        >
-          Pass
-        </span>
-      )}
+      {/* The badge sits centred in whatever room is left rather than hard
+          against the number or hard against the right edge, so it reads as
+          the verdict on the score instead of a second, unrelated label.
+          The spacer keeps its width whether or not a badge is in it, which
+          stops the number shifting between a pass and a fail. */}
+      <span className="flex-1 flex justify-center">
+        {isPassingScore(total) && (
+          <span
+            className="font-extrabold uppercase px-4 py-1.5 rounded-xl leading-none tracking-[0.02em]"
+            style={{ fontSize: badgeFontSize, background: "rgba(34,197,94,0.11)", color: "#166534" }}
+          >
+            Pass
+          </span>
+        )}
+      </span>
     </div>
-
-    {/* Where the line is. The sample stated this and the full report did not,
-        with the number typed out rather than read from the threshold, so the
-        two pages disagreed about whether a candidate is told what they are
-        aiming at. Both say it now, and it comes from the constant. */}
-    <p className="text-[12px] mb-5" style={{ color: "rgba(51,51,51,0.4)" }}>
-      Pass threshold: {PASS_THRESHOLD} pts
-    </p>
-    </>
   );
 }
