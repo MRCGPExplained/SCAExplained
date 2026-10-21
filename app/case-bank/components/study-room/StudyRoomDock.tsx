@@ -64,12 +64,17 @@ export function StudyRoomDock() {
         overflowY: "auto",
       }}
     >
-      {open && <StudyRoomPanel />}
+      {/* Timer above the panel, matching the station page. The clock is the
+          thing being watched during a session and the dock grows downward as
+          the chat fills, so with the panel first the timer drifted further
+          from the top of the stack the longer the room was used.
 
-      {/* Hidden rather than unmounted while collapsed — see the note above. */}
+          Hidden rather than unmounted while collapsed — see the note above. */}
       <div style={{ display: open ? "block" : "none" }}>
         <StudyRoomTimer />
       </div>
+
+      {open && <StudyRoomPanel />}
 
       <div
         className="rounded-xl overflow-hidden shadow-lg shrink-0"

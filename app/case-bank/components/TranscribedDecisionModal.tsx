@@ -177,7 +177,7 @@ export function TranscribedDecisionModal({
         {(ai === 0 || gp === 0) && (
           <p className="text-[12px] mt-3" style={{ color: "rgba(51,51,51,0.6)" }}>
             Out of {ai === 0 && gp === 0 ? "both" : ai === 0 ? "AI gradings" : "GP reviews"}?{" "}
-            <a href="/recordings#topups" className="font-semibold underline" style={{ color: DARK }}>
+            <a href="/recordings?topup=1" className="font-semibold underline" style={{ color: DARK }}>
               Top up from My Reviews
             </a>
             .

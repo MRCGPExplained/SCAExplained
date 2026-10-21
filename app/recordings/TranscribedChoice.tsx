@@ -181,7 +181,7 @@ export function TranscribedChoice({
               </button>
               {blocked ? (
                 <Link
-                  href="/recordings#topups"
+                  href="/recordings?topup=1"
                   className="flex-1 rounded-lg py-2.5 text-[13px] font-bold no-underline text-center"
                   style={{ background: YELLOW, color: DARK }}
                 >

@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
 import { TranscribedChoice } from "./TranscribedChoice";
-import { TopUps } from "./TopUps";
+import { TopUpButton } from "./TopUpButton";
 import { TOPUPS, isTopUpKey } from "@/lib/topups";
 
 export const dynamic = "force-dynamic";
@@ -62,12 +62,12 @@ interface AccessRow {
   case_bank_expires_at: string | null;
 }
 
-export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string; topped_up?: string }> }) {
+export default async function RecordingsPage({ searchParams }: { searchParams: Promise<{ purchased?: string; topped_up?: string; topup?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { purchased, topped_up } = await searchParams;
+  const { purchased, topped_up, topup } = await searchParams;
 
   // Named from the pack that was actually bought. "1" is the shape the old
   // success_url used; a session created just before that change can still
@@ -173,23 +173,9 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               >
                 Choose a plan
               </Link>
-            ) : aiRemaining === 0 ? (
-              <Link
-                href="#topups"
-                className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
-                style={{ background: NAVY, color: "white" }}
-              >
-                Top up AI gradings
-              </Link>
-            ) : credits === 0 ? (
-              <Link
-                href="#topups"
-                className="rounded-xl px-3.5 py-2 text-[13px] font-bold no-underline"
-                style={{ background: NAVY, color: "white" }}
-              >
-                Add GP reviews
-              </Link>
-            ) : null}
+            ) : (
+              <TopUpButton autoOpen={topup === "1"} />
+            )}
           </div>
         </div>
 
@@ -199,9 +185,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           </div>
         )}
 
-        {accessLive ? (
-          <TopUps />
-        ) : (
+        {!accessLive && (
           <div className="rounded-2xl p-5 mb-6" style={{ background: "#F9F3D9", border: "1px solid #F6D44B" }}>
             <p className="font-display font-extrabold text-[15px] mb-1" style={{ color: NAVY }}>
               Your access has ended
