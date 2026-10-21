@@ -248,6 +248,25 @@ export function StudyRoomProvider({
   // panel needs both at once: the Record button back for the next station, and
   // the last station still visibly being marked.
   const [reviewStage, setReviewStage] = useState<ReviewStage | null>(null);
+  /**
+   * The upload currently in flight, so leaving can wait for it.
+   *
+   * "Leave & Stop Recording" called handleStopRecording and handleLeave back
+   * to back. The recorder's onstop is a queued task, so the upload had not
+   * even begun when clearSession ran: by the time it finished the take was
+   * stale, the poll was skipped, and a failure could not be shown because
+   * there was no longer a session to show it in. The audio still reached
+   * storage and the recording still turned up under My Reviews, so nothing
+   * was lost, but the person who pressed the button was told nothing either
+   * way.
+   */
+  const pendingUploadRef = useRef<Promise<void> | null>(null);
+  /** Set when we ask the recorder to stop and this browser has a track to
+   *  send. The recorder onstop is a queued task, so there is a window where
+   *  an upload is owed but pendingUploadRef has not been filled in yet, and
+   *  leaving inside that window is exactly what "Leave & Stop Recording"
+   *  does. */
+  const uploadOwedRef = useRef(false);
   const [reviewRecordingId, setReviewRecordingId] = useState<string | null>(null);
   /**
    * Whether the take currently being followed was one I recorded as doctor.
@@ -1784,10 +1803,16 @@ export function StudyRoomProvider({
         // the attempt would only fail loudly at someone who has already left.
         if (abandonRecordingRef.current) {
           abandonRecordingRef.current = false;
+          uploadOwedRef.current = false;
           audioChunksRef.current = [];
           return;
         }
-        uploadRecording(recordingId, role);
+        // Held so handleLeave can wait for it rather than tearing the
+        // session down mid-flight.
+        uploadOwedRef.current = false;
+        pendingUploadRef.current = uploadRecording(recordingId, role).finally(() => {
+          pendingUploadRef.current = null;
+        });
       };
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
@@ -2206,6 +2231,8 @@ export function StudyRoomProvider({
       event: "recording-stop",
       payload: {},
     });
+    // Only this browser owes a track; an observer has nothing to send.
+    if (myRecordingRole !== null) uploadOwedRef.current = true;
     stopLocalRecording();
     // The consultation ended when the recording did, whether that was the
     // 12-minute cutoff or someone choosing to end early. Without this the
@@ -2317,6 +2344,28 @@ export function StudyRoomProvider({
 
   async function handleLeave() {
     if (!room) return;
+
+    /*
+      Wait for an upload that is still going, so the audio is safely stored
+      before the session it belongs to is dismantled. Bounded, because the
+      alternative to a slow upload must not be a room nobody can leave: past
+      the ceiling we carry on and let the upload finish on its own, which it
+      does, since nothing here aborts the request.
+    */
+    // First for the recorder to hand the upload over, since its onstop is
+    // queued and will not have run yet when Leave follows Stop immediately.
+    const owedUntil = Date.now() + 5_000;
+    while (uploadOwedRef.current && !pendingUploadRef.current && Date.now() < owedUntil) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    if (pendingUploadRef.current) {
+      logStatus("leaving — waiting for the upload in flight");
+      await Promise.race([
+        pendingUploadRef.current,
+        new Promise((resolve) => setTimeout(resolve, 20_000)),
+      ]);
+    }
+    uploadOwedRef.current = false;
     const others = participants.filter((p) => !p.isSelf);
     // Keep the doctor=host invariant when a role-holder leaves.
     if (iAmHost && others.length > 0) {
