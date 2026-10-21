@@ -235,12 +235,13 @@ export default async function HomePage() {
               of them was.
             */}
             <p className="text-[15.5px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-              Every plan includes 240+ realistic SCA cases, designed to mimic the exam. Each one
-              is a genuine patient dilemma to work through in twelve minutes, and afterwards you
-              get a predicted score and feedback with specific pointers on how to improve. Each
-              case also carries the reading behind it: how to take the history, how to manage the
-              problem, a worked example of the conversation, and a trainer insight from the GP who
-              wrote it. It is built to give you real exam confidence and a better score on the day.
+              All SCA Focus packages include 240+ realistic SCA cases, designed to mimic the exam.
+              Each centres around a genuine patient dilemma to work through in twelve minutes.
+              Afterwards you get a predicted score and specific feedback with pointers on how to
+              improve. Each case also carries the reading behind it: how to take the history, how
+              to manage the problem, a worked example of the conversation, and a trainer insight
+              from a practising GP with high yield tips. The package is designed to give you real
+              exam confidence and to boost your exam performance.
             </p>
           </div>
           {/*

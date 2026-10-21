@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { PASS_THRESHOLD, scoreColour, isPassingScore } from "@/lib/report-score";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -12,20 +13,6 @@ import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 export const dynamic = "force-dynamic";
 
 const NAVY = "#333333";
-const PASS_THRESHOLD = 7;
-/** Below this the score is a long way off, rather than close to the line. */
-const BORDERLINE_THRESHOLD = 5;
-
-/**
- * The number carries the verdict for everything under the pass mark, so only a
- * pass gets a badge as well. Two bands of shortfall told twice over, in a
- * colour and in a word, was more noise than information.
- */
-function scoreColour(total: number): string {
-  if (total >= PASS_THRESHOLD) return "#166534";
-  if (total >= BORDERLINE_THRESHOLD) return "#C2410C";
-  return "#B91C1C";
-}
 
 const GRADE_META: Record<string, { label: string; color: string; bg: string; pts: (d: string) => number }> = {
   CF: { label: "Clear Fail", color: "#B91C1C", bg: "rgba(239,68,68,0.09)", pts: () => 0 },
@@ -218,7 +205,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const cmPts = grades.cm ? GRADE_META[grades.cm]?.pts("cm") ?? null : null;
   const roPts = grades.ro ? GRADE_META[grades.ro]?.pts("ro") ?? null : null;
   const total = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
-  const isPassing = total !== null && total >= PASS_THRESHOLD;
+  const isPassing = isPassingScore(total);
 
   const hasConsultation = isDoctor && (doctorAudioUrl || patientAudioUrl || rec.transcript_formatted);
 
