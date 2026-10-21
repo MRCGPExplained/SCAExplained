@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { PASS_THRESHOLD, scoreColour, isPassingScore } from "@/lib/report-score";
+import { PredictedScore } from "@/app/components/PredictedScore";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -205,7 +205,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const cmPts = grades.cm ? GRADE_META[grades.cm]?.pts("cm") ?? null : null;
   const roPts = grades.ro ? GRADE_META[grades.ro]?.pts("ro") ?? null : null;
   const total = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
-  const isPassing = isPassingScore(total);
 
   const hasConsultation = isDoctor && (doctorAudioUrl || patientAudioUrl || rec.transcript_formatted);
 
@@ -323,29 +322,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Predicted Score
               </div>
-              <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
-                {/* Green at or above the pass mark, orange within striking
-                    distance of it, red well short. A candidate reads where
-                    they stand off the number itself. */}
-                <span className="font-extrabold leading-none" style={{ fontSize: 44, color: scoreColour(total) }}>
-                  {total}
-                  <span className="font-extrabold">/10.5</span>
-                </span>
-                {/* Only a pass is named. Set below the score deliberately: at
-                    matching type size the padding made the badge taller than
-                    the number, so it set the height of the row and threw the
-                    spacing above and below it out. At 30 with tighter padding
-                    it comes in just under 44 and the row keeps the score's own
-                    height. */}
-                {isPassing && (
-                  <span
-                    className="font-extrabold uppercase px-4 py-1.5 rounded-xl leading-none tracking-[0.02em]"
-                    style={{ fontSize: 30, background: "rgba(34,197,94,0.11)", color: "#166534" }}
-                  >
-                    Pass
-                  </span>
-                )}
-              </div>
+              <PredictedScore total={total} className="justify-between mb-5" />
 
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Score Distribution

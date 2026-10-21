@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AudioPlaceholder } from "@/app/recordings/sample/AudioPlaceholder";
-import { scoreColour, isPassingScore } from "@/lib/report-score";
+import { PredictedScore } from "@/app/components/PredictedScore";
 
 const NAVY = "#333333";
 const YELLOW = "#F6D44B";
@@ -158,26 +158,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4" style={{ color: "rgba(51,51,51,0.4)" }}>
             Predicted Score
           </div>
-          {/*
-            Same colour and badge as the real report, from lib/report-score.
-            This rendered 7 out of 10.5 — a pass — in plain navy with nothing
-            beside it, so the version a buyer sees was the only one that did
-            not say the consultation passed.
-          */}
-          <div className="flex items-end gap-2.5 mb-1">
-            <span className="font-extrabold leading-none" style={{ fontSize: 44, color: scoreColour(total) }}>
-              {total}<span className="font-extrabold text-[28px]">/10.5</span>
-            </span>
-            {isPassingScore(total) && (
-              <span
-                className="font-extrabold uppercase px-3 py-1 rounded-xl leading-none tracking-[0.02em]"
-                style={{ fontSize: 24, background: "rgba(34,197,94,0.11)", color: "#166534" }}
-              >
-                Pass
-              </span>
-            )}
-          </div>
-          <p className="text-[12px] mb-5" style={{ color: "rgba(51,51,51,0.4)" }}>Pass threshold: 7 pts</p>
+          <PredictedScore total={total} badgeFontSize={24} />
 
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
             Score Distribution
