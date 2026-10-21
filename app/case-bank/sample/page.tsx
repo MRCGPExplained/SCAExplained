@@ -245,6 +245,30 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
 function StoryTab() {
   return (
     <div className="flex flex-col gap-4">
+      {/*
+        The Dilemma, first and in orange, exactly as StationPageClient renders
+        it. Every published station has one and it is the most prominent thing
+        in this tab on the real page; the sample opened straight on the
+        presenting complaint, so the one block that tells a role-player what
+        the case is actually about was missing from the version buyers see.
+      */}
+      <div
+        className="rounded-lg p-4"
+        style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.35)" }}
+      >
+        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "#C2410C" }}>
+          The Dilemma
+        </div>
+        <p className="text-[16px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.8)" }}>
+          Amy knows her asthma is worse and expects to leave with a different inhaler. What she
+          will not volunteer is that she takes her preventer once a day rather than twice, because
+          she has read that steroids thin your bones and cause weight gain. Play her as cooperative
+          and quite willing to agree to a new prescription. If the doctor steps her up without
+          finding out how she actually takes the one she has, agree pleasantly, and leave intending
+          to use the new inhaler the same way.
+        </p>
+      </div>
+
       <div className="rounded-lg p-4" style={{ background: "#EFF6FF" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "rgba(31,41,55,0.45)" }}>Opening Statement</div>
         <p className="text-[16px] leading-[1.65] italic" style={{ color: NAVY }}>
