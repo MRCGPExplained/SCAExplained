@@ -10,8 +10,9 @@
 -- object merged over it overrides only the handful that must differ.
 
 insert into public.station_recordings
-select *
-from jsonb_populate_record(
+select t.*
+from public.station_recordings r
+cross join lateral jsonb_populate_record(
   null::public.station_recordings,
   to_jsonb(r) || jsonb_build_object(
     'id',                   gen_random_uuid(),
@@ -34,7 +35,6 @@ from jsonb_populate_record(
     'candidate_viewed_at',  null
   )
 ) as t
-from public.station_recordings r
 where r.id = 'c1ede096-fd0f-4d27-a78d-4601b9e9b0bf'
 returning id, status, station_title, doctor_audio_path, patient_audio_path;
 
