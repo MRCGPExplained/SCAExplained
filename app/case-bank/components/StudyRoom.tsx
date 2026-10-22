@@ -193,7 +193,9 @@ export function StudyRoomPanel() {
   const [chatInput, setChatInput] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
-  const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | "leave" | null>(null);
+  // Only "stop" remains: Leave is hidden while a session is running, so
+  // there is no longer a leave-and-stop to confirm.
+  const [stopConfirmMode, setStopConfirmMode] = useState<"stop" | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -375,19 +377,23 @@ export function StudyRoomPanel() {
               </button>
             </div>
           )}
-          <button
-            onClick={() => {
-              if (recordingState === "recording" || recordingState === "starting") {
-                setStopConfirmMode("leave");
-              } else {
-                handleLeave();
-              }
-            }}
-            className="text-[10px] px-2 py-1 rounded shrink-0 whitespace-nowrap"
-            style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
-          >
-            Leave
-          </button>
+          {/*
+            Only while nothing is running. During the preparation, the
+            consultation and the debrief, Leave sat in the same red at the
+            same size as the action that actually belongs to that moment, and
+            during the debrief it did nearly the same job as End Call Now
+            right beside it. Stop ends the take; End Call Now ends the call;
+            Leave is for when there is no session to end.
+          */}
+          {sessionIdle && (
+            <button
+              onClick={handleLeave}
+              className="text-[10px] px-2 py-1 rounded shrink-0 whitespace-nowrap"
+              style={{ background: "rgba(239,68,68,0.15)", color: "#FCA5A5", border: "none", cursor: "pointer" }}
+            >
+              Leave
+            </button>
+          )}
         </div>
       </div>
       {recordingError && (
@@ -701,13 +707,11 @@ export function StudyRoomPanel() {
           <div className="flex items-center gap-2 mb-3">
             <span style={{ fontSize: 20 }}>⚠️</span>
             <h2 className="font-display font-bold text-[15px]" style={{ color: NAVY }}>
-              {stopConfirmMode === "leave" ? "Leave and stop recording now?" : "Stop recording now?"}
+              Stop recording now?
             </h2>
           </div>
           <p className="text-[13px] mb-6 leading-snug" style={{ color: "rgba(26,27,82,0.7)" }}>
-            {stopConfirmMode === "leave"
-              ? "Leaving now ends the consultation early for everyone in the room. Only what's been recorded so far will be transcribed and AI-reviewed."
-              : "If you stop now, the consultation ends early and only what's been recorded so far will be transcribed and AI-reviewed."}
+            If you stop now, the consultation ends early and only what&apos;s been recorded so far will be transcribed and AI-reviewed.
           </p>
 
           <div className="flex gap-2.5">
@@ -720,15 +724,13 @@ export function StudyRoomPanel() {
             </button>
             <button
               onClick={() => {
-                const mode = stopConfirmMode;
                 setStopConfirmMode(null);
                 handleStopRecording();
-                if (mode === "leave") handleLeave();
               }}
               className="flex-1 rounded-lg py-2.5 text-[13px] font-bold"
               style={{ background: "#B91C1C", border: "none", color: "white", cursor: "pointer" }}
             >
-              {stopConfirmMode === "leave" ? "Leave & Stop Recording" : "Stop Recording"}
+              Stop Recording
             </button>
           </div>
         </div>
