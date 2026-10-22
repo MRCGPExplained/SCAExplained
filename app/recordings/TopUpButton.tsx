@@ -78,9 +78,8 @@ export function TopUpButton({
         type="button"
         onClick={() => buy(key)}
         disabled={busy !== null}
-        className="rounded-xl px-4 py-3.5 text-left transition-opacity"
+        className="topup-card rounded-xl px-4 py-3.5 text-left"
         style={{
-          background: "white",
           border: "1px solid rgba(51,51,51,0.12)",
           cursor: busy ? "default" : "pointer",
           opacity: busy && busy !== key ? 0.5 : 1,
@@ -132,6 +131,23 @@ export function TopUpButton({
               style={{ background: "white", boxShadow: "0 20px 60px rgba(51,51,51,0.3)" }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Hover in CSS rather than React state: five identical cards
+                  and a :hover rule costs nothing, where tracking a hovered
+                  key would be state for a colour. The background lives here
+                  and not in the inline style below, because an inline
+                  background wins against a class and the wash would never
+                  show. */}
+              <style>{`
+                .topup-card {
+                  background: #ffffff;
+                  transition: background-color 0.15s ease-out;
+                }
+                .topup-card:hover:not(:disabled) { background: #FDFAEF; }
+                @media (prefers-reduced-motion: reduce) {
+                  .topup-card { transition: none; }
+                }
+              `}</style>
+
               <h2 id="topup-heading" className="font-display font-extrabold text-[17px] mb-4" style={{ color: DARK }}>
                 Top up
               </h2>

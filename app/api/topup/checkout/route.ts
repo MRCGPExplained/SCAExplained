@@ -61,10 +61,15 @@ export async function POST(req: Request) {
           unit_amount: t.pricePence,
           product_data: {
             name: `SCA Focus: ${t.label}`,
+            // What they are buying, and nothing else. The expiry caveat was
+            // here too, which put a sentence about what the purchase does NOT
+            // do on the checkout page, at the one moment someone is deciding
+            // whether to pay. It belongs in the receipt and the terms, where
+            // it already is.
             description:
               t.kind === "ai"
-                ? `A top-up of ${t.units} AI gradings. Does not change your access or its expiry date.`
-                : `A top-up of ${t.units} GP review credits. Does not change your access or its expiry date.`,
+                ? `A top-up of ${t.units} AI gradings.`
+                : `A top-up of ${t.units} GP review credits.`,
           },
         },
         quantity: 1,
