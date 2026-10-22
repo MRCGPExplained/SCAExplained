@@ -137,6 +137,8 @@ export interface StudyRoomValue {
   /** True when the take being followed is one I recorded as doctor. Outlives
    *  the debrief, unlike myRecordingRole. */
   reviewMineAsDoctor: boolean;
+  /** The pipeline's own reason for a failure, shown rather than summarised. */
+  reviewError: string | null;
   dismissReviewStage: () => void;
 
   dailyConnecting: boolean;

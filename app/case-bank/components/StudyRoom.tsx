@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useStudyRoom, type ReviewStage } from "./study-room/context";
 import { TranscribedDecisionModal } from "./TranscribedDecisionModal";
+import { MarkingFailedModal } from "./MarkingFailedModal";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -169,6 +170,7 @@ export function StudyRoomPanel() {
     dismissReviewStage,
     myRecordingRole,
     reviewMineAsDoctor,
+    reviewError,
     clearRecordingError,
     showStartWarning,
     confirmStart,
@@ -616,6 +618,16 @@ export function StudyRoomPanel() {
     {reviewStage === "decide" && reviewRecordingId && reviewMineAsDoctor && (
       <TranscribedDecisionModal
         recordingId={reviewRecordingId}
+        onClose={dismissReviewStage}
+      />
+    )}
+
+    {/* Why it failed, rather than only that it did. Same audience as the
+        decision modal: whoever recorded the take as doctor. */}
+    {reviewStage === "failed" && reviewMineAsDoctor && (
+      <MarkingFailedModal
+        recordingId={reviewRecordingId}
+        reason={reviewError}
         onClose={dismissReviewStage}
       />
     )}

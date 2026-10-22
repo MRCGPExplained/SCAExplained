@@ -277,6 +277,10 @@ export function StudyRoomProvider({
    *  does. */
   const uploadOwedRef = useRef(false);
   const [reviewRecordingId, setReviewRecordingId] = useState<string | null>(null);
+  /** Why the last take failed, as the pipeline recorded it. The chip could
+   *  only say "Marking failed", which is the one thing the person already
+   *  knew. */
+  const [reviewError, setReviewError] = useState<string | null>(null);
   /**
    * Whether the take currently being followed was one I recorded as doctor.
    *
@@ -852,6 +856,25 @@ export function StudyRoomProvider({
     lastFollowRef.current = { target, at: Date.now() };
     router.push(`/case-bank/${target}`);
   }
+
+  /**
+   * Moving to another station clears the previous take's review chip.
+   *
+   * The chip is scoped to a recording, not to a station, so a "Review →" link
+   * for station 1 followed the room onto station 2 and sat there offering a
+   * report for a consultation that has nothing to do with what is on screen.
+   * Cleared on a real change of station, not on arriving at the first one.
+   */
+  const lastStationRef = useRef<number | null>(null);
+  useEffect(() => {
+    const previous = lastStationRef.current;
+    lastStationRef.current = stationNumber;
+    if (previous === null || stationNumber === null || previous === stationNumber) return;
+    setReviewStage(null);
+    setReviewRecordingId(null);
+    setReviewMineAsDoctor(false);
+    setReviewError(null);
+  }, [stationNumber]);
 
   // True while the room being set came from sessionStorage rather than a
   // deliberate join, so the join effect knows not to navigate.
@@ -2001,6 +2024,7 @@ export function StudyRoomProvider({
             publish("review");
           } else {
             logError("review pipeline failed", s.ai_error, { recordingId });
+            setReviewError(typeof s.ai_error === "string" ? s.ai_error : null);
             publish("failed");
           }
           return;
@@ -2452,6 +2476,7 @@ export function StudyRoomProvider({
     setDebriefSecondsLeft(null);
     setReviewStage(null);
     setReviewRecordingId(null);
+    setReviewError(null);
     // The clock too. Left on a spent CONSULT it fails `sessionIdle`, which
     // locks the role selects in the *next* room until someone finds Reset.
     resetTimerLocal();
@@ -2607,11 +2632,13 @@ export function StudyRoomProvider({
       reviewStage,
       reviewRecordingId,
       reviewMineAsDoctor,
+      reviewError,
       dismissReviewStage: () => {
       if (reviewRecordingId) decisionDismissedRef.current.add(reviewRecordingId);
       setReviewStage(null);
       setReviewRecordingId(null);
       setReviewMineAsDoctor(false);
+      setReviewError(null);
     },
       dailyConnecting,
       callConnected,
