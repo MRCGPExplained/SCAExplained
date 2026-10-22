@@ -15,20 +15,17 @@ const SKILL_RATING_META: Record<string, { label: string; color: string; bg: stri
 };
 
 /**
- * Skills for this consultation, using the real labels from grading_skills.
+ * All thirteen active skills, in the order the consultation reaches them.
  *
- * The first version of this was guesswork and got two of four wrong. It led
- * with "Exploring ICE", which is retired — exploring_ice is the one inactive
- * row in the table, split into Explores Ideas, Explores Concerns, Explores
- * Expectations and Managing ICE — and it called open_question "Open
- * questioning".
+ * Labels and capitalisation come from grading_skills and are checked against
+ * it. exploring_ice is absent because it is the one inactive row: it was
+ * retired and split into Explores Ideas, Explores Concerns, Explores
+ * Expectations and Managing ICE.
  *
- * Seven of the thirteen active skills, weighted the way the framework is:
- * ten of the thirteen sit in Relating to Others, so a sample showing mostly
- * data-gathering skills would misrepresent what the layer actually marks.
- * A real report shows whichever were assessable in that consultation, so a
- * subset is honest; the labels and their capitalisation are not a subset,
- * and these match the table exactly.
+ * Ratings are consistent with the grades above — Data Gathering 2/3,
+ * Clinical Management 3/4.5, Relating to Others 2/3 — so the section reads
+ * as the same consultation rather than a second opinion on it. The four
+ * marked down are the four the domain comments already name.
  */
 const SAMPLE_SKILLS: {
   skill: string;
@@ -40,9 +37,9 @@ const SAMPLE_SKILLS: {
     skill: "Golden Minute",
     rating: "needs_improvement",
     comment:
-      "She was interrupted roughly fifteen seconds in, on the word \"walk-in\", to confirm the date of the steroid course. The date mattered less than what she was about to say next.",
+      "She was interrupted roughly fifteen seconds in, on the word “walk-in”, to pin down the date of the steroid course. The date mattered less than what she was about to say next.",
     improvement:
-      "Let the opening run until she stops on her own. The dates can be pinned down once she has finished.",
+      "Let the opening run until she stops on her own. Dates can be fixed once she has finished.",
   },
   {
     skill: "Open Question",
@@ -50,25 +47,57 @@ const SAMPLE_SKILLS: {
     comment:
       "The consultation moved to closed questions early. The RCP 3 screen was asked as three direct questions in a row, which got the answers but closed down what she might have added.",
     improvement:
-      "Open the section with one broad question about how the asthma affects her week, then use the screen to fill whatever gaps she leaves.",
+      "Open with one broad question about how the asthma affects her week, then use the screen to fill whatever gaps she leaves.",
+  },
+  {
+    skill: "Cue Recognition",
+    rating: "good",
+    comment:
+      "“I’m a bit worried about where things are heading” was picked up rather than passed over, and it was the thread that led to the steroid concern later.",
   },
   {
     skill: "History Structure",
     rating: "good",
     comment:
-      "Control, adherence, technique and triggers were covered in an order that built on itself, and the prescription data was brought in to test the history rather than replace it.",
+      "Control, adherence, technique and triggers were covered in an order that built on itself, and the prescription data was used to test the history rather than replace it.",
+  },
+  {
+    skill: "Explores Ideas",
+    rating: "good",
+    comment:
+      "She was asked directly what she thought was going on with her asthma, before any explanation was offered, so the explanation could start from where she actually was.",
   },
   {
     skill: "Explores Concerns",
     rating: "good",
     comment:
-      "Her worry about steroids was drawn out rather than waited for, and the specific belief behind it, that the inhaler carries the same risk as the tablets, was named before any treatment was discussed.",
+      "Her worry about steroids was drawn out rather than waited for, and the specific belief behind it, that the inhaler carries the same risk as the tablets, was named.",
+  },
+  {
+    skill: "Explores Expectations",
+    rating: "needs_improvement",
+    comment:
+      "She was never asked what she was hoping for. Her question about an alternative to the steroid inhaler came from her, late, and it had been her reason for booking.",
+    improvement:
+      "Ask what she was hoping would come out of today before moving to management. It is usually one sentence and it reframes everything after it.",
   },
   {
     skill: "Managing ICE",
     rating: "good",
     comment:
       "The steroid concern was answered before the new inhaler was proposed, not after, so she was not asked to accept a decision she had already decided to be anxious about.",
+  },
+  {
+    skill: "Empathy",
+    rating: "good",
+    comment:
+      "Her worry was treated as reasonable rather than corrected, and giving up Thursday yoga was acknowledged as a loss rather than logged as a symptom.",
+  },
+  {
+    skill: "Explanation Quality",
+    rating: "good",
+    comment:
+      "The difference between inhaled and oral steroids was explained in terms of dose and where the drug goes, and MART was described as one inhaler replacing two, which is the part that matters to her.",
   },
   {
     skill: "Shared Decision Making",
@@ -83,6 +112,12 @@ const SAMPLE_SKILLS: {
       "A written action plan was promised and the 999 threshold was mentioned, but the zones were not explained, so she left with a plan she could not use on her own.",
     improvement:
       "Walk through green, amber and red once, in her words, and check she can say back what she would do after a cold.",
+  },
+  {
+    skill: "Time Management",
+    rating: "good",
+    comment:
+      "Twelve minutes covered control, adherence, technique, the steroid concern and a plan, with a summary at nine and a half minutes that left room for her last question.",
   },
 ];
 
