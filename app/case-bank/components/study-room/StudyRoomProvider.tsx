@@ -269,6 +269,17 @@ export function StudyRoomProvider({
    * Keyed by recording, so waving one away does not silence the next.
    */
   const decisionDismissedRef = useRef<Set<string>>(new Set());
+  /**
+   * Takes this client has stopped following, for any reason other than a
+   * decision — moving to another station, so far.
+   *
+   * Needed because clearing the chip is not the same as stopping it coming
+   * back, and the two roles get it back by different routes: whoever
+   * recorded a track republishes it from their own poll, and an observer is
+   * sent it by the host every tick. Stopping the poll fixes the first and
+   * does nothing for the second.
+   */
+  const stoppedFollowingRef = useRef<Set<string>>(new Set());
   const pendingUploadRef = useRef<Promise<void> | null>(null);
   /** Set when we ask the recorder to stop and this browser has a track to
    *  send. The recorder onstop is a queued task, so there is a window where
@@ -870,6 +881,19 @@ export function StudyRoomProvider({
     const previous = lastStationRef.current;
     lastStationRef.current = stationNumber;
     if (previous === null || stationNumber === null || previous === stationNumber) return;
+    // Stop following the take as well as clearing it. Clearing alone only
+    // worked for an observer, whose chip arrives by broadcast and stops
+    // arriving once the host moves on. Anyone who recorded a track — the
+    // patient as much as the doctor — is running their own poll, and that
+    // poll republishes the stage on its next tick, so the chip came
+    // straight back a few seconds after the station changed.
+    // Read through a ref, not the closure. This effect depends on
+    // stationNumber alone, so a captured reviewRecordingId would be whatever
+    // it was when the station last changed — which is null on the first
+    // move, exactly when there is a chip to stop.
+    const following = pollingRecordingRef.current ?? latest.current.reviewRecordingId;
+    if (following) stoppedFollowingRef.current.add(following);
+    pollingRecordingRef.current = null;
     setReviewStage(null);
     setReviewRecordingId(null);
     setReviewMineAsDoctor(false);
@@ -1280,6 +1304,9 @@ export function StudyRoomProvider({
     channel.on("broadcast", { event: "review-stage" }, ({ payload }) => {
       const { recordingId, stage } = payload as { recordingId: string; stage: ReviewStage };
       if (latest.current.myRecordingRole !== null) return;
+      // Moved on from this take: the host is still broadcasting it, and an
+      // observer who has changed station should not have it put back.
+      if (stoppedFollowingRef.current.has(recordingId)) return;
       setReviewRecordingId(recordingId);
       setReviewMineAsDoctor(false);
       setReviewStage(stage);
