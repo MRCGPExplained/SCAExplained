@@ -101,6 +101,7 @@ export async function createStationAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -123,6 +124,7 @@ export async function updateStationAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -148,6 +150,7 @@ export async function updateStationAction(
 export async function toggleStationPublishedAction(
   formData: FormData
 ): Promise<void> {
+  if (!(await isAdmin())) return;
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -163,6 +166,7 @@ export async function toggleStationPublishedAction(
 // ── Delete station ─────────────────────────────────────────────────────────────
 
 export async function deleteStationAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -186,6 +190,7 @@ export async function uploadImageAction(
   filename: string,
   fileBuffer: ArrayBuffer
 ): Promise<{ imageUrl: string } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -212,6 +217,7 @@ export async function deleteImageAction(
   stationId: string,
   imageUrl: string
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -249,6 +255,7 @@ export async function getAudioUploadUrlAction(
   stationId: string,
   filename: string
 ): Promise<{ signedUrl: string; path: string } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -267,6 +274,7 @@ export async function confirmAudioUploadAction(
   stationId: string,
   path: string
 ): Promise<{ audioUrl: string } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -294,6 +302,7 @@ export async function confirmAudioUploadAction(
 }
 
 export async function deleteAudioAction(stationId: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -331,6 +340,7 @@ export async function getTrainerInsightAudioUploadUrlAction(
   stationId: string,
   filename: string
 ): Promise<{ signedUrl: string; path: string } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -349,6 +359,7 @@ export async function confirmTrainerInsightAudioUploadAction(
   stationId: string,
   path: string
 ): Promise<{ audioUrl: string } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -376,6 +387,7 @@ export async function confirmTrainerInsightAudioUploadAction(
 }
 
 export async function deleteTrainerInsightAudioAction(stationId: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -423,6 +435,7 @@ export async function createVideoSystemAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -441,6 +454,7 @@ export async function updateVideoSystemAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -464,6 +478,7 @@ export async function updateVideoSystemAction(
 export async function toggleVideoSystemPublishedAction(
   formData: FormData
 ): Promise<void> {
+  if (!(await isAdmin())) return;
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -477,6 +492,7 @@ export async function toggleVideoSystemPublishedAction(
 }
 
 export async function deleteVideoSystemAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -491,6 +507,7 @@ export async function deleteVideoSystemAction(id: string): Promise<ActionResult>
 export async function reorderVideoLessonsAction(
   items: { id: string; display_order: number }[]
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -513,6 +530,7 @@ export async function savePromoCodeSettingsAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult & { ok?: boolean }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -560,6 +578,7 @@ export async function createHomepageVideoAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -578,6 +597,7 @@ export async function updateHomepageVideoAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -594,6 +614,7 @@ export async function updateHomepageVideoAction(
 }
 
 export async function toggleHomepageVideoPublishedAction(formData: FormData) {
+  if (!(await isAdmin())) return;
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -605,6 +626,7 @@ export async function toggleHomepageVideoPublishedAction(formData: FormData) {
 }
 
 export async function deleteHomepageVideoAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -619,6 +641,7 @@ export async function deleteHomepageVideoAction(id: string): Promise<ActionResul
 export async function reorderHomepageVideosAction(
   items: { id: string; display_order: number }[]
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -641,6 +664,7 @@ export async function createCaseBankUser(
   _prev: ActionResult | undefined,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -678,18 +702,27 @@ export async function createCaseBankUser(
     return { error: profileErr.message };
   }
 
-  if (expiresAtRaw) {
-    const expiry = new Date(expiresAtRaw + "T23:59:59Z").toISOString();
-    const { error: accessErr } = await supabase.from("user_access").upsert({
-      user_id: userId,
-      has_programme: true,
-      expires_at: expiry,
-      has_case_bank: true,
-      case_bank_expires_at: expiry,
-    });
-    if (accessErr) {
-      return { error: `User created but access grant failed: ${accessErr.message}` };
-    }
+  /*
+    The access row is always written, with or without a date.
+
+    It used to be created only when an expiry was given, and
+    setAiAllowanceAction refuses outright when there is no row: "This user
+    has no access record to adjust." So an admin who made a user and then
+    tried to give them AI gradings got an error naming a table, while GP
+    credits worked fine because those live elsewhere. The row with both
+    flags false is the honest representation of an account that exists and
+    has not been given anything yet.
+  */
+  const expiry = expiresAtRaw ? new Date(expiresAtRaw + "T23:59:59Z").toISOString() : null;
+  const { error: accessErr } = await supabase.from("user_access").upsert({
+    user_id: userId,
+    has_programme: !!expiry,
+    expires_at: expiry,
+    has_case_bank: !!expiry,
+    case_bank_expires_at: expiry,
+  });
+  if (accessErr) {
+    return { error: `User created but access grant failed: ${accessErr.message}` };
   }
 
   revalidatePath("/admin/case-bank-users");
@@ -700,6 +733,7 @@ export async function grantUserAccess(
   _prev: ActionResult | undefined,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -743,6 +777,7 @@ export async function grantUserAccess(
 }
 
 export async function revokeUserAccess(userId: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -754,6 +789,7 @@ export async function revokeUserAccess(userId: string): Promise<ActionResult> {
 }
 
 export async function deleteCaseBankUser(userId: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -794,6 +830,7 @@ export async function createRecordedConsultationAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -811,6 +848,7 @@ export async function updateRecordedConsultationAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -831,6 +869,7 @@ export async function updateRecordedConsultationAction(
 }
 
 export async function toggleRecordedConsultationPublishedAction(formData: FormData) {
+  if (!(await isAdmin())) return;
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -842,6 +881,7 @@ export async function toggleRecordedConsultationPublishedAction(formData: FormDa
 }
 
 export async function deleteRecordedConsultationAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -855,6 +895,7 @@ export async function deleteRecordedConsultationAction(id: string): Promise<Acti
 export async function reorderRecordedConsultationsAction(
   items: { id: string; display_order: number }[]
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -876,6 +917,7 @@ export async function setRecordingCreditsAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult & { ok?: boolean }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -984,6 +1026,7 @@ export async function createExaminerAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1030,6 +1073,7 @@ export async function updateExaminerAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1065,11 +1109,14 @@ export async function updateExaminerAction(
   return { success: true };
 }
 
-export async function toggleExaminerIsAdminAction(id: string, isAdmin: boolean): Promise<ActionResult> {
+// Parameter renamed from isAdmin: it shadowed the imported guard of the same
+// name, so the check below called the boolean instead of the function.
+export async function toggleExaminerIsAdminAction(id: string, makeAdmin: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
-  const { error } = await supabase.from("examiners").update({ is_admin: isAdmin }).eq("id", id);
+  const { error } = await supabase.from("examiners").update({ is_admin: makeAdmin }).eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/examiners");
@@ -1077,6 +1124,7 @@ export async function toggleExaminerIsAdminAction(id: string, isAdmin: boolean):
 }
 
 export async function deleteExaminerAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1106,6 +1154,7 @@ export async function updateBypassSettingsAction(
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1156,6 +1205,7 @@ export async function clearAiPromptAction(): Promise<ActionResult> {
 }
 
 export async function toggleDeepgramAction(enabled: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1169,6 +1219,7 @@ export async function toggleDeepgramAction(enabled: boolean): Promise<ActionResu
 }
 
 export async function setVercelPlanAction(plan: "hobby" | "pro"): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1182,6 +1233,7 @@ export async function setVercelPlanAction(plan: "hobby" | "pro"): Promise<Action
 }
 
 export async function toggleResendAction(enabled: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1195,6 +1247,7 @@ export async function toggleResendAction(enabled: boolean): Promise<ActionResult
 }
 
 export async function toggleDailyCoAction(enabled: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1210,6 +1263,7 @@ export async function toggleDailyCoAction(enabled: boolean): Promise<ActionResul
 // ── Beta flag ─────────────────────────────────────────────────────────────────
 
 export async function toggleBetaAction(userId: string, beta: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1225,6 +1279,7 @@ export async function toggleBetaAction(userId: string, beta: boolean): Promise<A
 }
 
 export async function bulkMarkExaminerPaidAction(ids: string[]): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
   if (!ids.length) return { error: "No recordings selected." };
@@ -1258,6 +1313,7 @@ export async function createTestimonialAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1286,6 +1342,7 @@ export async function updateTestimonialAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1304,6 +1361,7 @@ export async function updateTestimonialAction(
 }
 
 export async function toggleTestimonialPublishedAction(formData: FormData) {
+  if (!(await isAdmin())) return;
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -1315,6 +1373,7 @@ export async function toggleTestimonialPublishedAction(formData: FormData) {
 }
 
 export async function deleteTestimonialAction(id: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1329,6 +1388,7 @@ export async function deleteTestimonialAction(id: string): Promise<ActionResult>
 export async function reorderTestimonialsAction(
   items: { id: string; display_order: number }[]
 ): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1348,6 +1408,7 @@ export async function reorderTestimonialsAction(
 export async function uploadTestimonialPhotoAction(
   formData: FormData
 ): Promise<{ url?: string; error?: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1368,6 +1429,7 @@ export async function uploadTestimonialPhotoAction(
 }
 
 export async function deleteTestimonialPhotoAction(url: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1452,6 +1514,7 @@ async function findEmptyStudyRoomIds(): Promise<string[]> {
 }
 
 export async function countEmptyStudyRoomsAction(): Promise<number> {
+  if (!(await isAdmin())) return 0;
   return (await findEmptyStudyRoomIds()).length;
 }
 
@@ -1492,6 +1555,7 @@ async function findExpiredGuestIds(): Promise<string[]> {
 }
 
 export async function countExpiredGuestAccountsAction(): Promise<number> {
+  if (!(await isAdmin())) return 0;
   return (await findExpiredGuestIds()).length;
 }
 
@@ -1532,6 +1596,7 @@ async function findOldCandidateAudioRows(beforeDate: string) {
 }
 
 export async function countOldCandidateAudioAction(beforeDate: string): Promise<number> {
+  if (!(await isAdmin())) return 0;
   return (await findOldCandidateAudioRows(beforeDate)).length;
 }
 
@@ -1570,6 +1635,7 @@ export async function deleteOldCandidateAudioAction(beforeDate: string): Promise
 // ── Skill grading ─────────────────────────────────────────────────────────────
 
 export async function toggleSkillGradingAction(enabled: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
@@ -1583,6 +1649,7 @@ export async function toggleSkillGradingAction(enabled: boolean): Promise<Action
 }
 
 export async function setGradingModelAction(model: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 

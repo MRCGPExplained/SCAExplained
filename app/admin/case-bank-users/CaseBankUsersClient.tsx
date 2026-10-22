@@ -25,9 +25,11 @@ export type CaseBankUser = {
   ai: { allowance: number; used: number };
 };
 
+// Four months, matching every plan. It was 90 days, left over from the
+// retired programme, so the form quietly offered a term nothing sells.
 function defaultExpiry() {
   const d = new Date();
-  d.setDate(d.getDate() + 90);
+  d.setMonth(d.getMonth() + 4);
   return d.toISOString().slice(0, 10);
 }
 
