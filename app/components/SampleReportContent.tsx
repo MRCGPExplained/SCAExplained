@@ -15,11 +15,20 @@ const SKILL_RATING_META: Record<string, { label: string; color: string; bg: stri
 };
 
 /**
- * Skills for this consultation, written against what actually happens in it.
+ * Skills for this consultation, using the real labels from grading_skills.
  *
- * The labels are plain text here, where a real report reads them from the
- * grading_skills table. They need checking against that list so the sample
- * names the same skills a customer will see.
+ * The first version of this was guesswork and got two of four wrong. It led
+ * with "Exploring ICE", which is retired — exploring_ice is the one inactive
+ * row in the table, split into Explores Ideas, Explores Concerns, Explores
+ * Expectations and Managing ICE — and it called open_question "Open
+ * questioning".
+ *
+ * Seven of the thirteen active skills, weighted the way the framework is:
+ * ten of the thirteen sit in Relating to Others, so a sample showing mostly
+ * data-gathering skills would misrepresent what the layer actually marks.
+ * A real report shows whichever were assessable in that consultation, so a
+ * subset is honest; the labels and their capitalisation are not a subset,
+ * and these match the table exactly.
  */
 const SAMPLE_SKILLS: {
   skill: string;
@@ -28,27 +37,47 @@ const SAMPLE_SKILLS: {
   improvement?: string;
 }[] = [
   {
-    skill: "Exploring ICE",
-    rating: "good",
+    skill: "Golden Minute",
+    rating: "needs_improvement",
     comment:
-      "Her worry about steroids was drawn out rather than waited for, and the idea behind it, that inhaled and oral steroids carry the same risk, was named before any treatment was discussed.",
+      "She was interrupted roughly fifteen seconds in, on the word \"walk-in\", to confirm the date of the steroid course. The date mattered less than what she was about to say next.",
+    improvement:
+      "Let the opening run until she stops on her own. The dates can be pinned down once she has finished.",
   },
   {
-    skill: "Open questioning",
+    skill: "Open Question",
     rating: "needs_improvement",
     comment:
       "The consultation moved to closed questions early. The RCP 3 screen was asked as three direct questions in a row, which got the answers but closed down what she might have added.",
     improvement:
-      "Open the section with one broad question about how the asthma affects her week, then use the screen to fill the gaps she leaves.",
+      "Open the section with one broad question about how the asthma affects her week, then use the screen to fill whatever gaps she leaves.",
   },
   {
-    skill: "Shared decision making",
+    skill: "History Structure",
+    rating: "good",
+    comment:
+      "Control, adherence, technique and triggers were covered in an order that built on itself, and the prescription data was brought in to test the history rather than replace it.",
+  },
+  {
+    skill: "Explores Concerns",
+    rating: "good",
+    comment:
+      "Her worry about steroids was drawn out rather than waited for, and the specific belief behind it, that the inhaler carries the same risk as the tablets, was named before any treatment was discussed.",
+  },
+  {
+    skill: "Managing ICE",
+    rating: "good",
+    comment:
+      "The steroid concern was answered before the new inhaler was proposed, not after, so she was not asked to accept a decision she had already decided to be anxious about.",
+  },
+  {
+    skill: "Shared Decision Making",
     rating: "good",
     comment:
       "Fostair was offered with its reasoning and she was given room to agree rather than told. Her own goal of getting back to yoga was used as the measure of whether it works.",
   },
   {
-    skill: "Safety netting",
+    skill: "Safety Netting",
     rating: "needs_improvement",
     comment:
       "A written action plan was promised and the 999 threshold was mentioned, but the zones were not explained, so she left with a plan she could not use on her own.",
