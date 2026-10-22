@@ -87,6 +87,12 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           .from("station_recordings")
           .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, candidate_viewed_at")
           .eq("doctor_user_id", user.id)
+          // A take that could not be marked is not a review. There is no
+          // report behind it and nothing to decide about it, so listing it
+          // only puts a dead row in the middle of someone's feedback. The
+          // room tells them at the time, and the row stays in the database
+          // for us to look at.
+          .neq("status", "failed")
           .order("started_at", { ascending: false })
           .limit(50)
       : Promise.resolve({ data: [] }),
@@ -285,8 +291,6 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
                             : rec.status === "pending_examiner" || rec.status === "reviewing"
                             ? { background: "rgba(245,158,11,0.1)", color: "#92400E" }
-                            : rec.status === "failed"
-                            ? { background: "rgba(239,68,68,0.1)", color: "#B91C1C" }
                             : { background: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)" }
                         }
                       >
@@ -304,8 +308,6 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "AI graded"
                           : rec.status === "pending_examiner" || rec.status === "reviewing"
                           ? "Awaiting examiner"
-                          : rec.status === "failed"
-                          ? "Needs a retry"
                           : rec.status}
                       </span>
 

@@ -625,11 +625,7 @@ export function StudyRoomPanel() {
     {/* Why it failed, rather than only that it did. Same audience as the
         decision modal: whoever recorded the take as doctor. */}
     {reviewStage === "failed" && reviewMineAsDoctor && (
-      <MarkingFailedModal
-        recordingId={reviewRecordingId}
-        reason={reviewError}
-        onClose={dismissReviewStage}
-      />
+      <MarkingFailedModal reason={reviewError} onClose={dismissReviewStage} />
     )}
 
     {showStartWarning && (

@@ -17,11 +17,9 @@ const DARK = "#333333";
  * microphone checks under it was a support article in a dialog.
  */
 export function MarkingFailedModal({
-  recordingId,
   reason,
   onClose,
 }: {
-  recordingId: string | null;
   reason: string | null;
   onClose: () => void;
 }) {
@@ -82,28 +80,18 @@ export function MarkingFailedModal({
           </>
         )}
 
-        <div className="flex gap-2.5">
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-lg py-2.5 text-[13px] font-semibold"
-            style={{ background: "#F4F4F2", border: "none", color: DARK, cursor: "pointer" }}
-          >
-            Close
-          </button>
-          {recordingId && (
-            <a
-              href={`/recordings/${recordingId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 rounded-lg py-2.5 text-[13px] font-bold text-center no-underline"
-              style={{ background: DARK, color: "white" }}
-            >
-              Open it anyway
-            </a>
-          )}
-        </div>
+        {/* Close and nothing else. There is nothing to open: a take that
+            could not be marked has no report, and it is not kept in My
+            Reviews either. */}
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-lg py-2.5 text-[13px] font-semibold"
+          style={{ background: "#F4F4F2", border: "none", color: DARK, cursor: "pointer" }}
+        >
+          Close
+        </button>
       </div>
     </div>,
     document.body
