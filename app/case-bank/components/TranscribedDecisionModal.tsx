@@ -107,12 +107,10 @@ export function TranscribedDecisionModal({
       disabled={anyBusy || disabled}
       className="w-full text-left rounded-xl px-4 py-3 transition-opacity"
       style={{
-        background: disabled ? "rgba(51,51,51,0.05)" : destructive ? "rgba(239,68,68,0.07)" : "white",
-        border: `1px solid ${
-          disabled ? "rgba(51,51,51,0.10)" : destructive ? "rgba(239,68,68,0.25)" : "rgba(51,51,51,0.12)"
-        }`,
+        background: destructive ? "rgba(239,68,68,0.07)" : "white",
+        border: `1px solid ${destructive ? "rgba(239,68,68,0.25)" : "rgba(51,51,51,0.12)"}`,
         cursor: anyBusy || disabled ? "default" : "pointer",
-        opacity: disabled ? 0.6 : anyBusy && busy !== choice ? 0.5 : 1,
+        opacity: anyBusy && busy !== choice ? 0.5 : 1,
       }}
     >
       <span className="flex items-center justify-between gap-3">
@@ -126,9 +124,38 @@ export function TranscribedDecisionModal({
         )}
       </span>
       <span className="block text-[12px] leading-[1.5] mt-1" style={{ color: "rgba(51,51,51,0.6)" }}>
-        {disabled ? "None left on your plan." : detail}
+        {detail}
       </span>
     </button>
+  );
+
+  /**
+   * The same row for a meter that has run out, as a div rather than a button.
+   *
+   * It used to be the button, greyed and inert, with the way out of the
+   * situation printed as a footnote under all three rows. The row knows what
+   * is wrong with it, so it carries the fix: an empty balance is the one
+   * moment the price list is worth seeing. A div because the trigger is
+   * itself a button, and a button inside a button is invalid and swallows
+   * the click.
+   */
+  const emptyOption = (title: string, cost: string) => (
+    <div
+      className="w-full text-left rounded-xl px-4 py-3"
+      style={{ background: "white", border: "1px solid rgba(51,51,51,0.12)" }}
+    >
+      <span className="flex items-center justify-between gap-3">
+        <span className="font-display font-bold text-[14px]" style={{ color: DARK }}>
+          {title}
+        </span>
+        <span className="text-[11px] font-semibold shrink-0" style={{ color: "rgba(51,51,51,0.5)" }}>
+          {cost}
+        </span>
+      </span>
+      <span className="block text-[12px] leading-[1.5] mt-1" style={{ color: "rgba(51,51,51,0.6)" }}>
+        None left on this plan. Please <TopUpButton variant="link" label="top up" />.
+      </span>
+    </div>
   );
 
   return createPortal(
@@ -149,23 +176,27 @@ export function TranscribedDecisionModal({
           Consultation recorded
         </h2>
         <div className="flex flex-col gap-2.5">
-          {option(
-            "ai",
-            "Get AI feedback",
-            "Provisional scores and written feedback across the three domains, usually within a couple of minutes.",
-            ai === undefined ? "1 grading" : `1 of ${ai}`,
-            false,
-            ai === 0,
-            firstRef
-          )}
-          {option(
-            "gp",
-            "Send to a GP",
-            "Graded by AI, then read by an experienced GP who verifies the scoring and writes back. Usually within 5 working days.",
-            gp === undefined ? "1 review" : `1 of ${gp}`,
-            false,
-            gp === 0
-          )}
+          {ai === 0
+            ? emptyOption("Get AI feedback", "1 of 0")
+            : option(
+                "ai",
+                "Get AI feedback",
+                "Provisional scores and written feedback across the three domains, usually within a couple of minutes.",
+                ai === undefined ? "1 grading" : `1 of ${ai}`,
+                false,
+                false,
+                firstRef
+              )}
+          {gp === 0
+            ? emptyOption("Send to a GP", "1 of 0")
+            : option(
+                "gp",
+                "Send to a GP",
+                "Graded by AI, then read by an experienced GP who verifies the scoring and writes back. Usually within 5 working days.",
+                gp === undefined ? "1 review" : `1 of ${gp}`,
+                false,
+                false
+              )}
           {option(
             "discard",
             "Discard it",
@@ -182,14 +213,6 @@ export function TranscribedDecisionModal({
           anchor nested in a button is invalid, and the button swallows the
           click anyway. So it named a place and left the reader to find it.
         */}
-        {(ai === 0 || gp === 0) && (
-          <p className="text-[12px] mt-3" style={{ color: "rgba(51,51,51,0.6)" }}>
-            Out of {ai === 0 && gp === 0 ? "both" : ai === 0 ? "AI gradings" : "GP reviews"}?{" "}
-            <TopUpButton variant="link" label="Top up" />
-            {" "}without leaving this take.
-          </p>
-        )}
-
         {error && (
           <p className="text-[12px] text-center mt-3" style={{ color: "#B91C1C" }}>{error}</p>
         )}

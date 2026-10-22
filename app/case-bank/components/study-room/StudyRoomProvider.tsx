@@ -260,6 +260,15 @@ export function StudyRoomProvider({
    * was lost, but the person who pressed the button was told nothing either
    * way.
    */
+  /**
+   * Takes whose decision prompt has been waved away.
+   *
+   * The poll republishes "decide" every four seconds for as long as a take
+   * sits at "transcribed", so dismissing the modal only lasted until the next
+   * tick and it reappeared on its own. "Decide later" has to mean later.
+   * Keyed by recording, so waving one away does not silence the next.
+   */
+  const decisionDismissedRef = useRef<Set<string>>(new Set());
   const pendingUploadRef = useRef<Promise<void> | null>(null);
   /** Set when we ask the recorder to stop and this browser has a track to
    *  send. The recorder onstop is a queued task, so there is a window where
@@ -2004,6 +2013,13 @@ export function StudyRoomProvider({
         // silent rather than "failed" — nothing has gone wrong, and the same
         // three choices are still on /recordings whenever they return.
         if (s.status === "transcribed") {
+          // Asked and answered with "later": stop asking, and stop polling a
+          // take that is now waiting on a person. The same three choices are
+          // on /recordings whenever they come back to it.
+          if (decisionDismissedRef.current.has(recordingId)) {
+            logStatus("review poll stopped — decision deferred", { recordingId });
+            return;
+          }
           publish("decide");
           if (Date.now() > waitingUntil) {
             logStatus("review poll stopped — still waiting on a decision", {
@@ -2591,7 +2607,12 @@ export function StudyRoomProvider({
       reviewStage,
       reviewRecordingId,
       reviewMineAsDoctor,
-      dismissReviewStage: () => { setReviewStage(null); setReviewRecordingId(null); setReviewMineAsDoctor(false); },
+      dismissReviewStage: () => {
+      if (reviewRecordingId) decisionDismissedRef.current.add(reviewRecordingId);
+      setReviewStage(null);
+      setReviewRecordingId(null);
+      setReviewMineAsDoctor(false);
+    },
       dailyConnecting,
       callConnected,
       dailyReconnecting,
