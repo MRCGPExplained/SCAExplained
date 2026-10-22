@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
 import { TranscribedChoice } from "./TranscribedChoice";
 import { TopUpButton } from "./TopUpButton";
+import { RecordingProgress } from "./RecordingProgress";
 import { TOPUPS, isTopUpKey } from "@/lib/topups";
 
 export const dynamic = "force-dynamic";
@@ -307,6 +308,10 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "Needs a retry"
                           : rec.status}
                       </span>
+
+                      {/* The bar, and the poll that keeps this row honest.
+                          Renders nothing once the take has settled. */}
+                      <RecordingProgress recordingId={rec.id} initialStatus={rec.status} />
 
                       {/* Grades */}
                       {hasGrades && (
