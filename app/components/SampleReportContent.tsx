@@ -7,6 +7,56 @@ import { PredictedScore } from "@/app/components/PredictedScore";
 const NAVY = "#333333";
 const YELLOW = "#F6D44B";
 
+/** Same three bands the real report uses. */
+const SKILL_RATING_META: Record<string, { label: string; color: string; bg: string }> = {
+  good: { label: "Good", color: "#166534", bg: "rgba(34,197,94,0.10)" },
+  needs_improvement: { label: "Needs Improvement", color: "#92400E", bg: "rgba(245,158,11,0.12)" },
+  not_assessable: { label: "Not Assessable", color: "rgba(51,51,51,0.5)", bg: "rgba(51,51,51,0.06)" },
+};
+
+/**
+ * Skills for this consultation, written against what actually happens in it.
+ *
+ * The labels are plain text here, where a real report reads them from the
+ * grading_skills table. They need checking against that list so the sample
+ * names the same skills a customer will see.
+ */
+const SAMPLE_SKILLS: {
+  skill: string;
+  rating: keyof typeof SKILL_RATING_META;
+  comment: string;
+  improvement?: string;
+}[] = [
+  {
+    skill: "Exploring ICE",
+    rating: "good",
+    comment:
+      "Her worry about steroids was drawn out rather than waited for, and the idea behind it, that inhaled and oral steroids carry the same risk, was named before any treatment was discussed.",
+  },
+  {
+    skill: "Open questioning",
+    rating: "needs_improvement",
+    comment:
+      "The consultation moved to closed questions early. The RCP 3 screen was asked as three direct questions in a row, which got the answers but closed down what she might have added.",
+    improvement:
+      "Open the section with one broad question about how the asthma affects her week, then use the screen to fill the gaps she leaves.",
+  },
+  {
+    skill: "Shared decision making",
+    rating: "good",
+    comment:
+      "Fostair was offered with its reasoning and she was given room to agree rather than told. Her own goal of getting back to yoga was used as the measure of whether it works.",
+  },
+  {
+    skill: "Safety netting",
+    rating: "needs_improvement",
+    comment:
+      "A written action plan was promised and the 999 threshold was mentioned, but the zones were not explained, so she left with a plan she could not use on her own.",
+    improvement:
+      "Walk through green, amber and red once, in her words, and check she can say back what she would do after a cold.",
+  },
+];
+
 const GRADE_META: Record<string, { label: string; color: string; bg: string }> = {
   F:  { label: "Fail",       color: "#92400E", bg: "rgba(245,158,11,0.09)" },
   P:  { label: "Pass",       color: "#166534", bg: "rgba(34,197,94,0.09)"  },
@@ -230,6 +280,77 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
           </div>
         ))}
       </div>
+
+      {/*
+        Skills Assessment, the layer the sample was missing entirely.
+        A real report carries it whenever the recording has skill data: the
+        consultation skills underneath the three domain grades, each rated
+        and each with a line on what to do differently. It is the part that
+        tells a candidate how to get better rather than how they did, and it
+        was the one section of the report a prospective buyer could not see.
+
+        Collapsed by default and non-interactive in the hero, matching the
+        transcript below it, so the panel does not grow a section taller than
+        the report it is previewing.
+      */}
+      <details
+        className="rounded-2xl overflow-hidden mb-4"
+        style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+      >
+        <summary
+          onClick={interactive ? undefined : (e) => e.preventDefault()}
+          className="px-5 py-4 select-none flex items-center justify-center gap-2"
+          style={{ listStyle: "none", cursor: interactive ? "pointer" : "default" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+            <path d="M1.5 4.5L3 6l2.5-2.5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M1.5 11L3 12.5L5.5 10" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8.5 5h6M8.5 11.5h6" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>
+            Skills Assessment
+          </span>
+        </summary>
+
+        <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+          <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
+            {SAMPLE_SKILLS.map((sk) => {
+              const meta = SKILL_RATING_META[sk.rating];
+              return (
+                <div
+                  key={sk.skill}
+                  className="rounded-xl px-4 py-3"
+                  style={{ background: "rgba(51,51,51,0.02)", border: "1px solid rgba(51,51,51,0.07)" }}
+                >
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-[13.5px] font-semibold" style={{ color: NAVY }}>
+                      {sk.skill}
+                    </span>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.04em]"
+                      style={{ background: meta.bg, color: meta.color }}
+                    >
+                      {meta.label}
+                    </span>
+                  </div>
+                  <p className="text-[13.5px] leading-[1.6] mt-1.5 mb-0" style={{ color: "rgba(51,51,51,0.7)" }}>
+                    {sk.comment}
+                  </p>
+                  {sk.improvement && (
+                    <p
+                      className="text-[13.5px] leading-[1.6] mt-2.5 mb-0 pl-3"
+                      style={{ color: "rgba(51,51,51,0.72)", borderLeft: "2px solid rgba(246,212,75,0.9)" }}
+                    >
+                      <span className="font-semibold" style={{ color: NAVY }}>Next time: </span>
+                      {sk.improvement}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </details>
 
       {/* Transcript — or, in compact mode, a plain indicator (the hero
           wraps this whole card in one link, so this can't be its own control) */}
