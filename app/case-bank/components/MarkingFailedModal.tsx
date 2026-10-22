@@ -12,11 +12,9 @@ const DARK = "#333333";
  * the one thing they already knew. The pipeline records a real reason on the
  * row; this shows it, and turns the common one into instructions.
  *
- * The commonest by far is a transcript under fifteen words, which is almost
- * never a short consultation. It is a muted microphone, the wrong input
- * device, or a browser that never got permission — and all three are
- * invisible while recording, because the timer runs and the call connects
- * exactly as they would otherwise.
+ * The commonest by far is a transcript under fifteen words. That gets the
+ * word count and nothing else: it is the fact someone needs, and a list of
+ * microphone checks under it was a support article in a dialog.
  */
 export function MarkingFailedModal({
   recordingId,
@@ -64,22 +62,10 @@ export function MarkingFailedModal({
         </h2>
 
         {tooShort ? (
-          <>
-            <p className="text-[13px] leading-[1.6] mb-3" style={{ color: "rgba(51,51,51,0.7)" }}>
-              The recording transcribed to {words ? `only ${words} words` : "almost no words"}, which
-              is too little to grade. That is usually the microphone rather than the consultation:
-              the timer runs and the call connects whether or not any audio is being captured, so
-              there is nothing on screen to warn you at the time.
-            </p>
-            <ul className="text-[13px] leading-[1.6] mb-4 pl-4" style={{ color: "rgba(51,51,51,0.7)" }}>
-              <li className="mb-1">Check the microphone is not muted, in the browser and on the device.</li>
-              <li className="mb-1">Check the right input is selected if more than one is plugged in.</li>
-              <li>Check the browser was given microphone permission for this site.</li>
-            </ul>
-            <p className="text-[13px] leading-[1.6] mb-5" style={{ color: "rgba(51,51,51,0.7)" }}>
-              Nothing has been charged for this take, and nothing will be.
-            </p>
-          </>
+          <p className="text-[13px] leading-[1.6] mb-5" style={{ color: "rgba(51,51,51,0.7)" }}>
+            The recording transcribed to {words ? `only ${words} words` : "almost no words"}, which
+            is too little to grade.
+          </p>
         ) : (
           <>
             <p className="text-[13px] leading-[1.6] mb-3" style={{ color: "rgba(51,51,51,0.7)" }}>
