@@ -19,7 +19,17 @@ const DARK = "#333333";
  * with ?topup=1 so the packs are already in front of the person who was sent
  * to find them.
  */
-export function TopUpButton({ autoOpen = false }: { autoOpen?: boolean }) {
+export function TopUpButton({
+  autoOpen = false,
+  variant = "button",
+  label = "Top up",
+}: {
+  autoOpen?: boolean;
+  /** "link" for places that are already inside a dialog, where a second solid
+   *  button would compete with the choice being made. */
+  variant?: "button" | "link";
+  label?: string;
+}) {
   const [open, setOpen] = useState(autoOpen);
   const [busy, setBusy] = useState<TopUpKey | null>(null);
   const [error, setError] = useState("");
@@ -87,14 +97,25 @@ export function TopUpButton({ autoOpen = false }: { autoOpen?: boolean }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-xl px-3.5 py-2 text-[13px] font-bold shrink-0"
-        style={{ background: DARK, color: "white", border: "none", cursor: "pointer" }}
-      >
-        Top up
-      </button>
+      {variant === "link" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="font-semibold underline text-[12px]"
+          style={{ background: "none", border: "none", padding: 0, color: DARK, cursor: "pointer" }}
+        >
+          {label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-xl px-3.5 py-2 text-[13px] font-bold shrink-0"
+          style={{ background: DARK, color: "white", border: "none", cursor: "pointer" }}
+        >
+          {label}
+        </button>
+      )}
 
       {mounted && open &&
         createPortal(

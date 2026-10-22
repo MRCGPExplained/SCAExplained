@@ -8,8 +8,9 @@ import {
   discardRecordingAction,
 } from "@/app/case-bank/actions";
 
+import { TopUpButton } from "@/app/recordings/TopUpButton";
+
 const DARK = "#333333";
-const WASH = "#F9F3D9";
 
 type Choice = "ai" | "gp" | "discard";
 
@@ -83,12 +84,19 @@ export function TranscribedDecisionModal({
   const gp = credits?.gpRemaining;
   const anyBusy = busy !== null;
 
+  /**
+   * One row per choice. Colour says whether it can be picked, not which one
+   * we would prefer: white when it is available, grey when the balance is
+   * empty, and a red wash on discard because that one destroys something.
+   * The highlight used to sit on "Get AI feedback", which recommended a
+   * choice the person is being asked to make.
+   */
   const option = (
     choice: Choice,
     title: string,
     detail: string,
-    cost: string,
-    primary: boolean,
+    cost: string | null,
+    destructive: boolean,
     disabled: boolean,
     ref?: React.Ref<HTMLButtonElement>
   ) => (
@@ -99,19 +107,23 @@ export function TranscribedDecisionModal({
       disabled={anyBusy || disabled}
       className="w-full text-left rounded-xl px-4 py-3 transition-opacity"
       style={{
-        background: primary ? WASH : "white",
-        border: `1px solid ${primary ? "rgba(246,212,75,0.55)" : "rgba(51,51,51,0.12)"}`,
+        background: disabled ? "rgba(51,51,51,0.05)" : destructive ? "rgba(239,68,68,0.07)" : "white",
+        border: `1px solid ${
+          disabled ? "rgba(51,51,51,0.10)" : destructive ? "rgba(239,68,68,0.25)" : "rgba(51,51,51,0.12)"
+        }`,
         cursor: anyBusy || disabled ? "default" : "pointer",
-        opacity: disabled ? 0.5 : anyBusy && busy !== choice ? 0.5 : 1,
+        opacity: disabled ? 0.6 : anyBusy && busy !== choice ? 0.5 : 1,
       }}
     >
       <span className="flex items-center justify-between gap-3">
         <span className="font-display font-bold text-[14px]" style={{ color: DARK }}>
           {busy === choice ? "Working…" : title}
         </span>
-        <span className="text-[11px] font-semibold shrink-0" style={{ color: "rgba(51,51,51,0.5)" }}>
-          {cost}
-        </span>
+        {cost !== null && (
+          <span className="text-[11px] font-semibold shrink-0" style={{ color: "rgba(51,51,51,0.5)" }}>
+            {cost}
+          </span>
+        )}
       </span>
       <span className="block text-[12px] leading-[1.5] mt-1" style={{ color: "rgba(51,51,51,0.6)" }}>
         {disabled ? "None left on your plan." : detail}
@@ -136,17 +148,13 @@ export function TranscribedDecisionModal({
         <h2 id="decide-heading" className="font-display font-extrabold text-[17px] mb-1.5" style={{ color: DARK }}>
           Consultation recorded
         </h2>
-        <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
-          It has been transcribed, which costs you nothing. What happens to it next is up to you.
-        </p>
-
         <div className="flex flex-col gap-2.5">
           {option(
             "ai",
             "Get AI feedback",
             "Provisional scores and written feedback across the three domains, usually within a couple of minutes.",
             ai === undefined ? "1 grading" : `1 of ${ai}`,
-            true,
+            false,
             ai === 0,
             firstRef
           )}
@@ -161,9 +169,9 @@ export function TranscribedDecisionModal({
           {option(
             "discard",
             "Discard it",
-            "Deletes the audio and transcript. Nothing has been charged for this take and nothing will be.",
-            "Free",
-            false,
+            "Deletes this audio and transcript.",
+            null,
+            true,
             false
           )}
         </div>
@@ -177,10 +185,8 @@ export function TranscribedDecisionModal({
         {(ai === 0 || gp === 0) && (
           <p className="text-[12px] mt-3" style={{ color: "rgba(51,51,51,0.6)" }}>
             Out of {ai === 0 && gp === 0 ? "both" : ai === 0 ? "AI gradings" : "GP reviews"}?{" "}
-            <a href="/recordings?topup=1" className="font-semibold underline" style={{ color: DARK }}>
-              Top up from My Reviews
-            </a>
-            .
+            <TopUpButton variant="link" label="Top up" />
+            {" "}without leaving this take.
           </p>
         )}
 
