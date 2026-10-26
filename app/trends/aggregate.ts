@@ -200,33 +200,7 @@ export function domainStandings(attempts: Attempt[]): DomainStanding[] {
   });
 }
 
-// ── Panel 2: each domain over the attempts ───────────────────────────────────
-
-export interface DomainPoint {
-  n: number;
-  grade: Grade;
-  gpReviewed: boolean;
-  stationNumber: number;
-  gradedAt: string;
-}
-
-export function domainSeries(attempts: Attempt[]): Record<DomainKey, DomainPoint[]> {
-  const out = {} as Record<DomainKey, DomainPoint[]>;
-  for (const domain of DOMAINS) {
-    out[domain] = attempts
-      .filter((a) => a.grades[domain])
-      .map((a) => ({
-        n: a.n,
-        grade: a.grades[domain] as Grade,
-        gpReviewed: a.gpReviewed,
-        stationNumber: a.stationNumber,
-        gradedAt: a.gradedAt,
-      }));
-  }
-  return out;
-}
-
-// ── Panels 3 and 4: the skills ───────────────────────────────────────────────
+// ── The skills ───────────────────────────────────────────────
 
 export interface SkillStanding {
   key: string;
@@ -255,17 +229,6 @@ export function skillTotals(attempts: Attempt[]): {
     needsImprovement: assessed - good,
     goodPct: assessed ? (good / assessed) * 100 : null,
   };
-}
-
-export function skillSeries(attempts: Attempt[]): { n: number; goodPct: number; assessed: number; gpReviewed: boolean }[] {
-  return attempts
-    .filter((a) => a.assessable > 0)
-    .map((a) => ({
-      n: a.n,
-      goodPct: (a.good / a.assessable) * 100,
-      assessed: a.assessable,
-      gpReviewed: a.gpReviewed,
-    }));
 }
 
 /**
@@ -310,40 +273,3 @@ export function weakestSkills(attempts: Attempt[], standings: SkillStanding[], l
     .slice(0, limit);
 }
 
-// ── The one comparison that holds difficulty constant ────────────────────────
-
-export interface StationRun {
-  stationNumber: number;
-  stationTitle: string;
-  points: { n: number; total: number | null; gradedAt: string; gpReviewed: boolean }[];
-}
-
-/**
- * Attempts at the same station, in order.
- *
- * Every other comparison on this page is confounded by the cases themselves
- * being harder or easier than one another. This one is not: it is the same
- * station, so a better result is a better consultation. It is also the shape
- * the usage already has — the heaviest user has eleven attempts at one station
- * and seven distinct stations in total. People redo them, and this is the one
- * view that rewards it.
- */
-export function stationRuns(attempts: Attempt[]): StationRun[] {
-  const by = new Map<number, Attempt[]>();
-  for (const a of attempts) {
-    by.set(a.stationNumber, [...(by.get(a.stationNumber) ?? []), a]);
-  }
-  return [...by.values()]
-    .filter((list) => list.length > 1)
-    .map((list) => ({
-      stationNumber: list[0].stationNumber,
-      stationTitle: list[0].stationTitle,
-      points: list.map((a) => ({
-        n: a.n,
-        total: a.total,
-        gradedAt: a.gradedAt,
-        gpReviewed: a.gpReviewed,
-      })),
-    }))
-    .sort((a, b) => b.points.length - a.points.length);
-}

@@ -18,21 +18,17 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadAllSkillLabels } from "@/lib/skill-framework";
 import {
-  DOMAINS,
   DOMAIN_SHORT,
   NAME_WEAKEST_AFTER_ATTEMPTS,
-  domainSeries,
   domainStandings,
-  skillSeries,
   skillStandings,
   skillTotals,
   splitAssessed,
-  stationRuns,
   toAttempts,
   weakestSkills,
   type RawRecording,
 } from "./aggregate";
-import { DomainDots, GradeSpread, ScoringPrimer, SkillCurve, StationRunRow } from "./TrendVisuals";
+import { GradeSpread, ScoringPrimer } from "./TrendVisuals";
 
 export const dynamic = "force-dynamic";
 
@@ -87,12 +83,9 @@ export default async function TrendsPage() {
   const { assessed, unassessed } = splitAssessed(all);
 
   const standings = domainStandings(assessed);
-  const series = domainSeries(assessed);
   const skills = skillTotals(assessed);
-  const curve = skillSeries(assessed);
   const bySkill = skillStandings(assessed);
   const weakest = weakestSkills(assessed, bySkill);
-  const runs = stationRuns(assessed);
 
   const n = assessed.length;
   const gpCount = assessed.filter((a) => a.gpReviewed).length;
@@ -165,24 +158,7 @@ export default async function TrendsPage() {
                 </div>
               </Card>
 
-              {/* 2 — the domains over time */}
-              <Card
-                title="Each domain, attempt by attempt"
-                hint="Oldest on the left. Left as dots rather than joined into a line, because four grades joined up swing wildly on the luck of which case came up. A hollow ring is an attempt a GP verified."
-              >
-                <div className="flex flex-col gap-5">
-                  {DOMAINS.map((d) => (
-                    <div key={d}>
-                      <p className="text-[13px] font-semibold mb-1" style={{ color: DARK }}>
-                        {DOMAIN_SHORT[d]}
-                      </p>
-                      <DomainDots points={series[d]} domain={d} />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* 3 — the skills */}
+              {/* 2 — the skills */}
               <Card
                 title="Skills"
                 hint="Of the skills that could actually be judged, how many were done well. Skills a consultation gave no chance to show are left out rather than counted against you."
@@ -235,27 +211,6 @@ export default async function TrendsPage() {
                 )}
               </Card>
 
-              {/* 4 — the skills over time */}
-              <Card
-                title="Skills, attempt by attempt"
-                hint="The share judged good each time. This moves before the grades above do: the skills feed those grades but can only shift one by a single band, so improvement shows here first."
-              >
-                <SkillCurve points={curve} />
-              </Card>
-
-              {/* The one comparison that holds difficulty constant. */}
-              {runs.length > 0 && (
-                <Card
-                  title="The same station, more than once"
-                  hint="The only fair before-and-after here: same case, same marking, so a better score is a better consultation rather than an easier station."
-                >
-                  <div>
-                    {runs.map((r) => (
-                      <StationRunRow key={r.stationNumber} run={r} />
-                    ))}
-                  </div>
-                </Card>
-              )}
             </>
           )}
         </div>
