@@ -10,6 +10,7 @@ import { DOMAIN_LABEL as CASE_DOMAIN_LABEL, type FiredRule } from "@/lib/case-ru
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
+import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ type RecordingDetail = {
   ended_at: string | null;
   status: string;
   transcript_formatted: string | null;
+  transcript_raw: TranscriptRaw | null;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
@@ -579,6 +581,12 @@ export default async function RecordingDetailPage({ params }: PageProps) {
             </div>
           </details>
         )}
+
+        {/* ── Time Assessment ──────────────────────────────────────────
+            Whole feature is app/recordings/TimeAssessment.tsx plus this
+            block. Renders nothing when the recording has no raw transcript,
+            which is every recording graded before the two-track pipeline. */}
+        <TimeAssessment raw={rec.transcript_raw} />
 
         {/* ── View Consultation ── */}
         {hasConsultation && (
