@@ -76,11 +76,22 @@ function GroupCaseBanner() {
   );
 }
 
+export interface StationAttempt {
+  id: string;
+  at: string;
+  /** Out of 10.5, or null if any domain is ungraded. */
+  total: number | null;
+  /** Data Gathering, Clinical Management, Relating to Others. */
+  grades: [string | null, string | null, string | null];
+}
+
 export interface LastAttempt {
   /** False when they were the role-player, which is still worth knowing. */
   asDoctor: boolean;
   /** Their own most recent report for this station, or null if it is not theirs. */
   reportId: string | null;
+  /** Their own attempts, newest first. Empty when they only played the patient. */
+  history: StationAttempt[];
   at: string;
   /** Out of 10.5. Null when they played the patient — the mark was not theirs. */
   total: number | null;
@@ -98,7 +109,7 @@ function shortDate(iso: string): string {
   });
 }
 
-function AttemptNote({ a }: { a: LastAttempt }) {
+function AttemptNote({ a, onOpen }: { a: LastAttempt; onOpen: () => void }) {
   // Shown even at one. "×1" reads as a deliberate count of a thing that
   // has happened once; showing it only from two leaves the reader wondering
   // whether a bare date means once or means nobody bothered to say.
@@ -136,11 +147,40 @@ function AttemptNote({ a }: { a: LastAttempt }) {
     );
   }
 
+  const shared =
+    "shrink-0 text-[11.5px] hidden sm:block no-underline relative z-10 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-[rgba(51,51,51,0.06)]";
+
   /*
-    Its own link, in a new tab, sitting above the one that covers the row.
+    More than one attempt, so the click owes them all of them.
+
+    Opening the latest and quietly dropping the rest would make a liar of the
+    count beside it: printing "×3" and then showing one is advertising three
+    things and handing over one.
+  */
+  if (a.history.length > 1) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpen();
+        }}
+        title={`See all ${a.history.length} attempts`}
+        className={shared + " cursor-pointer border-0 bg-transparent text-left"}
+        style={{ color: "rgba(51,51,51,0.45)" }}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  /*
+    One attempt, so go straight to it. A dialog holding a single row is a
+    worse version of a link.
 
     New tab because the list is 246 rows long and someone checking a mark
-    wants to glance and come back, not to lose their place and scroll for it
+    wants to glance and come back, not lose their place and scroll for it
     again. z-10 because the row's link is an overlay stretched across the
     whole card, and without it this would be underneath and unclickable.
   */
@@ -151,11 +191,104 @@ function AttemptNote({ a }: { a: LastAttempt }) {
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
       title="Open this report in a new tab"
-      className="shrink-0 text-[11.5px] hidden sm:block no-underline relative z-10 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-[rgba(51,51,51,0.06)]"
+      className={shared}
       style={{ color: "rgba(51,51,51,0.45)" }}
     >
       {body}
     </a>
+  );
+}
+
+/**
+ * Every attempt at one station, newest first.
+ *
+ * The domain letters are the point of it. Across different stations they
+ * would be comparing a rash with a breaking-bad-news case; down one station
+ * the case is fixed, so CF/F/P becoming P/P/CP is a better consultation and
+ * not an easier draw. It is the only before-and-after this product can
+ * honestly draw, and it belongs here rather than on a page of averages.
+ */
+function AttemptsDialog({
+  station,
+  attempts,
+  onClose,
+}: {
+  station: { number: number; title: string };
+  attempts: StationAttempt[];
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-5"
+      style={{ background: "rgba(26,27,82,0.35)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Attempts at station ${station.number}`}
+    >
+      <div
+        className="w-full max-w-[440px] rounded-2xl bg-white overflow-hidden"
+        style={{ boxShadow: "0 24px 70px rgba(26,27,82,0.28)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 pt-5 pb-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+            Station {station.number} · {attempts.length} attempts
+          </p>
+          <p className="font-display font-bold text-[16px] mt-1" style={{ color: NAVY }}>
+            {station.title}
+          </p>
+        </div>
+
+        <div className="pb-2">
+          {attempts.map((att, i) => (
+            <a
+              key={att.id}
+              href={`/recordings/${att.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-baseline gap-3 px-5 py-2.5 no-underline hover:bg-[rgba(51,51,51,0.04)]"
+              style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}
+            >
+              <span className="text-[12.5px] w-[76px] shrink-0" style={{ color: NAVY }}>
+                {shortDate(att.at)}
+              </span>
+              <span className="text-[12.5px] font-bold w-[66px] shrink-0" style={{ color: att.total === null ? "rgba(51,51,51,0.4)" : scoreColour(att.total) }}>
+                {att.total === null ? "—" : `${att.total}/${MAX_SCORE}`}
+              </span>
+              <span className="text-[12.5px] flex-1" style={{ color: "rgba(51,51,51,0.5)" }}>
+                {att.grades.map((g) => g ?? "—").join(" / ")}
+              </span>
+              {i === 0 && (
+                <span className="text-[10.5px] shrink-0" style={{ color: "rgba(51,51,51,0.35)" }}>latest</span>
+              )}
+            </a>
+          ))}
+        </div>
+
+        <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+          <p className="text-[11.5px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
+            Same case each time, so a better line is a better consultation. Opens in a new tab.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg py-2 text-[13px] font-bold cursor-pointer"
+            style={{ background: "rgba(51,51,51,0.06)", color: NAVY, border: "none" }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -175,6 +308,7 @@ export function StationListClient({
   const [showStarred, setShowStarred] = useState(false);
   const [showTitles, setShowTitles] = useState(true);
   const [lastStation, setLastStation] = useState<number | null>(initialLastStation);
+  const [openAttempts, setOpenAttempts] = useState<number | null>(null);
 
   useEffect(() => {
     if (lastStation === null) {
@@ -367,7 +501,12 @@ export function StationListClient({
                   </div>
                 )}
 
-                {attempts[station.number] && <AttemptNote a={attempts[station.number]} />}
+                {attempts[station.number] && (
+                  <AttemptNote
+                    a={attempts[station.number]}
+                    onOpen={() => setOpenAttempts(station.number)}
+                  />
+                )}
 
                 {isStarred && (
                   <span className="shrink-0 text-[14px]" style={{ color: YELLOW }}>★</span>
@@ -381,6 +520,19 @@ export function StationListClient({
           })}
         </div>
       </div>
+
+      {openAttempts !== null && (() => {
+        const station = stations.find((st) => st.number === openAttempts);
+        const a = attempts[openAttempts];
+        if (!station || !a || a.history.length < 2) return null;
+        return (
+          <AttemptsDialog
+            station={{ number: station.number, title: station.title }}
+            attempts={a.history}
+            onClose={() => setOpenAttempts(null)}
+          />
+        );
+      })()}
     </main>
   );
 }
