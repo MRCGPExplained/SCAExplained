@@ -45,3 +45,8 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Scratch notes that hold credentials. Ignoring a file does not revoke what
+# is inside it: this stops an accidental `git add -A` committing the token,
+# it does not make the token safe.
+GIT PUSH BLABWORKS.txt
