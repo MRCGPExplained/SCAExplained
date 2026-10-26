@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
+import { isAdmin } from "@/lib/admin-auth";
 import { loadAllSkillLabels, CAP_CEILING, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
 import { DOMAIN_LABEL as CASE_DOMAIN_LABEL, type FiredRule } from "@/lib/case-rules";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
@@ -135,6 +136,20 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   }
 
   if (!rec) notFound();
+
+  /*
+    Only the candidate it belongs to, an examiner, or an admin may read this.
+
+    The row above is fetched with the service-role client, which bypasses RLS,
+    so this check is the only thing between a signed-in stranger holding an id
+    and another trainee's report. isDoctor already gated the transcript and
+    the audio further down, but not the name at the top, not the scores and not
+    the written feedback — and the study-room invite flow hands short-lived
+    guest accounts to people who are not the candidate.
+
+    Admins are allowed because /admin/feedback links straight here.
+  */
+  if (!examiner && !isDoctor && !(await isAdmin())) notFound();
 
   const isRealCandidate = !examiner && isDoctor;
   let hasAiReportFeedback = false;
