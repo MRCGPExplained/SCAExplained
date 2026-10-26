@@ -42,6 +42,29 @@ export default async function DashboardPage() {
     !!access.case_bank_expires_at &&
     access.case_bank_expires_at > new Date().toISOString();
 
+  /*
+    Days left, counted in whole days from the end of today so the number
+    does not tick over at whatever hour someone happened to buy. Shown under
+    the greeting rather than in a banner: it is a fact about the account, not
+    a notice, and it should be findable without being shouted.
+  */
+  const daysLeft =
+    accessLive && access?.case_bank_expires_at
+      ? Math.max(
+          0,
+          Math.ceil(
+            (new Date(access.case_bank_expires_at).getTime() - Date.now()) / 86_400_000
+          )
+        )
+      : null;
+  const expiryLabel = access?.case_bank_expires_at
+    ? new Date(access.case_bank_expires_at).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
   // Expiry outranks both numbers: once access has ended neither balance is
   // spendable, and showing "120 AI" to someone who cannot record is the more
   // misleading of the two. The GP figure is dropped when it is zero rather
@@ -85,6 +108,13 @@ export default async function DashboardPage() {
           <h1 className="font-display font-extrabold text-[28px]" style={{ color: DARK }}>
             {firstName ? `Hi ${firstName}! 👋` : "Hi there! 👋"}
           </h1>
+          {(daysLeft !== null || expiryLabel) && (
+            <p className="text-[12.5px] mt-1.5" style={{ color: "rgba(51,51,51,0.42)" }}>
+              {daysLeft !== null
+                ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} of access left · until ${expiryLabel}`
+                : `Access ended on ${expiryLabel}`}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
