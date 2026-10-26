@@ -89,11 +89,20 @@ function TrainerInsightAudio({
 
   if (!isAdmin && !audioUrl) return null;
 
-  if (!isAdmin) {
-    return <audio controls src={audioUrl!} className="w-full" style={{ borderRadius: 8, outline: "none" }} />;
-  }
-
-  return <AudioRecordUpload currentUrl={audioUrl} onUpload={handleUpload} onDelete={handleDelete} />;
+  // Labelled like the two blocks below it. The tab opened straight onto an
+  // Upload and a Record button with nothing saying what they were for, so
+  // Model Consultation and Common Questions were named and the thing above
+  // them was not.
+  return (
+    <div>
+      <Label>Trainer&apos;s Note</Label>
+      {isAdmin ? (
+        <AudioRecordUpload currentUrl={audioUrl} onUpload={handleUpload} onDelete={handleDelete} />
+      ) : (
+        <audio controls src={audioUrl!} className="w-full" style={{ borderRadius: 8, outline: "none" }} />
+      )}
+    </div>
+  );
 }
 
 // Matches either a markdown-style [label](url) link or a bare https:// URL.
@@ -1068,8 +1077,12 @@ export function StationPageClient({
                 */}
                 {(!!station.model_consultation_doctor_url || isAdmin) && (
                   <div
+                    // A rule only when something is actually above it. The
+                    // trainer note renders for every admin, with or without
+                    // audio, so keying this on the audio alone left the two
+                    // blocks touching on an empty station.
                     style={
-                      station.trainer_insight_audio_url
+                      isAdmin || station.trainer_insight_audio_url
                         ? { borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }
                         : undefined
                     }
