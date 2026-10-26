@@ -84,13 +84,13 @@ export function TranscribedChoice({
     ai: {
       heading: "Get AI feedback?",
       body: `${what} will be transcribed into provisional scores and written feedback across the three domains, usually within a couple of minutes.`,
-      note: `This uses one of your AI gradings. You have ${aiRemaining} left.`,
+      note: `This uses one of your AI reviews. You have ${aiRemaining} left.`,
       cta: "Grade it",
     },
     gp: {
       heading: "Send to a GP?",
       body: `${what} will be graded by AI and then read by an experienced GP, who verifies the scoring and writes feedback on what actually happened in yours. Usually back within 5 working days.`,
-      note: `This uses one of your GP reviews, not an AI grading, and cannot be undone. You have ${gpRemaining} left.`,
+      note: `This uses one of your GP reviews, not an AI review, and cannot be undone. You have ${gpRemaining} left.`,
       cta: "Send for review",
     },
     discard: {
@@ -151,13 +151,13 @@ export function TranscribedChoice({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="choice-heading" className="font-display font-extrabold text-[16px] mb-2" style={{ color: DARK }}>
-              {blocked ? (asking === "ai" ? "No AI gradings left" : "No GP reviews left") : c.heading}
+              {blocked ? (asking === "ai" ? "No AI reviews left" : "No GP reviews left") : c.heading}
             </h2>
 
             <p className="text-[13px] leading-[1.6] mb-4" style={{ color: "rgba(51,51,51,0.65)" }}>
               {blocked
                 ? asking === "ai"
-                  ? "You have used all the AI gradings on your plan. The recording stays here until you top up, and it still costs nothing to discard."
+                  ? "You have used all the AI reviews on your plan. The recording stays here until you top up, and it still costs nothing to discard."
                   : "You have used all the GP reviews on your plan. The recording stays here until you top up, and you can still grade it with AI in the meantime."
                 : c.body}
             </p>

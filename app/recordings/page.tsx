@@ -148,7 +148,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)", color: NAVY }}
             >
               <span className="font-bold text-[17px]">{credits}</span>{" "}
-              <span style={{ color: "rgba(51,51,51,0.5)" }}>GP review credit{credits !== 1 ? "s" : ""} remaining</span>
+              <span style={{ color: "rgba(51,51,51,0.5)" }}>GP review{credits !== 1 ? "s" : ""} remaining</span>
             </div>
             {/* Two meters, because there are two costs. An AI grading is
                 pennies and plentiful; a GP review is a person's time. */}
@@ -157,7 +157,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               style={{ background: "white", border: "1px solid rgba(51,51,51,0.1)", color: NAVY }}
             >
               <span className="font-bold text-[17px]">{aiRemaining}</span>{" "}
-              <span style={{ color: "rgba(51,51,51,0.5)" }}>AI grading{aiRemaining !== 1 ? "s" : ""} remaining</span>
+              <span style={{ color: "rgba(51,51,51,0.5)" }}>AI review{aiRemaining !== 1 ? "s" : ""} remaining</span>
             </div>
             {/*
               One button, and which one depends on what has actually run out.

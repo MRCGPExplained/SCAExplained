@@ -161,7 +161,7 @@ export function SubmitForReviewButton({
                   style={{ background: "#F9F3D9", color: DARK }}
                 >
                   <strong>Recording carries on as normal.</strong> Recording and transcription
-                  never cost anything, and AI grading draws on its own separate balance, so
+                  never cost anything, and AI reviews draw on their own separate balance, so
                   running out of GP reviews does not stop you practising.
                 </div>
 
