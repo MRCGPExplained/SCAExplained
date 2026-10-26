@@ -41,10 +41,10 @@ export interface TopUp {
 export const TOPUPS: Record<TopUpKey, TopUp> = {
   // £1.00 each. Priced above the others on purpose: Stripe's flat 20p bites
   // hardest on a small basket, and this is the only size where it shows.
-  ai25:  { key: "ai25",  kind: "ai", units: 25,  pricePence: 2500,  label: "25 AI gradings",  detail: "£1.00 each" },
-  ai50:  { key: "ai50",  kind: "ai", units: 50,  pricePence: 4500,  label: "50 AI gradings",  detail: "£0.90 each" },
-  ai100: { key: "ai100", kind: "ai", units: 100, pricePence: 8500,  label: "100 AI gradings", detail: "£0.85 each" },
-  ai200: { key: "ai200", kind: "ai", units: 200, pricePence: 16000, label: "200 AI gradings", detail: "£0.80 each" },
+  ai25:  { key: "ai25",  kind: "ai", units: 25,  pricePence: 2500,  label: "25 AI reviews",  detail: "£1.00 each" },
+  ai50:  { key: "ai50",  kind: "ai", units: 50,  pricePence: 4500,  label: "50 AI reviews",  detail: "£0.90 each" },
+  ai100: { key: "ai100", kind: "ai", units: 100, pricePence: 8500,  label: "100 AI reviews", detail: "£0.85 each" },
+  ai200: { key: "ai200", kind: "ai", units: 200, pricePence: 16000, label: "200 AI reviews", detail: "£0.80 each" },
 
   // £9.00 each, flat. Break-even is £8.85 a review, so this survives the
   // £4.00 in pricing_config being wrong by more than double — which matters,

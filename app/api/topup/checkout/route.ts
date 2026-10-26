@@ -68,8 +68,8 @@ export async function POST(req: Request) {
             // it already is.
             description:
               t.kind === "ai"
-                ? `A top-up of ${t.units} AI gradings.`
-                : `A top-up of ${t.units} GP review credits.`,
+                ? `A top-up of ${t.units} AI reviews.`
+                : `A top-up of ${t.units} GP reviews.`,
           },
         },
         quantity: 1,

@@ -153,7 +153,7 @@ export function TopUpButton({
               </h2>
 
               <p className="text-[11px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>
-                AI gradings
+                AI reviews
               </p>
               <div className="grid grid-cols-2 gap-2.5 mb-5">{AI_TOPUPS.map(card)}</div>
 

@@ -194,7 +194,7 @@ export function SubmitForReviewButton({
                       opacity: toppingUp ? 0.7 : 1,
                     }}
                   >
-                    {toppingUp ? "Redirecting…" : "Top up 20 reviews"}
+                    {toppingUp ? "Redirecting…" : "Top up 20 GP reviews"}
                   </button>
                 </div>
 
@@ -207,7 +207,7 @@ export function SubmitForReviewButton({
                   <Link href="/redeem" className="font-semibold no-underline" style={{ color: DARK }}>
                     Redeem it
                   </Link>{" "}
-                  for bonus reviews.
+                  for bonus GP reviews.
                 </p>
               </>
             ) : (

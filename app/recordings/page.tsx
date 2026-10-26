@@ -74,10 +74,17 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
   // success_url used; a session created just before that change can still
   // land here, and it is better to confirm the purchase vaguely than to name
   // the wrong pack or show nothing at all.
+  //
+  // Its own wording rather than the pack label. The label is a product name
+  // bound for Stripe, and lowercasing it printed "25 ai gradings have been
+  // added" directly above a chip reading "25 AI reviews remaining" — two
+  // names for one meter, at the one moment someone is checking that the
+  // money they just spent actually landed.
+  const toppedUpPack = topped_up && isTopUpKey(topped_up) ? TOPUPS[topped_up] : null;
   const toppedUpMessage = !topped_up
     ? null
-    : isTopUpKey(topped_up)
-      ? `Top-up successful: ${TOPUPS[topped_up].label.toLowerCase()} have been added to your balance.`
+    : toppedUpPack
+      ? `Top-up successful: ${toppedUpPack.units} ${toppedUpPack.kind === "ai" ? "AI" : "GP"} review${toppedUpPack.units === 1 ? "" : "s"} have been added to your balance.`
       : "Top-up successful. Your balance has been updated.";
 
   const admin = getSupabaseAdmin();
