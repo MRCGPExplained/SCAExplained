@@ -69,12 +69,13 @@ export default async function DashboardPage() {
   /*
     Both balances, under the expiry rather than on the card.
 
-    "Remaining" rather than a new word for them. /recordings labels these two
-    same numbers "AI gradings remaining" and "GP review credits remaining", so
-    anyone moving between the two screens meets one vocabulary. It also rules
-    out "reviews" as the umbrella here: a bare review already means the GP one
-    ("Top up 20 reviews", "You have 3 reviews left"), so stretching it to cover
-    AI gradings as well would make those strings ambiguous.
+    "Reviews" as the umbrella is a deliberate call, not an oversight. A bare
+    review means the GP one in four other strings ("Top up 20 reviews", "You
+    have 3 reviews left", "bonus reviews", and the "1 review" cost chip), and
+    /recordings labels these same two numbers "AI gradings remaining" and "GP
+    review credits remaining". Here the AI and GP tags carry that distinction
+    themselves, so the label is only saying what kind of thing is counted.
+    It reads fine in place; don't quietly change it back for consistency.
 
     Expiry outranks the numbers: once access has ended neither balance is
     spendable, so an expired account gets the "Access ended" line alone. The
@@ -82,8 +83,8 @@ export default async function DashboardPage() {
     on Starter zero is the plan working as sold, not something that ran out.
     Zero AI gradings is shown, because that one did run out.
   */
-  const remainingLine = accessLive
-    ? "Remaining: " +
+  const reviewsLine = accessLive
+    ? "Reviews left: " +
       [`${aiRemaining} AI`, credits > 0 ? `${credits} GP` : null]
         .filter(Boolean)
         .join(" · ")
@@ -131,9 +132,9 @@ export default async function DashboardPage() {
               {daysLeft} day{daysLeft === 1 ? "" : "s"} left
             </p>
           )}
-          {remainingLine && (
+          {reviewsLine && (
             <p className="text-[12.5px] mt-0.5" style={FAINT}>
-              {remainingLine}
+              {reviewsLine}
             </p>
           )}
         </div>
