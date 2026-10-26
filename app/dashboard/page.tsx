@@ -155,6 +155,30 @@ export default async function DashboardPage() {
 
           <JoinStudyRoomCard />
 
+          {/* ── My Trends ─────────────────────────────────────────────────
+              The whole feature is app/trends. To remove it, delete that
+              directory and this block; nothing else refers to it. */}
+          <Link
+            href="/trends"
+            className="bg-white rounded-2xl p-6 flex items-center gap-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[rgba(246,212,75,0.07)]"
+            style={{ border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 2px 12px rgba(51,51,51,0.05)" }}
+          >
+            <div className="shrink-0 flex items-center justify-center">
+              <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
+                <path d="M3 16.5L8 10.5l3.5 3.5L19 6" stroke={DARK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14.5 6H19v4.5" stroke={DARK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>My Trends</p>
+              <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>
+                Your reports put together: domains, skills, and the same station twice
+              </p>
+            </div>
+            <span className="shrink-0 font-bold text-[14px] px-4 py-2 rounded-lg" style={{ background: DARK, color: "white" }}>Open →</span>
+          </Link>
+          {/* ── end My Trends ─────────────────────────────────────────── */}
+
         </div>
       </div>
     </div>
