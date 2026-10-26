@@ -192,7 +192,7 @@ export function TranscribedDecisionModal({
             : option(
                 "gp",
                 "Send to a GP",
-                "AI report in a couple of minutes, then an experienced GP checks the scoring and writes their own feedback. Usually back within 5 working days.",
+                "AI report in a couple of minutes. An experienced GP then checks the scoring and writes their feedback, usually back within 5 working days.",
                 gp === undefined ? "1 review" : `1 of ${gp}`,
                 false,
                 false
