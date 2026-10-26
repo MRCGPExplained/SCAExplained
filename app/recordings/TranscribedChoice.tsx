@@ -89,7 +89,11 @@ export function TranscribedChoice({
     },
     gp: {
       heading: "Send to a GP?",
-      body: `${what} will be graded by AI and then read by an experienced GP, who verifies the scoring and writes feedback on what actually happened in yours. Usually back within 5 working days.`,
+      // Two stages and two clocks, stated in that order. "Graded by AI and
+      // then read by a GP ... within 5 working days" put one deadline at the
+      // end of the sentence, so the whole thing read as a five-day wait and
+      // hid the fact that the AI report lands straight away either way.
+      body: `${what} gets its AI report in a couple of minutes, exactly as it would on its own. An experienced GP then checks the scoring and writes their own feedback on what actually happened in yours, usually back within 5 working days.`,
       note: `This uses one of your GP reviews, not an AI review, and cannot be undone. You have ${gpRemaining} left.`,
       cta: "Send for review",
     },
