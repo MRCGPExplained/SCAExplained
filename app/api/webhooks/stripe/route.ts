@@ -235,7 +235,16 @@ async function confirmTopUpPurchase(session: Stripe.Checkout.Session) {
   if (!supabase) return;
 
   if (kind === "ai") {
-    await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: units });
+    // Read the error. supabase-js returns a refused write rather than
+    // throwing, so this used to charge for a pack, email "200 AI reviews
+    // added", change nothing, and answer Stripe 200 so it never retried.
+    // Throwing reaches the catch in the route, which releases the
+    // idempotency claim and lets the retry do the work properly.
+    const { error: grantErr } = await supabase.rpc("add_ai_allowance", {
+      p_user_id: userId,
+      p_credits: units,
+    });
+    if (grantErr) throw new Error(`Could not add AI reviews: ${grantErr.message}`);
   } else {
     await addRecordingCredits(supabase, userId, units);
   }
@@ -323,14 +332,20 @@ async function confirmPlanPurchase(session: Stripe.Checkout.Session) {
   });
 
   if (error) {
-    console.error("[webhook] failed to write plan access:", error.message);
-    return;
+    // Throw, don't return. The catch in the route handler deletes the
+    // idempotency row so Stripe retries; returning marked the event handled
+    // with the customer charged and nothing granted, unrecoverably.
+    throw new Error(`Could not write plan access: ${error.message}`);
   }
 
   // Both meters are added to, never assigned, so a second purchase tops up
   // instead of throwing away whatever was left of the first.
   if (aiGradings > 0) {
-    await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: aiGradings });
+    const { error: aiErr } = await supabase.rpc("add_ai_allowance", {
+      p_user_id: userId,
+      p_credits: aiGradings,
+    });
+    if (aiErr) throw new Error(`Could not grant AI reviews: ${aiErr.message}`);
   }
   if (gpReviews > 0) {
     await addRecordingCredits(supabase, userId, gpReviews);
@@ -469,7 +484,11 @@ async function confirmCaseBankPurchase(session: Stripe.Checkout.Session) {
   // cannot grade a single consultation: the pipeline stops at `transcribed`
   // and every option that costs an AI credit is refused. Added rather than
   // set, so renewing tops up instead of discarding what is left.
-  await supabase.rpc("add_ai_allowance", { p_user_id: userId, p_credits: INTENSIVE_AI_ALLOWANCE });
+  const { error: legacyAiErr } = await supabase.rpc("add_ai_allowance", {
+    p_user_id: userId,
+    p_credits: INTENSIVE_AI_ALLOWANCE,
+  });
+  if (legacyAiErr) throw new Error(`Could not grant AI reviews: ${legacyAiErr.message}`);
 
   if (userEmail) {
     // Says what this branch actually grants, which is the Intensive

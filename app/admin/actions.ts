@@ -781,7 +781,24 @@ export async function revokeUserAccess(userId: string): Promise<ActionResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
-  const { error } = await supabase.from("user_access").delete().eq("user_id", userId);
+  /*
+    Clear the flags, keep the row.
+
+    This used to DELETE, which took ai_allowance and ai_uses_count with it.
+    An Intensive customer revoked over a billing query and then re-granted
+    came back with none of their 400, and since the counter went too, nobody
+    could work out how many they had left. The button offers to remove
+    programme access; it should not also destroy what they bought.
+  */
+  const { error } = await supabase
+    .from("user_access")
+    .update({
+      has_programme: false,
+      expires_at: null,
+      has_case_bank: false,
+      case_bank_expires_at: null,
+    })
+    .eq("user_id", userId);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/case-bank-users");

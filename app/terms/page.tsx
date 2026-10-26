@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <ContentPage
       title="Terms & Conditions"
-      subtitle="Last updated: 3 August 2026"
+      subtitle="Last updated: 26 October 2026"
     >
       <P>
         These terms govern your use of the SCA Focus website
@@ -51,18 +51,21 @@ export default function TermsPage() {
         one-off payment giving access for 4 months from the date of purchase,
         and each includes the full case bank of 240+ stations, study groups,
         and unlimited recording and transcription. The plans differ in two
-        allowances: the number of AI gradings and the number of GP reviews
+        allowances: the number of AI reviews and the number of GP reviews
         they include. The current plans, their prices and their allowances
         are set out on our homepage, and the allowance granted to you is the
         one shown at the point you paid.
       </P>
       <P>
         Recording a consultation and having it transcribed does not use
-        either allowance. An AI grading is used only when you choose to send
-        a transcript for AI grading, and a GP review credit is used only when
-        you choose to submit one for review, at which point it is queued for
-        a GP to assess and finalise your feedback. Where an AI grading fails
-        for technical reasons it is not counted against your allowance.
+        either allowance. An AI review is used only when you choose to send
+        a transcript for AI review, and a GP review is used only when you
+        choose to submit one for review, at which point it is queued for a
+        GP to assess and finalise your feedback. Submitting for GP review
+        spends one GP review and nothing else: the AI pass that accompanies
+        it is the draft the GP verifies, and it is not charged for. Where an
+        AI review fails for technical reasons it is not counted against your
+        allowance.
       </P>
       <P>
         You may buy a plan at any time, including while one is still
@@ -100,7 +103,7 @@ export default function TermsPage() {
         This does not affect your statutory rights in respect of defective or
         misdescribed products, nor does it limit our liability for fraud or any
         matter that cannot be excluded by law. If you experience a technical
-        fault that prevents you from using credits you have purchased, please
+        fault that prevents you from using reviews you have purchased, please
         contact us at{" "}
         <a
           href="mailto:mrcgpexplained@outlook.com"

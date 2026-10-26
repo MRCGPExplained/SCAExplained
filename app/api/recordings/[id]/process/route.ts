@@ -1080,17 +1080,58 @@ export async function POST(req: Request, { params }: RouteParams) {
       // recorded on the row instead of vanishing.
       if (gradeSaveErr) throw new Error(`Could not save grades: ${gradeSaveErr.message}`);
 
-      // Spend one grading. This is the only place the meter moves, and it
-      // moves on success, so a run that failed costs the candidate nothing.
-      const { data: accessRow } = await admin
-        .from("user_access")
-        .select("ai_uses_count")
-        .eq("user_id", recording.doctor_user_id)
-        .single<{ ai_uses_count: number }>();
-      await admin
-        .from("user_access")
-        .update({ ai_uses_count: (accessRow?.ai_uses_count ?? 0) + 1 })
-        .eq("user_id", recording.doctor_user_id);
+      /*
+        Spend one AI review. This is the only place the meter moves, and it
+        moves on success, so a run that failed costs the candidate nothing.
+
+        Not when the candidate chose a GP, though. That decision already
+        spent a GP review, and the status line a few lines up knows it:
+        gp_requested_at is what routes the row to the examiner queue. The
+        meter was never told, so one GP submission moved both. Premium sold
+        300 AI reviews and 5 GP reviews and delivered 295; Intensive
+        delivered 380 of 400 — while the modal said "not an AI review" and
+        the terms said an AI review is spent only when AI review is chosen.
+
+        The read no longer falls back to zero. "?? 0" meant a failed read
+        wrote 1 into a lifetime counter, so one transient failure handed a
+        candidate at 119 of 120 their whole allowance back. Leaving a
+        grading uncounted costs us one grading; resetting the counter costs
+        us every grading they had left.
+      */
+      if (!recording.gp_requested_at) {
+        const { data: accessRow, error: meterReadErr } = await admin
+          .from("user_access")
+          .select("ai_uses_count")
+          .eq("user_id", recording.doctor_user_id)
+          .single<{ ai_uses_count: number }>();
+
+        if (meterReadErr || !accessRow) {
+          console.error(
+            "[recordings/process] AI meter not read, grading left uncounted:",
+            meterReadErr?.message ?? "no user_access row"
+          );
+        } else {
+          // Compare-and-set, as the GP meter already does. Two gradings
+          // finishing together used to both read N and both write N+1, so
+          // one went free; now the loser matches no row and says so rather
+          // than overwriting the winner.
+          const { data: moved, error: meterErr } = await admin
+            .from("user_access")
+            .update({ ai_uses_count: accessRow.ai_uses_count + 1 })
+            .eq("user_id", recording.doctor_user_id)
+            .eq("ai_uses_count", accessRow.ai_uses_count)
+            .select("ai_uses_count");
+
+          if (meterErr) {
+            console.error("[recordings/process] AI meter refused:", meterErr.message);
+          } else if (!moved?.length) {
+            console.error(
+              "[recordings/process] AI meter raced, grading left uncounted for",
+              recording.doctor_user_id
+            );
+          }
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Processing failed";
       console.error("[recordings/process]", msg);
