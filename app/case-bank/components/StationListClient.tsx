@@ -97,7 +97,10 @@ function shortDate(iso: string): string {
 }
 
 function AttemptNote({ a }: { a: LastAttempt }) {
-  const times = a.count > 1 ? <span style={{ opacity: 0.6 }}> ×{a.count}</span> : null;
+  // Shown even at one. "×1" reads as a deliberate count of a thing that
+  // has happened once; showing it only from two leaves the reader wondering
+  // whether a bare date means once or means nobody bothered to say.
+  const times = <span style={{ opacity: 0.6 }}> ×{a.count}</span>;
 
   if (!a.asDoctor) {
     return (

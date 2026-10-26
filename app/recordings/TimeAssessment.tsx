@@ -160,7 +160,7 @@ export function analyseTime(raw: TranscriptRaw | null | undefined): TimeAnalysis
 /* ── Rendering ───────────────────────────────────────────────────────────── */
 
 const COLOUR: Record<Who, string> = {
-  doctor: "#F6D44B",
+  doctor: "#166534",
   patient: "#0EA5E9",
   silence: "rgba(51,51,51,0.10)",
 };
