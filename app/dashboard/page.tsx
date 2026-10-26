@@ -65,21 +65,29 @@ export default async function DashboardPage() {
       })
     : null;
 
-  // Expiry outranks both numbers: once access has ended neither balance is
-  // spendable, and showing "120 AI" to someone who cannot record is the more
-  // misleading of the two. The GP figure is dropped when it is zero rather
-  // than shown as "0 GP", because on Starter zero is the plan working as
-  // sold, not something that ran out.
-  const reviewsBadge = !accessLive
-    ? "Expired"
-    : [`${aiRemaining} AI`, credits > 0 ? `${credits} GP` : null].filter(Boolean).join(" · ");
+  /*
+    Both balances, under the expiry rather than on the card.
+
+    Expiry outranks them: once access has ended neither balance is spendable,
+    so an expired account gets the "Access ended" line alone and no numbers.
+    The GP figure is dropped when it is zero rather than shown as "0 GP",
+    because on Starter zero is the plan working as sold, not something that
+    ran out. Zero AI gradings is shown, because that one did run out.
+  */
+  const reviewsLine = accessLive
+    ? [
+        `${aiRemaining} AI grading${aiRemaining === 1 ? "" : "s"}`,
+        credits > 0 ? `${credits} GP review${credits === 1 ? "" : "s"}` : null,
+      ]
+        .filter(Boolean)
+        .join(" and ") + " left"
+    : null;
 
   const items = [
     {
       href: "/case-bank",
       label: "Case Bank",
       description: "240+ practice stations · study groups · notes",
-      badge: null,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <rect x="3" y="2" width="14" height="18" rx="2" stroke={DARK} strokeWidth="1.5"/>
@@ -91,7 +99,6 @@ export default async function DashboardPage() {
       href: "/recordings",
       label: "My Reviews",
       description: "AI graded, with GP review on the ones you submit",
-      badge: reviewsBadge,
       icon: (
         <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
           <circle cx="11" cy="11" r="8.5" stroke={DARK} strokeWidth="1.5"/>
@@ -115,6 +122,11 @@ export default async function DashboardPage() {
                 : `Access ended on ${expiryLabel}`}
             </p>
           )}
+          {reviewsLine && (
+            <p className="text-[12.5px] mt-0.5" style={{ color: "rgba(51,51,51,0.42)" }}>
+              {reviewsLine}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -130,14 +142,7 @@ export default async function DashboardPage() {
                 <p className="font-display font-bold text-[17px]" style={{ color: DARK }}>{item.label}</p>
                 <p className="text-[13px] mt-0.5" style={{ color: "rgba(51,51,51,0.50)" }}>{item.description}</p>
               </div>
-              <div className="shrink-0 flex flex-col items-end gap-1.5">
-                {item.badge && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md" style={{ background: "rgba(26,27,82,0.07)", color: "rgba(26,27,82,0.5)" }}>
-                    {item.badge}
-                  </span>
-                )}
-                <span className="font-bold text-[14px] px-4 py-2 rounded-lg" style={{ background: DARK, color: "white" }}>Open →</span>
-              </div>
+              <span className="shrink-0 font-bold text-[14px] px-4 py-2 rounded-lg" style={{ background: DARK, color: "white" }}>Open →</span>
             </Link>
           ))}
 
