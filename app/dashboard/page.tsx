@@ -7,6 +7,7 @@ import { JoinStudyRoomCard } from "./JoinStudyRoomCard";
 export const dynamic = "force-dynamic";
 
 const DARK = "#333333";
+const FAINT = { color: "rgba(51,51,51,0.42)" };
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -68,19 +69,24 @@ export default async function DashboardPage() {
   /*
     Both balances, under the expiry rather than on the card.
 
-    Expiry outranks them: once access has ended neither balance is spendable,
-    so an expired account gets the "Access ended" line alone and no numbers.
-    The GP figure is dropped when it is zero rather than shown as "0 GP",
-    because on Starter zero is the plan working as sold, not something that
-    ran out. Zero AI gradings is shown, because that one did run out.
+    "Remaining" rather than a new word for them. /recordings labels these two
+    same numbers "AI gradings remaining" and "GP review credits remaining", so
+    anyone moving between the two screens meets one vocabulary. It also rules
+    out "reviews" as the umbrella here: a bare review already means the GP one
+    ("Top up 20 reviews", "You have 3 reviews left"), so stretching it to cover
+    AI gradings as well would make those strings ambiguous.
+
+    Expiry outranks the numbers: once access has ended neither balance is
+    spendable, so an expired account gets the "Access ended" line alone. The
+    GP figure is dropped when it is zero rather than shown as "0 GP", because
+    on Starter zero is the plan working as sold, not something that ran out.
+    Zero AI gradings is shown, because that one did run out.
   */
-  const reviewsLine = accessLive
-    ? [
-        `${aiRemaining} AI grading${aiRemaining === 1 ? "" : "s"}`,
-        credits > 0 ? `${credits} GP review${credits === 1 ? "" : "s"}` : null,
-      ]
+  const remainingLine = accessLive
+    ? "Remaining: " +
+      [`${aiRemaining} AI`, credits > 0 ? `${credits} GP` : null]
         .filter(Boolean)
-        .join(" and ") + " left"
+        .join(" · ")
     : null;
 
   const items = [
@@ -115,16 +121,19 @@ export default async function DashboardPage() {
           <h1 className="font-display font-extrabold text-[28px]" style={{ color: DARK }}>
             {firstName ? `Hi ${firstName}! 👋` : "Hi there! 👋"}
           </h1>
-          {(daysLeft !== null || expiryLabel) && (
-            <p className="text-[12.5px] mt-1.5" style={{ color: "rgba(51,51,51,0.42)" }}>
-              {daysLeft !== null
-                ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} of access left · until ${expiryLabel}`
-                : `Access ended on ${expiryLabel}`}
+          {expiryLabel && (
+            <p className="text-[12.5px] mt-1.5" style={FAINT}>
+              {accessLive ? `Access until ${expiryLabel}` : `Access ended on ${expiryLabel}`}
             </p>
           )}
-          {reviewsLine && (
-            <p className="text-[12.5px] mt-0.5" style={{ color: "rgba(51,51,51,0.42)" }}>
-              {reviewsLine}
+          {daysLeft !== null && (
+            <p className="text-[12.5px] mt-0.5" style={FAINT}>
+              {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+            </p>
+          )}
+          {remainingLine && (
+            <p className="text-[12.5px] mt-0.5" style={FAINT}>
+              {remainingLine}
             </p>
           )}
         </div>
