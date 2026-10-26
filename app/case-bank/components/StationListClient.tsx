@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { MAX_SCORE, scoreColour } from "@/lib/report-score";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
 import { SUBJECTS } from "@/lib/case-bank-types";
@@ -75,14 +76,63 @@ function GroupCaseBanner() {
   );
 }
 
+export interface LastAttempt {
+  /** False when they were the role-player, which is still worth knowing. */
+  asDoctor: boolean;
+  at: string;
+  /** Out of 10.5. Null when they played the patient — the mark was not theirs. */
+  total: number | null;
+  count: number;
+}
+
+/** "12 Oct", or "12 Oct 2025" once it is not this year. */
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  const thisYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(thisYear ? {} : { year: "numeric" }),
+  });
+}
+
+function AttemptNote({ a }: { a: LastAttempt }) {
+  const times = a.count > 1 ? <span style={{ opacity: 0.6 }}> ×{a.count}</span> : null;
+
+  if (!a.asDoctor) {
+    return (
+      <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.38)" }}>
+        As patient · {shortDate(a.at)}
+        {times}
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.45)" }}>
+      {shortDate(a.at)}
+      {a.total !== null && (
+        <>
+          {" · "}
+          <strong style={{ color: scoreColour(a.total) }}>
+            {a.total}/{MAX_SCORE}
+          </strong>
+        </>
+      )}
+      {times}
+    </span>
+  );
+}
+
 export function StationListClient({
   stations,
   starredIds: initialStarredIds,
   lastStation: initialLastStation,
+  attempts,
 }: {
   stations: StationListRow[];
   starredIds: string[];
   lastStation: number | null;
+  attempts: Record<number, LastAttempt>;
 }) {
   const [activeSubject, setActiveSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
@@ -273,6 +323,8 @@ export function StationListClient({
                     </span>
                   </div>
                 )}
+
+                {attempts[station.number] && <AttemptNote a={attempts[station.number]} />}
 
                 {isStarred && (
                   <span className="shrink-0 text-[14px]" style={{ color: YELLOW }}>★</span>
