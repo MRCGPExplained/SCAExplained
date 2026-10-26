@@ -124,12 +124,9 @@ export default async function DashboardPage() {
           </h1>
           {expiryLabel && (
             <p className="text-[12.5px] mt-1.5" style={FAINT}>
-              {accessLive ? `Access until ${expiryLabel}` : `Access ended on ${expiryLabel}`}
-            </p>
-          )}
-          {daysLeft !== null && (
-            <p className="text-[12.5px] mt-0.5" style={FAINT}>
-              {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+              {daysLeft !== null
+                ? `Access until ${expiryLabel} (${daysLeft.toLocaleString("en-GB")} day${daysLeft === 1 ? "" : "s"} left)`
+                : `Access ended on ${expiryLabel}`}
             </p>
           )}
           {reviewsLine && (
