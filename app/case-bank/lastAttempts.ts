@@ -17,6 +17,7 @@ export const POINTS = {
 };
 
 export interface AttemptRow {
+  id: string;
   station_number: number;
   ai_graded_at: string;
   doctor_user_id: string | null;
@@ -66,6 +67,10 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
     const sameRole = seen && seen.asDoctor === asDoctor;
     out[r.station_number] = {
       asDoctor,
+      // Only their own. A patient attempt is somebody else's report, and the
+      // report page turns away anyone who is not the candidate, an examiner
+      // or an admin — so linking it would send them to a dead end.
+      reportId: asDoctor ? r.id : null,
       at: r.ai_graded_at,
       total: asDoctor ? totalOf(r) : null,
       count: sameRole ? seen.count + 1 : 1,

@@ -79,6 +79,8 @@ function GroupCaseBanner() {
 export interface LastAttempt {
   /** False when they were the role-player, which is still worth knowing. */
   asDoctor: boolean;
+  /** Their own most recent report for this station, or null if it is not theirs. */
+  reportId: string | null;
   at: string;
   /** Out of 10.5. Null when they played the patient — the mark was not theirs. */
   total: number | null;
@@ -110,8 +112,9 @@ function AttemptNote({ a }: { a: LastAttempt }) {
       </span>
     );
   }
-  return (
-    <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.45)" }}>
+
+  const body = (
+    <>
       {shortDate(a.at)}
       {a.total !== null && (
         <>
@@ -122,7 +125,37 @@ function AttemptNote({ a }: { a: LastAttempt }) {
         </>
       )}
       {times}
-    </span>
+    </>
+  );
+
+  if (!a.reportId) {
+    return (
+      <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.45)" }}>
+        {body}
+      </span>
+    );
+  }
+
+  /*
+    Its own link, in a new tab, sitting above the one that covers the row.
+
+    New tab because the list is 246 rows long and someone checking a mark
+    wants to glance and come back, not to lose their place and scroll for it
+    again. z-10 because the row's link is an overlay stretched across the
+    whole card, and without it this would be underneath and unclickable.
+  */
+  return (
+    <a
+      href={`/recordings/${a.reportId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title="Open this report in a new tab"
+      className="shrink-0 text-[11.5px] hidden sm:block no-underline relative z-10 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-[rgba(51,51,51,0.06)]"
+      style={{ color: "rgba(51,51,51,0.45)" }}
+    >
+      {body}
+    </a>
   );
 }
 
@@ -288,16 +321,23 @@ export function StationListClient({
             const isStarred = starredSet.has(station.id);
             const isLast = station.number === lastStation;
             return (
-              <Link
+              <div
                 key={station.id}
-                href={`/case-bank/${station.number}`}
-                className="flex items-center gap-4 rounded-[10px] px-4 py-3 no-underline transition-all hover:shadow-md"
+                className="relative flex items-center gap-4 rounded-[10px] px-4 py-3 transition-all hover:shadow-md"
                 style={{
                   background: LIGHT_BG,
                   border: "1px solid rgba(51,51,51,0.07)",
                   borderLeft: isLast ? `3px solid rgba(51,51,51,0.35)` : "1px solid rgba(51,51,51,0.07)",
                 }}
               >
+                {/* The whole card still opens the station. Stretched across it
+                    rather than wrapping it, so the mark on the right can be a
+                    link of its own without nesting one anchor inside another. */}
+                <Link
+                  href={`/case-bank/${station.number}`}
+                  className="absolute inset-0 rounded-[10px]"
+                  aria-label={`Station ${station.number}: ${station.title}`}
+                />
                 {/* Number */}
                 <div
                   className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold"
@@ -336,7 +376,7 @@ export function StationListClient({
                 <span className="shrink-0 text-[14px]" style={{ color: "rgba(51,51,51,0.25)" }}>
                   →
                 </span>
-              </Link>
+              </div>
             );
           })}
         </div>
