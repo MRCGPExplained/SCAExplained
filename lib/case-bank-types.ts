@@ -33,6 +33,11 @@ export type Station = {
   key_takeaways: string[];
   trainer_qa: QAPair[];
   trainer_insight_audio_url: string | null;
+  /** A real take, chosen by an admin, published on the station. Two tracks
+   *  because that is how a consultation is recorded. */
+  model_consultation_doctor_url: string | null;
+  model_consultation_patient_url: string | null;
+  model_consultation_transcript: string | null;
   audio_url: string | null;
   audio_notes: string | null;
   image_urls: string[] | null;

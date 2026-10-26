@@ -18,6 +18,8 @@ import {
   deleteTrainerInsightAudioAction,
 } from "@/app/admin/actions";
 import { AudioRecordUpload } from "@/app/components/AudioRecordUpload";
+import DualTrackPlayer from "@/app/components/DualTrackPlayer";
+import { ModelConsultationPicker } from "./ModelConsultationPicker";
 
 const NAVY = "#1F2937";
 const YELLOW = "#F6D44B";
@@ -1057,6 +1059,63 @@ export function StationPageClient({
                     isAdmin={isAdmin}
                   />
                 )}
+                {/*
+                  Model consultation: a real take someone agreed to have
+                  published, between the trainer's own recording and the
+                  questions. Shown only when one is set, like the blocks
+                  either side; an admin always sees the control so there is
+                  somewhere to set the first one from.
+                */}
+                {(!!station.model_consultation_doctor_url || isAdmin) && (
+                  <div
+                    style={
+                      station.trainer_insight_audio_url
+                        ? { borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <Label>Model Consultation</Label>
+                      {isAdmin && (
+                        <ModelConsultationPicker
+                          stationId={station.id}
+                          stationNumber={station.number}
+                          hasExisting={!!station.model_consultation_doctor_url}
+                        />
+                      )}
+                    </div>
+
+                    {station.model_consultation_doctor_url ? (
+                      <>
+                        <DualTrackPlayer
+                          doctorUrl={station.model_consultation_doctor_url}
+                          patientUrl={station.model_consultation_patient_url}
+                        />
+                        {station.model_consultation_transcript && (
+                          <details className="mt-3">
+                            <summary
+                              className="text-[12px] font-semibold cursor-pointer select-none"
+                              style={{ color: "rgba(26,27,82,0.5)" }}
+                            >
+                              Read the transcript
+                            </summary>
+                            <p
+                              className="text-[15px] leading-[1.8] mt-2.5 mb-0"
+                              style={{ color: "rgba(26,27,82,0.8)", whiteSpace: "pre-line" }}
+                            >
+                              {station.model_consultation_transcript}
+                            </p>
+                          </details>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-[13px] mt-1" style={{ color: "rgba(26,27,82,0.45)" }}>
+                        None chosen yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {((station.trainer_qa?.length ?? 0) > 0 || isAdmin) && (
                   <div
                     style={

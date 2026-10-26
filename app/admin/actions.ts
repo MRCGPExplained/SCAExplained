@@ -1927,3 +1927,160 @@ export async function setCaseRuleActiveAction(id: string, active: boolean): Prom
   if (data) revalidatePath(`/admin/stations/${data.station_id}/edit`);
   return { success: true };
 }
+
+// ── Model Consultation ────────────────────────────────────────────────────────
+
+export interface ModelConsultationCandidate {
+  id: string;
+  started_at: string;
+  doctor_display_name: string | null;
+  patient_display_name: string | null;
+  candidate_email: string | null;
+}
+
+/**
+ * Takes that could be published as the model for a station: newest first,
+ * and only ones whose audio is still in storage, since a row whose files
+ * have been swept has nothing to copy.
+ */
+export async function listModelConsultationCandidatesAction(
+  stationNumber: number,
+  query: string
+): Promise<{ rows: ModelConsultationCandidate[] } | { error: string }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  let q = supabase
+    .from("station_recordings")
+    .select("id, started_at, doctor_display_name, patient_display_name, candidate_email")
+    .eq("station_number", stationNumber)
+    .not("doctor_audio_path", "is", null)
+    .not("patient_audio_path", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(50);
+
+  const term = query.trim();
+  if (term) {
+    // Either name or the email, which is what an admin actually has to hand
+    // when someone has agreed to their take being used.
+    const like = `%${term}%`;
+    q = q.or(
+      `doctor_display_name.ilike.${like},patient_display_name.ilike.${like},candidate_email.ilike.${like}`
+    );
+  }
+
+  const { data, error } = await q.returns<ModelConsultationCandidate[]>();
+  if (error) return { error: error.message };
+  return { rows: data ?? [] };
+}
+
+/**
+ * Publish a take as the station's model consultation.
+ *
+ * Both tracks are copied into audio-lessons rather than referenced where
+ * they are: consultation-recordings is candidate storage, swept on
+ * retention, and the trainee can discard their own take at any time. The
+ * transcript is copied with them, because a model consultation is often more
+ * useful read than listened to.
+ */
+export async function setModelConsultationAction(
+  stationId: string,
+  recordingId: string
+): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: rec, error: recErr } = await supabase
+    .from("station_recordings")
+    .select("doctor_audio_path, patient_audio_path, transcript_formatted")
+    .eq("id", recordingId)
+    .single<{
+      doctor_audio_path: string | null;
+      patient_audio_path: string | null;
+      transcript_formatted: string | null;
+    }>();
+
+  if (recErr) return { error: recErr.message };
+  if (!rec?.doctor_audio_path || !rec.patient_audio_path) {
+    return { error: "That recording no longer has both audio tracks." };
+  }
+
+  const { data: station, error: stationErr } = await supabase
+    .from("stations")
+    .select("number")
+    .eq("id", stationId)
+    .single<{ number: number }>();
+  if (stationErr) return { error: stationErr.message };
+
+  // Download and re-upload rather than a bucket copy, so this does not
+  // depend on cross-bucket copy support in whichever client version is
+  // installed.
+  const urls: Record<"doctor" | "patient", string> = { doctor: "", patient: "" };
+  for (const role of ["doctor", "patient"] as const) {
+    const from = role === "doctor" ? rec.doctor_audio_path : rec.patient_audio_path;
+    const { data: blob, error: dlErr } = await supabase.storage
+      .from("consultation-recordings")
+      .download(from);
+    if (dlErr || !blob) return { error: `Could not read the ${role} track: ${dlErr?.message ?? "missing"}` };
+
+    const to = `${stationId}/model-consultation-${role}.webm`;
+    const { error: upErr } = await supabase.storage
+      .from("audio-lessons")
+      .upload(to, blob, { contentType: "audio/webm", upsert: true });
+    if (upErr) return { error: `Could not store the ${role} track: ${upErr.message}` };
+
+    urls[role] = supabase.storage.from("audio-lessons").getPublicUrl(to).data.publicUrl;
+  }
+
+  const { error } = await supabase
+    .from("stations")
+    .update({
+      model_consultation_doctor_url: urls.doctor,
+      model_consultation_patient_url: urls.patient,
+      model_consultation_transcript: rec.transcript_formatted,
+      model_consultation_recording_id: recordingId,
+      model_consultation_added_at: new Date().toISOString(),
+    })
+    .eq("id", stationId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/case-bank/${station.number}`);
+  return { success: true };
+}
+
+/** Unpublish it, and remove the copies so nothing is left serving publicly. */
+export async function clearModelConsultationAction(stationId: string): Promise<ActionResult> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  const { data: station } = await supabase
+    .from("stations")
+    .select("number")
+    .eq("id", stationId)
+    .single<{ number: number }>();
+
+  await supabase.storage
+    .from("audio-lessons")
+    .remove([
+      `${stationId}/model-consultation-doctor.webm`,
+      `${stationId}/model-consultation-patient.webm`,
+    ]);
+
+  const { error } = await supabase
+    .from("stations")
+    .update({
+      model_consultation_doctor_url: null,
+      model_consultation_patient_url: null,
+      model_consultation_transcript: null,
+      model_consultation_recording_id: null,
+      model_consultation_added_at: null,
+    })
+    .eq("id", stationId);
+  if (error) return { error: error.message };
+
+  if (station) revalidatePath(`/case-bank/${station.number}`);
+  return { success: true };
+}
