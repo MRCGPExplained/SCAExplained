@@ -249,7 +249,7 @@ function AttemptsDialog({
         </div>
 
         <div className="pb-2">
-          {attempts.map((att, i) => (
+          {attempts.map((att) => (
             <a
               key={att.id}
               href={`/recordings/${att.id}`}
@@ -267,17 +267,11 @@ function AttemptsDialog({
               <span className="text-[12.5px] flex-1" style={{ color: "rgba(51,51,51,0.5)" }}>
                 {att.grades.map((g) => g ?? "—").join(" / ")}
               </span>
-              {i === 0 && (
-                <span className="text-[10.5px] shrink-0" style={{ color: "rgba(51,51,51,0.35)" }}>latest</span>
-              )}
             </a>
           ))}
         </div>
 
         <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
-          <p className="text-[11.5px] mb-3" style={{ color: "rgba(51,51,51,0.45)" }}>
-            Same case each time, so a better line is a better consultation. Opens in a new tab.
-          </p>
           <button
             type="button"
             onClick={onClose}
