@@ -160,7 +160,7 @@ export function analyseTime(raw: TranscriptRaw | null | undefined): TimeAnalysis
 /* ── Rendering ───────────────────────────────────────────────────────────── */
 
 const COLOUR: Record<Who, string> = {
-  doctor: "#F97316",
+  doctor: "#F6D44B",
   patient: "#0EA5E9",
   silence: "rgba(51,51,51,0.10)",
 };
@@ -250,6 +250,14 @@ export function TimeAssessment({ raw }: { raw: TranscriptRaw | null | undefined 
               }`}
             />
           ))}
+        </div>
+
+        {/* Where the thirds below are measured from. Beneath the bar rather
+            than drawn through it: a hairline inside a few hundred stripes is
+            just another stripe, and disappears. */}
+        <div className="relative w-full" style={{ height: 7 }}>
+          <span className="absolute top-0" style={{ left: "33.333%", width: 2, height: 7, background: "rgba(51,51,51,0.45)", borderRadius: 1 }} />
+          <span className="absolute top-0" style={{ left: "66.666%", width: 2, height: 7, background: "rgba(51,51,51,0.45)", borderRadius: 1 }} />
         </div>
 
         {/* Silence keeps its swatch so the grey is explained, but not a figure:
