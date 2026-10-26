@@ -73,6 +73,10 @@ export default async function TrendsPage() {
       )
       .eq("doctor_user_id", user.id)
       .not("ai_graded_at", "is", null)
+      // A thrown-away take should not haunt the trend. It also gives an
+      // admin a reversible way to take a recording out of here without
+      // deleting it, which is the kinder lever of the two.
+      .neq("status", "discarded")
       .returns<RawRecording[]>(),
     // Labels live in grading_skills, not in the stored assessment, so naming a
     // skill costs this second read. It is small and the same for everyone.
