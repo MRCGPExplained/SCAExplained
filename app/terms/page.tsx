@@ -65,16 +65,22 @@ export default function TermsPage() {
         for technical reasons it is not counted against your allowance.
       </P>
       <P>
-        Both allowances may be extended by purchasing a top-up, provided your
-        access has not already ended. A top-up adds to the relevant balance
-        and does not change which plan you are on or the date your access
-        ends. It cannot restore access that has already expired, and plans
-        cannot be changed part way through a term. Unused allowances expire
-        with your access and are not refundable. Allowances and access are
-        personal to your account and are non-transferable; we may contact you
-        if usage suggests an account is being shared or resold, and reserve
-        the right to suspend access in such cases. If you need more time on a
-        plan for a good reason, contact us and we will consider it.
+        You may buy a plan at any time, including while one is still
+        running. Buying again adds that plan&apos;s allowances to whatever you
+        have left and adds its term to your existing end date, so nothing is
+        lost by renewing early.
+      </P>
+      <P>
+        Both allowances may also be extended by purchasing a top-up, provided
+        your access has not already ended. A top-up adds to the relevant
+        balance and does not change which plan you are on or the date your
+        access ends, and it cannot restore access that has already expired.
+        Unused allowances expire with your access and are not refundable.
+        Allowances and access are personal to your account and are
+        non-transferable; we may contact you if usage suggests an account is
+        being shared or resold, and reserve the right to suspend access in
+        such cases. If you need more time on a plan for a good reason,
+        contact us and we will consider it.
       </P>
       <P>
         By completing a purchase you expressly request that the digital

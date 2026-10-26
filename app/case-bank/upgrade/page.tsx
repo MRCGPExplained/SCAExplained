@@ -28,24 +28,38 @@ export default async function CaseBankUpgradePage() {
   if (!user) redirect("/case-bank/login?next=/case-bank/upgrade");
 
   const access = await getCaseBankAccess(supabase, user.id);
-  if (access.hasAccess) redirect("/case-bank");
+  // No redirect for someone already in date. This sent anyone with live
+  // access straight back to the case bank, which was right while buying
+  // again was refused and is wrong now that it is the way to renew: the
+  // page they would be bounced away from is the one selling the thing they
+  // came to buy.
 
-  // Expired reads differently from never having had it, and the person in
-  // front of us knows which they are. Saying the wrong one is worse than
-  // saying neither.
-  const expired = !!access.expiresAt;
+  /*
+    Three states, not two. This asked only whether an expiry date had ever
+    existed, which was enough while anyone in date was redirected away: the
+    only people who got here either had no access or had lost it. Now that
+    buying again is how you renew, someone still in date can arrive, and
+    telling them their access has run out would be plainly false.
+  */
+  const live = access.hasAccess;
+  const expired = !live && !!access.expiresAt;
+  const expiryLabel = access.expiresAt
+    ? new Date(access.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <div className="min-h-screen px-6 py-14" style={{ background: "#FAFAF8" }}>
       <div className="max-w-[1150px] mx-auto">
         <div className="text-center max-w-[600px] mx-auto mb-10">
           <h1 className="font-display font-extrabold text-[28px] leading-[1.2] mb-3 max-sm:text-[24px]" style={{ color: DARK }}>
-            {expired ? "Your access has run out" : "Unlock the case bank"}
+            {live ? "Add to your plan" : expired ? "Your access has run out" : "Unlock the case bank"}
           </h1>
           <p className="text-[15px] leading-[1.7]" style={{ color: "rgba(51,51,51,0.6)" }}>
-            {expired
-              ? "Your recordings and reports are all still here. Pick a plan to carry on where you left off."
-              : "240+ cases, study groups, and unlimited recording on all three plans. What changes is how much marking you get, and how much of it is read by a GP."}
+            {live
+              ? `Buying again adds the allowances to what you have left, and adds four months to your current end date${expiryLabel ? ` of ${expiryLabel}` : ""}. Nothing is lost by renewing early.`
+              : expired
+                ? "Your recordings and reports are all still here. Pick a plan to carry on where you left off."
+                : "240+ cases, study groups, and unlimited recording on all three plans. What changes is how much marking you get, and how much of it is read by a GP."}
           </p>
         </div>
 

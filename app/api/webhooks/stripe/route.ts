@@ -288,20 +288,33 @@ async function confirmPlanPurchase(session: Stripe.Checkout.Session) {
   if (!supabase) return;
 
   const now = new Date();
-  const expiresAt = new Date(now);
-  expiresAt.setMonth(expiresAt.getMonth() + months);
 
-  // Buying again while still in date extends rather than truncates.
   const { data: existing } = await supabase
     .from("user_access")
     .select("case_bank_expires_at")
     .eq("user_id", userId)
     .single<{ case_bank_expires_at: string | null }>();
 
-  const newExpiry =
-    existing?.case_bank_expires_at && existing.case_bank_expires_at > expiresAt.toISOString()
-      ? existing.case_bank_expires_at
-      : expiresAt.toISOString();
+  /*
+    The term ADDS to whatever is left, rather than resetting the clock.
+
+    This used to take max(existing, now + months), which meant someone three
+    months into Intensive could pay £295 again and gain a single month. They
+    would reasonably expect seven and get four, which is a refund request
+    rather than a repeat purchase.
+
+    Counting from max(now, existing) rather than from existing alone stops
+    dead time being paid for: someone who lapsed a fortnight ago gets four
+    months from today, not four months from a date already past.
+  */
+  const base =
+    existing?.case_bank_expires_at && existing.case_bank_expires_at > now.toISOString()
+      ? new Date(existing.case_bank_expires_at)
+      : now;
+
+  const expiresAt = new Date(base);
+  expiresAt.setMonth(expiresAt.getMonth() + months);
+  const newExpiry = expiresAt.toISOString();
 
   const { error } = await supabase.from("user_access").upsert({
     user_id: userId,
