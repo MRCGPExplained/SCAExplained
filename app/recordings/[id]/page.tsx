@@ -184,8 +184,16 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
   const showExaminerGrades = isFinal || hasExaminerGrades;
 
-  // Mark as read by the candidate the first time they see the finalised report
-  if (!examiner && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
+  /*
+    Mark as read the first time the CANDIDATE sees the finalised report.
+
+    This was "!examiner", which meant the candidate back when the page was
+    gated to them. It no longer does: a report opens for whoever holds the
+    link, so the patient, an observer, or a chat app fetching a link preview
+    would all have cleared the unread marker on somebody else's report and the
+    candidate would never have known it had arrived.
+  */
+  if (isRealCandidate && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
     await admin.from("station_recordings").update({ candidate_viewed_at: new Date().toISOString() }).eq("id", rec.id);
   }
 

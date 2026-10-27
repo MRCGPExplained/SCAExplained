@@ -192,13 +192,17 @@ export const config = {
       "/admin/:path*" does NOT cover "/api/admin/*" — matcher paths are literal.
       That mattered: /api/admin/settings-debug sat outside this list with no check
       of its own and answered 200 to anyone on the internet, serving site_settings
-      including ai_grading_prompt. It is deleted now, and this entry means the next
-      route under /api/admin is at least bounced for having no session.
+      including ai_grading_prompt. It is deleted now.
 
-      Do not rely on this alone. Middleware here is only a cheap pre-filter, and
-      the authoritative gate for admin PAGES is app/admin/layout.tsx — which an
-      API route never passes through, because routes have no layout. Any route
-      under /api/admin must call isAdmin() itself.
+      This entry only makes middleware RUN for /api/admin; it does not guard it.
+      Nothing in the body below matches such a path — the admin branch tests
+      startsWith("/admin"), which is false for "/api/admin/..." — so a request
+      falls through to NextResponse.next(). It is here so the next person
+      editing this file sees the path and this note together.
+
+      The gate for admin PAGES is app/admin/layout.tsx, which an API route never
+      passes through, because routes have no layout. So any route under
+      /api/admin must call isAdmin() itself. There is nothing else.
     */
     "/api/admin/:path*",
     "/admin/:path*",

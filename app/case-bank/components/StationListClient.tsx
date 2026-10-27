@@ -116,10 +116,29 @@ function AttemptNote({ a, onOpen }: { a: LastAttempt; onOpen: () => void }) {
   const times = <span style={{ opacity: 0.6 }}> ×{a.count}</span>;
 
   if (!a.asDoctor) {
-    return (
-      <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.38)" }}>
+    const patientBody = (
+      <>
         As patient · {shortDate(a.at)}
         {times}
+      </>
+    );
+    // No mark of their own, but the consultation is theirs to revisit: they
+    // sat through it, and a report opens for whoever holds its link.
+    return a.reportId ? (
+      <a
+        href={`/recordings/${a.reportId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        title="Open this report in a new tab"
+        className="shrink-0 text-[11.5px] hidden sm:block no-underline relative z-10 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-[rgba(51,51,51,0.06)]"
+        style={{ color: "rgba(51,51,51,0.38)" }}
+      >
+        {patientBody}
+      </a>
+    ) : (
+      <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.38)" }}>
+        {patientBody}
       </span>
     );
   }

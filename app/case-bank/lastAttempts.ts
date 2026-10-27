@@ -61,16 +61,17 @@ export function totalOf(r: AttemptRow): number | null {
  * is the attempt with a mark on it, and it wins in either direction: a case
  * role-played last week still loses to one sat as the doctor last month.
  *
- * The history holds their own attempts only, newest first. A patient attempt
- * is somebody else's report — the report page turns away anyone who is not
- * the candidate, an examiner or an admin — so it carries no id and would be a
- * row in a list of links that could not be clicked.
+ * The history holds their own attempts only, newest first: those are the ones
+ * with a mark on them. A station they only role-played still carries the id of
+ * the take, because a report is readable by whoever holds its link now — so
+ * the row can take them to the consultation they sat through, it just has no
+ * score of theirs to show beside the date.
  *
  * Only graded recordings count: an abandoned take is not an attempt.
  */
 export function foldAttempts(rows: AttemptRow[], userId: string): Record<number, LastAttempt> {
   const doctorHistory: Record<number, StationAttempt[]> = {};
-  const patient: Record<number, { at: string; count: number }> = {};
+  const patient: Record<number, { id: string; at: string; count: number }> = {};
 
   for (const r of rows) {
     if (r.doctor_user_id === userId) {
@@ -82,7 +83,7 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
       ];
     } else {
       const seen = patient[r.station_number];
-      patient[r.station_number] = { at: r.ai_graded_at, count: seen ? seen.count + 1 : 1 };
+      patient[r.station_number] = { id: r.id, at: r.ai_graded_at, count: seen ? seen.count + 1 : 1 };
     }
   }
 
@@ -104,7 +105,7 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
     if (out[Number(n)]) continue; // their own turn as doctor wins
     out[Number(n)] = {
       asDoctor: false,
-      reportId: null,
+      reportId: p.id,
       at: p.at,
       total: null,
       count: p.count,
