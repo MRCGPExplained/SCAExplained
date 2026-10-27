@@ -253,7 +253,16 @@ export default async function RecordingDetailPage({ params }: PageProps) {
   const roPts = grades.ro ? GRADE_META[grades.ro]?.pts("ro") ?? null : null;
   const total = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
 
-  const hasConsultation = isDoctor && (doctorAudioUrl || patientAudioUrl || rec.transcript_formatted);
+  /*
+    The transcript and both audio tracks, for anyone the gate above let in.
+
+    It used to require isDoctor, which meant the patient and the observer
+    could read the marking but not the consultation it was marking — a
+    conversation all three of them had just sat through and heard every word
+    of. The gate already decides who may be here; there is no second, quieter
+    question for it to answer.
+  */
+  const hasConsultation = !!(doctorAudioUrl || patientAudioUrl || rec.transcript_formatted);
 
   return (
     <div className="min-h-screen" style={{ background: "#F4F4F2" }}>
