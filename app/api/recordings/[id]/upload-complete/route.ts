@@ -55,18 +55,44 @@ export async function POST(req: Request, { params }: RouteParams) {
     .update({ [pathColumn]: storagePath })
     .eq("id", recordingId);
 
-  const { data: updated } = await admin
+  /*
+    Claiming the recording, in one statement, instead of reading it and then
+    deciding.
+
+    Both halves of a consultation call this route, each with its own role.
+    It used to re-read the row, see both audio paths present, set
+    "processing" and fire the pipeline. When the two uploads landed together
+    BOTH requests saw both paths, both set the status and both fired — and
+    the pipeline's own guard could not help, because it reads the status and
+    by then it genuinely said "processing" for both of them.
+
+    Station 72 on 27 Oct was transcribed twice: four Deepgram calls with four
+    different request ids inside 85ms, one consultation, billed twice.
+
+    Postgres settles it now. Both conditions are in the WHERE clause, so the
+    second UPDATE blocks on the row lock, re-reads the row as "processing"
+    and matches nothing. Exactly one caller is handed a row back, and only
+    that one starts the pipeline. "uploading" rather than != "processing" so
+    a late duplicate cannot re-fire a recording that has already moved on.
+  */
+  const { data: claimed, error: claimErr } = await admin
     .from("station_recordings")
-    .select("doctor_audio_path, patient_audio_path")
+    .update({ status: "processing", ended_at: new Date().toISOString() })
     .eq("id", recordingId)
-    .single<{ doctor_audio_path: string | null; patient_audio_path: string | null }>();
+    .eq("status", "uploading")
+    .not("doctor_audio_path", "is", null)
+    .not("patient_audio_path", "is", null)
+    .select("id");
 
-  if (updated?.doctor_audio_path && updated?.patient_audio_path) {
-    await admin
-      .from("station_recordings")
-      .update({ status: "processing", ended_at: new Date().toISOString() })
-      .eq("id", recordingId);
+  // supabase-js returns { data, error } and does not throw, so an unread
+  // error here would be indistinguishable from losing the claim: silence,
+  // and a consultation that is never processed.
+  if (claimErr) {
+    console.error("[recording/upload-complete] claim failed", recordingId, claimErr.message);
+    return NextResponse.json({ error: "Could not start processing" }, { status: 500 });
+  }
 
+  if (claimed && claimed.length > 0) {
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
     after(async () => {
       try {

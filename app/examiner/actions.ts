@@ -145,12 +145,20 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
   if (!current) return { error: "Recording not found." };
   if (current.status === "processing") return { error: "Already processing — give it a minute." };
 
-  const { error } = await admin
+  // The read above says what to roll back to; it does not decide anything.
+  // Checking the status and then setting it are two statements, and two
+  // Retry clicks landing together both passed the check and both started a
+  // pipeline run. The condition belongs in the UPDATE, where Postgres
+  // serialises it: the second one matches no rows and stops here.
+  const { data: claimed, error } = await admin
     .from("station_recordings")
     .update({ status: "processing", ai_error: null, ai_failed_at: null })
-    .eq("id", recordingId);
+    .eq("id", recordingId)
+    .neq("status", "processing")
+    .select("id");
 
   if (error) return { error: error.message };
+  if (!claimed || claimed.length === 0) return { error: "Already processing — give it a minute." };
 
   // Trigger the pipeline server-side rather than from the browser: only the
   // server holds INTERNAL_API_KEY, so a browser-issued POST is rejected as
