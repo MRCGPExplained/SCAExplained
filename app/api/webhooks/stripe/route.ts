@@ -184,27 +184,31 @@ async function addRecordingCredits(
   userId: string,
   credits: number
 ) {
-  // Upsert: add purchased credits to existing balance
+  /*
+    Throws, like its AI twin, so a refused grant reaches the catch in the
+    route — which releases the idempotency claim and lets Stripe retry.
+
+    It used to swallow everything and return void, so the caller had nothing
+    to check even if it had wanted to. A customer could be charged £295 for
+    Intensive, be emailed "20 GP reviews", receive none, and have the webhook
+    answer Stripe 200 so it never tried again — and the idempotency row made
+    a manual replay a no-op.
+
+    The fallback that stood here is gone rather than repaired. It existed for
+    a window when add_gp_review_credits might not have been deployed yet; the
+    function has long since existed (INSERT ... ON CONFLICT, execute granted
+    to service_role). It only ever ran once the RPC had already failed, which
+    is precisely when its own two faults bit: it discarded the error on its
+    read and then wrote (existing?.balance ?? 0) + credits — an absolute
+    write, not an increment — so one transient read failure turned somebody
+    holding 20 credits and buying 5 more into somebody holding 5.
+  */
   const { error } = await supabase.rpc("add_gp_review_credits", {
     p_user_id: userId,
     p_credits: credits,
   });
 
-  if (error) {
-    // Fallback: manual upsert if RPC doesn't exist yet
-    const { data: existing } = await supabase
-      .from("gp_review_credits")
-      .select("balance, total_purchased")
-      .eq("user_id", userId)
-      .single<{ balance: number; total_purchased: number }>();
-
-    await supabase.from("gp_review_credits").upsert({
-      user_id: userId,
-      balance: (existing?.balance ?? 0) + credits,
-      total_purchased: (existing?.total_purchased ?? 0) + credits,
-      updated_at: new Date().toISOString(),
-    });
-  }
+  if (error) throw new Error(`Could not add GP reviews: ${error.message}`);
 }
 
 // ── Top-up purchase ──────────────────────────────────────────────────────────
