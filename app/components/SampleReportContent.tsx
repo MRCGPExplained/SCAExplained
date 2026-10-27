@@ -467,19 +467,18 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
         <TimeAssessment raw={SAMPLE_TIMING} interactive={interactive} />
       </div>
 
-      {/* Transcript — or, in compact mode, a plain indicator (the hero
-          wraps this whole card in one link, so this can't be its own control) */}
-      {compact ? (
-        <div
-          className="rounded-2xl px-5 py-4 flex items-center justify-center gap-2"
-          style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
-            <path d="M2 4h12M2 8h8M2 12h5" stroke={NAVY} strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <span className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.5)" }}>View full report</span>
-        </div>
-      ) : (
+      {/*
+        The transcript, and nothing at all in compact mode.
+
+        A "View full report" strip used to stand here on the homepage, saying
+        the card could be opened. It is gone by request. The card is still a
+        link and still lifts on hover, so the affordance is the movement now
+        rather than a label.
+
+        Not a disclosure in compact mode either way: the hero wraps this whole
+        card in one link, so a control inside it would be fighting the link.
+      */}
+      {!compact && (
         <details
           className="rounded-2xl overflow-hidden"
           style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
