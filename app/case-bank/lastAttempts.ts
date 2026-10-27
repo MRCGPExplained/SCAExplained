@@ -27,6 +27,8 @@ export interface AttemptRow {
   station_number: number;
   ai_graded_at: string;
   doctor_user_id: string | null;
+  patient_user_id: string | null;
+  observer_user_ids: string[] | null;
   sent_to_candidate_at: string | null;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
@@ -57,6 +59,11 @@ export function totalOf(r: AttemptRow): number | null {
 /**
  * Fold the rows into one note per station. Rows must arrive oldest first.
  *
+ * Three chairs, in order of how much sitting in one tells you about the case:
+ * having sat it as the doctor, having played the patient in it, having watched
+ * it. The highest one they have had wins, in either direction — a case watched
+ * last week still loses to one sat as the doctor last month.
+ *
  * Their own turn as doctor wins over having played the patient, because that
  * is the attempt with a mark on it, and it wins in either direction: a case
  * role-played last week still loses to one sat as the doctor last month.
@@ -72,6 +79,7 @@ export function totalOf(r: AttemptRow): number | null {
 export function foldAttempts(rows: AttemptRow[], userId: string): Record<number, LastAttempt> {
   const doctorHistory: Record<number, StationAttempt[]> = {};
   const patient: Record<number, { id: string; at: string; count: number }> = {};
+  const observer: Record<number, { id: string; at: string; count: number }> = {};
 
   for (const r of rows) {
     if (r.doctor_user_id === userId) {
@@ -81,9 +89,14 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
         { id: r.id, at: r.ai_graded_at, total: totalOf(r), grades: [dg, cm, ro] },
         ...(doctorHistory[r.station_number] ?? []),
       ];
-    } else {
+    } else if (r.patient_user_id === userId) {
       const seen = patient[r.station_number];
       patient[r.station_number] = { id: r.id, at: r.ai_graded_at, count: seen ? seen.count + 1 : 1 };
+    } else {
+      // Matched the query without being doctor or patient, so they were in the
+      // room and watched it.
+      const seen = observer[r.station_number];
+      observer[r.station_number] = { id: r.id, at: r.ai_graded_at, count: seen ? seen.count + 1 : 1 };
     }
   }
 
@@ -92,7 +105,7 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
   for (const [n, history] of Object.entries(doctorHistory)) {
     const latest = history[0];
     out[Number(n)] = {
-      asDoctor: true,
+      role: "doctor",
       reportId: latest.id,
       at: latest.at,
       total: latest.total,
@@ -104,11 +117,25 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
   for (const [n, p] of Object.entries(patient)) {
     if (out[Number(n)]) continue; // their own turn as doctor wins
     out[Number(n)] = {
-      asDoctor: false,
+      role: "patient",
       reportId: p.id,
       at: p.at,
       total: null,
       count: p.count,
+      history: [],
+    };
+  }
+
+  // Last, because having watched a case says less about knowing it than having
+  // played the patient in it, which says less than having sat it.
+  for (const [n, o] of Object.entries(observer)) {
+    if (out[Number(n)]) continue;
+    out[Number(n)] = {
+      role: "observer",
+      reportId: o.id,
+      at: o.at,
+      total: null,
+      count: o.count,
       history: [],
     };
   }

@@ -1008,11 +1008,36 @@ export async function startRecordingAction(args: {
   // Fetch candidate email for the report
   const { data: authUser } = await admin.auth.admin.getUserById(args.doctorUserId);
 
+  /*
+    Everyone else in the room, taken now because there is no later.
+
+    room_participants rows are deleted the moment somebody leaves
+    (leaveRoomAction), so an observer who was here for the consultation and
+    went home afterwards leaves no trace of having been here at all. Without
+    this they would open the case bank next week and see a blank row for a
+    case they have already watched someone else work through — and sit it as
+    though it were cold.
+  */
+  const { data: seats } = await admin
+    .from("room_participants")
+    .select("user_id")
+    .eq("room_id", args.roomId)
+    .returns<{ user_id: string }[]>();
+
+  const observerIds = [
+    ...new Set(
+      (seats ?? [])
+        .map((s) => s.user_id)
+        .filter((id) => id && id !== args.doctorUserId && id !== args.patientUserId)
+    ),
+  ];
+
   // Create the recording row
   const { data: recording, error: insertErr } = await admin
     .from("station_recordings")
     .insert({
       room_id: args.roomId,
+      observer_user_ids: observerIds.length ? observerIds : null,
       station_number: args.stationNumber,
       station_title: args.stationTitle,
       doctor_user_id: args.doctorUserId,

@@ -86,8 +86,8 @@ export interface StationAttempt {
 }
 
 export interface LastAttempt {
-  /** False when they were the role-player, which is still worth knowing. */
-  asDoctor: boolean;
+  /** Which chair they were in. Anything but "doctor" has no mark of their own. */
+  role: "doctor" | "patient" | "observer";
   /** Their own most recent report for this station, or null if it is not theirs. */
   reportId: string | null;
   /** Their own attempts, newest first. Empty when they only played the patient. */
@@ -115,10 +115,10 @@ function AttemptNote({ a, onOpen }: { a: LastAttempt; onOpen: () => void }) {
   // whether a bare date means once or means nobody bothered to say.
   const times = <span style={{ opacity: 0.6 }}> ×{a.count}</span>;
 
-  if (!a.asDoctor) {
+  if (a.role !== "doctor") {
     const patientBody = (
       <>
-        As patient · {shortDate(a.at)}
+        As {a.role} · {shortDate(a.at)}
         {times}
       </>
     );

@@ -13,11 +13,15 @@ async function lastAttempts(userId: string): Promise<Record<number, LastAttempt>
   const { data } = await admin
     .from("station_recordings")
     .select(
-      "id, station_number, ai_graded_at, doctor_user_id, sent_to_candidate_at, " +
+      "id, station_number, ai_graded_at, doctor_user_id, patient_user_id, " +
+        "observer_user_ids, sent_to_candidate_at, " +
         "ai_data_gathering, ai_clinical_management, ai_relating_to_others, " +
         "examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others"
     )
-    .or(`doctor_user_id.eq.${userId},patient_user_id.eq.${userId}`)
+    .or(
+      `doctor_user_id.eq.${userId},patient_user_id.eq.${userId},` +
+        `observer_user_ids.cs.{${userId}}`
+    )
     .not("ai_graded_at", "is", null)
     .neq("status", "discarded")
     .order("ai_graded_at", { ascending: true })
