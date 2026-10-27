@@ -167,8 +167,13 @@ export async function middleware(req: NextRequest) {
 
   // ── Recordings ────────────────────────────────────────────────────────────
   if (pathname === "/recordings" || pathname.startsWith("/recordings/")) {
-    if (pathname === "/recordings/sample") return NextResponse.next();
-    return sessionPreFilter(req, "/login");
+    // The list is yours and needs a session. A single report is readable by
+    // whoever holds its link — including someone with no account at all, which
+    // is the point: a trainee sending a report to their trainer should not be
+    // sending them to a sign-up form. The page itself no longer gates it, and
+    // bouncing them here would undo that one layer further out.
+    if (pathname === "/recordings") return sessionPreFilter(req, "/login");
+    return NextResponse.next();
   }
 
   // ── Examiner ──────────────────────────────────────────────────────────────

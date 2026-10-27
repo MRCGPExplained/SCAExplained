@@ -4,7 +4,6 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getExaminer } from "@/lib/examiner-auth";
-import { isAdmin } from "@/lib/admin-auth";
 import { loadAllSkillLabels, CAP_CEILING, type SkillAnswer, type SkillsAssessment } from "@/lib/skill-framework";
 import { DOMAIN_LABEL as CASE_DOMAIN_LABEL, type FiredRule } from "@/lib/case-rules";
 import ConsultationPlayer from "@/app/components/ConsultationPlayer";
@@ -118,7 +117,6 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
   let rec: RecordingDetail | null = null;
   let isDoctor = false;
-  let viewerId: string | null = null;
 
   if (examiner) {
     const { data } = await admin
@@ -137,51 +135,27 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     rec = data;
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-    viewerId = user?.id ?? null;
     if (rec && user) isDoctor = rec.doctor_user_id === user.id;
   }
 
   if (!rec) notFound();
 
   /*
-    The room can read what the room produced.
+    A report is readable by whoever has the link.
 
-    Everyone who sat through the consultation sees the report: the candidate,
-    whoever role-played the patient, and anyone else who was in the room. They
-    were all there, they all heard it, and the debrief is worth more when the
-    other two can see what the marking actually said.
+    Brandon's call. The people in it are colleagues role-playing a written
+    case, not patients, and he does not consider a simulated consultation
+    between two trainees sensitive. So there is no gate here: the id is the
+    permission, the way an unlisted video link is.
 
-    What this is NOT is "anyone holding the id". The row above is fetched with
-    the service-role client, which bypasses RLS, so this check is the only
-    thing standing between a signed-in stranger with a UUID and another
-    trainee's named grades. The study-room invite flow hands out short-lived
-    guest accounts, and one of those turning up on a report it had nothing to
-    do with is the case being kept out.
+    What that means, stated plainly because it is easy to forget later: a
+    report URL is public to anyone who ends up holding it, signed in or not,
+    for as long as the recording exists. It carries both display names and
+    the marking. Sharing the link shares all of it, and there is no way to
+    take it back short of deleting the recording.
 
-    Observers are recognised by still being in the room, because that is the
-    only record there is of them: leaving deletes the row
-    (app/case-bank/actions.ts:121), and nothing writes an observer onto the
-    recording. So an observer keeps access while the room is alive and loses
-    it once they leave for good. The doctor and the patient are both named on
-    the recording itself and keep it for ever. Giving observers the same would
-    mean snapshotting the room onto the row when the take is created.
-
-    Admins are allowed because /admin/feedback links straight here.
+    Submitting for GP review stays the candidate's alone — see below.
   */
-  const isPatient = !!rec.patient_user_id && rec.patient_user_id === viewerId;
-
-  let inTheRoom = false;
-  if (!examiner && !isDoctor && !isPatient && viewerId && rec.room_id) {
-    const { data: seat } = await admin
-      .from("room_participants")
-      .select("user_id")
-      .eq("room_id", rec.room_id)
-      .eq("user_id", viewerId)
-      .maybeSingle();
-    inTheRoom = !!seat;
-  }
-
-  if (!examiner && !isDoctor && !isPatient && !inTheRoom && !(await isAdmin())) notFound();
 
   const isRealCandidate = !examiner && isDoctor;
   let hasAiReportFeedback = false;
