@@ -364,19 +364,10 @@ export function StudyRoomPanel() {
               )}
             </div>
           )}
-          {/* Everyone in the room watches the take being marked, but only the
-              doctor can open what comes out of it: the report page admits the
-              candidate, an examiner or an admin and turns everyone else away.
-              Passing null here leaves the patient and any observer the same
-              progress text without a link, instead of a "Review ✓" that 404s.
-              The chip already renders plain when it has no id. */}
-          {reviewStage && (
-            <ReviewStageChip
-              stage={reviewStage}
-              recordingId={reviewMineAsDoctor ? reviewRecordingId : null}
-              onDismiss={dismissReviewStage}
-            />
-          )}
+          {/* The link is live for everyone. The report page admits the
+              candidate, the patient and anyone still in the room, so all
+              three can read what the marking said and talk about it. */}
+          {reviewStage && <ReviewStageChip stage={reviewStage} recordingId={reviewRecordingId} onDismiss={dismissReviewStage} />}
           {debriefSecondsLeft !== null && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: "rgba(96,165,250,0.9)" }}>

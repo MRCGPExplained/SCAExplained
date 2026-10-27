@@ -73,6 +73,8 @@ type RecordingDetail = {
   status: string;
   transcript_formatted: string | null;
   transcript_raw: TranscriptRaw | null;
+  room_id: string | null;
+  patient_user_id: string | null;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
@@ -116,6 +118,7 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
   let rec: RecordingDetail | null = null;
   let isDoctor = false;
+  let viewerId: string | null = null;
 
   if (examiner) {
     const { data } = await admin
@@ -134,24 +137,51 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     rec = data;
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    viewerId = user?.id ?? null;
     if (rec && user) isDoctor = rec.doctor_user_id === user.id;
   }
 
   if (!rec) notFound();
 
   /*
-    Only the candidate it belongs to, an examiner, or an admin may read this.
+    The room can read what the room produced.
 
-    The row above is fetched with the service-role client, which bypasses RLS,
-    so this check is the only thing between a signed-in stranger holding an id
-    and another trainee's report. isDoctor already gated the transcript and
-    the audio further down, but not the name at the top, not the scores and not
-    the written feedback — and the study-room invite flow hands short-lived
-    guest accounts to people who are not the candidate.
+    Everyone who sat through the consultation sees the report: the candidate,
+    whoever role-played the patient, and anyone else who was in the room. They
+    were all there, they all heard it, and the debrief is worth more when the
+    other two can see what the marking actually said.
+
+    What this is NOT is "anyone holding the id". The row above is fetched with
+    the service-role client, which bypasses RLS, so this check is the only
+    thing standing between a signed-in stranger with a UUID and another
+    trainee's named grades. The study-room invite flow hands out short-lived
+    guest accounts, and one of those turning up on a report it had nothing to
+    do with is the case being kept out.
+
+    Observers are recognised by still being in the room, because that is the
+    only record there is of them: leaving deletes the row
+    (app/case-bank/actions.ts:121), and nothing writes an observer onto the
+    recording. So an observer keeps access while the room is alive and loses
+    it once they leave for good. The doctor and the patient are both named on
+    the recording itself and keep it for ever. Giving observers the same would
+    mean snapshotting the room onto the row when the take is created.
 
     Admins are allowed because /admin/feedback links straight here.
   */
-  if (!examiner && !isDoctor && !(await isAdmin())) notFound();
+  const isPatient = !!rec.patient_user_id && rec.patient_user_id === viewerId;
+
+  let inTheRoom = false;
+  if (!examiner && !isDoctor && !isPatient && viewerId && rec.room_id) {
+    const { data: seat } = await admin
+      .from("room_participants")
+      .select("user_id")
+      .eq("room_id", rec.room_id)
+      .eq("user_id", viewerId)
+      .maybeSingle();
+    inTheRoom = !!seat;
+  }
+
+  if (!examiner && !isDoctor && !isPatient && !inTheRoom && !(await isAdmin())) notFound();
 
   const isRealCandidate = !examiner && isDoctor;
   let hasAiReportFeedback = false;
