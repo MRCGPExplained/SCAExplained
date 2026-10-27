@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TimeAssessment } from "@/app/recordings/TimeAssessment";
 import { AudioPlaceholder } from "@/app/recordings/sample/AudioPlaceholder";
 import { PredictedScore } from "@/app/components/PredictedScore";
 
@@ -245,6 +246,50 @@ interface SampleReportContentProps {
 }
 
 /** The full sample SCA report — shared between /recordings/sample, the homepage's Examples section, and the hero preview. */
+/**
+ * Amy Clarke's eleven and a half minutes, as the Time Assessment reads them.
+ *
+ * Invented, but not idly: generated to the shape a passing consultation
+ * actually has, then run through analyseTime to check it lands where it was
+ * meant to — 53% doctor, 28% patient, 19% silence, and thirds going 37/47 then
+ * 56/22 then 67/14. A real golden minute at the start, the doctor taking over
+ * to explain by the end. A sample that showed a flat 50/50 would be teaching
+ * the wrong thing to everyone who reads it.
+ */
+const SAMPLE_TIMING = {
+  doctor: [
+    {start:6.41,end:13.53},{start:21.54,end:28.72},{start:48.15,end:51.61},{start:61.4,end:62.98},
+    {start:66.92,end:81.96},{start:89.56,end:95.67},{start:99.19,end:104.35},{start:112.9,end:117.45},
+    {start:123.96,end:130.2},{start:137.56,end:142.2},{start:148.43,end:151.4},{start:158.08,end:164.38},
+    {start:173.65,end:177.22},{start:182.64,end:183.84},{start:192.2,end:196.46},{start:204.81,end:206.37},
+    {start:219.32,end:222.25},{start:233.73,end:243.05},{start:249.27,end:255.86},{start:261.74,end:265.31},
+    {start:274.49,end:281.18},{start:289.88,end:295.54},{start:300.51,end:304.25},{start:313.03,end:315.94},
+    {start:324.22,end:326.89},{start:334.31,end:347.71},{start:354.16,end:358.2},{start:364.41,end:369.12},
+    {start:375.81,end:377.32},{start:380.72,end:382.86},{start:383.7,end:385.48},{start:385.85,end:391.62},
+    {start:392.91,end:394.19},{start:395.91,end:399.77},{start:400.42,end:402.58},{start:403.88,end:406.94},
+    {start:407.42,end:423.23},{start:425.26,end:427.3},{start:427.71,end:433.06},{start:434.53,end:438},
+    {start:438.25,end:440.18},{start:440.54,end:447.66},{start:448.18,end:450.66},{start:451.75,end:456.03},
+    {start:457.56,end:460.87},{start:467.07,end:473.03},{start:477.48,end:481.37},{start:486.12,end:490.66},
+    {start:498.73,end:503.79},{start:512.21,end:517.55},{start:526.92,end:533.87},{start:546.7,end:548.4},
+    {start:548.72,end:566.04},{start:567.82,end:583.45},{start:584.49,end:586.32},{start:586.66,end:589.91},
+    {start:590.93,end:596.82},{start:598.74,end:602.11},{start:603.34,end:614.02},{start:615.3,end:626.2},
+    {start:626.94,end:630.09},{start:630.91,end:633.94},{start:635.96,end:640.35},{start:642.23,end:649.02},
+    {start:650.28,end:664.41},{start:664.94,end:668.97},{start:670.39,end:671.72},{start:673.32,end:679.23},
+    {start:680.9,end:685.15}
+  ],
+  patient: [
+    {start:0.4,end:5.18},{start:14.73,end:21.15},{start:29.32,end:47.21},{start:53.07,end:59.81},
+    {start:64.12,end:66.55},{start:82.26,end:87.76},{start:97.25,end:98.67},{start:105.13,end:111.08},
+    {start:118.53,end:123.17},{start:131.09,end:136.59},{start:142.61,end:147.36},{start:151.79,end:157.62},
+    {start:165.75,end:172.54},{start:178.69,end:181.28},{start:185.49,end:191.29},{start:197.23,end:203.49},
+    {start:207.85,end:217.58},{start:223.32,end:227.64},{start:245.08,end:247.95},{start:257.86,end:260.6},
+    {start:266.47,end:273.34},{start:282.49,end:289.02},{start:297.36,end:299.65},{start:305.69,end:311.78},
+    {start:317.27,end:322.33},{start:327.36,end:333.5},{start:349.48,end:352.81},{start:360.13,end:364.02},
+    {start:369.66,end:374.51},{start:378.42,end:379.11},{start:474.17,end:475.9},{start:482.2,end:484.72},
+    {start:491.88,end:498.24},{start:505,end:510.85},{start:518.39,end:525.09},{start:535.68,end:545.19}
+  ],
+};
+
 export function SampleReportContent({ interactive = true, compact = false }: SampleReportContentProps) {
   const dgPts = 2;
   const cmPts = 3;
@@ -416,6 +461,12 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
         </div>
       </details>
 
+      {/* Time Assessment — same position as the real report, between the
+          skills and the consultation itself. */}
+      <div className="mb-5">
+        <TimeAssessment raw={SAMPLE_TIMING} interactive={interactive} />
+      </div>
+
       {/* Transcript — or, in compact mode, a plain indicator (the hero
           wraps this whole card in one link, so this can't be its own control) */}
       {compact ? (
@@ -447,7 +498,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
           <div style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
             <div className="px-5 pt-5 pb-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-                Consultation Audio
+                Consultation Audio &amp; Transcript
               </div>
               <AudioPlaceholder disabled={!interactive} />
             </div>

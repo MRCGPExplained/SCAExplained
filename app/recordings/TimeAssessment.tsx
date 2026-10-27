@@ -203,7 +203,15 @@ function ThirdRow({ label, share }: { label: string; share: Share }) {
   );
 }
 
-export function TimeAssessment({ raw }: { raw: TranscriptRaw | null | undefined }) {
+export function TimeAssessment({
+  raw,
+  interactive = true,
+}: {
+  raw: TranscriptRaw | null | undefined;
+  /** False inside the homepage preview, where the whole card is one link and
+   *  a disclosure that opened would fight it. */
+  interactive?: boolean;
+}) {
   const t = analyseTime(raw);
   if (!t) return null;
 
@@ -213,8 +221,9 @@ export function TimeAssessment({ raw }: { raw: TranscriptRaw | null | undefined 
       style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
     >
       <summary
-        className="px-5 py-4 cursor-pointer select-none flex items-center justify-center gap-2"
-        style={{ listStyle: "none" }}
+        onClick={interactive ? undefined : (e) => e.preventDefault()}
+        className="px-5 py-4 select-none flex items-center justify-center gap-2"
+        style={{ listStyle: "none", cursor: interactive ? "pointer" : "default" }}
       >
         {/* Stopwatch: body, hands, and the button on top. */}
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
