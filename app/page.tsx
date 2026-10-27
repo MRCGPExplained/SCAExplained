@@ -239,8 +239,8 @@ export default async function HomePage() {
               Each centres around a genuine patient dilemma to work through in twelve minutes.
               Afterwards you get a predicted score and specific feedback with pointers on how to
               improve. Each case also carries the reading behind it: how to take the history, how
-              to manage the problem, a worked example of the conversation, and a trainer insight
-              from a practising GP with high yield tips. The package is designed to give you real
+              to manage the problem, a worked example of the conversation, a model consultation
+              to listen to, and a trainer insight from a practising GP with high yield tips. The package is designed to give you real
               exam confidence and to boost your exam performance.
             </p>
           </div>
