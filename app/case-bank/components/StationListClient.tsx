@@ -125,17 +125,15 @@ function AttemptNote({ a, onOpen }: { a: LastAttempt; onOpen: () => void }) {
     // No mark of their own, but the consultation is theirs to revisit: they
     // sat through it, and a report opens for whoever holds its link.
     return a.reportId ? (
-      <a
+      <Link
         href={`/recordings/${a.reportId}`}
-        target="_blank"
-        rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        title="Open this report in a new tab"
+        title="Open this report"
         className="shrink-0 text-[11.5px] hidden sm:block no-underline relative z-10 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-[rgba(51,51,51,0.06)]"
         style={{ color: "rgba(51,51,51,0.38)" }}
       >
         {patientBody}
-      </a>
+      </Link>
     ) : (
       <span className="shrink-0 text-[11.5px] hidden sm:block" style={{ color: "rgba(51,51,51,0.38)" }}>
         {patientBody}
@@ -204,17 +202,15 @@ function AttemptNote({ a, onOpen }: { a: LastAttempt; onOpen: () => void }) {
     whole card, and without it this would be underneath and unclickable.
   */
   return (
-    <a
+    <Link
       href={`/recordings/${a.reportId}`}
-      target="_blank"
-      rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      title="Open this report in a new tab"
+      title="Open this report"
       className={shared}
       style={{ color: "rgba(51,51,51,0.45)" }}
     >
       {body}
-    </a>
+    </Link>
   );
 }
 
@@ -269,11 +265,9 @@ function AttemptsDialog({
 
         <div className="pb-2">
           {attempts.map((att) => (
-            <a
+            <Link
               key={att.id}
               href={`/recordings/${att.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="flex items-baseline gap-3 px-5 py-2.5 no-underline hover:bg-[rgba(51,51,51,0.04)]"
               style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}
             >
@@ -286,7 +280,7 @@ function AttemptsDialog({
               <span className="text-[12.5px] flex-1" style={{ color: "rgba(51,51,51,0.5)" }}>
                 {att.grades.map((g) => g ?? "—").join(" / ")}
               </span>
-            </a>
+            </Link>
           ))}
         </div>
 

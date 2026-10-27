@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useStudyRoom, type ReviewStage } from "./study-room/context";
 import { TranscribedDecisionModal } from "./TranscribedDecisionModal";
 import { MarkingFailedModal } from "./MarkingFailedModal";
@@ -45,14 +46,12 @@ function ReviewStageChip({
     return (
       <span className="text-[10px] flex items-center gap-1.5" style={{ color: "#FCA5A5" }}>
         {recordingId ? (
-          <a
+          <Link
             href={`/recordings/${recordingId}`}
-            target="_blank"
-            rel="noopener noreferrer"
             style={{ color: "#FCA5A5", textDecoration: "underline", textUnderlineOffset: 2 }}
           >
             Marking failed: open anyway
-          </a>
+          </Link>
         ) : (
           "Marking failed"
         )}
@@ -118,15 +117,13 @@ function ReviewStageChip({
   const color = done ? "rgba(134,239,172,0.9)" : "rgba(255,255,255,0.6)";
 
   return done && recordingId ? (
-    <a
+    <Link
       href={`/recordings/${recordingId}`}
-      target="_blank"
-      rel="noopener noreferrer"
       className={className}
       style={{ color, textDecoration: "underline", textUnderlineOffset: 2 }}
     >
       {body}
-    </a>
+    </Link>
   ) : (
     <span className={className} style={{ color }}>
       {body}

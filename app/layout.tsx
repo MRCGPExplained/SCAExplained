@@ -22,7 +22,22 @@ export const metadata: Metadata = {
   description: "Premium SCA coaching for GP trainees. Free training, live practice sessions, and the SCA Focus Programme.",
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({
+  children,
+  modal,
+}: Readonly<{
+  children: React.ReactNode;
+  /**
+   * The @modal slot. Almost always null (see app/@modal/default.tsx); it
+   * fills when an intercepting route matches, which today means a report
+   * opened from inside the app.
+   *
+   * It sits INSIDE StudyRoomProvider on purpose. That is the whole point of
+   * the exercise: the room, the call and the recorder keep running under the
+   * report instead of the page being swapped out from under them.
+   */
+  modal: React.ReactNode;
+}>) {
   let isLoggedIn = false;
   let displayName: string | null = null;
   // Identity for the study room, resolved here so the session can outlive any
@@ -71,6 +86,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <StudyRoomProvider userId={userId} displayName={displayName ?? ""} initials={initials}>
           <NavbarWrapper isLoggedIn={isLoggedIn} displayName={displayName} unreadReports={unreadReports} />
           {children}
+          {modal}
         </StudyRoomProvider>
       </body>
     </html>
