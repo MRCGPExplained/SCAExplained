@@ -177,29 +177,29 @@ export function TranscribedDecisionModal({
         </h2>
         <div className="flex flex-col gap-2.5">
           {ai === 0
-            ? emptyOption("Get AI feedback", "1 of 0")
+            ? emptyOption("AI feedback", "1 of 0")
             : option(
                 "ai",
-                "Get AI feedback",
-                "Provisional scores and written feedback across the three domains, usually within a couple of minutes.",
+                "AI feedback",
+                "Report back in a couple of minutes.",
                 ai === undefined ? "1 grading" : `1 of ${ai}`,
                 false,
                 false,
                 firstRef
               )}
           {gp === 0
-            ? emptyOption("Send to a GP", "1 of 0")
+            ? emptyOption("AI + GP review", "1 of 0")
             : option(
                 "gp",
-                "Send to a GP",
-                "AI report in a couple of minutes. An experienced GP then checks the scoring and writes their feedback, usually back within 5 working days.",
+                "AI + GP review",
+                "AI report in a couple of minutes. GP feedback within 5 working days.",
                 gp === undefined ? "1 review" : `1 of ${gp}`,
                 false,
                 false
               )}
           {option(
             "discard",
-            "Discard it",
+            "Discard",
             "Deletes this audio and transcript.",
             null,
             true,
