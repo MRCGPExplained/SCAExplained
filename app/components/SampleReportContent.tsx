@@ -344,7 +344,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
           <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3" style={{ color: "#111111" }}>
             Examiner&apos;s Overall Summary
           </div>
-          <p className={`text-[13.5px] leading-relaxed ${compact ? "line-clamp-6" : ""}`} style={{ color: "#111111" }}>
+          <p className={`text-[13.5px] leading-relaxed ${compact ? "line-clamp-3" : ""}`} style={{ color: "#111111" }}>
             A solid consultation with good clinical instincts. The RCP 3 questions were used well and the step-up to a combination inhaler was appropriate and clearly explained. The steroid concern was identified and addressed. Where marks were lost was in the detail. Inhaler technique was mentioned but not properly assessed: the examiner was left unsure whether the candidate understood why the technique was suboptimal or what specifically to correct. The written asthma action plan was issued but its structure was not explained to the patient in a way that would make it useful at home. The candidate should also have asked about occupational exposures given this is adult-onset worsening asthma.
           </p>
           <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)" }}>
@@ -385,7 +385,7 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
               <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
               <GradePill grade={grade} />
             </div>
-            <p className={`text-[12.5px] leading-relaxed ${compact ? "line-clamp-4" : ""}`} style={{ color: "rgba(51,51,51,0.7)" }}>{comment}</p>
+            <p className={`text-[12.5px] leading-relaxed ${compact ? "line-clamp-2" : ""}`} style={{ color: "rgba(51,51,51,0.7)" }}>{comment}</p>
           </div>
         ))}
       </div>
