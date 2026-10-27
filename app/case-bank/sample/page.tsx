@@ -167,54 +167,61 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Label>Trainer Insight</Label>
+        {/* "Trainer Insight" is the TAB. The section inside it is the
+            Trainer's Note, which is what the real page calls it. */}
+        <Label>Trainer&apos;s Note</Label>
         <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
           A recorded walk-through of this station from one of the GPs who wrote it.
         </p>
       </div>
 
+      {/*
+        The same player the real page shows for this, locked. It used to be a
+        yellow circle and a waveform, which was a nicer drawing of something
+        the product did not have — and once the real trainer's note became a
+        proper player, drawing a different one here would have been inventing
+        twice over.
+      */}
       <button
         type="button"
         onClick={onLocked}
-        aria-label="Play trainer insight audio. Available with an account."
-        className="w-full rounded-xl px-5 py-4 text-left"
-        style={{ background: "white", border: "1px solid rgba(31,41,55,0.12)", cursor: "pointer" }}
+        aria-label="Play the trainer's note. Available with an account."
+        className="w-full rounded-xl p-4 text-left"
+        style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)", cursor: "pointer" }}
       >
-        <span className="flex items-center gap-4">
+        <span className="flex items-center justify-end mb-3" aria-hidden="true">
+          <span className="flex gap-1">
+            {([1, 1.5, 2] as const).map((r) => (
+              <span
+                key={r}
+                className="text-[10px] font-bold px-2 py-0.5 rounded"
+                style={{
+                  background: r === 1 ? NAVY : "rgba(51,51,51,0.07)",
+                  color: r === 1 ? "white" : "rgba(51,51,51,0.5)",
+                }}
+              >
+                {r}×
+              </span>
+            ))}
+          </span>
+        </span>
+
+        <span className="flex items-center gap-3">
           <span
             className="shrink-0 flex items-center justify-center rounded-full"
-            style={{ width: 46, height: 46, background: YELLOW }}
+            style={{ width: 36, height: 36, background: NAVY }}
             aria-hidden="true"
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill={NAVY}>
-              <path d="M8 5.5v13l11-6.5z" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+              <path d="M2.5 1.5L10.5 6L2.5 10.5V1.5Z" />
             </svg>
           </span>
-
-          <span className="flex-1 min-w-0">
-            {/*
-              No "Locked" chip. Pressing the player explains itself, and a
-              badge saying so in advance only draws attention to the wall.
-              The aria-label on the button carries the state instead, which
-              matters more now than it did: with the chip gone it is the only
-              thing that tells a screen reader user what this does before
-              they activate it.
-            */}
-            <span className="flex items-center gap-2 mb-2">
-              <span className="text-[14px] font-bold truncate" style={{ color: NAVY }}>
-                Trainer insight
-              </span>
-            </span>
-
-            <span className="flex items-end gap-[2px] h-[34px]" aria-hidden="true">
-              {bars.map((h, i) => (
-                <span
-                  key={i}
-                  className="flex-1 rounded-full"
-                  style={{ height: h, background: "rgba(31,41,55,0.15)" }}
-                />
-              ))}
-            </span>
+          <span className="text-[11px] font-mono tabular-nums" style={{ color: "rgba(51,51,51,0.5)", minWidth: 34, textAlign: "right" }}>
+            0:00
+          </span>
+          <span className="flex-1 rounded-full" style={{ height: 4, background: "rgba(51,51,51,0.15)" }} aria-hidden="true" />
+          <span className="text-[11px] font-mono tabular-nums" style={{ color: "rgba(51,51,51,0.3)", minWidth: 34 }}>
+            6:18
           </span>
         </span>
       </button>

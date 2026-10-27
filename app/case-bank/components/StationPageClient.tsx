@@ -19,6 +19,7 @@ import {
 } from "@/app/admin/actions";
 import { AudioRecordUpload } from "@/app/components/AudioRecordUpload";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
+import SingleTrackPlayer from "@/app/components/SingleTrackPlayer";
 import { ModelConsultationPicker } from "./ModelConsultationPicker";
 
 const NAVY = "#1F2937";
@@ -99,7 +100,11 @@ function TrainerInsightAudio({
       {isAdmin ? (
         <AudioRecordUpload currentUrl={audioUrl} onUpload={handleUpload} onDelete={handleDelete} />
       ) : (
-        <audio controls src={audioUrl!} className="w-full" style={{ borderRadius: 8, outline: "none" }} />
+        // The model consultation directly below this uses DualTrackPlayer.
+        // A bare <audio controls> above it made one tab carry a designed
+        // control and a browser default stacked on each other, for two
+        // recordings that are the same kind of thing.
+        <SingleTrackPlayer url={audioUrl} />
       )}
     </div>
   );
