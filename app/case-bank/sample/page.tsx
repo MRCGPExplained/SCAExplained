@@ -219,6 +219,57 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
         </span>
       </button>
 
+      {/*
+        Model Consultation, between the walk-through and the questions, which
+        is where the real tab puts it.
+
+        Two tracks because that is what it is: a consultation promoted from a
+        real recording, where the doctor and the patient were on separate
+        microphones. Nothing else is drawn here — no transcript line, no
+        chapter marks — because a station may or may not carry a transcript
+        with it and the last version of this tab was caught inventing exactly
+        that sort of detail.
+      */}
+      <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
+        <Label>Model Consultation</Label>
+        <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
+          The whole station worked through the way it should go, doctor and patient on separate tracks.
+        </p>
+
+        <button
+          type="button"
+          onClick={onLocked}
+          aria-label="Play the model consultation. Available with an account."
+          className="w-full rounded-xl px-5 py-4 text-left flex flex-col gap-3"
+          style={{ background: "white", border: "1px solid rgba(31,41,55,0.12)", cursor: "pointer" }}
+        >
+          {(["Doctor", "Patient"] as const).map((track) => (
+            <span key={track} className="flex items-center gap-3.5">
+              <span
+                className="shrink-0 flex items-center justify-center rounded-full"
+                style={{ width: 34, height: 34, background: track === "Doctor" ? YELLOW : "rgba(31,41,55,0.10)" }}
+                aria-hidden="true"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={NAVY}>
+                  <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+              </span>
+              <span className="text-[13px] font-bold w-[52px] shrink-0" style={{ color: NAVY }}>
+                {track}
+              </span>
+              <span className="flex-1 flex items-end gap-[2px] h-[22px]" aria-hidden="true">
+                {(track === "Doctor"
+                  ? [7, 14, 21, 16, 10, 18, 24, 19, 12, 8, 15, 22, 17, 11, 20, 26, 18, 13, 9, 16, 23, 15, 10, 19]
+                  : [11, 6, 13, 19, 12, 8, 16, 10, 7, 14, 20, 13, 9, 17, 11, 6, 12, 18, 14, 8, 15, 10, 7, 13]
+                ).map((h, i) => (
+                  <span key={i} className="flex-1 rounded-full" style={{ height: h, background: "rgba(31,41,55,0.15)" }} />
+                ))}
+              </span>
+            </span>
+          ))}
+        </button>
+      </div>
+
       <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
         <Label>Common Questions</Label>
         <div className="flex flex-col gap-4">
