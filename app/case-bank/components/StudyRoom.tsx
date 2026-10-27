@@ -413,21 +413,7 @@ export function StudyRoomPanel() {
         </div>
       )}
 
-      /*
-        Roles — the navigator sets these, and only the navigator.
-
-        They used to be live for everyone in the room, which was harmless with
-        two people and is not with three. The Doctor select also writes
-        host_user_id, so picking a name hands over navigation, the timer
-        controls, the right to remove people, and the account the recording and
-        the credit land on. A third person with no role, looking at two
-        dropdowns that appear to be asking them a question, could take the room
-        out from under the host by opening one to see what it was.
-
-        It is a real write, not a no-op: the live UPDATE policy on study_rooms
-        is "Participant can update room", not the "Host can update room" that
-        the checked-in schema still says. The database would have let them.
-      */
+      {/* Roles — anyone can set these while idle; locked once a session starts */}
       <div className="px-3.5 py-3 flex flex-col gap-2.5" style={{ background: "white", borderBottom: "1px solid rgba(26,27,82,0.07)" }}>
         {(["doctor", "patient"] as const).map((role) => {
           const currentId = role === "doctor" ? doctorUserId : patientUserId;
@@ -439,8 +425,7 @@ export function StudyRoomPanel() {
               </label>
               <select
                 value={currentId ?? ""}
-                disabled={!sessionIdle || rolesSaving || !iAmHost}
-                title={iAmHost ? undefined : `Only ${hostName} can set the roles`}
+                disabled={!sessionIdle || rolesSaving}
                 onChange={(e) => {
                   const val = e.target.value || null;
                   if (role === "doctor") {
@@ -456,7 +441,7 @@ export function StudyRoomPanel() {
                 style={{
                   border: "1.5px solid rgba(26,27,82,0.15)",
                   color: NAVY,
-                  background: !sessionIdle || !iAmHost ? "rgba(26,27,82,0.04)" : LIGHT_BG,
+                  background: !sessionIdle ? "rgba(26,27,82,0.04)" : LIGHT_BG,
                   outline: "none",
                   fontFamily: "inherit",
                   cursor: !sessionIdle || rolesSaving ? "not-allowed" : "pointer",
