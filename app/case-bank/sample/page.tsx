@@ -131,14 +131,7 @@ function BriefTab() {
  * is a button so it takes focus and announces itself, and pressing it opens
  * the account dialog rather than doing nothing.
  */
-function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
-  // Fixed heights, not generated: this is a drawing of a waveform and it
-  // should look the same on every render.
-  const bars = [
-    9, 15, 22, 31, 24, 17, 28, 36, 29, 20, 13, 19, 27, 34, 26, 18, 11, 16, 23, 30,
-    25, 15, 10, 14, 21, 28, 20, 12, 8, 13, 19, 26, 33, 27, 18, 12, 17, 24, 31, 22,
-  ];
-
+function TrainerInsightTab({ onLocked }: { onLocked: (message: string) => void }) {
   // Written for this station, in the shape and voice of the real trainer_qa
   // rows: the question a trainee actually asks, answered straight.
   const questions = [
@@ -171,7 +164,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
             Trainer's Note, which is what the real page calls it. */}
         <Label>Trainer&apos;s Note</Label>
         <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
-          A recorded walk-through of this station from one of the GPs who wrote it.
+          High yield tips on this station from a practising GP: where the marks are, and what catches candidates out.
         </p>
       </div>
 
@@ -184,7 +177,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
       */}
       <button
         type="button"
-        onClick={onLocked}
+        onClick={() => onLocked("Create a free account to hear a practising GP's high yield tips on this station.")}
         aria-label="Play the trainer's note. Available with an account."
         className="w-full rounded-xl p-4 text-left"
         style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)", cursor: "pointer" }}
@@ -244,12 +237,12 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
       <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
         <Label>Model Consultation</Label>
         <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
-          An outstanding performance of this station, start to finish, to listen to and learn from.
+          Hear this station done outstandingly well, start to finish — what you&apos;re aiming for.
         </p>
 
         <button
           type="button"
-          onClick={onLocked}
+          onClick={() => onLocked("Create a free account to hear this station done outstandingly well, start to finish.")}
           aria-label="Play the model consultation. Available with an account."
           className="w-full rounded-xl p-4 text-left"
           style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)", cursor: "pointer" }}
@@ -587,13 +580,7 @@ I'd like to see you again in four to six weeks to see how you're getting on with
               </p>
             )}
             {activeTab === "trainer"     && (
-              <TrainerInsightTab
-                onLocked={() =>
-                  setModal(
-                    "Trainer insight is available with an account. Create a free account to see what the GPs who wrote the station say about it."
-                  )
-                }
-              />
+              <TrainerInsightTab onLocked={setModal} />
             )}
           </div>
 

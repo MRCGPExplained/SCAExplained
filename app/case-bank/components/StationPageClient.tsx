@@ -99,7 +99,7 @@ function TrainerInsightAudio({
       <Label>Trainer&apos;s Note</Label>
       {!isAdmin && (
         <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
-          A recorded walk-through of this station from one of the GPs who wrote it.
+          High yield tips on this station from a practising GP: where the marks are, and what catches candidates out.
         </p>
       )}
       {isAdmin ? (
@@ -1114,7 +1114,7 @@ export function StationPageClient({
                         round: the person who needs telling is the one meeting
                         it for the first time, signed in. */}
                     <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
-                      An outstanding performance of this station, start to finish, to listen to and learn from.
+                      Hear this station done outstandingly well, start to finish — what you&apos;re aiming for.
                     </p>
 
                     {station.model_consultation_doctor_url ? (
