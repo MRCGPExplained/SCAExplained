@@ -3,7 +3,7 @@
  *
  * These three facts — where the pass mark sits, what colour a total gets, and
  * whether it earns a badge — were private to app/recordings/[id]/page.tsx,
- * so the sample report on the homepage and at /recordings/sample rendered the
+ * so the sample report on the homepage and at /sample-report rendered the
  * same number differently. The sample scores exactly 7, which is a pass, and
  * showed it in plain navy with no badge: the clearest signal in the whole
  * report, missing from the one version a prospective buyer sees.

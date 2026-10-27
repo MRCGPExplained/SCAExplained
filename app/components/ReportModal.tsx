@@ -69,14 +69,17 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
         justifyContent: "center",
         // Full-bleed on a phone. A 95% box with a sliver of backdrop around it
         // is just a worse full screen, and it costs the report its margins.
-        padding: "clamp(0px, calc((100vw - 640px) * 1000), 2.5vh) clamp(0px, calc((100vw - 640px) * 1000), 2.5vw)",
+        padding: "clamp(0px, calc((100vw - 640px) * 1000), 2.5vh) clamp(0px, calc((100vw - 640px) * 1000), 1.5vw)",
       }}
     >
       <div
         ref={panelRef}
         className="relative w-full"
         style={{
-          maxWidth: 1180,
+          // The report body is capped at 960px and centres itself, so a panel
+          // wider than that is grey band either side of it and nothing else.
+          // 1000 leaves room for the body plus its own px-4.
+          maxWidth: 1000,
           height: "100%",
           maxHeight: "100%",
           background: "#F4F4F2",

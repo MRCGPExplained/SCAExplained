@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { TimeAssessment } from "@/app/recordings/TimeAssessment";
-import { AudioPlaceholder } from "@/app/recordings/sample/AudioPlaceholder";
+import { AudioPlaceholder } from "@/app/sample-report/AudioPlaceholder";
 import { PredictedScore } from "@/app/components/PredictedScore";
 
 const NAVY = "#333333";
@@ -245,7 +245,7 @@ interface SampleReportContentProps {
   compact?: boolean;
 }
 
-/** The full sample SCA report — shared between /recordings/sample, the homepage's Examples section, and the hero preview. */
+/** The full sample SCA report — shared between /sample-report, the homepage's Examples section, and the hero preview. */
 /**
  * Amy Clarke's eleven and a half minutes, as the Time Assessment reads them.
  *

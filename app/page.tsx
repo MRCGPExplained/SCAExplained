@@ -148,7 +148,7 @@ export default async function HomePage() {
 
           {/* Right: report preview — the clearest proof of the product */}
           <Link
-            href="/recordings/sample"
+            href="/sample-report"
             className="block rounded-[28px] p-6 sm:p-7 no-underline transition-all duration-200 hover:-translate-y-1"
             style={{ background: "#F4F4F2", border: `2px solid ${DARK}`, boxShadow: "0 20px 50px rgba(51,51,51,0.16)" }}
           >

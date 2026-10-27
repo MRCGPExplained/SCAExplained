@@ -18,6 +18,14 @@ const DISABLED_PAYMENT_PATHS = [
 // go to where the thing actually lives now, not to "/", so a bookmark or an
 // indexed link still does what the person wanted.
 const MOVED_PATHS = [
+  // The sample report is not a recording, but it used to live at
+  // /recordings/sample — so the modal that intercepts /recordings/<id> took
+  // "sample" for a recording id, found no such row and 404ed the page. A
+  // static route next to the intercept does not help: the modal slot renders
+  // nothing and the children slot stays on the page you came from, so you
+  // get the homepage under the sample's URL, which is worse. It is a
+  // marketing page; it now has a marketing URL and cannot collide again.
+  { source: "/recordings/sample", destination: "/sample-report" },
   // The case bank had its own registration form posting three fields at an
   // action that needs five, so every submission failed. There is one form now.
   { source: "/case-bank/register", destination: "/register" },
