@@ -53,9 +53,6 @@ export function Navbar({
 
           {isLoggedIn ? (
             <>
-              {/* Before Resources and Account, so the thing that may be
-                  asking for attention is not the last thing read. */}
-              <InboxMenu initialUnread={unreadReports} />
               <Link
                 href="/dashboard"
                 className="text-[13px] font-semibold no-underline transition-colors"
@@ -65,6 +62,12 @@ export function Navbar({
               >
                 Resources
               </Link>
+              {/* Next to Account, not out among the text links.
+                  The navbar holds two kinds of thing: places you can go
+                  (Live Events, Resources) and things that are yours. The
+                  envelope is the second kind, and sitting between two
+                  destinations it read as a third one. */}
+              <InboxMenu initialUnread={unreadReports} />
               <Link
                 href="/account"
                 className="text-[12.5px] font-bold px-4 py-2 rounded-lg no-underline transition-all bg-white/[.12] hover:bg-white/[.22]"
