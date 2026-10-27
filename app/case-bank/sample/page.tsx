@@ -164,7 +164,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: (message: string) => void }
             Trainer's Note, which is what the real page calls it. */}
         <Label>Trainer&apos;s Note</Label>
         <p className="text-[16px] leading-[1.7]" style={{ color: "rgba(26,27,82,0.82)" }}>
-          High yield tips on this station from a practising GP: where the marks are, and what catches candidates out.
+          High yield tips on this station from a practising GP.
         </p>
       </div>
 
@@ -237,12 +237,12 @@ function TrainerInsightTab({ onLocked }: { onLocked: (message: string) => void }
       <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
         <Label>Model Consultation</Label>
         <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
-          Hear this station done outstandingly well, start to finish — what you&apos;re aiming for.
+          An outstanding example of the station recorded by your colleagues. Something to aim for.
         </p>
 
         <button
           type="button"
-          onClick={() => onLocked("Create a free account to hear this station done outstandingly well, start to finish.")}
+          onClick={() => onLocked("Create a free account to hear an outstanding example of this station, recorded by your colleagues.")}
           aria-label="Play the model consultation. Available with an account."
           className="w-full rounded-xl p-4 text-left"
           style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)", cursor: "pointer" }}
