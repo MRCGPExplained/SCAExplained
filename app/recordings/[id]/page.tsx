@@ -115,6 +115,22 @@ export default async function RecordingDetailPage({ params }: PageProps) {
 
   const examiner = await getExaminer();
 
+  /*
+    Who is actually looking, resolved once and the same way for everyone.
+
+    `isDoctor` below is set to true for any examiner on any report. That is
+    not a claim about who recorded this consultation — it unlocks the
+    privileged view — so nothing that needs to know whose consultation this
+    IS may ask it. That distinction had no name, and the read-marker asked
+    the wrong one: a GP who is also a customer never cleared their own
+    unread badge, because being an examiner cancelled out being the
+    candidate on their own recording.
+  */
+  const supabase = await createSupabaseServerClient();
+  const { data: { user: viewer } } = await supabase.auth
+    .getUser()
+    .catch(() => ({ data: { user: null } }));
+
   let rec: RecordingDetail | null = null;
   let isDoctor = false;
 
@@ -133,12 +149,13 @@ export default async function RecordingDetailPage({ params }: PageProps) {
       .eq("id", id)
       .single<RecordingDetail>();
     rec = data;
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-    if (rec && user) isDoctor = rec.doctor_user_id === user.id;
+    if (rec && viewer) isDoctor = rec.doctor_user_id === viewer.id;
   }
 
   if (!rec) notFound();
+
+  /** Whose consultation this is. Never forged, unlike isDoctor above. */
+  const viewerIsDoctor = !!viewer && rec.doctor_user_id === viewer.id;
 
   /*
     A report is readable by whoever has the link.
@@ -192,8 +209,18 @@ export default async function RecordingDetailPage({ params }: PageProps) {
     link, so the patient, an observer, or a chat app fetching a link preview
     would all have cleared the unread marker on somebody else's report and the
     candidate would never have known it had arrived.
+
+    Then it was `isRealCandidate`, which is `!examiner && isDoctor` — and that
+    went wrong the other way. Being a GP reviewer cancelled out being the
+    candidate, so anyone who is both never cleared their own envelope: they
+    opened the report, nothing was stamped, and the badge came back every
+    time. Both the people reviewing for this product are also customers of it.
+
+    The question is only ever "is this my consultation", which is what
+    viewerIsDoctor answers. An examiner opening someone else's report fails
+    it honestly, which is all `!examiner` was ever there to achieve.
   */
-  if (isRealCandidate && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
+  if (viewerIsDoctor && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
     await admin.from("station_recordings").update({ candidate_viewed_at: new Date().toISOString() }).eq("id", rec.id);
   }
 
