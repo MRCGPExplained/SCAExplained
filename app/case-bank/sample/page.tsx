@@ -244,7 +244,7 @@ function TrainerInsightTab({ onLocked }: { onLocked: () => void }) {
       <div style={{ borderTop: "1px solid rgba(26,27,82,0.08)", paddingTop: "1.25rem" }}>
         <Label>Model Consultation</Label>
         <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
-          The whole station worked through the way it should go. Both sides play together.
+          An outstanding performance of this station, start to finish, to listen to and learn from.
         </p>
 
         <button

@@ -97,6 +97,11 @@ function TrainerInsightAudio({
   return (
     <div>
       <Label>Trainer&apos;s Note</Label>
+      {!isAdmin && (
+        <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
+          A recorded walk-through of this station from one of the GPs who wrote it.
+        </p>
+      )}
       {isAdmin ? (
         <AudioRecordUpload currentUrl={audioUrl} onUpload={handleUpload} onDelete={handleDelete} />
       ) : (
@@ -1102,6 +1107,15 @@ export function StationPageClient({
                         />
                       )}
                     </div>
+
+                    {/* Said here as well as on the sample page. The sample
+                        explained what these two recordings were and the real
+                        page left them as bare headings, which is the wrong way
+                        round: the person who needs telling is the one meeting
+                        it for the first time, signed in. */}
+                    <p className="text-[16px] leading-[1.7] mb-4" style={{ color: "rgba(26,27,82,0.82)" }}>
+                      An outstanding performance of this station, start to finish, to listen to and learn from.
+                    </p>
 
                     {station.model_consultation_doctor_url ? (
                       <>
