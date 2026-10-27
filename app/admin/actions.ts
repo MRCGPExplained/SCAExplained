@@ -172,7 +172,6 @@ export async function deleteStationAction(id: string): Promise<ActionResult> {
 
   await supabase.from("station_notes").delete().eq("station_id", id);
   await supabase.from("station_stars").delete().eq("station_id", id);
-  await supabase.from("station_attempts").delete().eq("station_id", id);
   await supabase.from("station_reports").delete().eq("station_id", id);
 
   const { error } = await supabase.from("stations").delete().eq("id", id);
@@ -817,7 +816,6 @@ export async function deleteCaseBankUser(userId: string): Promise<ActionResult> 
     .delete()
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
   await supabase.from("station_reports").delete().eq("user_id", userId);
-  await supabase.from("station_attempts").delete().eq("user_id", userId);
   await supabase.from("station_stars").delete().eq("user_id", userId);
   await supabase.from("user_access").delete().eq("user_id", userId);
   await supabase.from("user_profiles").delete().eq("id", userId);
