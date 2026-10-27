@@ -296,7 +296,7 @@ export function StudyRoomProvider({
    * Whether the take currently being followed was one I recorded as doctor.
    *
    * Separate from myRecordingRole, which describes the LIVE take and is
-   * cleared by resetForNextTake the moment the three-minute debrief closes.
+   * cleared by resetForNextTake the moment the debrief closes.
    * The decision modal was gated on that, so a transcription slower than the
    * debrief found the role already null and silently downgraded the ask to a
    * chip: the candidate was never offered AI, GP or discard for a take they
@@ -445,7 +445,7 @@ export function StudyRoomProvider({
     : stationNumber === null
       ? "Open a station to start a session."
       : // The debrief is the trap here. After a take stops, recordingState sits
-        // at "done" and the call stays open for three minutes — and the normal
+        // at "done" and the call stays open for the debrief — and the normal
         // rhythm is "stop, quick chat, next station". Start was not blocked in
         // that window and `startWillRecord` was false, so pressing it skipped
         // the confirmation and ran a full twelve-minute consultation with no
@@ -1755,7 +1755,7 @@ export function StudyRoomProvider({
   /**
    * The take is over once the call has closed *and* this browser has finished
    * with its own audio. Those two land in either order — a slow upload can
-   * outlast the three-minute debrief, and a short consultation is uploaded long
+   * outlast the debrief, and a short consultation is uploaded long
    * before it — so each side records that it is done and asks whether the other
    * already was, rather than assuming it is last.
    *

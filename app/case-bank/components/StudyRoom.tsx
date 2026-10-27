@@ -614,7 +614,7 @@ export function StudyRoomPanel() {
     {/*
       Gated on reviewMineAsDoctor, not myRecordingRole. The latter describes
       the live take and is cleared when the debrief closes, so a transcription
-      that took longer than three minutes used to find it null and show a chip
+      that took longer than the debrief used to find it null and show a chip
       instead of asking. The decision belongs to whoever recorded the take,
       however long the pipeline takes to get there.
     */}

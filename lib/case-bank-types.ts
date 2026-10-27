@@ -154,10 +154,31 @@ export const PHASE_DURATIONS: Record<TimerPhase, number> = {
   CONSULT: 12 * 60,
 };
 
-// The voice call stays open this long after recording stops so the two
-// candidates can debrief. Shared so the Daily room's expiry can be set to
-// outlast it (consult + debrief + buffer).
-export const DEBRIEF_DURATION_SECONDS = 3 * 60;
+/*
+  The voice call stays open this long after recording stops so the room can
+  debrief. Shared so the Daily room's expiry can be set to outlast it
+  (consult + debrief + buffer).
+
+  Eight minutes, because the report is what there is to talk about and it
+  does not arrive instantly. Measured over the first real session on
+  27 Oct: transcription 4-6s, grading 45-55s, so the report lands about a
+  minute after recording stops, and up to two if the doctor takes a moment
+  over the AI-or-GP decision. At three minutes that left one or two minutes
+  of debrief with the report actually on screen, which is what the testers
+  felt as "too short" — they were not asking for a longer chat, they were
+  running out of window as the thing worth discussing appeared.
+
+  The cost is Daily, billed per participant-minute, and it is not a
+  constraint: at four people this is 2% of a plan's price in the worst case,
+  and £0 until the whole platform passes ~180 stations a month. Nothing
+  here should be sized by that. If it needs to be ten, make it ten.
+
+  Every number below is derived from this one, and the prose elsewhere
+  deliberately says "the debrief" rather than repeating it — the last set
+  of comments all said "three minutes" and would have been wrong the moment
+  this line changed.
+*/
+export const DEBRIEF_DURATION_SECONDS = 8 * 60;
 
 export const SUBJECTS = [
   "All",

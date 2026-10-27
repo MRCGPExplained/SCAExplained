@@ -4,7 +4,7 @@ import { PHASE_DURATIONS, DEBRIEF_DURATION_SECONDS } from "./case-bank-types";
 const DAILY_API_BASE = "https://api.daily.co/v1";
 
 // Room/token must outlast the whole session: the 12-minute consult PLUS the
-// 3-minute post-recording debrief, with a small buffer. If this were only
+// post-recording debrief, with a small buffer. If this were only
 // consult + buffer, Daily would eject everyone (eject_at_room_exp) partway
 // through the debrief and the candidates couldn't talk.
 const ROOM_LIFETIME_SECONDS = PHASE_DURATIONS.CONSULT + DEBRIEF_DURATION_SECONDS + 60;
