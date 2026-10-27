@@ -5,6 +5,8 @@ import { NavbarWrapper } from "./components/NavbarWrapper";
 import { StudyRoomProvider } from "./case-bank/components/study-room/StudyRoomProvider";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getCurrentUser } from "@/lib/current-user";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { loadInbox } from "@/lib/inbox";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight: ["700", "800"], display: "swap" });
@@ -27,6 +29,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   // navigation. `initials` is only needed by the room; the navbar ignores it.
   let userId: string | null = null;
   let initials = "?";
+  let unreadReports = 0;
 
   try {
     const user = await getCurrentUser();
@@ -41,6 +44,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       // there is worse than an email address.
       displayName = profile?.display_name ?? user.email ?? null;
       initials = profile?.initials ?? "?";
+
+      // Counted here because this pass already has the session. loadInbox
+      // swallows its own errors and returns [], so a bad read shows an empty
+      // envelope rather than taking down every page on the site.
+      const admin = getSupabaseAdmin();
+      if (admin) unreadReports = (await loadInbox(admin, user.id)).unread;
     }
   } catch {
     // unauthenticated or no session — navbar renders logged-out state and the
@@ -60,7 +69,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           already-rendered node it never touches.
         */}
         <StudyRoomProvider userId={userId} displayName={displayName ?? ""} initials={initials}>
-          <NavbarWrapper isLoggedIn={isLoggedIn} displayName={displayName} />
+          <NavbarWrapper isLoggedIn={isLoggedIn} displayName={displayName} unreadReports={unreadReports} />
           {children}
         </StudyRoomProvider>
       </body>

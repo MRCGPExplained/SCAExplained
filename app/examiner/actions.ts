@@ -215,9 +215,9 @@ export async function examinerLogoutAction() {
 }
 
 export async function submitExaminerReviewAction(
-  _prevState: { error?: string; success?: boolean },
+  _prevState: { error?: string; success?: boolean; warning?: string },
   formData: FormData
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; warning?: string }> {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
@@ -305,6 +305,7 @@ export async function submitExaminerReviewAction(
       doctor_display_name: string;
     }>();
 
+  let emailed = true;
   if (sendNow && rec?.candidate_email) {
     const gradePts: Record<string, Record<string, number>> = {
       dg: { CF: 0, F: 1, P: 2, CP: 3 },
@@ -313,7 +314,17 @@ export async function submitExaminerReviewAction(
     };
     const total = (gradePts.dg[dgGrade] ?? 0) + (gradePts.cm[cmGrade] ?? 0) + (gradePts.ro[roGrade] ?? 0);
 
-    await sendExaminerReportEmail({
+    /*
+      The result used to be discarded. sendExaminerReportEmail returns false
+      on a Resend error or a missing key and never throws, so a bounced email
+      left the review marked sent, the candidate never told, and nothing
+      recorded anywhere.
+
+      It is no longer fatal — the review is saved, sent_to_candidate_at is
+      set, and it is now sitting in the candidate's envelope either way — but
+      the GP who pressed Send is the one person who can chase it, so say so.
+    */
+    emailed = await sendExaminerReportEmail({
       to: rec.candidate_email,
       candidateName: rec.doctor_display_name,
       stationNumber: rec.station_number,
@@ -327,9 +338,18 @@ export async function submitExaminerReviewAction(
       roComment,
       overallComment,
     });
+    if (!emailed) {
+      console.error("[examiner] report email not sent", { recordingId, to: rec.candidate_email });
+    }
   }
 
-  return { success: true };
+  return {
+    success: true,
+    warning:
+      sendNow && !emailed
+        ? "Saved and sent, but the email did not go out. They can still see it in their inbox on the site."
+        : undefined,
+  };
 }
 
 /**

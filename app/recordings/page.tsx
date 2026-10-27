@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isUnreadReport } from "@/lib/inbox";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -240,9 +241,9 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             {recordings.map((rec) => {
               const isFinal = !!rec.sent_to_candidate_at;
               const isReviewed = isFinal;
-              const isUnread =
-                isFinal &&
-                (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!));
+              // The same rule the navbar envelope counts by, read from one
+              // place so the badge and this list cannot disagree.
+              const isUnread = isUnreadReport(rec.sent_to_candidate_at, rec.candidate_viewed_at);
               const hasGrades = isFinal
                 ? !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others)
                 : !!(rec.ai_data_gathering && rec.ai_clinical_management && rec.ai_relating_to_others);

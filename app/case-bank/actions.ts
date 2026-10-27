@@ -1,6 +1,7 @@
 "use server";
 
 import { endOtherSessions, sessionWasRevoked, SESSION_TAKEN_OVER } from "@/lib/single-session";
+import { likeEscape } from "@/lib/like-escape";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -808,11 +809,15 @@ export async function sendFriendRequestAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated." };
 
-  // Look up target user by display_name in user_profiles
+  // Look up target user by display_name in user_profiles.
+  //
+  // Escaped, like every other ilike on a value someone typed. Unescaped, "%"
+  // matched whichever profile came back first and sent a friend request to a
+  // stranger whose name you never had to know.
   const { data: profiles } = await supabase
     .from("user_profiles")
     .select("id,display_name")
-    .ilike("display_name", emailOrName.trim());
+    .ilike("display_name", likeEscape(emailOrName.trim()));
 
   const target = profiles?.[0];
   if (!target) return { error: "User not found. They must have a Case Bank account." };

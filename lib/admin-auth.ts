@@ -2,23 +2,10 @@ import { createHash } from "crypto";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/current-user";
+import { likeEscape } from "@/lib/like-escape";
 
 function sha256hex(text: string): string {
   return createHash("sha256").update(text).digest("hex");
-}
-
-/**
- * Escapes a value that is about to be used as a LIKE/ILIKE pattern.
- *
- * ilike treats its argument as a pattern, so an email containing an underscore
- * or a percent sign matches more addresses than its own. Matching an admin
- * address that way admitted anyone who could register a single-character
- * variant of it: "b_enfah@hotmail.com" matches "btenfah@hotmail.com", and
- * Outlook allows underscores in a local part. That is admin access to anyone
- * willing to sign up for the right lookalike.
- */
-function likeEscape(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
 // Two independent ways in, mirrored in middleware.ts:

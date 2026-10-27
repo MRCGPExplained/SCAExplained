@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { InboxMenu } from "./InboxMenu";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
@@ -16,9 +17,13 @@ function SpeechIcon() {
 export function Navbar({
   isLoggedIn,
   displayName,
+  unreadReports = 0,
 }: {
   isLoggedIn: boolean;
   displayName?: string | null;
+  /** GP reviews sent and not yet opened. Rendered with the page, so it is
+   *  correct as of this load; the envelope re-asks when it is opened. */
+  unreadReports?: number;
 }) {
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.08]" style={{ background: DARK }}>
@@ -48,6 +53,9 @@ export function Navbar({
 
           {isLoggedIn ? (
             <>
+              {/* Before Resources and Account, so the thing that may be
+                  asking for attention is not the last thing read. */}
+              <InboxMenu initialUnread={unreadReports} />
               <Link
                 href="/dashboard"
                 className="text-[13px] font-semibold no-underline transition-colors"

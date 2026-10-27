@@ -448,6 +448,12 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
           {showSuccess && (
             <p className="text-[12px] mb-3" style={{ color: "#166534" }}>✓ Saved successfully.</p>
           )}
+          {/* A failed email is not a failed review — the candidate has it in
+              their inbox on the site either way — but the GP who pressed Send
+              is the only person who can chase it, so it does not stay silent. */}
+          {"warning" in state && state.warning && (
+            <p className="text-[12px] mb-3" style={{ color: "#92400e" }}>{state.warning as string}</p>
+          )}
 
           {/* Action buttons */}
           {!isSent && (
