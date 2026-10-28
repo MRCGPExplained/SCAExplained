@@ -21,7 +21,7 @@ export default async function InterceptedReport({
 }) {
   const { id } = await params;
   return (
-    <ReportModal>
+    <ReportModal recordingId={id}>
       <ReportBody id={id} inModal />
     </ReportModal>
   );

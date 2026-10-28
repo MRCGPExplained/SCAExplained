@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 /**
  * The shell a report sits in when it is opened from inside the app.
@@ -20,13 +20,38 @@ import { useRouter } from "next/navigation";
  * soft navigation inside one document, and StudyRoomProvider sits above it
  * in the root layout.
  */
-export function ReportModal({ children }: { children: React.ReactNode }) {
+export function ReportModal({
+  recordingId,
+  children,
+}: {
+  /** Which report this overlay is for, so it can tell when it is no longer
+   *  the thing the URL is pointing at. */
+  recordingId: string;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+    Close when the URL moves on, which Next will not do for us.
+
+    A parallel route slot keeps its active subpage through a client-side
+    navigation that does not match it. So following any link out of here —
+    the study room dock's "Room is on Station 72 →" is the obvious one, and
+    it is deliberately the one control floating above this overlay —
+    navigated the page underneath to the station and left this sitting on
+    top of it, opaque and with body scroll still locked. Measured, not
+    guessed: the station rendered, the URL changed, and the thing at the
+    centre of the screen was still the report.
+  */
+  const active = pathname === `/recordings/${recordingId}`;
 
   const close = useCallback(() => router.back(), [router]);
 
   useEffect(() => {
+    if (!active) return;
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") close();
     }
@@ -46,7 +71,10 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previous;
     };
-  }, [close]);
+  }, [active, close]);
+
+  // After the hooks, never before them.
+  if (!active) return null;
 
   return (
     <div
