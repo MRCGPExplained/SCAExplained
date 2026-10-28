@@ -59,32 +59,37 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
       }}
       style={{
         position: "fixed",
-        inset: 0,
-        background: "rgba(16,16,20,0.55)",
-        // Above the study room dock, which is the one thing on this site that
-        // deliberately floats over everything else.
+        // Below the navbar, not over it. The navbar is part of what makes
+        // this read as a page rather than a dialog, and it keeps the
+        // envelope and Account reachable while a report is open.
+        top: 56,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        // The page's own background, opaque. It was a dimmed backdrop around
+        // a rounded 1000px panel, which is what made it feel like a dialog
+        // box — rounded corners, a shadow and a width cap all say "this is a
+        // thing on top of the page" when what is wanted is the page.
+        //
+        // Nothing about the behaviour changes: Escape and the X still close
+        // it, Back still closes it, the URL is still the report's, and the
+        // room underneath is still mounted and still running.
+        background: "#F4F4F2",
+        // Above the study room dock, which deliberately floats over
+        // everything else.
         zIndex: 3000,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        // Full-bleed on a phone. A 95% box with a sliver of backdrop around it
-        // is just a worse full screen, and it costs the report its margins.
-        padding: "clamp(0px, calc((100vw - 640px) * 1000), 2.5vh) clamp(0px, calc((100vw - 640px) * 1000), 1.5vw)",
+        flexDirection: "column",
       }}
     >
       <div
         ref={panelRef}
         className="relative w-full"
         style={{
-          // The report body is capped at 960px and centres itself, so a panel
-          // wider than that is grey band either side of it and nothing else.
-          // 1000 leaves room for the body plus its own px-4.
-          maxWidth: 1000,
+          // No width cap, no radius, no shadow, no background of its own.
+          // The report body already caps itself at 960px and centres, exactly
+          // as it does on the real page, so this just gets out of its way.
           height: "100%",
-          maxHeight: "100%",
-          background: "#F4F4F2",
-          borderRadius: "clamp(0px, calc((100vw - 640px) * 1000), 16px)",
-          boxShadow: "0 24px 70px rgba(0,0,0,0.35)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",

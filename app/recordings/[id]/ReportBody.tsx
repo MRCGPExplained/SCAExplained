@@ -10,6 +10,7 @@ import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
+import { CloseReportButton } from "@/app/components/CloseReportButton";
 
 const NAVY = "#333333";
 
@@ -287,17 +288,19 @@ export async function ReportBody({
 
   return (
     <div className={inModal ? "" : "min-h-screen"} style={{ background: "#F4F4F2" }}>
-      <div className={inModal ? "max-w-[960px] mx-auto px-4 py-6" : "max-w-[960px] mx-auto px-4 py-10"}>
+      <div className="max-w-[960px] mx-auto px-4 py-10">
 
         {/* Station header */}
         <div
           className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4"
           style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
         >
-          {/* Left: back. The modal has an X, so this would be a second exit
-              that behaves differently from it — and worse, leaves the room. */}
+          {/* Left: back, or Close when this is an overlay. Not an empty slot:
+              the header is justify-between and an empty left drags the station
+              title off centre, which is most of what made it stop looking like
+              the page. */}
           {inModal ? (
-            <span className="shrink-0" style={{ width: 1 }} aria-hidden="true" />
+            <CloseReportButton />
           ) : examiner ? (
             <Link
               href={`/examiner/${rec.id}`}
