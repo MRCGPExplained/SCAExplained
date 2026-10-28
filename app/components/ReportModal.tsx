@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useStudyRoomStatus } from "@/app/case-bank/components/study-room/context";
+
+const DARK = "#333333";
 
 /**
  * The shell a report sits in when it is opened from inside the app.
@@ -23,7 +26,17 @@ import { useRouter } from "next/navigation";
 export function ReportModal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
+
+  /*
+    What is underneath, so the bar can name it.
+
+    A full-bleed opaque overlay reads as a page, which is what is wanted —
+    but it cannot show you the room through itself the way a dimmed backdrop
+    could. So it says so instead, in words, in a bar that is always on
+    screen. Guessing is not needed: the room's own state is right here.
+  */
+  const { inRoom, hostStationNumber, stationNumber, isRecordingActive } = useStudyRoomStatus();
+  const station = stationNumber ?? hostStationNumber;
 
   const close = useCallback(() => router.back(), [router]);
 
@@ -38,7 +51,10 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    closeRef.current?.focus();
+    // Nothing in here is focusable until the report renders, so focus the
+    // panel itself: a screen reader then starts inside the dialog rather
+    // than wherever the link that opened it happened to be.
+    panelRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -71,9 +87,9 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
         // box — rounded corners, a shadow and a width cap all say "this is a
         // thing on top of the page" when what is wanted is the page.
         //
-        // Nothing about the behaviour changes: Escape and the X still close
-        // it, Back still closes it, the URL is still the report's, and the
-        // room underneath is still mounted and still running.
+        // Nothing about the behaviour changes: Escape closes it, the
+        // return bar closes it, Back closes it, the URL is still the
+        // report's, and the room underneath is still mounted and running.
         background: "#F4F4F2",
         // Above the study room dock, which deliberately floats over
         // everything else.
@@ -84,6 +100,7 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
     >
       <div
         ref={panelRef}
+        tabIndex={-1}
         className="relative w-full"
         style={{
           // No width cap, no radius, no shadow, no background of its own.
@@ -95,31 +112,56 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
           flexDirection: "column",
         }}
       >
-        <button
-          ref={closeRef}
-          type="button"
-          onClick={close}
-          aria-label="Close report"
-          className="absolute flex items-center justify-center rounded-full transition-colors"
-          style={{
-            top: 12,
-            right: 12,
-            width: 36,
-            height: 36,
-            // Sits over a scrolling report, so it carries its own background
-            // rather than relying on whatever happens to be beneath it.
-            background: "rgba(255,255,255,0.96)",
-            border: "1px solid rgba(51,51,51,0.14)",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
-            color: "#333333",
-            cursor: "pointer",
-            zIndex: 2,
-          }}
+        {/*
+          The return bar. This is the whole answer to "it looks like a page,
+          so how do I know the room is still there".
+
+          Dark, like the navbar directly above it, so the two read as one
+          piece of chrome and the eye sees: site bar, you-are-one-level-deep
+          bar, page. Outside the scrolling area, so it cannot leave the
+          screen — it is the only way out now that the floating X is gone,
+          and a way out you have to scroll to find is not one.
+        */}
+        <div
+          className="flex items-center justify-between gap-3 px-4 sm:px-6"
+          style={{ background: DARK, height: 44, flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </button>
+          <button
+            type="button"
+            onClick={close}
+            className="flex items-center gap-2 text-[12.5px] font-semibold rounded-md px-2.5 py-1.5 -ml-2.5"
+            style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}
+          >
+            <span aria-hidden="true">←</span>
+            {inRoom
+              ? station
+                ? `Back to the study room (Station ${station})`
+                : "Back to the study room"
+              : "Back"}
+          </button>
+
+          {/* Proof, not reassurance: this only shows when a room really is
+              open, and it says what that room is doing. */}
+          {inRoom && (
+            <span
+              className="flex items-center gap-1.5 text-[11.5px] shrink-0"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              <span
+                className="rounded-full shrink-0"
+                style={{
+                  width: 7,
+                  height: 7,
+                  background: isRecordingActive ? "#EF4444" : "#4ADE80",
+                }}
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">
+                {isRecordingActive ? "Still recording" : "Still connected"}
+              </span>
+            </span>
+          )}
+        </div>
 
         <div style={{ overflowY: "auto", flex: 1, WebkitOverflowScrolling: "touch" }}>{children}</div>
       </div>

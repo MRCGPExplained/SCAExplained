@@ -10,7 +10,6 @@ import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
-import { CloseReportButton } from "@/app/components/CloseReportButton";
 
 const NAVY = "#333333";
 
@@ -292,16 +291,19 @@ export async function ReportBody({
 
         {/* Station header */}
         <div
-          className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4"
+          className={
+            "rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4" +
+            // Sticky in the overlay because Close is the only way out of it
+            // and the header is where Close lives. On the page it scrolls as
+            // it always has: the browser's own back is never off screen.
+            (inModal ? " sticky top-0 z-10" : "")
+          }
           style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
         >
-          {/* Left: back, or Close when this is an overlay. Not an empty slot:
-              the header is justify-between and an empty left drags the station
-              title off centre, which is most of what made it stop looking like
-              the page. */}
-          {inModal ? (
-            <CloseReportButton />
-          ) : examiner ? (
+          {/* Left: back, and nothing in the overlay — the return bar above
+              owns getting out, and it says where to. The title still centres
+              because it is flex-1, not because something balances it. */}
+          {inModal ? null : examiner ? (
             <Link
               href={`/examiner/${rec.id}`}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold shrink-0"
@@ -319,8 +321,10 @@ export async function ReportBody({
             </Link>
           )}
 
-          {/* Centre: station identity */}
-          <div className="flex flex-col items-center text-center min-w-0">
+          {/* Centre: station identity. flex-1 rather than a bare block, so it
+              centres on the header itself and does not drift when the thing
+              beside it changes width or goes away. */}
+          <div className="flex-1 flex flex-col items-center text-center min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-[0.08em] mb-0.5" style={{ color: "rgba(51,51,51,0.35)" }}>
               Station {rec.station_number}
             </span>
@@ -329,7 +333,11 @@ export async function ReportBody({
             </h1>
           </div>
 
-          {/* Right: go to station */}
+          {/* Right: go to station. Not in the overlay — it is opened from a
+              station, usually from inside a room running that very station,
+              where "go to station" is either a no-op or a way to navigate off
+              the room by accident. The overlay is for looking and closing. */}
+          {!inModal && (
           <Link
             href={`/case-bank/${rec.station_number}`}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold shrink-0"
@@ -340,6 +348,7 @@ export async function ReportBody({
             </svg>
             Go to Station
           </Link>
+          )}
         </div>
 
         {/* Public note */}
