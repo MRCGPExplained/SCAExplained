@@ -51,8 +51,18 @@ export function StudyRoomDock() {
 
   return (
     <div
-      className="fixed z-50 flex flex-col gap-2"
+      className="fixed flex flex-col gap-2"
       style={{
+        /*
+          Above everything, including the report overlay.
+
+          stationNumber comes from the pathname, so opening a report already
+          made it null and this dock already rendered — it was simply painted
+          under an opaque full-screen overlay at 3000. The session is the one
+          thing that should never be covered: it is live, it is shared with
+          other people, and it holds the only Leave button.
+        */
+        zIndex: 3100,
         right: 16,
         bottom: 16,
         width: 268,

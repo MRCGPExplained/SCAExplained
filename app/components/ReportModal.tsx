@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useStudyRoomStatus } from "@/app/case-bank/components/study-room/context";
 
 const DARK = "#333333";
 
@@ -26,17 +25,6 @@ const DARK = "#333333";
 export function ReportModal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
-
-  /*
-    What is underneath, so the bar can name it.
-
-    A full-bleed opaque overlay reads as a page, which is what is wanted —
-    but it cannot show you the room through itself the way a dimmed backdrop
-    could. So it says so instead, in words, in a bar that is always on
-    screen. Guessing is not needed: the room's own state is right here.
-  */
-  const { inRoom, hostStationNumber, stationNumber, isRecordingActive } = useStudyRoomStatus();
-  const station = stationNumber ?? hostStationNumber;
 
   const close = useCallback(() => router.back(), [router]);
 
@@ -113,14 +101,21 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
         }}
       >
         {/*
-          The return bar. This is the whole answer to "it looks like a page,
-          so how do I know the room is still there".
+          The return bar: one labelled way out, always on screen.
+
+          It used to also announce that the room was still running, because a
+          full-bleed opaque overlay cannot show you what is behind it the way
+          a dimmed backdrop could. That job belongs to StudyRoomDock, which
+          already existed for exactly this — it is what the room looks like
+          from every other page you are not on a station — and which is live
+          rather than a sentence: a running clock, who is connected, the chat,
+          and the way back to the case. It was rendering here all along,
+          hidden under this overlay, until it was given a z-index above it.
 
           Dark, like the navbar directly above it, so the two read as one
-          piece of chrome and the eye sees: site bar, you-are-one-level-deep
-          bar, page. Outside the scrolling area, so it cannot leave the
-          screen — it is the only way out now that the floating X is gone,
-          and a way out you have to scroll to find is not one.
+          piece of chrome: site bar, one-level-deep bar, page. Outside the
+          scrolling area, because a way out you have to scroll to find is not
+          one.
         */}
         <div
           className="flex items-center justify-between gap-3 px-4 sm:px-6"
@@ -133,34 +128,8 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
             style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}
           >
             <span aria-hidden="true">←</span>
-            {inRoom
-              ? station
-                ? `Back to the study room (Station ${station})`
-                : "Back to the study room"
-              : "Back"}
+            Back
           </button>
-
-          {/* Proof, not reassurance: this only shows when a room really is
-              open, and it says what that room is doing. */}
-          {inRoom && (
-            <span
-              className="flex items-center gap-1.5 text-[11.5px] shrink-0"
-              style={{ color: "rgba(255,255,255,0.55)" }}
-            >
-              <span
-                className="rounded-full shrink-0"
-                style={{
-                  width: 7,
-                  height: 7,
-                  background: isRecordingActive ? "#EF4444" : "#4ADE80",
-                }}
-                aria-hidden="true"
-              />
-              <span className="hidden sm:inline">
-                {isRecordingActive ? "Still recording" : "Still connected"}
-              </span>
-            </span>
-          )}
         </div>
 
         <div style={{ overflowY: "auto", flex: 1, WebkitOverflowScrolling: "touch" }}>{children}</div>
