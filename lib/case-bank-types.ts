@@ -102,6 +102,14 @@ export type StudyRoom = {
   timer_paused_at: string | null;
   timer_paused_remaining: number | null;
   timer_skipped_preread: boolean;
+  /**
+   * The live call, while one is running. Written by the host when a
+   * consultation starts and nulled when the debrief ends, so that joining
+   * the call is something anyone in the room can discover rather than
+   * something only the people present for one broadcast ever knew.
+   */
+  daily_room_name: string | null;
+  daily_room_url: string | null;
   created_at: string;
 };
 

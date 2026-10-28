@@ -1441,13 +1441,81 @@ export async function createDailyCallAction(
 export async function getDailyTokenAction(
   roomName: string,
   userName: string,
-  isOwner: boolean
+  /** Ignored. Kept so callers need not change; see below. */
+  _isOwner?: boolean
 ): Promise<{ token: string } | { error: string }> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated." };
 
-  const token = await createDailyMeetingToken(roomName, userName, isOwner);
+  /*
+    Being signed in used to be the whole check, and a token is permission to
+    listen to a live consultation. That was survivable only because the room
+    name existed nowhere a stranger could reach it — it was passed in a
+    channel broadcast, so you had to be in the room already.
+
+    It is now written to study_rooms so that someone arriving mid-consultation
+    can find the call. One of that table's SELECT policies is "Authenticated
+    users can look up rooms to join", i.e. any signed-in user can read any
+    room row. So the name is readable now, and the check has to be real.
+
+    The name is sca-<recordingId>, which is what makes this answerable: ask
+    the recording who belongs in it.
+  */
+  const recordingId = roomName.startsWith("sca-") ? roomName.slice(4) : null;
+  if (!recordingId) return { error: "Unknown call." };
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server error." };
+
+  const { data: rec, error: recErr } = await admin
+    .from("station_recordings")
+    .select("doctor_user_id, patient_user_id, observer_user_ids, room_id")
+    .eq("id", recordingId)
+    .maybeSingle<{
+      doctor_user_id: string | null;
+      patient_user_id: string | null;
+      observer_user_ids: string[] | null;
+      room_id: string | null;
+    }>();
+
+  // supabase-js returns { data, error }; an unread error here would read as
+  // "no such recording" and lock out the people who do belong.
+  if (recErr) {
+    console.error("[daily-token] recording lookup failed", recordingId, recErr.message);
+    return { error: "Could not join live audio." };
+  }
+  if (!rec) return { error: "Unknown call." };
+
+  let allowed =
+    rec.doctor_user_id === user.id ||
+    rec.patient_user_id === user.id ||
+    (rec.observer_user_ids ?? []).includes(user.id);
+
+  // Anyone in the study room this recording belongs to. That is the case the
+  // whole change exists for: a late arrival who is not yet on the recording.
+  let isHost = false;
+  if (rec.room_id) {
+    const [{ count }, { data: roomRow }] = await Promise.all([
+      admin
+        .from("room_participants")
+        .select("user_id", { count: "exact", head: true })
+        .eq("room_id", rec.room_id)
+        .eq("user_id", user.id),
+      admin.from("study_rooms").select("host_user_id").eq("id", rec.room_id).maybeSingle<{ host_user_id: string }>(),
+    ]);
+    if ((count ?? 0) > 0) allowed = true;
+    isHost = roomRow?.host_user_id === user.id;
+  }
+
+  if (!allowed) {
+    console.warn("[daily-token] refused", { recordingId, userId: user.id });
+    return { error: "You are not in this consultation." };
+  }
+
+  // Owner was a boolean the browser sent about itself. It grants call-admin
+  // rights in Daily, so it is decided here instead.
+  const token = await createDailyMeetingToken(roomName, userName, isHost);
   if (!token) return { error: "Could not join live audio." };
 
   return { token };

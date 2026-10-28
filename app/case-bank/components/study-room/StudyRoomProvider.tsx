@@ -1667,6 +1667,65 @@ export function StudyRoomProvider({
     setDailyRoomName(null);
   }
 
+  /*
+    Join a call that was already running when I arrived.
+
+    Everyone else gets into the call by hearing the "recording-start"
+    broadcast. A broadcast is heard once, by whoever is already listening, so
+    before this a person who walked into a room mid-consultation sat watching
+    the timer count down in silence — and their own client did not even know
+    a consultation was happening, because recordingState is set by that same
+    broadcast.
+
+    The call now lives on the room row as well, so it can be found rather
+    than only overheard. Gated on recordingState === "idle", which is exactly
+    the thing that distinguishes someone who missed the broadcast from
+    someone who acted on it: anyone who heard it is "starting" or
+    "recording" by now.
+
+    Muted on arrival by the same rule the broadcast path uses — only the
+    doctor and patient are audible during a graded consult, and the debrief
+    unmutes everyone. A latecomer is normally neither, so they listen.
+    If they ARE the doctor or patient, that means they dropped out and came
+    back, and they should be audible again: this is also how a crashed or
+    refreshed browser rejoins its own consultation, which nothing recovered
+    from before.
+  */
+  const lateJoinAttemptedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const name = room?.daily_room_name;
+    const url = room?.daily_room_url;
+    if (!name || !url) return;
+    if (recordingState !== "idle") return;         // I heard the broadcast
+    if (callConnected || dailyConnecting) return;  // already in, or on the way
+    if (lateJoinAttemptedRef.current === name) return; // one attempt per call
+
+    lateJoinAttemptedRef.current = name;
+    (async () => {
+      logStatus("joining a call already in progress", { roomName: name });
+      const joined = await joinDailyCall(name, url);
+      if (!joined) {
+        logError("late DailyCo join", "failed", { roomName: name });
+        return;
+      }
+      const amEssential = userId === doctorUserId || userId === patientUserId;
+      dailyCallRef.current?.setLocalAudio(amEssential);
+    })();
+    // joinDailyCall is a stable function declaration in this component body
+    // and intentionally out of the deps: including it would re-run this on
+    // every render, and the ref above already limits it to one attempt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    room?.daily_room_name,
+    room?.daily_room_url,
+    recordingState,
+    callConnected,
+    dailyConnecting,
+    userId,
+    doctorUserId,
+    patientUserId,
+  ]);
+
   function clearDebriefTimers() {
     if (debriefIntervalRef.current) {
       clearInterval(debriefIntervalRef.current);
@@ -1720,7 +1779,18 @@ export function StudyRoomProvider({
   function endDebrief() {
     clearDebriefTimers();
     setDebriefSecondsLeft(null);
-    if (iAmHost && dailyRoomName) endDailyCallAction(dailyRoomName);
+    if (iAmHost && dailyRoomName) {
+      endDailyCallAction(dailyRoomName);
+      // Take the call off the room as it is torn down, or the next person
+      // through the door is sent to join a room that no longer exists.
+      void supabase
+        .from("study_rooms")
+        .update({ daily_room_name: null, daily_room_url: null })
+        .eq("id", room?.id ?? "")
+        .then(({ error }) => {
+          if (error) logError("clear daily room on study_rooms", error.message);
+        });
+    }
     leaveDailyCall();
     debriefClosedRef.current = true;
     finishTakeIfReady(latest.current.activeRecordingId);
@@ -2228,6 +2298,27 @@ export function StudyRoomProvider({
       },
     });
     logStatus("broadcast recording-start sent", { recordingId });
+
+    /*
+      Put the call on the room as well as in the broadcast.
+
+      A broadcast is heard once, by whoever is already listening. Anyone who
+      joins the room after this point never hears it, so until now they could
+      not join the live call at all — they watched the timer count down in
+      silence. Written here, the call is discoverable by anyone who can read
+      the room, which includes the host themselves after a reload.
+
+      Best-effort and deliberately unawaited for its failure: the call is
+      already running and the people in it are mid-consultation. A failed
+      write means a latecomer cannot join, which is where we were before.
+    */
+    if (dailyRoom && room) {
+      const { error: roomCallErr } = await supabase
+        .from("study_rooms")
+        .update({ daily_room_name: dailyRoom.roomName, daily_room_url: dailyRoom.roomUrl })
+        .eq("id", room.id);
+      if (roomCallErr) logError("persist daily room on study_rooms", roomCallErr.message, { recordingId });
+    }
 
     // Wait for the live call to connect (or time out) before starting the
     // timer and the recorder, so all three begin in sync.
