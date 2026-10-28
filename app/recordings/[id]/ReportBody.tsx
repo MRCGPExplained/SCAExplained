@@ -291,13 +291,7 @@ export async function ReportBody({
 
         {/* Station header */}
         <div
-          className={
-            "rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4" +
-            // Sticky in the overlay because Close is the only way out of it
-            // and the header is where Close lives. On the page it scrolls as
-            // it always has: the browser's own back is never off screen.
-            (inModal ? " sticky top-0 z-10" : "")
-          }
+          className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between gap-4"
           style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
         >
           {/* Left: back, and nothing in the overlay — the return bar above
