@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-const DARK = "#333333";
-
 /**
  * The shell a report sits in when it is opened from inside the app.
  *
@@ -101,37 +99,20 @@ export function ReportModal({ children }: { children: React.ReactNode }) {
         }}
       >
         {/*
-          The return bar: one labelled way out, always on screen.
+          No bar, no X, no close button of any kind.
 
-          It used to also announce that the room was still running, because a
-          full-bleed opaque overlay cannot show you what is behind it the way
-          a dimmed backdrop could. That job belongs to StudyRoomDock, which
-          already existed for exactly this — it is what the room looks like
-          from every other page you are not on a station — and which is live
-          rather than a sentence: a running clock, who is connected, the chat,
-          and the way back to the case. It was rendering here all along,
-          hidden under this overlay, until it was given a z-index above it.
+          This is a real route with a real history entry, so the browser's own
+          Back closes it, and Escape does too. Every control that was here
+          was a second one of those, drawn on the page, and the whole point
+          is that this reads as a page.
 
-          Dark, like the navbar directly above it, so the two read as one
-          piece of chrome: site bar, one-level-deep bar, page. Outside the
-          scrolling area, because a way out you have to scroll to find is not
-          one.
+          Nothing is trapped: there is no standalone/PWA mode in this app, so
+          browser chrome is always on screen; the study room dock sits above
+          this at bottom right with the way back to the case; and the navbar
+          above it is live. If a manifest with display: standalone is ever
+          added, the browser's Back goes away on a phone and this needs a
+          control again.
         */}
-        <div
-          className="flex items-center justify-between gap-3 px-4 sm:px-6"
-          style={{ background: DARK, height: 44, flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          <button
-            type="button"
-            onClick={close}
-            className="flex items-center gap-2 text-[12.5px] font-semibold rounded-md px-2.5 py-1.5 -ml-2.5"
-            style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}
-          >
-            <span aria-hidden="true">←</span>
-            Back
-          </button>
-        </div>
-
         <div style={{ overflowY: "auto", flex: 1, WebkitOverflowScrolling: "touch" }}>{children}</div>
       </div>
     </div>
