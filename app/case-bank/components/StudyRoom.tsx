@@ -74,14 +74,18 @@ function ReviewStageChip({
     return (
       <span className="text-[10px] flex items-center gap-1.5" style={{ color: "#F6D44B" }}>
         <span style={{ fontSize: 11 }}>●</span>
-        <a
+        {/* Same tab, like the two report links above it. A new tab from
+            inside a room is the thing a tester called confusing: you end up
+            with two of them and the room is only live in one. Navigating
+            here does not end the session — StudyRoomProvider is in the root
+            layout — and the dock follows you with the clock and the way
+            back. */}
+        <Link
           href="/recordings"
-          target="_blank"
-          rel="noopener noreferrer"
           style={{ color: "#F6D44B", textDecoration: "underline", textUnderlineOffset: 2 }}
         >
           Transcribed: choose what to do
-        </a>
+        </Link>
       </span>
     );
   }
