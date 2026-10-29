@@ -37,9 +37,37 @@ const SKILL_RATING_META: Record<string, { label: string; color: string; bg: stri
 
 
 
-function GradePill({ grade }: { grade: string | null; domain: "dg" | "cm" | "ro" }) {
+/**
+ * The badge beside each domain.
+ *
+ * Two vocabularies, because two different things are speaking. A GP who has
+ * listened to the consultation says Clear Pass or Clear Fail and means it.
+ * A model estimating from a transcript should not: the difference between
+ * Pass and Clear Pass is a finer judgement than it can reliably support, and
+ * "Clear Fail" in a red badge is a verdict, delivered by something that was
+ * guessing.
+ *
+ * So an AI report collapses to Good / Needs Improvement — which is not new
+ * vocabulary, it is the one the Skills Assessment on this same page already
+ * uses, down to the colours. Half the report speaking in soft bands while
+ * the other half hands down Clear Fail was the thing that read wrong.
+ *
+ * The underlying CF/F/P/CP is untouched: it is what gets stored, what the
+ * points are computed from, and what the Score Distribution and the predicted
+ * total still show. The detail stays; only the verdict softens. Someone who
+ * wants the band can read it off the points, and that is fine — a number in
+ * a breakdown is data, a badge is a judgement, and it was the judgement that
+ * was overclaiming.
+ */
+function GradePill({ grade, estimate }: { grade: string | null; domain: "dg" | "cm" | "ro"; estimate: boolean }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
-  const meta = GRADE_META[grade];
+
+  const meta = estimate
+    ? grade === "P" || grade === "CP"
+      ? SKILL_RATING_META.good
+      : SKILL_RATING_META.needs_improvement
+    : GRADE_META[grade];
+
   return (
     <span
       className="text-[11px] font-bold px-2.5 py-0.5 rounded-md"
@@ -485,7 +513,10 @@ export default async function RecordingDetailPage({
               >
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
-                  <GradePill grade={grades[key]} domain={key} />
+                  {/* showExaminerGrades is already the test for "a GP has
+                      marked this", which is exactly when the precise band is
+                      earned. */}
+                  <GradePill grade={grades[key]} domain={key} estimate={!showExaminerGrades} />
                 </div>
                 {comments[key] ? (
                   <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.7)" }}>
