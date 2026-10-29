@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { InboxMenu } from "./InboxMenu";
+import { ReviewQueueMenu, FeedbackQueueMenu } from "./StaffMenus";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
@@ -11,91 +12,6 @@ function SpeechIcon() {
     <svg width="17" height="17" viewBox="0 0 20 20" fill="white">
       <path d="M2 3.5A1.5 1.5 0 013.5 2h13A1.5 1.5 0 0118 3.5v9A1.5 1.5 0 0116.5 14H7l-5 4V3.5z" />
     </svg>
-  );
-}
-
-/** The GP review queue. A document, because that is what is waiting. */
-function DocumentIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-    </svg>
-  );
-}
-
-/**
- * Feedback and help requests.
- *
- * A lifebuoy, not the speech bubble the Feedback button on a station uses —
- * that glyph is already the wordmark at the other end of this same bar, and
- * the same shape twice in one navbar reads as a mistake.
- */
-function LifebuoyIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.25" />
-      <circle cx="12" cy="12" r="3.75" />
-      <line x1="5.46" y1="5.46" x2="9.35" y2="9.35" />
-      <line x1="14.65" y1="14.65" x2="18.54" y2="18.54" />
-      <line x1="14.65" y1="9.35" x2="18.54" y2="5.46" />
-      <line x1="5.46" y1="18.54" x2="9.35" y2="14.65" />
-    </svg>
-  );
-}
-
-/**
- * A navbar icon that links somewhere and carries a count.
- *
- * `count === null` means the viewer is not entitled to this at all and the
- * icon does not render. Zero renders the icon with no badge — "you can see
- * this, there is nothing waiting" — which is a different statement and has to
- * look different.
- */
-function NavCountLink({
-  href,
-  label,
-  count,
-  children,
-}: {
-  href: string;
-  label: string;
-  count: number | null;
-  children: React.ReactNode;
-}) {
-  if (count === null) return null;
-  return (
-    <Link
-      href={href}
-      aria-label={count > 0 ? `${label}, ${count} waiting` : label}
-      title={count > 0 ? `${label}: ${count} waiting` : label}
-      className="relative flex items-center justify-center rounded-lg transition-colors no-underline"
-      style={{ width: 32, height: 32, color: count > 0 ? "white" : "rgba(255,255,255,0.60)" }}
-    >
-      {children}
-      {count > 0 && (
-        <span
-          className="absolute flex items-center justify-center font-bold tabular-nums"
-          style={{
-            top: -1,
-            right: -2,
-            minWidth: 15,
-            height: 15,
-            padding: "0 4px",
-            borderRadius: 999,
-            background: YELLOW,
-            color: DARK,
-            fontSize: 9.5,
-            lineHeight: 1,
-            border: `1.5px solid ${DARK}`,
-          }}
-        >
-          {count > 9 ? "9+" : count}
-        </span>
-      )}
-    </Link>
   );
 }
 
@@ -161,12 +77,8 @@ export function Navbar({
 
                   This is also the only route to /examiner anywhere in the
                   navigation — a GP used to reach the queue by typing the URL. */}
-              <NavCountLink href="/admin/feedback" label="Feedback" count={feedbackWaiting}>
-                <LifebuoyIcon />
-              </NavCountLink>
-              <NavCountLink href="/examiner" label="Reviews waiting" count={reviewsWaiting}>
-                <DocumentIcon />
-              </NavCountLink>
+              <FeedbackQueueMenu initialCount={feedbackWaiting} />
+              <ReviewQueueMenu initialCount={reviewsWaiting} />
               <InboxMenu initialUnread={unreadReports} />
               <Link
                 href="/account"

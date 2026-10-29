@@ -26,10 +26,48 @@ export interface StaffNav {
 
 const NONE: StaffNav = { reviewsWaiting: null, feedbackWaiting: null };
 
-export async function loadStaffNav(): Promise<StaffNav> {
+/** One row in the review-queue panel. */
+export interface ReviewWaiting {
+  id: string;
+  stationNumber: number;
+  stationTitle: string;
+  candidate: string;
+  /** A GP has opened it but not sent it. Still not done; still counted. */
+  started: boolean;
+  waitingSince: string;
+}
+
+/** One row in the feedback panel. */
+export interface FeedbackWaiting {
+  id: string;
+  topic: "feedback" | "help";
+  from: string | null;
+  stationNumber: number | null;
+  stationTitle: string | null;
+  content: string;
+  sentAt: string;
+}
+
+export interface Staff {
+  isExaminer: boolean;
+  isAdmin: boolean;
+}
+
+/**
+ * Who this is, in one query.
+ *
+ * isAdmin() and getExaminer() both look up the same examiners row by the same
+ * email. Run separately from the root layout they would cost every visitor
+ * two lookups on every page, forever, to say "no".
+ *
+ * Exported because the panels behind these icons are server actions, and a
+ * server action is a public endpoint. The navbar only RENDERING an icon for
+ * staff is not a check — anyone signed in can POST to the action directly.
+ */
+export async function resolveStaff(): Promise<Staff> {
   const user = await getCurrentUser();
   const admin = getSupabaseAdmin();
-  if (!admin) return NONE;
+  if (!admin) return { isExaminer: false, isAdmin: false };
 
   // The /master passcode fail-safe has no examiner row, and is admin by
   // definition. Mirrors isAdmin() in admin-auth.ts.
@@ -60,7 +98,7 @@ export async function loadStaffNav(): Promise<StaffNav> {
     // silently strip a GP's queue counter and read as "nothing waiting".
     if (error) {
       console.error("[staff-nav] examiner lookup failed", error.message);
-      return NONE;
+      return { isExaminer: false, isAdmin: false };
     }
     if (data) {
       isExaminer = true;
@@ -68,6 +106,14 @@ export async function loadStaffNav(): Promise<StaffNav> {
     }
   }
 
+  return { isExaminer, isAdmin };
+}
+
+export async function loadStaffNav(): Promise<StaffNav> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return NONE;
+
+  const { isExaminer, isAdmin } = await resolveStaff();
   if (!isExaminer && !isAdmin) return NONE;
 
   const [reviews, feedback] = await Promise.all([

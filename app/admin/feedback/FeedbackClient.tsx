@@ -71,7 +71,10 @@ function ReplyRow({ report }: { report: Report }) {
   }
 
   return (
-    <div className="rounded-xl border border-navy/10 bg-white p-5">
+    // Anchored so the navbar's feedback panel can open this page ON the item
+    // that was clicked, rather than at the top of a list it has to be found
+    // in. scroll-mt clears the sticky navbar, or the anchor lands behind it.
+    <div id={`report-${report.id}`} className="rounded-xl border border-navy/10 bg-white p-5 scroll-mt-20">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
