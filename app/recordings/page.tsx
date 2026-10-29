@@ -55,6 +55,9 @@ type RecordingRow = {
   examiner_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
   candidate_viewed_at: string | null;
+  /** Why it could not be graded. Shown, not just stored — a row that failed
+   *  silently is the thing this is here to stop. */
+  ai_error: string | null;
 };
 
 interface AccessRow {
@@ -93,14 +96,17 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
     admin
       ? admin
           .from("station_recordings")
-          .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, candidate_viewed_at")
+          .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, candidate_viewed_at, ai_error")
           .eq("doctor_user_id", user.id)
           // A take that could not be marked is not a review. There is no
           // report behind it and nothing to decide about it, so listing it
           // only puts a dead row in the middle of someone's feedback. The
           // room tells them at the time, and the row stays in the database
           // for us to look at.
-          .neq("status", "failed")
+          // Failed rows are NOT hidden any more. A take that could not be
+          // graded used to vanish from this list, so the candidate was left
+          // choosing between two wrong explanations: that it was still
+          // working, or that it had been deleted. It says what went wrong now.
           .order("started_at", { ascending: false })
           .limit(50)
       : Promise.resolve({ data: [] }),
@@ -293,6 +299,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                             ? { background: "rgba(139,92,246,0.1)", color: "#6D28D9" }
                             : rec.status === "transcribed"
                             ? { background: "rgba(246,212,75,0.28)", color: "#333333" }
+                            : rec.status === "failed"
+                            ? { background: "rgba(239,68,68,0.09)", color: "#B91C1C" }
                             : rec.status === "discarded"
                             ? { background: "rgba(51,51,51,0.06)", color: "rgba(51,51,51,0.38)" }
                             : rec.status === "ai_graded"
@@ -310,6 +318,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                           ? "Grading…"
                           : rec.status === "transcribed"
                           ? "Your call"
+                          : rec.status === "failed"
+                          ? "Couldn't grade"
                           : rec.status === "discarded"
                           ? "Discarded"
                           : rec.status === "ai_graded"
@@ -322,6 +332,19 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       {/* The bar, and the poll that keeps this row honest.
                           Renders nothing once the take has settled. */}
                       <RecordingProgress recordingId={rec.id} initialStatus={rec.status} />
+
+                      {/* Why, in the candidate's words rather than a status
+                          code. A take that could not be graded used to vanish
+                          from this list entirely, which left two wrong
+                          readings available — still working, or deleted. */}
+                      {rec.status === "failed" && rec.ai_error && (
+                        <p
+                          className="text-[11.5px] leading-[1.5] m-0 text-right max-w-[320px]"
+                          style={{ color: "rgba(51,51,51,0.5)" }}
+                        >
+                          {rec.ai_error}
+                        </p>
+                      )}
 
                       {/* Grades */}
                       {hasGrades && (

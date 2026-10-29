@@ -71,6 +71,17 @@ function Failed() {
 export function ReviewQueueMenu({ initialCount }: { initialCount: number | null }) {
   const router = useRouter();
   const [rows, setRows] = useState<ReviewWaiting[] | null>(null);
+  /*
+    The badge has to be state, not the prop.
+
+    initialCount comes from the root layout, and the layout does not re-run on
+    client-side navigation — so left as the prop it is frozen at whatever was
+    true when the tab last did a full load. Open the panel after a colleague
+    has cleared the queue and the icon still reads 3 over a list saying
+    "nothing waiting". The envelope already solved this; these two did not
+    inherit it.
+  */
+  const [count, setCount] = useState<number | null>(initialCount);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const ticket = useRef(0);
@@ -82,8 +93,12 @@ export function ReviewQueueMenu({ initialCount }: { initialCount: number | null 
     try {
       const next = await fetchReviewQueueAction();
       if (mine !== ticket.current) return;
+      // A failed read must not zero a badge that was right a moment ago.
       if (next === null) setFailed(true);
-      else setRows(next);
+      else {
+        setRows(next);
+        setCount(next.length);
+      }
     } catch (err) {
       console.error("[ReviewQueueMenu] load failed", err);
       if (mine === ticket.current) setFailed(true);
@@ -93,7 +108,7 @@ export function ReviewQueueMenu({ initialCount }: { initialCount: number | null 
   }
 
   return (
-    <NavDropdown label="Reviews waiting" title="Waiting for a GP" icon={<DocumentIcon />} count={initialCount} onOpen={load}>
+    <NavDropdown label="Reviews waiting" title="Waiting for a GP" icon={<DocumentIcon />} count={count} onOpen={load}>
       {({ close }) =>
         loading && rows === null && !failed ? (
           <Empty>Loading…</Empty>
@@ -136,6 +151,8 @@ export function ReviewQueueMenu({ initialCount }: { initialCount: number | null 
 export function FeedbackQueueMenu({ initialCount }: { initialCount: number | null }) {
   const router = useRouter();
   const [rows, setRows] = useState<FeedbackWaiting[] | null>(null);
+  /** State, not the prop — see ReviewQueueMenu. */
+  const [count, setCount] = useState<number | null>(initialCount);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const ticket = useRef(0);
@@ -148,7 +165,10 @@ export function FeedbackQueueMenu({ initialCount }: { initialCount: number | nul
       const next = await fetchFeedbackQueueAction();
       if (mine !== ticket.current) return;
       if (next === null) setFailed(true);
-      else setRows(next);
+      else {
+        setRows(next);
+        setCount(next.length);
+      }
     } catch (err) {
       console.error("[FeedbackQueueMenu] load failed", err);
       if (mine === ticket.current) setFailed(true);
@@ -158,7 +178,7 @@ export function FeedbackQueueMenu({ initialCount }: { initialCount: number | nul
   }
 
   return (
-    <NavDropdown label="Feedback" title="Unanswered" icon={<LifebuoyIcon />} count={initialCount} onOpen={load}>
+    <NavDropdown label="Feedback" title="Unanswered" icon={<LifebuoyIcon />} count={count} onOpen={load}>
       {({ close }) =>
         loading && rows === null && !failed ? (
           <Empty>Loading…</Empty>
