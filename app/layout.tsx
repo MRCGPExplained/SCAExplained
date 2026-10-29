@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadInbox } from "@/lib/inbox";
+import { loadStaffNav } from "@/lib/staff-nav";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight: ["700", "800"], display: "swap" });
@@ -30,6 +31,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   let userId: string | null = null;
   let initials = "?";
   let unreadReports = 0;
+  // Null means "not staff", which renders no icon at all.
+  let reviewsWaiting: number | null = null;
+  let feedbackWaiting: number | null = null;
 
   try {
     const user = await getCurrentUser();
@@ -50,6 +54,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       // envelope rather than taking down every page on the site.
       const admin = getSupabaseAdmin();
       if (admin) unreadReports = (await loadInbox(admin, user.id)).unread;
+
+      // One lookup answers both "is this an examiner" and "is this an admin",
+      // and only staff pay for the two counts. loadStaffNav swallows its own
+      // errors, so a bad read hides an icon rather than breaking every page.
+      ({ reviewsWaiting, feedbackWaiting } = await loadStaffNav());
     }
   } catch {
     // unauthenticated or no session — navbar renders logged-out state and the
@@ -69,7 +78,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           already-rendered node it never touches.
         */}
         <StudyRoomProvider userId={userId} displayName={displayName ?? ""} initials={initials}>
-          <NavbarWrapper isLoggedIn={isLoggedIn} displayName={displayName} unreadReports={unreadReports} />
+          <NavbarWrapper
+            isLoggedIn={isLoggedIn}
+            displayName={displayName}
+            unreadReports={unreadReports}
+            reviewsWaiting={reviewsWaiting}
+            feedbackWaiting={feedbackWaiting}
+          />
           {children}
         </StudyRoomProvider>
       </body>

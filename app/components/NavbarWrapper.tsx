@@ -7,10 +7,14 @@ export function NavbarWrapper({
   isLoggedIn,
   displayName,
   unreadReports = 0,
+  reviewsWaiting = null,
+  feedbackWaiting = null,
 }: {
   isLoggedIn: boolean;
   displayName?: string | null;
   unreadReports?: number;
+  reviewsWaiting?: number | null;
+  feedbackWaiting?: number | null;
 }) {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
@@ -19,5 +23,13 @@ export function NavbarWrapper({
   // The returns above hide the whole navbar inside a station, a video
   // course and the admin area — so the envelope cannot flash a badge over a
   // running twelve-minute consultation. That is deliberate, not incidental.
-  return <Navbar isLoggedIn={isLoggedIn} displayName={displayName} unreadReports={unreadReports} />;
+  return (
+    <Navbar
+      isLoggedIn={isLoggedIn}
+      displayName={displayName}
+      unreadReports={unreadReports}
+      reviewsWaiting={reviewsWaiting}
+      feedbackWaiting={feedbackWaiting}
+    />
+  );
 }
