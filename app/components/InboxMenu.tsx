@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { fetchInboxAction } from "./inbox-actions";
+import { fetchInboxAction, markReplyReadAction } from "./inbox-actions";
 import { inboxLine, type Inbox, type InboxMessage } from "@/lib/inbox";
 
 /**
@@ -60,6 +60,8 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
+  /** Which reply is open. Only one at a time — the panel is 340px wide. */
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -142,7 +144,21 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
     };
   }, [open, close, place]);
 
+  /** A reply has no page to open, so expanding it is what counts as reading. */
+  function toggleReply(m: InboxMessage) {
+    if (m.kind !== "reply") return;
+    setExpanded((id) => (id === m.id ? null : m.id));
+    if (expanded === m.id || !m.unread) return;
+
+    setUnread((n) => Math.max(0, n - 1));
+    setInbox((prev) =>
+      prev ? { ...prev, messages: prev.messages.map((x) => (x.id === m.id ? { ...x, unread: false } : x)) } : prev
+    );
+    void markReplyReadAction(m.id);
+  }
+
   function openReport(m: InboxMessage) {
+    if (m.kind !== "review") return;
     close(false);
     // Opening the report is what marks it read, server-side, on the page
     // itself. Dropping the badge here as well keeps the navbar honest without
@@ -199,51 +215,82 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
             consultations, it will appear here.
           </p>
         ) : (
-          inbox.messages.map((m) => (
-            <button
-              key={m.recordingId}
-              type="button"
-              role="menuitem"
-              onClick={() => openReport(m)}
-              className="w-full text-left px-4 py-3 transition-colors"
-              style={{
-                background: m.unread ? "rgba(246,212,75,0.10)" : "white",
-                border: "none",
-                borderBottom: "1px solid rgba(26,27,82,0.06)",
-                cursor: "pointer",
-                display: "block",
-              }}
-            >
-              <span className="flex items-start gap-2">
-                <span
-                  className="shrink-0 rounded-full"
+          inbox.messages.map((m) => {
+            const isOpen = m.kind === "reply" && expanded === m.id;
+            return (
+              <div key={m.id} style={{ borderBottom: "1px solid rgba(26,27,82,0.06)" }}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-expanded={m.kind === "reply" ? isOpen : undefined}
+                  onClick={() => (m.kind === "review" ? openReport(m) : toggleReply(m))}
+                  className="w-full text-left px-4 py-3 transition-colors"
                   style={{
-                    width: 6,
-                    height: 6,
-                    marginTop: 6,
-                    background: m.unread ? YELLOW : "transparent",
+                    background: m.unread ? "rgba(246,212,75,0.10)" : "white",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "block",
                   }}
-                  aria-hidden="true"
-                />
-                <span className="flex-1">
-                  <span
-                    className="block text-[13px] leading-[1.5]"
-                    style={{ color: "rgba(26,27,82,0.88)", fontWeight: m.unread ? 600 : 400 }}
-                  >
-                    {inboxLine(m)}
-                  </span>
-                  <span className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[11.5px] font-semibold" style={{ color: "#1A1B52" }}>
-                      Click to view report
+                >
+                  <span className="flex items-start gap-2">
+                    <span
+                      className="shrink-0 rounded-full"
+                      style={{
+                        width: 6,
+                        height: 6,
+                        marginTop: 6,
+                        background: m.unread ? YELLOW : "transparent",
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className="flex-1">
+                      <span
+                        className="block text-[13px] leading-[1.5]"
+                        style={{ color: "rgba(26,27,82,0.88)", fontWeight: m.unread ? 600 : 400 }}
+                      >
+                        {inboxLine(m)}
+                      </span>
+                      <span className="flex items-center gap-1.5 mt-1">
+                        {/* Says which of the two kinds this is before it is
+                            clicked. One leaves the envelope and one does not,
+                            and finding that out by clicking is the worst way
+                            to learn it. */}
+                        <span className="text-[11.5px] font-semibold" style={{ color: "#1A1B52" }}>
+                          {m.kind === "review" ? "Click to view report" : isOpen ? "Hide reply" : "Click to read"}
+                        </span>
+                        <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.35)" }}>
+                          · {when(m.sentAt)}
+                        </span>
+                      </span>
                     </span>
-                    <span className="text-[11px]" style={{ color: "rgba(26,27,82,0.35)" }}>
-                      · {when(m.sentAt)}
-                    </span>
                   </span>
-                </span>
-              </span>
-            </button>
-          ))
+                </button>
+
+                {/* The reply, in place. There is no page for a trainee to see
+                    their own submissions, and a two-line answer does not earn
+                    one — but the answer needs its question beside it, or it
+                    arrives days later with nothing to attach to. */}
+                {isOpen && m.kind === "reply" && (
+                  <div className="px-4 pb-3.5" style={{ background: "white" }}>
+                    <div
+                      className="rounded-lg px-3 py-2 mb-2"
+                      style={{ background: "rgba(26,27,82,0.04)" }}
+                    >
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(26,27,82,0.4)" }}>
+                        You wrote
+                      </span>
+                      <span className="block text-[12.5px] leading-[1.6] whitespace-pre-wrap" style={{ color: "rgba(26,27,82,0.6)" }}>
+                        {m.question}
+                      </span>
+                    </div>
+                    <span className="block text-[13px] leading-[1.65] whitespace-pre-wrap" style={{ color: "rgba(26,27,82,0.88)" }}>
+                      {m.reply}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

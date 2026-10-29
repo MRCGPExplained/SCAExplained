@@ -30,3 +30,32 @@ export async function fetchInboxAction(): Promise<Inbox> {
 
   return loadInbox(admin, user.id);
 }
+
+/**
+ * Mark one reply read, when the candidate opens it in the envelope.
+ *
+ * A GP review gets this for free: opening the report is a page load, and that
+ * page stamps candidate_viewed_at. A reply has no page — it reads in place —
+ * so expanding it is the only moment that can count as having seen it.
+ *
+ * Scoped by `.eq("user_id", user.id)` as well as by id, so a reply id taken
+ * from someone else cannot be marked read on their behalf. The admin client
+ * bypasses RLS, which is exactly why that clause is not optional.
+ */
+export async function markReplyReadAction(reportId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return;
+
+  const { error } = await admin
+    .from("station_reports")
+    .update({ reply_viewed_at: new Date().toISOString() })
+    .eq("id", reportId)
+    .eq("user_id", user.id);
+
+  // Not fatal — they have read it either way, and the badge simply comes back
+  // next time. Worth a line so a recurring failure is findable.
+  if (error) console.error("[inbox] could not mark reply read", reportId, error.message);
+}
