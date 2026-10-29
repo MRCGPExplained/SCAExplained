@@ -38,7 +38,10 @@ import {
   type StudyRoomValue,
 } from "./context";
 
-const { logStatus, logError, logDuration } = createRecordingLogger("study-room");
+const { logStatus, logError, logDuration, setLogContext } = (() => {
+  const l = createRecordingLogger("study-room");
+  return { ...l, setLogContext: l.setContext };
+})();
 
 const DAILY_JOIN_TIMEOUT_MS = 5000;
 
@@ -1244,6 +1247,20 @@ export function StudyRoomProvider({
       // no-op if there was nothing to end.
       latest.current.endDebrief();
       setActiveRecordingId(recordingId);
+      // Tag every later line with this take, so a failure can be read back as
+      // one story rather than scattered rows. Role matters most: the 28 Oct
+      // loss came down to which side did not deliver.
+      // No roomId here: the guest handler has no stable reference to it, and
+      // station_recordings.room_id already joins these rows to their room.
+      setLogContext({
+        recordingId,
+        role:
+          latest.current.userId === doctorUserId
+            ? "doctor"
+            : latest.current.userId === patientUserId
+              ? "patient"
+              : "observer",
+      });
       setRecordingState("starting");
       // A guest's banner is only ever cleared by the host today, so without
       // this a failure message from the last attempt sits over the whole of the
@@ -2267,6 +2284,11 @@ export function StudyRoomProvider({
     }
 
     const recordingId = result.recordingId!;
+    setLogContext({
+      recordingId,
+      roomId: room.id,
+      role: userId === doctorUserId ? "doctor" : userId === patientUserId ? "patient" : "host-observer",
+    });
     logStatus("recording row created", { recordingId });
     setActiveRecordingId(recordingId);
     // Stay in "starting" — not yet "recording" — until the synced start
