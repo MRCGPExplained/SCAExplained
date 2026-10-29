@@ -1647,6 +1647,58 @@ export async function deleteOldCandidateAudioAction(beforeDate: string): Promise
   return { success: true, deleted: rows.length };
 }
 
+// ── Recording logs ────────────────────────────────────────────────────────────
+
+/*
+  recording_events is the diagnostic trail behind /admin/recording-logs. It
+  grows with every consultation and nothing reads it in the product, so it is
+  pure cost once it is old enough that nobody is going to investigate.
+
+  Kept separate from the audio sweep above on purpose: audio is the thing a
+  candidate paid for and losing it matters, while these are lines about lines.
+  A shorter cutoff is sensible here, and conflating the two would make one
+  number govern both.
+*/
+async function countOldRecordingLogs(beforeDate: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from("recording_events")
+    .select("id", { count: "exact", head: true })
+    .lt("created_at", beforeDate);
+
+  // supabase-js returns { data, error }. Unread, a failed count reads as
+  // "nothing to clean" and the table quietly keeps growing.
+  if (error) {
+    console.error("[cleanup] recording_events count failed", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+export async function countOldRecordingLogsAction(beforeDate: string): Promise<number> {
+  if (!(await isAdmin())) return 0;
+  return countOldRecordingLogs(beforeDate);
+}
+
+export async function deleteOldRecordingLogsAction(beforeDate: string): Promise<ActionResult & { deleted?: number }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  // Counted before deleting, because delete does not report how many it took
+  // and "deleted 0" is the one answer that needs to be true.
+  const deleted = await countOldRecordingLogs(beforeDate);
+
+  const { error } = await supabase
+    .from("recording_events")
+    .delete()
+    .lt("created_at", beforeDate);
+
+  if (error) return { error: error.message };
+  return { success: true, deleted };
+}
+
 // ── Skill grading ─────────────────────────────────────────────────────────────
 
 export async function toggleSkillGradingAction(enabled: boolean): Promise<ActionResult> {

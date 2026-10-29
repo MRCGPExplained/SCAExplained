@@ -8,6 +8,8 @@ import {
   deleteExpiredGuestAccountsAction,
   countOldCandidateAudioAction,
   deleteOldCandidateAudioAction,
+  countOldRecordingLogsAction,
+  deleteOldRecordingLogsAction,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -147,6 +149,17 @@ export function CleanupClient({
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioResult, setAudioResult] = useState("");
 
+  /*
+    30 rather than the audio card default of 90. These are lines about lines:
+    the reason to keep them is to investigate something that went wrong, and
+    nobody investigates a consultation from two months ago. Audio is the thing
+    a candidate paid for, so it keeps its own, longer cutoff.
+  */
+  const [logDays, setLogDays] = useState(30);
+  const [logCount, setLogCount] = useState<number | null>(null);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logResult, setLogResult] = useState("");
+
   async function refreshRooms() {
     setRoomsLoading(true);
     setRoomsResult("");
@@ -195,6 +208,22 @@ export function CleanupClient({
     setAudioCount(0);
   }
 
+  async function refreshLogs() {
+    setLogLoading(true);
+    setLogResult("");
+    setLogCount(await countOldRecordingLogsAction(isoDaysAgo(logDays)));
+    setLogLoading(false);
+  }
+
+  async function deleteLogs() {
+    setLogLoading(true);
+    const result = await deleteOldRecordingLogsAction(isoDaysAgo(logDays));
+    setLogLoading(false);
+    if (result.error) { setLogResult(""); return; }
+    setLogResult(`Deleted ${result.deleted} log line${result.deleted === 1 ? "" : "s"}. Recordings untouched.`);
+    setLogCount(0);
+  }
+
   return (
     <div className="flex flex-col gap-4 max-w-[600px]">
       <CleanupCard
@@ -239,6 +268,34 @@ export function CleanupClient({
                 min={1}
                 value={audioDays}
                 onChange={(e) => { setAudioDays(Math.max(1, parseInt(e.target.value, 10) || 1)); setAudioCount(null); setAudioResult(""); }}
+                className="w-24 border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50"
+              />
+              <span className="text-[13px] text-navy/60">days</span>
+            </div>
+          </div>
+        }
+      />
+
+      <CleanupCard
+        title="Old Recording Logs"
+        description="Deletes diagnostic log lines from recording_events older than the cutoff — the trail behind Admin → Logs. Consultations, audio, transcripts and grades are untouched; this is only the record of what the recorder and uploader did."
+        count={logCount}
+        loading={logLoading}
+        onRefresh={refreshLogs}
+        onDelete={deleteLogs}
+        deleteLabel="Delete Old Logs"
+        result={logResult}
+        extraControls={
+          <div className="mb-4">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5 text-navy/50">
+              Older than
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={logDays}
+                onChange={(e) => { setLogDays(Math.max(1, parseInt(e.target.value, 10) || 1)); setLogCount(null); setLogResult(""); }}
                 className="w-24 border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50"
               />
               <span className="text-[13px] text-navy/60">days</span>
