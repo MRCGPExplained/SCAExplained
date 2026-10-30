@@ -512,22 +512,32 @@ export default async function RecordingDetailPage({
                 style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
               >
                 {/*
-                  Badge under the title, not beside it, in every card.
+                  Badge above the title, on its own line, in every card.
 
-                  Beside it, the row only fitted while the badge was short.
-                  Measured at the real width: the card is 268px inside its
-                  padding, "Data Gathering & Diagnosis" is 174px, and "Needs
-                  Improvement" is 129px — 43px too wide. So one card wrapped
-                  and the other two did not, and which ones depended on the
-                  grades. Stacked, all three are identical whatever the label
-                  says, including whatever a future domain is called.
+                  It used to sit beside the title, which only fitted while
+                  the badge was short. Measured at the real width: the card
+                  is 268px inside its padding, "Data Gathering & Diagnosis"
+                  is 174px, and "Needs Improvement" is 129px — 43px too
+                  wide. So one card wrapped and the other two did not, and
+                  which ones depended on the grades that came back.
+
+                  Stacking fixed that. Putting the badge FIRST rather than
+                  second is the part worth keeping deliberately: it lands at
+                  the same height in all three cards regardless of how long
+                  the name is, so the row of verdicts reads in one pass
+                  instead of stepping over three different-length titles.
+
+                  The worry about leading with a judgement did not survive
+                  looking at it. The badge is small and pale — it reads as a
+                  tag, not a headline. What made the old report feel final
+                  was the words "Clear Fail", not where they sat.
                 */}
                 <div className="flex flex-col items-start gap-2">
-                  <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
                   {/* showExaminerGrades is already the test for "a GP has
                       marked this", which is exactly when the precise band is
                       earned. */}
                   <GradePill grade={grades[key]} domain={key} estimate={!showExaminerGrades} />
+                  <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
                 </div>
                 {comments[key] ? (
                   <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.7)" }}>

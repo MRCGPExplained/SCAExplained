@@ -384,8 +384,8 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
             {/* Stacked, matching the real report. This is a picture of the
                 product and it should not be a picture of an older layout. */}
             <div className="flex flex-col items-start gap-2">
-              <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
               <GradePill grade={grade} />
+              <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
             </div>
             <p className={`text-[12.5px] leading-relaxed ${compact ? "line-clamp-4" : ""}`} style={{ color: "rgba(51,51,51,0.7)" }}>{comment}</p>
           </div>
