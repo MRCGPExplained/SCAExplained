@@ -247,11 +247,20 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               explanation that looks like an inconsistency rather than a
               distinction, and the AI letters are new, so nobody arrives
               knowing them.
+
+              Not a card. It used to be a white rounded-xl wearing the same
+              border as a recording, in the same vertical stack as the
+              recordings, so it read as the first row of the list rather than
+              as the thing explaining the list. Dropping the card is what
+              fixes that, and it costs nothing: the rows are cards, the key is
+              not, and neither has to be coloured or outlined to say so.
+
+              px-5 rather than px-4 so its labels line up with the station
+              labels underneath, against the cards' p-5 plus their 1px border.
+              Measured at 0.8px apart; at px-4 it sat 16.8px to the left,
+              which read as a box it had missed rather than a heading.
             */}
-            <div
-              className="rounded-xl px-4 py-3"
-              style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-            >
+            <div className="px-5 py-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.07em] m-0 mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
                 Key
               </p>
