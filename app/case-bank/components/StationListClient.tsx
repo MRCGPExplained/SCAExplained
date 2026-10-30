@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { gradeDisplay } from "@/lib/grade-display";
 import { MAX_SCORE, scoreColour } from "@/lib/report-score";
 import Link from "next/link";
 import type { StationListRow } from "@/lib/case-bank-types";
@@ -83,6 +84,8 @@ export interface StationAttempt {
   total: number | null;
   /** Data Gathering, Clinical Management, Relating to Others. */
   grades: [string | null, string | null, string | null];
+  /** A GP has ruled on it. Decides which vocabulary the grades are shown in. */
+  gp: boolean;
 }
 
 export interface LastAttempt {
@@ -277,8 +280,11 @@ function AttemptsDialog({
               <span className="text-[12.5px] font-bold w-[66px] shrink-0" style={{ color: att.total === null ? "rgba(51,51,51,0.4)" : scoreColour(att.total) }}>
                 {att.total === null ? "—" : `${att.total}/${MAX_SCORE}`}
               </span>
+              {/* The vocabulary the report uses for this attempt. An AI
+                  attempt reads G / N / G and a reviewed one CP / F / P, so
+                  this list and the report it opens cannot disagree. */}
               <span className="text-[12.5px] flex-1" style={{ color: "rgba(51,51,51,0.5)" }}>
-                {att.grades.map((g) => g ?? "—").join(" / ")}
+                {att.grades.map((g) => gradeDisplay(g, !att.gp)?.short ?? "—").join(" / ")}
               </span>
             </Link>
           ))}

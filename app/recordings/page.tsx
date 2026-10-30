@@ -11,12 +11,7 @@ import { TOPUPS, isTopUpKey } from "@/lib/topups";
 
 export const dynamic = "force-dynamic";
 
-const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
-  CF: { bg: "rgba(239,68,68,0.1)", text: "#B91C1C" },
-  F:  { bg: "rgba(245,158,11,0.1)", text: "#92400E" },
-  P:  { bg: "rgba(34,197,94,0.1)", text: "#166534" },
-  CP: { bg: "rgba(59,130,246,0.1)", text: "#1D4ED8" },
-};
+import { gradeDisplay } from "@/lib/grade-display";
 
 function gradePoints(grade: string | null, domain: "dg" | "cm" | "ro"): string {
   if (!grade) return "—";
@@ -244,6 +239,29 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            {/*
+              The key, once for the list rather than once per row.
+
+              The list holds two vocabularies at the same time: an AI row
+              reads G N G, a reviewed one reads CP F P. Without a word of
+              explanation that looks like an inconsistency rather than a
+              distinction, and the AI letters are new, so nobody arrives
+              knowing them.
+            */}
+            <div
+              className="rounded-xl px-4 py-3 flex flex-col gap-1.5"
+              style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
+            >
+              <p className="text-[11.5px] m-0" style={{ color: "rgba(51,51,51,0.55)" }}>
+                <strong style={{ color: NAVY }}>AI Review:</strong>{" "}
+                G Good, N Needs improvement
+              </p>
+              <p className="text-[11.5px] m-0" style={{ color: "rgba(51,51,51,0.55)" }}>
+                <strong style={{ color: NAVY }}>GP Review:</strong>{" "}
+                CP Clear Pass, P Pass, F Fail, CF Clear Fail
+              </p>
+            </div>
+
             {recordings.map((rec) => {
               const isFinal = !!rec.sent_to_candidate_at;
               const isReviewed = isFinal;
@@ -350,15 +368,24 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       {hasGrades && (
                         <div className="flex items-center gap-1.5 flex-wrap justify-end">
                           {(["dg", "cm", "ro"] as const).map((key) => {
-                            const grade = grades[key];
-                            const col = grade ? GRADE_COLORS[grade] : null;
-                            return grade && col ? (
+                            /*
+                              The same vocabulary the report uses, chosen by
+                              the same test. This row said "CP F P" about a
+                              consultation whose report said "Good, Needs
+                              Improvement, Good" — the list and the report
+                              contradicting each other about one set of
+                              grades, which is worse than either wording on
+                              its own.
+                            */
+                            const band = gradeDisplay(grades[key], !isReviewed);
+                            return band ? (
                               <span
                                 key={key}
+                                title={band.label}
                                 className="text-[11px] font-bold px-2 py-0.5 rounded"
-                                style={{ background: col.bg, color: col.text }}
+                                style={{ background: band.bg, color: band.color }}
                               >
-                                {grade}
+                                {band.short}
                               </span>
                             ) : null;
                           })}

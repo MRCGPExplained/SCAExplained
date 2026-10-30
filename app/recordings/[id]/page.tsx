@@ -10,6 +10,7 @@ import ConsultationPlayer from "@/app/components/ConsultationPlayer";
 import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
+import { gradeDisplay } from "@/lib/grade-display";
 
 const NAVY = "#333333";
 
@@ -62,11 +63,8 @@ const SKILL_RATING_META: Record<string, { label: string; color: string; bg: stri
 function GradePill({ grade, estimate }: { grade: string | null; domain: "dg" | "cm" | "ro"; estimate: boolean }) {
   if (!grade || !GRADE_META[grade]) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
 
-  const meta = estimate
-    ? grade === "P" || grade === "CP"
-      ? SKILL_RATING_META.good
-      : SKILL_RATING_META.needs_improvement
-    : GRADE_META[grade];
+  const meta = gradeDisplay(grade, estimate);
+  if (!meta) return <span style={{ color: "rgba(51,51,51,0.3)" }}>—</span>;
 
   return (
     <span

@@ -86,7 +86,10 @@ export function foldAttempts(rows: AttemptRow[], userId: string): Record<number,
       const [dg, cm, ro] = gradesOf(r);
       // Newest first, and rows arrive oldest first, so each one goes in front.
       doctorHistory[r.station_number] = [
-        { id: r.id, at: r.ai_graded_at, total: totalOf(r), grades: [dg, cm, ro] },
+        // gp decides which vocabulary the grades are shown in: a GP says
+        // Clear Pass, the AI estimates Good. Without it the station rows
+        // would keep saying CP about a report that now says Good.
+        { id: r.id, at: r.ai_graded_at, total: totalOf(r), grades: [dg, cm, ro], gp: !!r.sent_to_candidate_at },
         ...(doctorHistory[r.station_number] ?? []),
       ];
     } else if (r.patient_user_id === userId) {
