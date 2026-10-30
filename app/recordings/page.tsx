@@ -243,7 +243,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               The key, once for the list rather than once per row.
 
               The list holds two vocabularies at the same time: an AI row
-              reads G N G, a reviewed one reads CP F P. Without a word of
+              reads G NI G, a reviewed one reads CP F P. Without a word of
               explanation that looks like an inconsistency rather than a
               distinction, and the AI letters are new, so nobody arrives
               knowing them.

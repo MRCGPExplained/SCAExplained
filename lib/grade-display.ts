@@ -53,10 +53,18 @@ export const VERDICT: Record<string, GradeDisplay> = {
 /**
  * What the AI says. Not new vocabulary: it is what the Skills Assessment on
  * the report already uses, down to the colours.
+ *
+ * NI rather than N, and never I. The point of the letter is to lean on
+ * "improve" rather than on the deficit, but a lone I cannot carry it: Inter's
+ * capital I is a bare vertical stroke, 3.09px against G's 8.26 and within
+ * 0.11px of a lowercase l, so "G I G" reads as a separator between two grades
+ * rather than as a grade. NI measures 11.47px, uses the same two letters CP
+ * and CF already do, and is 3.79px NARROWER than CP, which is the widest pill
+ * the row is built around, so it cannot wrap anything CP does not already.
  */
 export const ESTIMATE = {
   good: { label: "Good", short: "G", color: "#166534", bg: "#E9F9EF" },
-  needs_improvement: { label: "Needs Improvement", short: "N", color: "#92400E", bg: "#FEF3E2" },
+  needs_improvement: { label: "Needs Improvement", short: "NI", color: "#92400E", bg: "#FEF3E2" },
 } satisfies Record<string, GradeDisplay>;
 
 /**
