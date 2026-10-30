@@ -77,6 +77,19 @@ export function isUnreadReport(sentAt: string | null, viewedAt: string | null): 
   return new Date(viewedAt) < new Date(sentAt);
 }
 
+/**
+ * Fired on `window` by the report page once it has stamped
+ * candidate_viewed_at, carrying the recording id as `detail`.
+ *
+ * The envelope is in the root layout, and Next refetches only the segment a
+ * navigation changes, never the shared layout. A report opened from the list
+ * therefore cannot clear the badge by rendering: the page has to say so.
+ *
+ * Declared here because both ends import it, and an event name written out
+ * twice is a listener that quietly never fires.
+ */
+export const REPORT_READ_EVENT = "sca:report-read";
+
 /** The sentence shown in the envelope. */
 export function inboxLine(m: InboxMessage): string {
   if (m.kind === "review") {

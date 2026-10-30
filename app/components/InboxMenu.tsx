@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavDropdown, navDropdownRowStyle, when } from "./NavDropdown";
 import { fetchInboxAction, markReplyReadAction } from "./inbox-actions";
-import { inboxLine, type Inbox, type InboxMessage } from "@/lib/inbox";
+import { inboxLine, REPORT_READ_EVENT, type Inbox, type InboxMessage } from "@/lib/inbox";
 
 /**
  * The envelope, and the two kinds of thing behind it.
@@ -50,6 +50,45 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
   // taken before anything was read.
   const ticket = useRef(0);
 
+  /*
+    Which messages this tab has already taken off the badge.
+
+    Two different things now report the same report read, and both are
+    wanted: this panel, when one of its own rows is clicked, and the report
+    page, which is the only thing that knows when the report was reached from
+    the list instead. Without a guard the two would count one read twice and
+    leave the badge a number short of the truth.
+  */
+  const counted = useRef<Set<string>>(new Set());
+
+  const markRead = useCallback((id: string) => {
+    if (counted.current.has(id)) return;
+    counted.current.add(id);
+    setUnread((n) => Math.max(0, n - 1));
+    setInbox((prev) =>
+      prev ? { ...prev, messages: prev.messages.map((x) => (x.id === id ? { ...x, unread: false } : x)) } : prev
+    );
+  }, []);
+
+  /*
+    The report page cannot clear this badge by rendering.
+
+    Opening a report is a client-side navigation, and Next refetches only the
+    segment that changed: shared layouts are not refetched on every
+    navigation. The navbar is in the root layout, so the count handed to it
+    when the tab last loaded is the count it keeps, however many reports are
+    opened underneath it. The page says so instead, once, and only when its
+    own write actually succeeded.
+  */
+  useEffect(() => {
+    function onReportRead(e: Event) {
+      const id = (e as CustomEvent<string>).detail;
+      if (typeof id === "string") markRead(id);
+    }
+    window.addEventListener(REPORT_READ_EVENT, onReportRead);
+    return () => window.removeEventListener(REPORT_READ_EVENT, onReportRead);
+  }, [markRead]);
+
   async function load() {
     const mine = ++ticket.current;
     setLoading(true);
@@ -58,7 +97,13 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
       if (mine !== ticket.current) return;
       setInbox(next);
       // A failed read must not zero a badge that was right a moment ago.
-      if (!next.failed) setUnread(next.unread);
+      if (!next.failed) {
+        setUnread(next.unread);
+        // The server has just said what is unread, so the local guard starts
+        // again. A review can be edited and re-sent, which makes it unread a
+        // second time, and it has to be able to leave the badge a second time.
+        counted.current.clear();
+      }
     } catch (err) {
       console.error("[InboxMenu] could not load the inbox", err);
       if (mine === ticket.current) setInbox({ messages: [], unread: 0, failed: true });
@@ -73,7 +118,7 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
     // Opening the report is what marks it read, server-side, on the page
     // itself. Dropping the badge here keeps the navbar honest without waiting
     // for a navigation; the next fetch re-reads the truth.
-    if (m.unread) setUnread((n) => Math.max(0, n - 1));
+    if (m.unread) markRead(m.id);
     router.push(`/recordings/${m.recordingId}`);
   }
 
@@ -84,10 +129,7 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
     setExpanded(wasOpen ? null : m.id);
     if (wasOpen || !m.unread) return;
 
-    setUnread((n) => Math.max(0, n - 1));
-    setInbox((prev) =>
-      prev ? { ...prev, messages: prev.messages.map((x) => (x.id === m.id ? { ...x, unread: false } : x)) } : prev
-    );
+    markRead(m.id);
     void markReplyReadAction(m.id);
   }
 

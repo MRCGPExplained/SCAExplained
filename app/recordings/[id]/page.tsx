@@ -11,6 +11,7 @@ import { SubmitForReviewButton } from "@/app/recordings/SubmitForReviewButton";
 import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
 import { gradeDisplay } from "@/lib/grade-display";
+import { ReportRead } from "@/app/components/ReportRead";
 
 const NAVY = "#333333";
 
@@ -262,8 +263,21 @@ export default async function RecordingDetailPage({
     viewerIsDoctor answers. An examiner opening someone else's report fails
     it honestly, which is all `!examiner` was ever there to achieve.
   */
+  let justMarkedRead = false;
   if (viewerIsDoctor && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
-    await admin.from("station_recordings").update({ candidate_viewed_at: new Date().toISOString() }).eq("id", rec.id);
+    const { error: markError } = await admin
+      .from("station_recordings")
+      .update({ candidate_viewed_at: new Date().toISOString() })
+      .eq("id", rec.id);
+    /*
+      supabase-js returns { data, error } rather than throwing, so this has to
+      be read, and now it has to be read for a second reason: the navbar is
+      told about this write. Unread, a stamp that failed would still drop the
+      envelope's badge, and the envelope would then disagree with the row it
+      was opened from until the next full page load.
+    */
+    if (markError) console.error("[recordings] could not mark the report read", rec.id, markError.message);
+    else justMarkedRead = true;
   }
 
   const [voiceResult, doctorResult, patientResult, gpCreditsResult] = await Promise.all([
@@ -317,6 +331,10 @@ export default async function RecordingDetailPage({
 
   return (
     <div className="min-h-screen" style={{ background: "#F4F4F2" }}>
+      {/* Nothing visible. Tells the envelope in the navbar that this report
+          has just been read, which it cannot work out for itself because a
+          client-side navigation never refetches the layout it sits in. */}
+      {justMarkedRead && <ReportRead recordingId={rec.id} />}
       <div className="max-w-[960px] mx-auto px-4 py-10">
 
         {/* Station header */}
