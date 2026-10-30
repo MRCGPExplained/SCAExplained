@@ -24,7 +24,9 @@ export async function fetchReviewQueueAction(): Promise<ReviewWaiting[] | null> 
 
   const { data, error } = await admin
     .from("station_recordings")
-    .select("id, station_number, station_title, doctor_display_name, status, submitted_for_review_at, created_at")
+    .select(
+      "id, station_number, station_title, doctor_display_name, status, submitted_for_review_at, created_at, examiners!station_recordings_examiner_id_fkey(name)"
+    )
     .in("status", ["pending_examiner", "reviewing"])
     .is("discarded_at", null)
     .order("submitted_for_review_at", { ascending: true, nullsFirst: false })
@@ -45,12 +47,16 @@ export async function fetchReviewQueueAction(): Promise<ReviewWaiting[] | null> 
     status: string;
     submitted_for_review_at: string | null;
     created_at: string;
+    // A to-one embed, so an object and not an array, which is the shape the
+    // portal and the report page already read this relationship as.
+    examiners: { name: string } | null;
   }[]).map((r) => ({
     id: r.id,
     stationNumber: r.station_number,
     stationTitle: r.station_title,
     candidate: r.doctor_display_name,
     started: r.status === "reviewing",
+    examiner: r.examiners?.name ?? null,
     waitingSince: r.submitted_for_review_at ?? r.created_at,
   }));
 }

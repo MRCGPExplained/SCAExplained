@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { NavDropdown, navDropdownRowStyle, when } from "./NavDropdown";
+import { NavDropdown, navDropdownRowStyle, when, initials } from "./NavDropdown";
 import { fetchReviewQueueAction, fetchFeedbackQueueAction } from "./staff-actions";
 import type { ReviewWaiting, FeedbackWaiting } from "@/lib/staff-nav";
 
@@ -21,6 +21,13 @@ import type { ReviewWaiting, FeedbackWaiting } from "@/lib/staff-nav";
  */
 
 const ROW_BORDER = "1px solid rgba(26,27,82,0.06)";
+
+/**
+ * The red the product already uses for "something is wrong here" — the same
+ * one a failed upload and a Clear Fail wear. Reused rather than introduced,
+ * so a GP learns one red.
+ */
+const NEEDS_ACTION = "#B91C1C";
 
 function DocumentIcon() {
   return (
@@ -127,14 +134,33 @@ export function ReviewQueueMenu({ initialCount }: { initialCount: number | null 
                 router.push(`/examiner/${r.id}`);
               }}
               className="w-full text-left px-4 py-3 transition-colors"
-              style={{ ...navDropdownRowStyle(!r.started), borderBottom: ROW_BORDER }}
+              /*
+                Every row washed, not just the untouched ones.
+
+                A started review used to render white and at normal weight —
+                the same treatment as a read message, which made the one thing
+                somebody had already picked up look like the one thing that
+                was finished. It is not: it is a half-written review that will
+                sit there until its GP comes back to it. Everything in this
+                panel is outstanding work, so everything in it is washed, the
+                way the feedback panel already does it.
+              */
+              style={{ ...navDropdownRowStyle(true), borderBottom: ROW_BORDER }}
+              /* The initials are two letters; hovering says who they are. */
+              title={r.started && r.examiner ? "In progress with " + r.examiner : undefined}
             >
-              <span className="block text-[13px] leading-[1.5]" style={{ color: "rgba(26,27,82,0.88)", fontWeight: r.started ? 400 : 600 }}>
+              <span className="block text-[13px] leading-[1.5]" style={{ color: "rgba(26,27,82,0.88)", fontWeight: 600 }}>
                 Station {r.stationNumber}: {r.stationTitle}
               </span>
               <span className="flex items-center gap-1.5 mt-1">
-                <span className="text-[11.5px] font-semibold" style={{ color: "#1A1B52" }}>
+                {/*
+                  Red for the started ones only. If both states were red the
+                  colour would say nothing; what it has to say is "this one
+                  looks handled and is not".
+                */}
+                <span className="text-[11.5px] font-semibold" style={{ color: r.started ? NEEDS_ACTION : "#1A1B52" }}>
                   {r.started ? "In progress" : "Review"}
+                  {r.started && r.examiner ? " (" + initials(r.examiner) + ")" : ""}
                 </span>
                 <span className="text-[11px] truncate" style={{ color: "rgba(26,27,82,0.35)" }}>
                   · {r.candidate} · {when(r.waitingSince)}

@@ -34,6 +34,13 @@ export interface ReviewWaiting {
   candidate: string;
   /** A GP has opened it but not sent it. Still not done; still counted. */
   started: boolean;
+  /**
+   * The GP who has it. Null until someone starts: a row only reaches
+   * "reviewing" through the save in app/examiner/actions.ts, which writes
+   * examiner_id in the same update, so started implies a name and the panel
+   * never has to render "in progress, by nobody".
+   */
+  examiner: string | null;
   waitingSince: string;
 }
 

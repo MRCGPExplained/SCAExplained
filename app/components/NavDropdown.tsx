@@ -206,10 +206,20 @@ export function NavDropdown({
   );
 }
 
-/** Shared by all three panels so the rows cannot drift apart. */
-export function navDropdownRowStyle(unread: boolean): React.CSSProperties {
+/**
+ * Shared by all three panels so the rows cannot drift apart.
+ *
+ * The wash is the brand yellow, which everywhere in the product means "this
+ * one, still": an unread message, a starred filter that is on, the line
+ * currently playing. Here it means the row is still someone's job.
+ *
+ * The parameter was called `unread`, which was only ever true of the
+ * envelope. Both queue panels pass it for work nobody has finished, which is
+ * the same idea and was not the same word.
+ */
+export function navDropdownRowStyle(needsAction: boolean): React.CSSProperties {
   return {
-    background: unread ? "rgba(246,212,75,0.10)" : "white",
+    background: needsAction ? "rgba(246,212,75,0.10)" : "white",
     border: "none",
     cursor: "pointer",
     display: "block",
@@ -223,4 +233,20 @@ export function when(iso: string): string {
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;
   return then.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/**
+ * "Arogun Oladotun" to "AO", for a 340px row with no space for a name.
+ *
+ * First and last, in the order the name is stored. If that comes out the
+ * wrong way round the fix belongs in the examiners row, not in a rule here:
+ * initials that disagree with the name they were taken from are worse than
+ * no initials. Array.from so a name outside the BMP is not cut in half.
+ */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  const first = Array.from(parts[0])[0] ?? "";
+  const last = parts.length > 1 ? Array.from(parts[parts.length - 1])[0] ?? "" : "";
+  return (first + last).toUpperCase();
 }
