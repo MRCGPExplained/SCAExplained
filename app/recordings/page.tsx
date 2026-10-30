@@ -11,7 +11,7 @@ import { TOPUPS, isTopUpKey } from "@/lib/topups";
 
 export const dynamic = "force-dynamic";
 
-import { gradeDisplay } from "@/lib/grade-display";
+import { gradeDisplay, ESTIMATE, VERDICT } from "@/lib/grade-display";
 
 function gradePoints(grade: string | null, domain: "dg" | "cm" | "ro"): string {
   if (!grade) return "—";
@@ -249,17 +249,41 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               knowing them.
             */}
             <div
-              className="rounded-xl px-4 py-3 flex flex-col gap-1.5"
+              className="rounded-xl px-4 py-3"
               style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
             >
-              <p className="text-[11.5px] m-0" style={{ color: "rgba(51,51,51,0.55)" }}>
-                <strong style={{ color: NAVY }}>AI Review:</strong>{" "}
-                G Good, N Needs improvement
+              <p className="text-[10px] font-bold uppercase tracking-[0.07em] m-0 mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Key
               </p>
-              <p className="text-[11.5px] m-0" style={{ color: "rgba(51,51,51,0.55)" }}>
-                <strong style={{ color: NAVY }}>GP Review:</strong>{" "}
-                CP Clear Pass, P Pass, F Fail, CF Clear Fail
-              </p>
+              <div className="flex flex-col gap-2">
+                {([
+                  { who: "AI Review:", bands: [ESTIMATE.good, ESTIMATE.needs_improvement] },
+                  { who: "GP Review:", bands: [VERDICT.CP, VERDICT.P, VERDICT.F, VERDICT.CF] },
+                ] as const).map(({ who, bands }) => (
+                  <div key={who} className="flex items-center gap-x-3 gap-y-1.5 flex-wrap">
+                    {/* Fixed width so the pills line up across both rows,
+                        rather than starting wherever the label happens to
+                        end. "GP Review:" is the wider of the two. */}
+                    <strong className="text-[11.5px] shrink-0 w-[72px] whitespace-nowrap" style={{ color: NAVY }}>{who}</strong>
+                    {bands.map((b) => (
+                      <span key={b.short} className="flex items-center gap-1.5">
+                        {/*
+                          The real pill, not a description of one. Built from
+                          the same bands the rows are, so the key cannot come
+                          to disagree with the thing it is explaining.
+                        */}
+                        <span
+                          className="text-[11px] font-bold px-2 py-0.5 rounded"
+                          style={{ background: b.bg, color: b.color }}
+                        >
+                          {b.short}
+                        </span>
+                        <span className="text-[11.5px]" style={{ color: "rgba(51,51,51,0.55)" }}>{b.label}</span>
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {recordings.map((rec) => {
