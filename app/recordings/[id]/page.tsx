@@ -511,7 +511,18 @@ export default async function RecordingDetailPage({
                 className="rounded-2xl p-5 flex flex-col gap-3"
                 style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
               >
-                <div className="flex items-start justify-between gap-2 flex-wrap">
+                {/*
+                  Badge under the title, not beside it, in every card.
+
+                  Beside it, the row only fitted while the badge was short.
+                  Measured at the real width: the card is 268px inside its
+                  padding, "Data Gathering & Diagnosis" is 174px, and "Needs
+                  Improvement" is 129px — 43px too wide. So one card wrapped
+                  and the other two did not, and which ones depended on the
+                  grades. Stacked, all three are identical whatever the label
+                  says, including whatever a future domain is called.
+                */}
+                <div className="flex flex-col items-start gap-2">
                   <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
                   {/* showExaminerGrades is already the test for "a GP has
                       marked this", which is exactly when the precise band is

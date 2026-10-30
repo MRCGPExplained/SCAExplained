@@ -381,7 +381,9 @@ export function SampleReportContent({ interactive = true, compact = false }: Sam
             className="rounded-2xl p-5 flex flex-col gap-3"
             style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
           >
-            <div className="flex items-start justify-between gap-2 flex-wrap">
+            {/* Stacked, matching the real report. This is a picture of the
+                product and it should not be a picture of an older layout. */}
+            <div className="flex flex-col items-start gap-2">
               <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
               <GradePill grade={grade} />
             </div>
