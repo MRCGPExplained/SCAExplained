@@ -199,5 +199,26 @@ export async function loadInbox(admin: SupabaseClient, userId: string): Promise<
     })),
   ].sort((a, b) => +new Date(b.sentAt) - +new Date(a.sentAt));
 
-  return { messages, unread: messages.filter((m) => m.unread).length, failed: false };
+  /*
+    Unread only. The envelope is a list of what is still to be dealt with
+    rather than an archive, and everything dropped here has somewhere better
+    to be found:
+
+      - A review stays on /recordings for good, which is where anyone would
+        look for an old one anyway.
+      - A reply was emailed before it existed here at all. In replyToReport,
+        sendFeedbackReplyEmail runs first and reply_text is written only if it
+        returned true, so every reply this list can hold is one that was
+        provably delivered, carrying its own text and the original question.
+
+    That second point is the entire licence for dropping replies. Without it
+    this would destroy the only copy of one: a reply has no page of its own,
+    and it is marked read merely by being expanded, so half-reading one in the
+    panel would lose it.
+
+    Filtered here rather than in the query because unread is a comparison
+    between two columns, which PostgREST cannot express.
+  */
+  const stillUnread = messages.filter((m) => m.unread);
+  return { messages: stillUnread, unread: stillUnread.length, failed: false };
 }

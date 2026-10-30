@@ -148,10 +148,16 @@ export function InboxMenu({ initialUnread }: { initialUnread: number }) {
             <span style={{ fontWeight: 600 }}>My Reviews</span> from the dashboard.
           </p>
         ) : !inbox || inbox.messages.length === 0 ? (
-          /* A Starter customer has no GP reviews at all and will see this
-             every time, so it must not read as an error. */
+          /* Two quite different people see this: a Starter customer who has
+             never had a GP review, and anyone who has simply read everything,
+             because the list holds unread items only. It must not read as an
+             error to either of them.
+
+             It does not mention replies, which also arrive here. Deliberate:
+             the shorter sentence is the one people actually read, and a reply
+             is emailed anyway. */
           <p className="px-4 py-5 m-0 text-[13px] leading-[1.6]" style={{ color: "rgba(26,27,82,0.45)" }}>
-            Nothing yet. When a GP reviews one of your consultations, or we answer something you asked, it will appear here.
+            Nothing new. When a GP reviews one of your consultations it will appear here.
           </p>
         ) : (
           inbox.messages.map((m) => {
