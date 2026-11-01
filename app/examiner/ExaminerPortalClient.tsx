@@ -25,6 +25,13 @@ export type QueueRow = {
   doctor_audio_path: string | null;
   examiner_id: string | null;
   manually_checked_at: string | null;
+  // Where the GP has got to, which `status` cannot be trusted to say: the
+  // pipeline owns that column and overwrites it while it runs.
+  ai_graded_at: string | null;
+  examiner_reviewed_at: string | null;
+  submitted_for_review_at: string | null;
+  gp_requested_at: string | null;
+  discarded_at: string | null;
   examiners: { name: string } | null;
 };
 
@@ -78,8 +85,11 @@ export default function ExaminerPortalClient({ gpRows, aiRows, examiners }: Prop
     [gpRows, dateRange, userQuery, reviewerFilter]
   );
 
-  const queue = gpFiltered.filter((r) => r.status === "pending_examiner" || r.status === "reviewing");
-  const completed = gpFiltered.filter((r) => r.status === "reviewed" || r.status === "sent");
+  // Sent or not sent. The one thing that actually finishes a GP review, and
+  // the one thing the pipeline never writes. Splitting on `status` meant a
+  // consultation being re-graded belonged to neither list and disappeared.
+  const queue = gpFiltered.filter((r) => !r.sent_to_candidate_at);
+  const completed = gpFiltered.filter((r) => !!r.sent_to_candidate_at);
 
   const aiFiltered = useMemo(
     () => aiRows.filter((r) => withinRange(r.started_at, dateRange) && matchesUser(r, userQuery)),
@@ -246,8 +256,10 @@ function RecordingCard({
   tab: Tab;
 }) {
   const router = useRouter();
-  const isReviewing = rec.status === "reviewing";
-  const isPending = rec.status === "pending_examiner";
+  // Marks saved, versus waiting for someone. Read from the timestamp that
+  // records it rather than from a status a re-grade can overwrite.
+  const isReviewing = !!rec.examiner_reviewed_at && !rec.sent_to_candidate_at;
+  const isPending = !rec.examiner_reviewed_at && !rec.sent_to_candidate_at;
   const examinerName = rec.examiners?.name ?? null;
   // Offered on every attempt, marked or not. Re-running an already-marked
   // attempt asks for confirmation first, inside the button itself.

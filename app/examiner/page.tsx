@@ -49,7 +49,7 @@ export default async function ExaminerPage() {
   // ── Logged in: show review portal ────────────────────────────────────────
   const admin = getSupabaseAdmin();
   const QUEUE_COLUMNS =
-    "id, station_number, station_title, doctor_display_name, candidate_email, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, doctor_audio_path, examiner_id, manually_checked_at, examiners!station_recordings_examiner_id_fkey(name)";
+    "id, station_number, station_title, doctor_display_name, candidate_email, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, ai_graded_at, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, examiner_reviewed_at, submitted_for_review_at, gp_requested_at, sent_to_candidate_at, discarded_at, doctor_audio_path, examiner_id, manually_checked_at, examiners!station_recordings_examiner_id_fkey(name)";
   // site_settings is no longer read here: the AI pipeline button is offered on
   // every attempt, and the pipeline reports what happened if it can't run.
   const [gpResult, aiResult, examinersResult] = admin
@@ -57,13 +57,35 @@ export default async function ExaminerPage() {
         admin
           .from("station_recordings")
           .select(QUEUE_COLUMNS)
-          .in("status", ["pending_examiner", "reviewing", "reviewed", "sent"])
+          /*
+            Everything a GP was asked to look at, derived rather than read off
+            `status`. This listed status in (pending_examiner, reviewing,
+            reviewed, sent), so re-grading a consultation moved it to
+            "grading" and it dropped out of this page mid-run. That is the
+            incident of 1 Nov, and this was the list being watched when it
+            happened. The queue/completed split below is now made on
+            sent_to_candidate_at. See lib/recording-state.
+
+            ("reviewed" was in that list and has no writer anywhere in the
+            codebase, so it never matched anything.)
+          */
+          .not("submitted_for_review_at", "is", null)
+          .is("discarded_at", null)
           .order("started_at", { ascending: false })
           .limit(200),
         admin
           .from("station_recordings")
           .select(QUEUE_COLUMNS)
-          .eq("status", "ai_graded")
+          /*
+            The AI pile: graded, and nobody asked a GP for it. Was
+            status === "ai_graded", which had the same fault in the other
+            tab, since re-grading one of these moves it to "grading" too.
+            ai_graded_at keeps ungraded and in-flight rows out.
+          */
+          .is("submitted_for_review_at", null)
+          .is("gp_requested_at", null)
+          .is("discarded_at", null)
+          .not("ai_graded_at", "is", null)
           .order("started_at", { ascending: false })
           .limit(200),
         admin.from("examiners").select("id, name").order("name"),
