@@ -860,12 +860,30 @@ function AssistDialog({
   const firstRef = useRef<HTMLTextAreaElement>(null);
   const [confirmingOverwrite, setConfirmingOverwrite] = useState(false);
 
+  /*
+    Both of these must run once, on mount, and never again.
+
+    They were one effect keyed on [onClose], and onClose is an inline arrow in
+    the parent, so it is a new function on every parent render. Every keystroke
+    changes the notes state, which re-renders the parent, which re-ran this
+    effect, which called focus() — dragging the caret back to the first box
+    from wherever the examiner was actually typing. Clicking the fourth box and
+    typing one character put you back in the first, which reads as the boxes
+    being unclickable, and it broke Tab for the same reason.
+
+    The escape handler reads onClose through a ref so it always calls the
+    current one without being re-subscribed.
+  */
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => { firstRef.current?.focus(); }, []);
+
   useEffect(() => {
-    firstRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeRef.current(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
@@ -932,9 +950,16 @@ function AssistDialog({
       onFocus={(e) => {
         if (!e.currentTarget.value) document.execCommand("insertText", false, BULLET);
       }}
-      // An untouched box is emptied again, so six focused-but-unused fields
-      // do not sit there looking filled in.
-      onBlur={() => { if (!bulletLines(notes[k]).length) set(k)(""); }}
+      /*
+        No onBlur tidy-up, on purpose.
+
+        Clearing a box that holds only its marker means a setState on the way
+        out of every field, which is a re-render in the middle of the click
+        that is moving focus somewhere else. That is a bad place for one and
+        it buys nothing: a stray marker in an untouched box is invisible to
+        everything that matters, because bulletLines strips it before the
+        prompt sees it and before hasNotes counts the box as filled in.
+      */
       rows={3}
       className="w-full rounded-xl px-3 py-2 text-[13px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
       style={{ background: LIGHT_BG, border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
