@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useActionState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
@@ -139,6 +140,7 @@ interface Props {
 }
 
 export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
+  const router = useRouter();
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -167,7 +169,15 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
       fd.set("overall_comment", overallComment);
       fd.set("send_now", "0");
       await submitExaminerReviewAction({}, fd);
-      window.open(`/recordings/${rec.id}`, "_blank");
+      /*
+        Same tab. This opened the report with window.open(..., "_blank"), and
+        a report in a new tab is the thing that was taken out of the
+        candidate's side of the product for being confusing; it survived here.
+        Nothing is lost by navigating: the line above has already saved the
+        draft, so Back returns to the form with every grade and comment still
+        on it.
+      */
+      router.push(`/recordings/${rec.id}`);
     });
   }
 

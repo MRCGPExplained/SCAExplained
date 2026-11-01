@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { retryAiPipelineAction, checkRetryStatusAction } from "./actions";
 import { createRecordingLogger } from "@/lib/recording-logger";
 import { isPipelineRunning } from "@/lib/recording-state";
@@ -18,23 +19,84 @@ function RepeatIcon() {
   );
 }
 
-// Keeps the console readable for at least this long after success before
-// reloading — a reload clears the console, so an instant reload meant the
-// final log lines (and everything before them) vanished before anyone could
-// read them.
-const RELOAD_DELAY_MS = 60_000;
+const POLL_MS = 4000;
+const GIVE_UP_MS = 300_000;
+/** Long enough to read the result, short enough to re-run without a reload. */
+const DONE_LINGER_MS = 8000;
+
+/**
+ * What the server's status means to the person watching it.
+ *
+ * "Running…" for up to five minutes said nothing about whether anything was
+ * actually happening, which is the complaint: a re-grade takes a couple of
+ * minutes and looked identical to a run that had died. These are the live
+ * statuses from lib/recording-state, named in the order they happen in.
+ */
+function stageLabel(status: string | null | undefined): string {
+  switch (status) {
+    case "uploading":
+      return "Waiting for the audio";
+    case "processing":
+      return "Transcribing";
+    case "grading":
+      return "Grading";
+    default:
+      return "Starting";
+  }
+}
+
+function elapsedLabel(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+}
 
 export default function RetryPipelineButton({
   recordingId,
   hasExistingMark = false,
 }: {
   recordingId: string;
-  /** Already AI-marked — re-running replaces the existing grades, so confirm first. */
+  /** Already AI-marked, so re-running replaces the existing grades. Confirm first. */
   hasExistingMark?: boolean;
 }) {
-  const [phase, setPhase] = useState<"idle" | "retrying" | "done" | "error">("idle");
+  const router = useRouter();
+  const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [stage, setStage] = useState("Starting");
+  const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
+
+  const running = phase === "running";
+  const startedAt = useRef(0);
+
+  /*
+    The clock ticks on its own interval rather than being read inside the
+    poll, so the number moves every second instead of jumping in four-second
+    steps. Cleared on unmount, because a refresh re-renders the rows it sits
+    in and a stray interval would go on setting state on a component that has
+    gone.
+  */
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(
+      () => setSeconds(Math.round((Date.now() - startedAt.current) / 1000)),
+      1000
+    );
+    return () => clearInterval(id);
+  }, [running]);
+
+  /*
+    Hand the button back after the result has been read.
+
+    The old flow reloaded the page, which reset this on its way past. Nothing
+    reloads now, so without this the button stays "Done" until the examiner
+    navigates, and a second run is impossible from a page that is otherwise
+    perfectly up to date.
+  */
+  useEffect(() => {
+    if (phase !== "done") return;
+    const id = setTimeout(() => setPhase("idle"), DONE_LINGER_MS);
+    return () => clearTimeout(id);
+  }, [phase]);
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -43,12 +105,15 @@ export default function RetryPipelineButton({
       setConfirming(true);
       return;
     }
-    runPipeline();
+    void runPipeline();
   }
 
   async function runPipeline() {
     setConfirming(false);
-    setPhase("retrying");
+    startedAt.current = Date.now();
+    setSeconds(0);
+    setStage("Starting");
+    setPhase("running");
     setError("");
     logStatus("retry requested", { recordingId });
     const t0 = Date.now();
@@ -60,58 +125,76 @@ export default function RetryPipelineButton({
       setError(result.error);
       return;
     }
-    // The action itself starts the pipeline server-side (it holds the internal
-    // key); nothing to trigger from here.
-    logStatus("pipeline started — polling for grades", { recordingId });
+    logStatus("pipeline started, polling", { recordingId });
 
-    const deadline = Date.now() + 300_000; // 5 min
+    const deadline = Date.now() + GIVE_UP_MS;
     while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 4000));
+      await new Promise((r) => setTimeout(r, POLL_MS));
       const { status, hasGrades, aiError } = await checkRetryStatusAction(recordingId);
       logStatus("poll tick", { recordingId, status, hasGrades });
 
+      if (isPipelineRunning(status)) {
+        setStage(stageLabel(status));
+        continue;
+      }
+      if (!status) continue;
+
       /*
-        Wait for the run to leave EVERY running status, then judge it.
-
-        This tested `status !== "processing"` alone. A re-grade claims
-        "grading" instead, so the first poll four seconds in saw a status
-        that was not "processing", found the previous run's grades still in
-        place and ai_error freshly cleared by the claim, and reported
-        success over a run that had not started. A green tick is the worst
-        possible way to be wrong here, because it is the one outcome nobody
-        checks.
-
-        Once it has stopped: status is the same on success and failure, and
-        on a re-mark the old grades survive a failed run, so neither status
-        nor hasGrades can be the signal alone. A successful run clears
-        ai_error and a failed one sets it; that combination holds either way.
+        Stopped. Status reads the same on success and on failure, and on a
+        re-mark the previous run's grades survive a failed one, so neither
+        status nor hasGrades decides this alone. A successful run clears
+        ai_error and a failed one sets it, and that pair holds either way.
       */
-      if (status && !isPipelineRunning(status)) {
-        if (hasGrades && !aiError) {
-          logDuration("retry completed", t0);
-          logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);
-          setPhase("done");
-          setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
-          return;
-        }
-        logError("pipeline finished without grades", aiError ?? "no reason recorded", { recordingId });
-        setPhase("error");
-        setError(aiError ? `Grading failed: ${aiError.slice(0, 160)}` : "Finished but produced no grades.");
+      if (status === "transcribed") {
+        // Only reachable for a take that had no transcript to start with.
+        // The pipeline stops here by design and waits for the candidate to
+        // spend a grading on it, so this is an outcome rather than a failure.
+        logStatus("transcribed, awaiting the candidate's decision", { recordingId });
+        setStage("Transcribed");
+        setPhase("done");
+        router.refresh();
         return;
       }
+
+      if (hasGrades && !aiError) {
+        logDuration("retry completed", t0);
+        setStage("Done");
+        setPhase("done");
+        /*
+          router.refresh(), not window.location.reload().
+
+          The reload threw the whole page away, which is why it was held back
+          a full minute first so the logs could be read, and it cost the
+          examiner their scroll position and anything typed into the marking
+          form. refresh() re-renders the server components in place: the new
+          AI grades appear in the panels above, the form keeps what is in it,
+          and nobody is moved anywhere.
+        */
+        router.refresh();
+        return;
+      }
+
+      logError("pipeline finished without grades", aiError ?? "no reason recorded", { recordingId });
+      setPhase("error");
+      setError(aiError ? `Grading failed: ${aiError.slice(0, 160)}` : "Finished but produced no grades.");
+      return;
     }
-    logStatus("retry poll gave up — still processing on the server", { recordingId, waitedSeconds: 300 });
+
+    logStatus("retry poll gave up", { recordingId, waitedSeconds: GIVE_UP_MS / 1000 });
     setPhase("error");
-    setError("Timed out. Try refreshing.");
+    // Deliberately not "it failed". The run may well still be going; what has
+    // run out is this page's patience, and saying so is the honest version.
+    setError("Still going after 5 minutes. It may yet finish, so check back shortly.");
   }
 
-  if (phase === "retrying") {
+  if (phase === "running") {
     return (
-      <span className="text-[10px] font-semibold flex items-center gap-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>
+      <span className="text-[10px] font-semibold flex items-center gap-1.5" style={{ color: "rgba(51,51,51,0.55)" }}>
         <span style={{ animation: "spin 1.1s linear infinite", display: "inline-flex" }}>
           <RepeatIcon />
         </span>
-        Running…
+        {stage}
+        <span style={{ color: "rgba(51,51,51,0.35)" }}>{elapsedLabel(seconds)}</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </span>
     );
@@ -120,7 +203,9 @@ export default function RetryPipelineButton({
   if (phase === "done") {
     return (
       <span className="text-[10px] font-semibold" style={{ color: "#166534" }}>
-        Done — refreshing shortly…
+        {stage === "Transcribed"
+          ? "Transcribed, awaiting the candidate"
+          : `Done in ${elapsedLabel(seconds)}`}
       </span>
     );
   }
@@ -137,7 +222,9 @@ export default function RetryPipelineButton({
         Run AI Pipeline
       </button>
       {phase === "error" && (
-        <span className="text-[10px]" style={{ color: "#B91C1C" }}>{error}</span>
+        <span className="text-[10px] text-right max-w-[220px] leading-[1.45]" style={{ color: "#B91C1C" }}>
+          {error}
+        </span>
       )}
 
       {confirming && (
@@ -156,7 +243,8 @@ export default function RetryPipelineButton({
             </h2>
             <p className="text-[13px] leading-[1.6] mb-5" style={{ color: "rgba(51,51,51,0.6)" }}>
               Running the pipeline again will replace the existing AI grades and comments
-              with a fresh set. Any examiner grades you have entered are not affected.
+              with a fresh set. Any examiner grades you have entered are not affected, and
+              you stay on this page while it runs.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -169,7 +257,7 @@ export default function RetryPipelineButton({
               </button>
               <button
                 type="button"
-                onClick={runPipeline}
+                onClick={() => void runPipeline()}
                 className="text-[13px] font-bold px-4 py-2 rounded-lg"
                 style={{ background: "#333333", color: "white", border: "none", cursor: "pointer" }}
               >
