@@ -114,8 +114,52 @@ export async function generateOverallCommentAction(args: {
     },
     body: JSON.stringify({
       model: EXAMINER_CLAUDE_MODEL,
-      max_tokens: 300,
-      system: "You are an RCGP examiner writing a brief overall comment to a GP registrar after their SCA consultation. Write in a supportive but honest tone. Use plain sentences, no bullet points, no headings, no em dashes. 3-5 sentences maximum.",
+      /*
+        300 was enough while this wrote a 3-5 sentence summary of its own. It
+        now carries the examiner's six notes through largely intact, so the
+        ceiling has to clear what they might type rather than what a summary
+        would run to. 600 is roughly 450 words.
+      */
+      max_tokens: 600,
+      /*
+        Low, because the job is to keep somebody's words rather than to find
+        better ones. Unset, the API defaults to 1.0, which is the setting
+        least likely to leave a sentence alone — it was the right default
+        while this was writing prose from grades, and the wrong one now.
+      */
+      temperature: 0.2,
+      /*
+        A copy editor, not a writer.
+
+        Every instruction here that sounds redundant is a thing the model did
+        on a real test run and must not do: it explained why a missed question
+        mattered, it called an action "appropriate", and from the single note
+        "fluid advice was right but you never quantified intake" it invented
+        "Ensure you specify the volume of fluid replacement needed when
+        managing gastroenteritis" — clinical advice no examiner wrote, going
+        out under an examiner's name. Naming the failures is what stopped them.
+      */
+      system: [
+        "You are copy-editing an RCGP examiner's notes into the overall comment a GP registrar will read.",
+        "",
+        "Use the examiner's words. Fix grammar, spelling, punctuation and tense, join fragments into sentences, and put the points in a sensible order. Nothing else. A note that is already a clean sentence comes through unchanged.",
+        "",
+        "Add nothing at all:",
+        "- No explanation of why a point matters.",
+        "- No advice or recommendation the examiner did not write.",
+        "- No verdict on whether something was good, appropriate or correct.",
+        "- No praise, softening or encouragement that is not in the notes.",
+        "",
+        "Do not rephrase a criticism into something gentler. If the note says a thing was missed, the comment says it was missed.",
+        "",
+        "Do not swap a word for a synonym. If the note says the referral was \"right\", the comment says it was right, not that it was appropriate.",
+        "",
+        "The one substitution allowed: write out a clinical abbreviation in full, so \"ICE\" becomes \"ideas, concerns and expectations\" and \"2ww\" becomes \"two week wait\". The candidate reads this once and should not have to decode it.",
+        "",
+        "Say nothing about a domain with no notes.",
+        "",
+        "Plain prose, addressed to the candidate as \"you\". No headings, no bullet points, no em dashes. As short as the notes allow.",
+      ].join("\n"),
       messages: [{
         role: "user",
         content: `Station: ${args.stationTitle}
@@ -123,9 +167,7 @@ export async function generateOverallCommentAction(args: {
 ${domainNotes("Data Gathering", args.dgWell, args.dgImprove)}
 ${domainNotes("Clinical Management", args.cmWell, args.cmImprove)}
 ${domainNotes("Relating to Others", args.roWell, args.roImprove)}
-Write a brief overall comment that summarises performance and highlights the single most important thing to work on.
-
-Use only the notes above. They are an examiner's own observations of this consultation, so do not add specifics of your own, and do not invent anything about a domain whose notes are blank. Write continuous prose: no headings, no bullet points, no em dashes.`,
+Copy-edit these notes into the overall comment. The examiner's words, corrected and joined up. Nothing added.`,
       }],
     }),
   });

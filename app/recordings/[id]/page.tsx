@@ -512,7 +512,14 @@ export default async function RecordingDetailPage({
                   Examiner&apos;s Overall Summary
                 </div>
                 {rec.examiner_overall_comment && (
-                  <p className="text-[13.5px] leading-relaxed" style={{ color: "#111111" }}>
+                  /*
+                    pre-wrap, because the examiner's line breaks are real.
+                    HTML collapses them, so a comment they paragraphed in the
+                    box arrived here as one block — and they had no way to know,
+                    since the box they typed it in shows the breaks. Wrap stays
+                    automatic; only the breaks they put in survive.
+                  */
+                  <p className="text-[13.5px] leading-relaxed" style={{ color: "#111111", whiteSpace: "pre-wrap" }}>
                     {rec.examiner_overall_comment}
                   </p>
                 )}

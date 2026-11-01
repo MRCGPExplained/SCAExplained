@@ -729,7 +729,7 @@ export async function sendExaminerReportEmail(args: {
       </td></tr>
       ${args.overallComment ? `<tr><td style="padding:16px 28px 8px;">
         <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Overall Comment</p>
-        <p style="margin:0;font-size:13.5px;line-height:1.65;color:#3a3b66;">${escapeHtml(args.overallComment)}</p>
+        <p style="margin:0;font-size:13.5px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.overallComment)}</p>
       </td></tr>` : ""}
       <tr><td style="padding:20px 28px;">
         <a href="${origin}/recordings"
