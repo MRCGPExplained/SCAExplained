@@ -1597,40 +1597,142 @@ export async function deleteExpiredGuestAccountsAction(): Promise<ActionResult &
   return { success: true, deleted };
 }
 
-async function findOldCandidateAudioRows(beforeDate: string) {
+/** The audio a sweep would remove from one recording. */
+interface AudioRow {
+  id: string;
+  doctor_audio_path: string | null;
+  patient_audio_path: string | null;
+  examiner_voice_note_path: string | null;
+}
+
+/**
+ * What the audio sweep found, including what it refused.
+ *
+ * The refusal is reported rather than counted silently. A card that said
+ * "0 found" without saying why would look identical whether the access check
+ * was doing its job or the query behind it was broken, and those are the two
+ * states it most matters to tell apart.
+ */
+export interface AudioSweep {
+  eligible: number;
+  /** Old enough, but left alone because the candidate's programme is live. */
+  heldForLiveAccess: number;
+}
+
+const EMPTY_AUDIO_SWEEP: AudioSweep = { eligible: 0, heldForLiveAccess: 0 };
+
+/**
+ * Audio old enough to remove, from candidates who no longer have access.
+ *
+ * Two conditions, not one. Age says nobody is likely to want it; access says
+ * nobody can still be using it. Age alone used to decide, which meant a
+ * customer four months into a live programme lost the audio of their own
+ * consultation — and the GP's spoken feedback on it — at ninety days, while
+ * they were still paying to work through it.
+ *
+ * "Has access" is the product's own test, from lib/case-bank-access.ts:
+ * has_case_bank set AND an expiry still in the future. Both halves, because
+ * either alone is a different question. A candidate who has it keeps their
+ * audio however old it is; the sweep comes back to them once it runs out.
+ *
+ * A read that fails yields nothing eligible rather than everything — that is
+ * the one failure here that could delete an entire table's audio.
+ *
+ * Expiry is compared as an instant rather than as an ISO string. The rest of
+ * the product compares case_bank_expires_at to an ISO string directly, which
+ * works there because the values are years from now; it is not a thing to rely
+ * on where being wrong deletes what somebody paid for.
+ */
+async function findOldCandidateAudio(
+  beforeDate: string
+): Promise<{ rows: AudioRow[]; sweep: AudioSweep }> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabase) return { rows: [], sweep: EMPTY_AUDIO_SWEEP };
+
+  const { data, error } = await supabase
     .from("station_recordings")
-    .select("id, doctor_audio_path, patient_audio_path, examiner_voice_note_path")
+    .select("id, doctor_user_id, doctor_audio_path, patient_audio_path, examiner_voice_note_path")
     .is("audio_deleted_at", null)
     .lt("created_at", beforeDate)
     .or("doctor_audio_path.not.is.null,patient_audio_path.not.is.null,examiner_voice_note_path.not.is.null")
-    .returns<{ id: string; doctor_audio_path: string | null; patient_audio_path: string | null; examiner_voice_note_path: string | null }[]>();
-  return data ?? [];
+    .returns<(AudioRow & { doctor_user_id: string | null })[]>();
+  // supabase-js returns { data, error } rather than throwing. A failed read
+  // must look like "nothing to delete", never like "everything is eligible".
+  if (error || !data) return { rows: [], sweep: EMPTY_AUDIO_SWEEP };
+  if (data.length === 0) return { rows: [], sweep: EMPTY_AUDIO_SWEEP };
+
+  const doctorIds = [...new Set(data.map((r) => r.doctor_user_id).filter((id): id is string => !!id))];
+  const { data: accessRows, error: accessError } = doctorIds.length
+    ? await supabase
+        .from("user_access")
+        .select("user_id, has_case_bank, case_bank_expires_at")
+        .in("user_id", doctorIds)
+        .returns<{ user_id: string; has_case_bank: boolean | null; case_bank_expires_at: string | null }[]>()
+    : { data: [] as { user_id: string; has_case_bank: boolean | null; case_bank_expires_at: string | null }[], error: null };
+
+  /*
+    The access read failing is the one case that must not be allowed to look
+    like "none of these candidates has access", which is the reading that
+    would delete every one of them.
+  */
+  if (accessError || !accessRows) {
+    return { rows: [], sweep: { eligible: 0, heldForLiveAccess: data.length } };
+  }
+
+  const now = Date.now();
+  const liveAccess = new Set(
+    accessRows
+      .filter((a) => {
+        if (!a.has_case_bank || !a.case_bank_expires_at) return false;
+        const expiry = new Date(a.case_bank_expires_at).getTime();
+        // An unreadable date is not an expired one. Treated as live, so the
+        // audio stays and somebody can look at the row.
+        return !Number.isFinite(expiry) || expiry > now;
+      })
+      .map((a) => a.user_id)
+  );
+
+  const rows = data.filter((r) => !(r.doctor_user_id && liveAccess.has(r.doctor_user_id)));
+  return { rows, sweep: { eligible: rows.length, heldForLiveAccess: data.length - rows.length } };
 }
 
-export async function countOldCandidateAudioAction(beforeDate: string): Promise<number> {
-  if (!(await isAdmin())) return 0;
-  return (await findOldCandidateAudioRows(beforeDate)).length;
+export async function countOldCandidateAudioAction(beforeDate: string): Promise<AudioSweep> {
+  if (!(await isAdmin())) return EMPTY_AUDIO_SWEEP;
+  return (await findOldCandidateAudio(beforeDate)).sweep;
 }
 
-// Deletes the audio files only — the transcript, AI grade, and GP review stay
-// intact. Trainer Insight and Sample Consultation audio (curated content, a
-// separate storage bucket) are never touched by this.
+/**
+ * Deletes the audio files only — the transcript, the AI grades, the GP's marks
+ * and their written feedback all stay, so the report still reads in full.
+ * Trainer Insight and Sample Consultation audio (curated content, a separate
+ * storage bucket) are never touched by this.
+ *
+ * Eligibility is recomputed here rather than trusting the count the card was
+ * showing, which may have been fetched before somebody renewed.
+ */
 export async function deleteOldCandidateAudioAction(beforeDate: string): Promise<ActionResult & { deleted?: number }> {
   if (!(await isAdmin())) return { error: "Not authorised." };
   const supabase = getSupabaseAdmin();
   if (!supabase) return { error: "Database not available." };
 
-  const rows = await findOldCandidateAudioRows(beforeDate);
+  const { rows } = await findOldCandidateAudio(beforeDate);
   if (rows.length === 0) return { success: true, deleted: 0 };
 
   const paths = rows.flatMap((r) =>
     [r.doctor_audio_path, r.patient_audio_path, r.examiner_voice_note_path].filter((p): p is string => !!p)
   );
+  /*
+    Storage first, then the row.
+
+    If the storage call fails the paths stay where they are and the next sweep
+    tries again. The other order would stamp audio_deleted_at over files still
+    sitting in the bucket, and that stamp excludes a row from this sweep — so
+    the files would be orphaned beyond the reach of the only tool that removes
+    them.
+  */
   if (paths.length > 0) {
-    await supabase.storage.from("consultation-recordings").remove(paths);
+    const { error: storageError } = await supabase.storage.from("consultation-recordings").remove(paths);
+    if (storageError) return { error: `Storage delete failed, nothing was changed: ${storageError.message}` };
   }
 
   const { error } = await supabase

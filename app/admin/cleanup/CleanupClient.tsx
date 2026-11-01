@@ -10,6 +10,7 @@ import {
   deleteOldCandidateAudioAction,
   countOldRecordingLogsAction,
   deleteOldRecordingLogsAction,
+  type AudioSweep,
 } from "../actions";
 
 const NAVY = "#333333";
@@ -86,6 +87,7 @@ function CleanupCard({
   deleteLabel,
   result,
   extraControls,
+  note,
 }: {
   title: string;
   description: string;
@@ -96,6 +98,9 @@ function CleanupCard({
   deleteLabel: string;
   result: string;
   extraControls?: React.ReactNode;
+  /** Shown under the count. For a card whose job is to refuse things, so that
+   *  what it refused is on screen beside what it would take. */
+  note?: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-navy/10 bg-white p-6">
@@ -122,6 +127,8 @@ function CleanupCard({
         </button>
       </div>
 
+      {note}
+
       {result && <p className="text-[12.5px] text-green-700 mb-3">{result}</p>}
 
       <ConfirmDeleteBar label={deleteLabel} disabled={loading || !count} onConfirm={onDelete} />
@@ -145,7 +152,7 @@ export function CleanupClient({
   const [guestsResult, setGuestsResult] = useState("");
 
   const [audioDays, setAudioDays] = useState(90);
-  const [audioCount, setAudioCount] = useState<number | null>(null);
+  const [audioSweep, setAudioSweep] = useState<AudioSweep | null>(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioResult, setAudioResult] = useState("");
 
@@ -192,11 +199,15 @@ export function CleanupClient({
     setGuestsCount(0);
   }
 
-  async function refreshAudio() {
+  async function countAudio() {
     setAudioLoading(true);
-    setAudioResult("");
-    setAudioCount(await countOldCandidateAudioAction(isoDaysAgo(audioDays)));
+    setAudioSweep(await countOldCandidateAudioAction(isoDaysAgo(audioDays)));
     setAudioLoading(false);
+  }
+
+  async function refreshAudio() {
+    setAudioResult("");
+    await countAudio();
   }
 
   async function deleteAudio() {
@@ -205,7 +216,10 @@ export function CleanupClient({
     setAudioLoading(false);
     if (result.error) { setAudioResult(""); return; }
     setAudioResult(`Deleted audio for ${result.deleted} recording${result.deleted === 1 ? "" : "s"} (reports kept).`);
-    setAudioCount(0);
+    // Re-counted rather than zeroed, because the held-back figure is the other
+    // half of this card and it has not changed. countAudio rather than
+    // refreshAudio, which would wipe the line just written.
+    await countAudio();
   }
 
   async function refreshLogs() {
@@ -223,7 +237,6 @@ export function CleanupClient({
     setLogResult(`Deleted ${result.deleted} log line${result.deleted === 1 ? "" : "s"}. Recordings untouched.`);
     setLogCount(0);
   }
-
   return (
     <div className="flex flex-col gap-4 max-w-[600px]">
       <CleanupCard
@@ -250,13 +263,28 @@ export function CleanupClient({
 
       <CleanupCard
         title="Old Candidate Audio"
-        description="Deletes doctor/patient/examiner-voice-note audio for recordings older than the cutoff below — the transcript, AI grade, and GP review stay. Trainer Insight and Sample Consultation audio are never affected."
-        count={audioCount}
+        description="Deletes doctor/patient audio and the GP examiner's voice note for recordings older than the cutoff below, and only for candidates whose programme access has run out. Anyone still on a live programme keeps their audio however old it is. The transcript, AI grades, and the GP's marks and written feedback always stay. Trainer Insight and Sample Consultation audio are never affected."
+        count={audioSweep?.eligible ?? null}
         loading={audioLoading}
         onRefresh={refreshAudio}
         onDelete={deleteAudio}
         deleteLabel="Delete Old Audio"
         result={audioResult}
+        /*
+          What the access check refused, beside what it would take.
+
+          Without it the card reads "0 found" whether the guard is working or
+          the query behind it is broken, and those are the two states it most
+          matters to tell apart.
+        */
+        note={
+          audioSweep && (
+            <p className="rounded-lg px-3 py-2.5 mb-4 text-[12px] leading-[1.6] m-0" style={{ background: "rgba(51,51,51,0.04)", color: "rgba(51,51,51,0.6)" }}>
+              <strong style={{ color: NAVY }}>{audioSweep.heldForLiveAccess} held back</strong>
+              {" "}— old enough, but the candidate still has programme access.
+            </p>
+          )
+        }
         extraControls={
           <div className="mb-4">
             <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5 text-navy/50">
@@ -267,7 +295,7 @@ export function CleanupClient({
                 type="number"
                 min={1}
                 value={audioDays}
-                onChange={(e) => { setAudioDays(Math.max(1, parseInt(e.target.value, 10) || 1)); setAudioCount(null); setAudioResult(""); }}
+                onChange={(e) => { setAudioDays(Math.max(1, parseInt(e.target.value, 10) || 1)); setAudioSweep(null); setAudioResult(""); }}
                 className="w-24 border border-navy/20 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-navy/50"
               />
               <span className="text-[13px] text-navy/60">days</span>
