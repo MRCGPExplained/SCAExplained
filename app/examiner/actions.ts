@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { withoutEmDashes } from "@/lib/prose";
+import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
@@ -138,12 +139,34 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
   // silently refused to act on — it matched no rows and reported no error.
   const { data: current } = await admin
     .from("station_recordings")
-    .select("status")
+    .select("status, transcript_formatted")
     .eq("id", recordingId)
-    .single<{ status: string }>();
+    .single<{ status: string; transcript_formatted: string | null }>();
 
   if (!current) return { error: "Recording not found." };
-  if (current.status === "processing") return { error: "Already processing — give it a minute." };
+  if (current.status === "processing" || current.status === "grading") {
+    return { error: "Already running — give it a minute." };
+  }
+
+  /*
+    Ask for the stage that actually needs doing.
+
+    This used to POST with no query string, so the route defaulted to
+    stage="transcribe". On a row that already has a transcript the pipeline
+    takes its reuse branch, writes nothing, and returns at the
+    `if (stage === "transcribe") return;` guard before it ever grades. The
+    claim below had already moved the row to "processing", and nothing was
+    left to move it off: the only "transcribed" write lives in the branch the
+    reuse path skips.
+
+    Not a race. It happened on every retry of anything already transcribed,
+    which is every row a GP has in front of them, which is the whole point of
+    the button. The panel it sits in already described the behaviour the code
+    did not have: "Running it again reuses the existing transcript, so it
+    goes straight to grading."
+  */
+  const stage = current.transcript_formatted ? "grade" : "transcribe";
+  const claimStatus = stage === "grade" ? "grading" : "processing";
 
   // The read above says what to roll back to; it does not decide anything.
   // Checking the status and then setting it are two statements, and two
@@ -152,9 +175,12 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
   // serialises it: the second one matches no rows and stops here.
   const { data: claimed, error } = await admin
     .from("station_recordings")
-    .update({ status: "processing", ai_error: null, ai_failed_at: null })
+    .update({ status: claimStatus, ai_error: null, ai_failed_at: null })
     .eq("id", recordingId)
-    .neq("status", "processing")
+    // Claim only if nothing has moved since the read above. Stronger than the
+    // old .neq("status","processing"), which let a claim land on a row some
+    // other write had just changed underneath it.
+    .eq("status", current.status)
     .select("id");
 
   if (error) return { error: error.message };
@@ -166,17 +192,27 @@ export async function retryAiPipelineAction(recordingId: string): Promise<{ erro
   // immediately and does the real work in its own after().
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
   try {
-    const res = await fetch(`${origin}/api/recordings/${recordingId}/process`, {
+    const res = await fetch(`${origin}/api/recordings/${recordingId}/process?stage=${stage}`, {
       method: "POST",
       headers: { "x-internal-key": process.env.INTERNAL_API_KEY ?? "" },
     });
     if (!res.ok) {
       const body = await res.text();
-      await admin.from("station_recordings").update({ status: current.status }).eq("id", recordingId);
+      // Guarded: only undo our own claim. Unguarded this could drag a row
+      // backwards over a status the pipeline had already written.
+      await admin
+        .from("station_recordings")
+        .update({ status: current.status })
+        .eq("id", recordingId)
+        .eq("status", claimStatus);
       return { error: `Could not start the pipeline (${res.status}). ${body.slice(0, 120)}` };
     }
   } catch (err) {
-    await admin.from("station_recordings").update({ status: current.status }).eq("id", recordingId);
+    await admin
+      .from("station_recordings")
+      .update({ status: current.status })
+      .eq("id", recordingId)
+      .eq("status", claimStatus);
     return { error: err instanceof Error ? err.message : "Could not reach the processing service." };
   }
 
@@ -245,10 +281,19 @@ export async function submitExaminerReviewAction(
   // rather than moving it into the GP review queue/completed lists.
   const { data: current } = await admin
     .from("station_recordings")
-    .select("status")
+    .select("submitted_for_review_at, gp_requested_at")
     .eq("id", recordingId)
-    .single<{ status: string }>();
-  const isAiPile = current?.status === "ai_graded";
+    .single<GpColumns>();
+  /*
+    Whether this was ever sent to a GP, asked of the columns that record it
+    rather than of the status string.
+
+    It read `status === "ai_graded"`, which the pipeline is free to write at
+    any moment. A re-grade that landed on "ai_graded" therefore reclassified
+    a real GP review as an AI-pile overwrite, and the next Save kept it there
+    permanently: a one-way trap, triggered by a button meant to be harmless.
+  */
+  const isAiPile = !gpRequested(current ?? {});
 
   const now = new Date().toISOString();
   const updatePayload: Record<string, unknown> = {

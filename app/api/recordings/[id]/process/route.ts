@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { withoutEmDashes } from "@/lib/prose";
+import { gpRequested, statusAfterGrading, type GpColumns } from "@/lib/recording-state";
 import { DEFAULT_GRADING_GUIDANCE, buildOutputContract, buildOutputSchema } from "@/lib/ai-defaults";
 import { loadCaseRules, applyCaseRules, buildCaseRulesPrompt, buildCaseRulesOutputContract, buildAlignmentPrompt, type CaseRule, type CaseRuleAnswer, type FiredRule } from "@/lib/case-rules";
 import { findTranscriptQuotes, quotesTranscript, buildQuoteRepairPrompt, type RepairTarget } from "@/lib/transcript-quotes";
@@ -541,7 +542,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   // Fetch recording + station data
   const { data: recording } = await admin
     .from("station_recordings")
-    .select("id, station_number, doctor_user_id, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw, gp_requested_at")
+    .select("id, station_number, doctor_user_id, doctor_audio_path, patient_audio_path, status, transcript_formatted, transcript_raw, gp_requested_at, submitted_for_review_at, examiner_reviewed_at, sent_to_candidate_at, discarded_at")
     .eq("id", recordingId)
     .single<{
       id: string;
@@ -552,7 +553,13 @@ export async function POST(req: Request, { params }: RouteParams) {
       status: string;
       transcript_formatted: string | null;
       transcript_raw: unknown;
+      // Where the GP had got to. Carried so no exit from this route has to
+      // guess, and so none of them writes a status that hides the row.
       gp_requested_at: string | null;
+      submitted_for_review_at: string | null;
+      examiner_reviewed_at: string | null;
+      sent_to_candidate_at: string | null;
+      discarded_at: string | null;
     }>();
 
   if (!recording) return NextResponse.json({ error: "Recording not found" }, { status: 404 });
@@ -599,9 +606,12 @@ export async function POST(req: Request, { params }: RouteParams) {
   // If Deepgram is disabled, skip AI grading — the candidate can still
   // choose to Submit for GP Review with no AI pre-assessment shown.
   if (!deepgramEnabled || vercelPlan === "hobby") {
+    // Not a blind "ai_graded". This runs before any work is done, so a row a
+    // GP was already reviewing would have been written out of the queue by a
+    // button that did nothing at all.
     await admin
       .from("station_recordings")
-      .update({ status: "ai_graded" })
+      .update({ status: statusAfterGrading(recording) })
       .eq("id", recordingId);
 
     return NextResponse.json({ ok: true, skipped: "deepgram_disabled" });
@@ -1033,6 +1043,24 @@ export async function POST(req: Request, { params }: RouteParams) {
       // Save transcript + grades to DB. Status lands on "ai_graded", not the
       // examiner queue — the candidate has to explicitly Submit for GP Review
       // (which is what actually consumes one of their 20 credits) to enter it.
+      /*
+        Where the GP is NOW, not where they were when this run started.
+
+        The status below used to come from the snapshot taken at the top of
+        the route, which on a slow grading run is minutes stale, and it asked
+        only `gp_requested_at ? "pending_examiner" : "ai_graded"`. Two ways
+        that went wrong: a review already in progress came back
+        "pending_examiner", losing the fact a GP had written marks; and a row
+        submitted through submitForReviewAction, which sets only
+        submitted_for_review_at, came back "ai_graded" and left the GP tab
+        for the AI pile. A GP can also save marks while grading is in flight.
+      */
+      const { data: gpNow } = await admin
+        .from("station_recordings")
+        .select("submitted_for_review_at, gp_requested_at, examiner_reviewed_at, sent_to_candidate_at, discarded_at")
+        .eq("id", recordingId)
+        .single<GpColumns>();
+
       const { error: gradeSaveErr } = await admin.from("station_recordings").update({
         transcript_formatted: transcriptFormatted,
         transcript_raw: transcriptRaw,
@@ -1050,7 +1078,10 @@ export async function POST(req: Request, { params }: RouteParams) {
         // Straight into the examiner queue when the candidate chose "send to
         // a GP", since that decision already spent the review credit and the
         // AI pass was only ever the draft the examiner verifies.
-        status: recording.gp_requested_at ? "pending_examiner" : "ai_graded",
+        // Falls back to the snapshot only if that read failed, which is
+        // still better than the old guess because the snapshot now carries
+        // every GP column rather than just gp_requested_at.
+        status: statusAfterGrading(gpNow ?? recording),
         // Null when skill grading is off, which is what keeps the report's
         // Skills Assessment section hidden for those recordings.
         skills_assessment: adjusted
@@ -1154,7 +1185,18 @@ export async function POST(req: Request, { params }: RouteParams) {
       await admin
         .from("station_recordings")
         .update({
-          status: stage === "transcribe" ? "failed" : "ai_graded",
+          /*
+            A failure must not also be a disappearance. If a GP is waiting on
+            this consultation it goes back to where they left it; ai_error is
+            still written either way, so nothing is hidden, and the examiner
+            can retry it from the queue rather than hunting for a row that
+            has dropped out of every list.
+          */
+          status: gpRequested(recording)
+            ? statusAfterGrading(recording)
+            : stage === "transcribe"
+            ? "failed"
+            : "ai_graded",
           ai_error: msg.slice(0, 2000),
           ai_failed_at: new Date().toISOString(),
         })

@@ -1139,7 +1139,18 @@ export async function submitForReviewAction(recordingId: string): Promise<Action
 
   const { error: updateErr } = await admin
     .from("station_recordings")
-    .update({ status: "pending_examiner", submitted_for_review_at: new Date().toISOString() })
+    /*
+      Both columns, because the other door into the queue sets both and this
+      one set only submitted_for_review_at. The pipeline read gp_requested_at
+      alone, so a consultation submitted here was written back to "ai_graded"
+      after any re-grade and left the GP tab for the AI pile. Nothing reads
+      them apart now, but two doors into one queue should agree.
+    */
+    .update({
+      status: "pending_examiner",
+      submitted_for_review_at: new Date().toISOString(),
+      gp_requested_at: new Date().toISOString(),
+    })
     .eq("id", recordingId);
 
   if (updateErr) return { error: "Could not submit for review." };

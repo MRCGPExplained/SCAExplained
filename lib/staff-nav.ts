@@ -134,7 +134,10 @@ export async function loadStaffNav(): Promise<StaffNav> {
     admin
       .from("station_recordings")
       .select("id", { count: "exact", head: true })
-      .in("status", ["pending_examiner", "reviewing"])
+      // The same derived test the panel lists by, so the number on the icon
+      // and the rows behind it cannot disagree. See lib/recording-state.
+      .not("submitted_for_review_at", "is", null)
+      .is("sent_to_candidate_at", null)
       .is("discarded_at", null),
     isAdmin
       ? admin
