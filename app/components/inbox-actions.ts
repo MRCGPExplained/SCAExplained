@@ -34,9 +34,9 @@ export async function fetchInboxAction(): Promise<Inbox> {
 /**
  * Mark one reply read, when the candidate opens it in the envelope.
  *
- * A GP review gets this for free: opening the report is a page load, and that
- * page stamps candidate_viewed_at. A reply has no page — it reads in place —
- * so expanding it is the only moment that can count as having seen it.
+ * A report gets this for free: opening it is a page load, and that page writes
+ * the reader's row in recording_reads. A reply has no page — it reads in
+ * place — so expanding it is the only moment that can count as having seen it.
  *
  * Scoped by `.eq("user_id", user.id)` as well as by id, so a reply id taken
  * from someone else cannot be marked read on their behalf. The admin client

@@ -3,7 +3,6 @@ import { isUnreadReport } from "@/lib/inbox";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { doctorPossessive } from "@/lib/doctor-name";
 import { SubmitForReviewButton } from "./SubmitForReviewButton";
 import { TranscribedChoice } from "./TranscribedChoice";
 import { TopUpButton } from "./TopUpButton";
@@ -40,61 +39,10 @@ type RecordingRow = {
   examiner_clinical_management: string | null;
   examiner_relating_to_others: string | null;
   sent_to_candidate_at: string | null;
-  candidate_viewed_at: string | null;
   /** Why it could not be graded. Shown, not just stored — a row that failed
    *  silently is the thing this is here to stop. */
   ai_error: string | null;
-  /** Which chair the viewer sat in. The three are mutually exclusive by
-   *  construction: observer_user_ids is built in app/case-bank/actions.ts:1032
-   *  with the doctor and patient filtered out. */
-  doctor_user_id: string;
-  patient_user_id: string | null;
-  observer_user_ids: string[] | null;
-  /** Whose consultation it is, for the rows that are not the viewer's own. */
-  doctor_display_name: string | null;
 };
-
-/** One list, so the two queries below cannot come to disagree about it. */
-const ROW_COLUMNS =
-  "id, station_number, station_title, started_at, status, " +
-  "ai_data_gathering, ai_clinical_management, ai_relating_to_others, " +
-  "examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, " +
-  "sent_to_candidate_at, candidate_viewed_at, ai_error, " +
-  "doctor_user_id, patient_user_id, observer_user_ids, doctor_display_name";
-
-/*
-  Separate budgets, because the two kinds of row are not interchangeable.
-
-  A trainee sits in more consultations than they lead: in a pair, each person
-  is the doctor once and the patient once per station, and a four-seat room puts
-  them in three chairs out of four. Against the live table that comes to 1.75x
-  and 2.33x their own doctor rows for the two heaviest users, and ~3x in a trio.
-  Under a single limit, other people's consultations would push a trainee's own
-  marked attempts off the bottom of a page called My Recordings — and
-  lib/inbox.ts:207 drops read reviews from the envelope on the explicit grounds
-  that this list keeps them for good. So the viewer's own work gets a budget
-  peer rows cannot spend.
-*/
-const OWN_CAP = 200;
-const PEER_CAP = 100;
-
-type Role = "doctor" | "patient" | "observer";
-
-/*
-  Doctor first, then patient, then observer — the same order and the same
-  else-branch as app/case-bank/lastAttempts.ts:85.
-
-  The order is not cosmetic. A solo practice take writes the same person into
-  both chairs (app/betatest/actions.ts:35 sets patient_user_id to the doctor's
-  own id), so testing patient first would label somebody's own graded attempt
-  "as patient" and hide their own marks from them, on the one row whose entire
-  point is their mark.
-*/
-function roleOf(rec: RecordingRow, userId: string): Role {
-  if (rec.doctor_user_id === userId) return "doctor";
-  if (rec.patient_user_id === userId) return "patient";
-  return "observer";
-}
 
 interface Chip {
   bg: string;
@@ -102,27 +50,9 @@ interface Chip {
   label: string;
 }
 
-/**
- * The status chip, in the viewer's own terms.
- *
- * Peer rows get a shorter vocabulary than the doctor's, for two reasons. The
- * doctor's version answers "what do I do next", which is a question a peer
- * cannot act on — "Your call" is flatly false on a row where
- * loadTranscribedForOwner (app/case-bank/actions.ts:1291) refuses them. And a
- * peer row carries no RecordingProgress poller, so anything in-flight would
- * freeze at whatever the page load happened to catch; saying "No report yet"
- * cannot go stale in a way that misleads, where "Grading…" can.
- */
-function statusChip(rec: RecordingRow, mine: boolean): Chip {
-  const reviewed = !!rec.sent_to_candidate_at;
-
-  if (!mine) {
-    if (reviewed) return { bg: "rgba(34,197,94,0.1)", color: "#166534", label: "Reviewed" };
-    if (rec.status === "ai_graded") return { bg: "rgba(59,130,246,0.1)", color: "#1D4ED8", label: "AI graded" };
-    return { bg: "rgba(51,51,51,0.07)", color: "rgba(51,51,51,0.4)", label: "No report yet" };
-  }
-
-  if (reviewed) return { bg: "rgba(34,197,94,0.1)", color: "#166534", label: "Reviewed" };
+/** The status chip, lifted out of the row so the row can be read. */
+function statusChip(rec: RecordingRow): Chip {
+  if (rec.sent_to_candidate_at) return { bg: "rgba(34,197,94,0.1)", color: "#166534", label: "Reviewed" };
   switch (rec.status) {
     case "processing":
       return { bg: "rgba(139,92,246,0.1)", color: "#6D28D9", label: "Transcribing…" };
@@ -176,55 +106,38 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
       : "Top-up successful. Your balance has been updated.";
 
   const admin = getSupabaseAdmin();
-  const [ownResult, peerResult, creditsResult, accessResult] = await Promise.all([
+  /*
+    The viewer's own consultations, and nothing else.
+
+    A trainee also sits in consultations they did not lead — they play the
+    patient, and they observe — and those reports are theirs to read. They are
+    not listed here. This page is called My Recordings and it holds the takes
+    with their mark on them; the ones they sat in beside someone else belong to
+    the station they were on, and the case bank already carries a line for each
+    of those, with the chair they sat in and a link straight to the report.
+    When one of those lands, the envelope says so.
+  */
+  const [recordingsResult, readsResult, creditsResult, accessResult] = await Promise.all([
     admin
       ? admin
           .from("station_recordings")
-          .select(ROW_COLUMNS)
+          .select("id, station_number, station_title, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, ai_error")
           .eq("doctor_user_id", user.id)
           // Failed rows are NOT hidden. A take that could not be graded used
           // to vanish from this list, so the candidate was left choosing
           // between two wrong explanations: that it was still working, or
           // that it had been deleted. It says what went wrong now.
           .order("started_at", { ascending: false })
-          .limit(OWN_CAP)
+          .limit(50)
       : Promise.resolve({ data: [], error: null }),
+    /*
+      What they have read, from recording_reads rather than from a column on
+      the recording. Read state is per person now that a report reaches
+      everyone who was in the room, and the row this page draws is only ever
+      about one of them.
+    */
     admin
-      ? admin
-          .from("station_recordings")
-          .select(ROW_COLUMNS)
-          /*
-            Identity terms only inside the or(), and nothing else ever.
-
-            PostgREST renders or() as (a OR b OR c) and ANDs each separately
-            chained predicate with the whole group. A discarded_at or status
-            test written inside this string would therefore be OR-ed with the
-            identity terms and match every row in the table. This page reads
-            through the service-role client, which bypasses RLS — and RLS could
-            not save it anyway: station_recordings has a policy for the doctor
-            and the patient and none at all for an observer — so this one
-            string is the entire access check.
-
-            The id is interpolated, which is safe only because both halves
-            hold: it comes from supabase.auth.getUser(), which validates
-            against the Auth server rather than decoding the cookie, so it is a
-            real uuid; and all three columns are uuid-typed, so anything that
-            could change the filter's meaning fails the cast and PostgREST
-            returns 400. Nothing but a server-validated uuid may ever go in
-            here.
-          */
-          .or(`patient_user_id.eq.${user.id},observer_user_ids.cs.{${user.id}}`)
-          /*
-            Discarded rows are dropped from other people's consultations and
-            kept on the viewer's own. For the doctor, "Discarded" is a legible
-            record of a decision they took. For a peer it is a row with no
-            report behind it — discardRecordingAction deletes both audio tracks
-            at app/case-bank/actions.ts:1394 — about a take they did not throw
-            away and can do nothing about.
-          */
-          .is("discarded_at", null)
-          .order("started_at", { ascending: false })
-          .limit(PEER_CAP)
+      ? admin.from("recording_reads").select("recording_id, viewed_at").eq("user_id", user.id).limit(500)
       : Promise.resolve({ data: [], error: null }),
     admin
       ? admin.from("gp_review_credits").select("balance").eq("user_id", user.id).single<{ balance: number }>()
@@ -238,31 +151,23 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
 
   /*
     supabase-js returns { data, error } rather than throwing, so this has to be
-    read. It matters more now than it did as one query: if the peer read fails
-    on its own the page still renders a full-looking list of the viewer's own
-    work, which is the same lie lib/inbox.ts:56 refuses to tell — a short list
-    shown as the whole list, undetectable by the person reading it.
+    read. Said rather than swallowed: a list that is short because a query
+    failed looks exactly like a list that is short, and a missing read set
+    would relight every unread marker on the page.
   */
-  const ownError = (ownResult as { error?: { message: string } | null }).error ?? null;
-  const peerError = (peerResult as { error?: { message: string } | null }).error ?? null;
-  if (ownError || peerError) {
-    console.error("[recordings] load failed", user.id, ownError?.message, peerError?.message);
+  const listError = (recordingsResult as { error?: { message: string } | null }).error ?? null;
+  const readsError = (readsResult as { error?: { message: string } | null }).error ?? null;
+  if (listError || readsError) {
+    console.error("[recordings] load failed", user.id, listError?.message, readsError?.message);
   }
 
-  const ownRows = ((ownResult.data ?? []) as unknown as RecordingRow[]);
-  const peerRows = ((peerResult.data ?? []) as unknown as RecordingRow[]);
-
-  /*
-    Deduplicated, because the two filters can match the same row. A solo
-    practice take puts the viewer in both chairs (app/betatest/actions.ts:35),
-    so it answers to both. The viewer's own copy wins, which is the same answer
-    roleOf gives.
-  */
-  const ownIds = new Set(ownRows.map((r) => r.id));
-  const recordings = [...ownRows, ...peerRows.filter((r) => !ownIds.has(r.id))].sort(
-    (a, b) => +new Date(b.started_at) - +new Date(a.started_at)
+  const recordings = (recordingsResult.data ?? []) as unknown as RecordingRow[];
+  const readAt = new Map(
+    ((readsResult.data ?? []) as unknown as { recording_id: string; viewed_at: string }[]).map((r) => [
+      r.recording_id,
+      r.viewed_at,
+    ])
   );
-
   const credits = (creditsResult as { data: { balance: number } | null }).data?.balance ?? 0;
   const access = (accessResult as { data: AccessRow | null }).data;
   const aiRemaining = Math.max(0, (access?.ai_allowance ?? 0) - (access?.ai_uses_count ?? 0));
@@ -275,54 +180,23 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
   const accessLive = !!access?.has_case_bank && !!expiresAt && expiresAt > new Date().toISOString();
 
   /*
-    Everything the row render needs, decided once.
-
-    Derived up here rather than inside the map because the Key legend below has
-    to know whether any row will actually show a grade pill, and a second copy
-    of the role test to answer that is a second copy that can disagree with the
-    first.
+    Everything the row render needs, decided once — so that the Key below can
+    ask whether any row will actually show a grade pill without a second copy
+    of the test that decides it.
   */
   const rows = recordings.map((rec) => {
-    const role = roleOf(rec, user.id);
-    const mine = role === "doctor";
     const isFinal = !!rec.sent_to_candidate_at;
-    /*
-      Unread is the doctor's read state and nobody else's. candidate_viewed_at
-      is a single column for the whole row and app/recordings/[id]/page.tsx:267
-      stamps it only for the doctor, so on a peer's row the dot, the yellow
-      border and the heavier title would all claim their mail was unread — and
-      opening the report would not clear it, because there is nothing for them
-      to press. It would then clear itself later, without them doing anything,
-      the moment the real doctor read theirs.
-
-      Per-person read state is a later change. Until it exists, a peer row has
-      no unread state at all, which is the honest value rather than a
-      placeholder.
-    */
-    const isUnread = mine && isUnreadReport(rec.sent_to_candidate_at, rec.candidate_viewed_at);
-    const hasGrades =
-      mine &&
-      (isFinal
-        ? !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others)
-        : !!(rec.ai_data_gathering && rec.ai_clinical_management && rec.ai_relating_to_others));
+    // The same rule the navbar envelope counts by, read from one place so the
+    // badge and this list cannot disagree.
+    const isUnread = isUnreadReport(rec.sent_to_candidate_at, readAt.get(rec.id) ?? null);
+    const hasGrades = isFinal
+      ? !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others)
+      : !!(rec.ai_data_gathering && rec.ai_clinical_management && rec.ai_relating_to_others);
     const grades = isFinal
       ? { dg: rec.examiner_data_gathering, cm: rec.examiner_clinical_management, ro: rec.examiner_relating_to_others }
       : { dg: rec.ai_data_gathering, cm: rec.ai_clinical_management, ro: rec.ai_relating_to_others };
 
-    return {
-      rec,
-      role,
-      mine,
-      isFinal,
-      isUnread,
-      hasGrades,
-      grades,
-      chip: statusChip(rec, mine),
-      // Whose consultation it is, named only on the rows that are not the
-      // viewer's own. Null when the stored name cannot safely be shortened —
-      // see lib/doctor-name.ts — and the row then simply does not say.
-      whose: mine ? null : doctorPossessive(rec.doctor_display_name),
-    };
+    return { rec, isFinal, isUnread, hasGrades, grades, chip: statusChip(rec) };
   });
 
   const showKey = rows.some((r) => r.hasGrades);
@@ -347,10 +221,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
             <h1 className="font-display font-extrabold text-[26px]" style={{ color: NAVY }}>
               My Recordings
             </h1>
-            {/* All three chairs, because the list now holds all three. The old
-                subtitle described only the rows with a mark on them. */}
             <p className="text-[13.5px] mt-1" style={{ color: "rgba(51,51,51,0.55)" }}>
-              Consultations you led, played the patient in, or watched. Submit your own to be read by a GP.
+              AI-graded consultations. Submit the ones you want read by a GP.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -403,9 +275,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
           </div>
         )}
 
-        {/* Said rather than swallowed. A list that is short because a query
-            failed looks exactly like a list that is short. */}
-        {(ownError || peerError) && (
+        {(listError || readsError) && (
           <div className="mb-6 rounded-xl px-4 py-3 text-[13px]" style={{ background: "rgba(239,68,68,0.07)", color: "#B91C1C", border: "1px solid rgba(239,68,68,0.18)" }}>
             Some of your recordings could not be loaded just now, so this list may be incomplete. Nothing has been lost — please refresh.
           </div>
@@ -458,10 +328,9 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               distinction, and the AI letters are new, so nobody arrives
               knowing them.
 
-              Only when some row will actually show a pill. Grades are the
-              viewer's own or nothing, so a list of consultations they only
-              sat in as the patient would otherwise carry a six-pill legend
-              explaining colours that appear nowhere beneath it.
+              Only when some row will actually show a pill. A list of takes
+              that are all still in flight would otherwise carry a six-pill
+              legend explaining colours that appear nowhere beneath it.
 
               Not a card. It used to be a white rounded-xl wearing the same
               border as a recording, in the same vertical stack as the
@@ -512,26 +381,14 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
               </div>
             )}
 
-            {rows.map(({ rec, role, mine, isFinal, isUnread, hasGrades, grades, chip, whose }) => (
+            {rows.map(({ rec, isFinal, isUnread, hasGrades, grades, chip }) => (
               <Link
                 key={rec.id}
                 href={`/recordings/${rec.id}`}
                 className="block rounded-2xl p-5 transition hover:shadow-md"
                 style={{
-                  /*
-                    Recessed, not just labelled. The viewer's own consultations
-                    are the white cards; the ones they sat in beside someone
-                    else sit back from them. The difference is carried by
-                    background and border rather than by type weight, because
-                    weight 800 already means "unread" on this list and two
-                    meanings on one pixel can be read off as neither.
-                  */
-                  background: mine ? "white" : "#F4F4F2",
-                  border: isUnread
-                    ? "1.5px solid rgba(246,212,75,0.6)"
-                    : mine
-                      ? "1px solid rgba(51,51,51,0.08)"
-                      : "1px solid rgba(51,51,51,0.05)",
+                  background: "white",
+                  border: isUnread ? "1.5px solid rgba(246,212,75,0.6)" : "1px solid rgba(51,51,51,0.08)",
                   textDecoration: "none",
                 }}
               >
@@ -549,20 +406,8 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         Station {rec.station_number}
                       </span>
                     </div>
-                    <div
-                      className="text-[15px]"
-                      style={{
-                        color: mine ? NAVY : "rgba(51,51,51,0.72)",
-                        fontWeight: isUnread ? 800 : 700,
-                      }}
-                    >
-                      {rec.station_title}
-                    </div>
+                    <div className="text-[15px]" style={{ color: NAVY, fontWeight: isUnread ? 800 : 700 }}>{rec.station_title}</div>
                     <div className="text-[12px] mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
-                      {/* Whose it is, then when. Named only on a row that is
-                          not the viewer's own, and dropped silently when the
-                          stored name is an email or a placeholder. */}
-                      {whose && <>{whose} consultation · </>}
                       {new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </div>
                   </div>
@@ -576,35 +421,15 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       {chip.label}
                     </span>
 
-                    {/*
-                      The bar, and the poll that keeps this row honest.
-                      Renders nothing once the take has settled.
+                    {/* The bar, and the poll that keeps this row honest.
+                        Renders nothing once the take has settled. */}
+                    <RecordingProgress recordingId={rec.id} initialStatus={rec.status} />
 
-                      The viewer's own rows only. The poll's endpoint admits
-                      the doctor and the patient and not the observer
-                      (app/api/recordings/[id]/status/route.ts:27), so on an
-                      observer's row every request 404s, RecordingProgress
-                      swallows it, and the bar freezes for the full fifteen
-                      minutes while re-requesting every four seconds. The
-                      pipeline is the doctor's to watch in any case; a peer's
-                      row says "No report yet" and means it.
-                    */}
-                    {mine && <RecordingProgress recordingId={rec.id} initialStatus={rec.status} />}
-
-                    {/*
-                      Why, in the candidate's words rather than a status code.
-                      A take that could not be graded used to vanish from this
-                      list entirely, which left two wrong readings available —
-                      still working, or deleted.
-
-                      The doctor's row only. The column holds two kinds of
-                      text, and neither belongs on a peer's screen: the sweep
-                      writes "The patient's audio never reached us…", which
-                      reads to the patient as an accusation about themselves
-                      followed by a reassurance about a charge they never
-                      faced, and the pipeline writes a raw exception message.
-                    */}
-                    {mine && rec.status === "failed" && rec.ai_error && (
+                    {/* Why, in the candidate's words rather than a status
+                        code. A take that could not be graded used to vanish
+                        from this list entirely, which left two wrong readings
+                        available — still working, or deleted. */}
+                    {rec.status === "failed" && rec.ai_error && (
                       <p
                         className="text-[11.5px] leading-[1.5] m-0 text-right max-w-[320px]"
                         style={{ color: "rgba(51,51,51,0.5)" }}
@@ -613,64 +438,41 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       </p>
                     )}
 
-                    {/*
-                      Grades, or the chair they sat in — never both, and never
-                      somebody else's marks. A peer gets the consultation to
-                      revisit and talk about; the mark on it is the doctor's.
-
-                      "As patient" / "As observer" is the wording already in
-                      use for exactly this on the station list
-                      (app/case-bank/components/StationListClient.tsx:174),
-                      down to the muted grey, so the two places agree.
-                    */}
-                    {mine ? (
-                      hasGrades && (
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                          {(["dg", "cm", "ro"] as const).map((key) => {
-                            /*
-                              The same vocabulary the report uses, chosen by
-                              the same test. This row said "CP F P" about a
-                              consultation whose report said "Good, Needs
-                              Improvement, Good" — the list and the report
-                              contradicting each other about one set of
-                              grades, which is worse than either wording on
-                              its own.
-                            */
-                            const band = gradeDisplay(grades[key], !isFinal);
-                            return band ? (
-                              <span
-                                key={key}
-                                title={band.label}
-                                className="text-[11px] font-bold px-2 py-0.5 rounded"
-                                style={{ background: band.bg, color: band.color }}
-                              >
-                                {band.short}
-                              </span>
-                            ) : null;
-                          })}
-                          <span className="text-[12px] font-bold" style={{ color: NAVY }}>
-                            {totalPoints(rec)}
-                          </span>
-                        </div>
-                      )
-                    ) : (
-                      <span className="text-[11.5px]" style={{ color: "rgba(51,51,51,0.38)" }}>
-                        As {role}
-                      </span>
+                    {/* Grades */}
+                    {hasGrades && (
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {(["dg", "cm", "ro"] as const).map((key) => {
+                          /*
+                            The same vocabulary the report uses, chosen by
+                            the same test. This row said "CP F P" about a
+                            consultation whose report said "Good, Needs
+                            Improvement, Good" — the list and the report
+                            contradicting each other about one set of
+                            grades, which is worse than either wording on
+                            its own.
+                          */
+                          const band = gradeDisplay(grades[key], !isFinal);
+                          return band ? (
+                            <span
+                              key={key}
+                              title={band.label}
+                              className="text-[11px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: band.bg, color: band.color }}
+                            >
+                              {band.short}
+                            </span>
+                          ) : null;
+                        })}
+                        <span className="text-[12px] font-bold" style={{ color: NAVY }}>
+                          {totalPoints(rec)}
+                        </span>
+                      </div>
                     )}
 
-                    {/*
-                      Both decisions are the doctor's, so both controls are the
-                      doctor's. The server already refuses a peer —
-                      loadTranscribedForOwner at app/case-bank/actions.ts:1291
-                      and submitForReviewAction at :1167 — but offering a
-                      patient a "Discard" that would delete someone else's
-                      audio, or a dialog counting down their own credits
-                      against a consultation those credits can never be spent
-                      on, is a lie on screen whether or not it is one in the
-                      database.
-                    */}
-                    {mine && rec.status === "transcribed" && (
+                    {/* Transcribed and waiting on a decision. The safety
+                        net for anything left undecided in the study room,
+                        so no take can be stranded with nothing to press. */}
+                    {rec.status === "transcribed" && (
                       <TranscribedChoice
                         recordingId={rec.id}
                         stationTitle={rec.station_title}
@@ -679,7 +481,7 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                       />
                     )}
 
-                    {mine && rec.status === "ai_graded" && (
+                    {rec.status === "ai_graded" && (
                       <SubmitForReviewButton
                         recordingId={rec.id}
                         stationTitle={rec.station_title}

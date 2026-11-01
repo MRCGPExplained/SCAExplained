@@ -12,6 +12,8 @@ import { AiReportFeedbackLink } from "@/app/recordings/AiReportFeedbackModal";
 import { TimeAssessment, type TranscriptRaw } from "@/app/recordings/TimeAssessment";
 import { gradeDisplay } from "@/lib/grade-display";
 import { ReportRead } from "@/app/components/ReportRead";
+import { isUnreadReport } from "@/lib/inbox";
+import { recordingRole } from "@/lib/recording-roles";
 
 const NAVY = "#333333";
 
@@ -123,8 +125,8 @@ type RecordingDetail = {
   doctor_audio_path: string | null;
   patient_audio_path: string | null;
   sent_to_candidate_at: string | null;
-  candidate_viewed_at: string | null;
   doctor_user_id: string;
+  observer_user_ids: string[] | null;
   examiners: { name: string } | null;
 };
 
@@ -263,21 +265,47 @@ export default async function RecordingDetailPage({
     viewerIsDoctor answers. An examiner opening someone else's report fails
     it honestly, which is all `!examiner` was ever there to achieve.
   */
+  /*
+    And now it is not "is this my consultation" either, because a report is
+    addressed to everyone who was in the room: the patient and the observers
+    find one waiting in their own envelope. The question is "was this person in
+    the room", and theirs is the only read state this write touches —
+    recording_reads holds one row per person per report, so marking it read
+    clears their badge and moves nobody else's.
+
+    isFinal, the same test the envelope's queries use, is what counts as the
+    report having arrived — for every chair alike. An AI report is not in the
+    envelope for anybody, so there is nothing for opening one to clear.
+  */
+  const viewerRole = viewer ? recordingRole(rec, viewer.id) : null;
+  const arrivedAt = viewerRole && isFinal ? rec.sent_to_candidate_at : null;
+
   let justMarkedRead = false;
-  if (viewerIsDoctor && isFinal && (!rec.candidate_viewed_at || new Date(rec.candidate_viewed_at) < new Date(rec.sent_to_candidate_at!))) {
-    const { error: markError } = await admin
-      .from("station_recordings")
-      .update({ candidate_viewed_at: new Date().toISOString() })
-      .eq("id", rec.id);
-    /*
-      supabase-js returns { data, error } rather than throwing, so this has to
-      be read, and now it has to be read for a second reason: the navbar is
-      told about this write. Unread, a stamp that failed would still drop the
-      envelope's badge, and the envelope would then disagree with the row it
-      was opened from until the next full page load.
-    */
-    if (markError) console.error("[recordings] could not mark the report read", rec.id, markError.message);
-    else justMarkedRead = true;
+  if (viewer && arrivedAt) {
+    const { data: already } = await admin
+      .from("recording_reads")
+      .select("viewed_at")
+      .eq("recording_id", rec.id)
+      .eq("user_id", viewer.id)
+      .maybeSingle<{ viewed_at: string }>();
+
+    if (isUnreadReport(arrivedAt, already?.viewed_at ?? null)) {
+      const { error: markError } = await admin
+        .from("recording_reads")
+        .upsert(
+          { recording_id: rec.id, user_id: viewer.id, viewed_at: new Date().toISOString() },
+          { onConflict: "recording_id,user_id" }
+        );
+      /*
+        supabase-js returns { data, error } rather than throwing, so this has to
+        be read, and now it has to be read for a second reason: the navbar is
+        told about this write. Unread, a stamp that failed would still drop the
+        envelope's badge, and the envelope would then disagree with the row it
+        was opened from until the next full page load.
+      */
+      if (markError) console.error("[recordings] could not mark the report read", rec.id, markError.message);
+      else justMarkedRead = true;
+    }
   }
 
   const [voiceResult, doctorResult, patientResult, gpCreditsResult] = await Promise.all([

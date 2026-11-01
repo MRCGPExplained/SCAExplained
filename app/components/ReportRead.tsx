@@ -14,8 +14,8 @@ import { REPORT_READ_EVENT } from "@/lib/inbox";
  * because the panel could drop its own badge on the way out; opening the same
  * report from the list had nothing to say so.
  *
- * Mounted only when the page's write to candidate_viewed_at actually
- * succeeded, so the badge cannot drop for a read that did not happen.
+ * Mounted only when the page's write to the viewer's recording_reads row
+ * actually succeeded, so the badge cannot drop for a read that did not happen.
  */
 export function ReportRead({ recordingId }: { recordingId: string }) {
   useEffect(() => {
