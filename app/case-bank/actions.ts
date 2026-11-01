@@ -1066,7 +1066,9 @@ export async function startRecordingAction(args: {
  * Called by the host when the synced start aborts because the live audio
  * call failed to connect for an essential participant (doctor or patient).
  * Deletes the never-actually-recorded row, so the attempt is treated as if
- * it never happened. No credit refund needed: recording and transcription
+ * it never happened. Only a participant may call it, and only while the row
+ * really is never-actually-recorded: still "uploading", with neither track
+ * in storage. No credit refund needed: recording and transcription
  * are free, and both meters are spent later, by an explicit choice to send
  * the transcript for AI grading or for GP review.
  */
@@ -1078,7 +1080,57 @@ export async function cancelRecordingAction(recordingId: string): Promise<Action
   const admin = getSupabaseAdmin();
   if (!admin) return { error: "Server config error." };
 
-  await admin.from("station_recordings").delete().eq("id", recordingId);
+  /*
+    This was `delete().eq("id", recordingId)` and nothing else.
+
+    A server action is a public endpoint: being signed in was the only thing
+    it asked for, so any account could permanently destroy any consultation
+    in the database by naming its id. It also undoes every other guarantee in
+    the product about things not going missing, because the row does not move
+    to a state nothing lists, it stops existing. Two guards, for the two
+    separate ways it was wrong.
+  */
+  const { data: row, error: readErr } = await admin
+    .from("station_recordings")
+    .select("doctor_user_id, patient_user_id, status")
+    .eq("id", recordingId)
+    .maybeSingle<{ doctor_user_id: string; patient_user_id: string | null; status: string }>();
+
+  if (readErr) return { error: readErr.message };
+  // Already gone. An abort is best-effort cleanup, so there is nothing wrong
+  // with being asked twice.
+  if (!row) return { success: true };
+
+  if (row.doctor_user_id !== user.id && row.patient_user_id !== user.id) {
+    console.error("[cancelRecording] refused: not a participant", recordingId, user.id);
+    return { error: "Not your recording." };
+  }
+
+  /*
+    The state test lives in the DELETE, not in a read above it, so nothing can
+    change underneath between the two. "Never actually recorded" is what the
+    abort path means and what these three conditions say: still uploading,
+    and neither track has landed. A row with audio in it is somebody's
+    consultation, and this is the one function in the codebase that could
+    take it away with no way back.
+  */
+  const { data: deleted, error: delErr } = await admin
+    .from("station_recordings")
+    .delete()
+    .eq("id", recordingId)
+    .eq("status", "uploading")
+    .is("doctor_audio_path", null)
+    .is("patient_audio_path", null)
+    .select("id");
+
+  if (delErr) return { error: delErr.message };
+  if (!deleted || deleted.length === 0) {
+    // Left in place deliberately. The callers log this and carry on; a take
+    // that got as far as recording belongs to the normal flow, and to the
+    // stuck-upload sweep if it never finishes.
+    console.error("[cancelRecording] refused: already past the abort window", recordingId, row.status);
+    return { error: "Recording had already started, so it was left in place." };
+  }
 
   return { success: true };
 }

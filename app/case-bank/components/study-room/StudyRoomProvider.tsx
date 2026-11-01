@@ -1895,7 +1895,16 @@ export function StudyRoomProvider({
     if (dailyRoomName) endDailyCallAction(dailyRoomName);
     const result = await cancelRecordingAction(recordingId);
     if (result.error) logError("cancelRecordingAction", result.error, { recordingId });
-    const reason = result.error ?? why ?? "There was an issue connecting the voice call. Please try again.";
+    /*
+      Why the attempt was aborted, which is never "the cleanup afterwards did
+      not go to plan". This read result.error first, which was harmless only
+      because cancelRecordingAction could not fail: it ignored the outcome of
+      its own delete and always returned success. Now that it refuses a
+      delete it should not make, that error would have been shown to both
+      people as the reason their consultation stopped. It is still logged
+      just above.
+    */
+    const reason = why ?? "There was an issue connecting the voice call. Please try again.";
 
     channelRef.current?.send({
       type: "broadcast",
