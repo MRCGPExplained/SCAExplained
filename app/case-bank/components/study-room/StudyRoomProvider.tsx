@@ -230,6 +230,17 @@ export function StudyRoomProvider({
   const [myRecordingRole, setMyRecordingRole] = useState<"doctor" | "patient" | null>(null);
   const [recordingError, setRecordingError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  /**
+   * A microphone opened at room entry, waiting for the start cue.
+   *
+   * The two sides of a consultation record on their own machines and the
+   * recordings are merged afterwards by timestamp, so they have to begin at
+   * the same instant. They did not: getUserMedia was awaited between the
+   * start broadcast and recorder.start(), so each side began whenever its own
+   * microphone happened to open. Measured across the takes so far, that put
+   * them 0.06s to 9.27s apart.
+   */
+  const preparedStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostStopCutoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -825,6 +836,30 @@ export function StudyRoomProvider({
     dailyPrewarmingRef.current = true;
     prewarmDailyCall();
   }, [room?.id, dailyCoEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /*
+    Open our own recording microphone at room entry too, for the same reason
+    one line up, but for the recorder rather than for the call.
+
+    Not folded into the prewarm above: that one is gated on dailyCoEnabled and
+    opens Daily's stream, and the recorder has always used a second stream of
+    its own. Un-gated here, because a take is recorded whether or not the live
+    call is switched on.
+  */
+  useEffect(() => {
+    if (!room) return;
+    void prepareLocalRecorder();
+    return () => {
+      // Only release a stream nothing took over. Once startLocalRecording has
+      // adopted it the recorder's own onstop owns those tracks, and stopping
+      // them here would cut a take off mid-sentence.
+      const stream = preparedStreamRef.current;
+      if (stream && !mediaRecorderRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        preparedStreamRef.current = null;
+      }
+    };
+  }, [room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Best-effort cleanup if the panel unmounts mid-call (e.g. navigating away).
   // dailyCallRef is read fresh inside the closure since it's set lazily,
@@ -1930,6 +1965,34 @@ export function StudyRoomProvider({
     setMyRecordingRole(null);
   }
 
+  /**
+   * Open the recording microphone ahead of the cue, so that pressing Record
+   * does not have to wait for it.
+   *
+   * Strictly best effort. If it fails, or never runs, startLocalRecording
+   * acquires inline exactly as it always did, and that path is the one that
+   * refunds the credit and unwinds the take when a microphone is refused.
+   * A failure here must stay silent: there is no recording yet to cancel, and
+   * somebody who has not pressed Record should not be told a take has failed.
+   */
+  async function prepareLocalRecorder() {
+    if (preparedStreamRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // A take can begin while this is still waiting on the device. If one
+      // did, it acquired its own stream and owns it, so this one is surplus
+      // and has to be released rather than left holding the microphone open.
+      if (preparedStreamRef.current || mediaRecorderRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      preparedStreamRef.current = stream;
+      logStatus("microphone opened ahead of the cue");
+    } catch (err) {
+      logError("microphone prepare (not fatal)", err);
+    }
+  }
+
   async function startLocalRecording(recordingId: string, role: "doctor" | "patient") {
     recorderStartingRef.current = true;
     pendingStopRef.current = false; // fresh attempt — clear any stale flag
@@ -1940,7 +2003,30 @@ export function StudyRoomProvider({
     abandonRecordingRef.current = false;
     const t0 = Date.now();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      /*
+        The microphone, already open if we got it open at room entry.
+
+        This line was always an await, three lines above recorder.start().
+        Both browsers reach it from the same broadcast, but each then waited
+        for its own microphone, so the two recordings started however far
+        apart the two devices happened to open: 0.06s to 9.27s across the
+        takes measured, varying by which trainee had already granted
+        permission. Nothing recorded the offset, so it is baked into both
+        files and into the transcript they are merged into, which is the text
+        the model grades.
+
+        Reading a stream that is already open costs no await, so the recorder
+        now starts on the cue itself. Acquiring inline remains the fallback,
+        which is what keeps the refund-and-unwind path below correct when a
+        microphone is genuinely refused. The liveness test matters: a device
+        unplugged or taken by another tab since room entry leaves a stream
+        whose tracks have ended, and recording that captures silence.
+      */
+      const prepared = preparedStreamRef.current;
+      const stream =
+        prepared && prepared.getAudioTracks().some((t) => t.readyState === "live")
+          ? prepared
+          : await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : "audio/webm";
@@ -1952,6 +2038,12 @@ export function StudyRoomProvider({
       recorder.onstop = () => {
         logStatus("local recorder stopped", { role, abandoned: abandonRecordingRef.current });
         stream.getTracks().forEach((t) => t.stop());
+        // These tracks are now ended. If this was the stream opened at room
+        // entry, the ref must let go of it, or the next take would adopt a
+        // dead microphone and record silence. The liveness test above would
+        // catch that, but not leaving a spent stream lying around is better
+        // than relying on something else to notice.
+        if (preparedStreamRef.current === stream) preparedStreamRef.current = null;
         // Signing out ends the session with the recorder still running. The
         // microphone has to be released either way — that is the line above —
         // but there is no longer an authenticated session to upload into, so
