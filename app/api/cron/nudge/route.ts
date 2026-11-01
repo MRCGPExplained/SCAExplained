@@ -5,9 +5,27 @@ import { sendAccessExpiryEmail } from "@/lib/email";
 export const dynamic = "force-dynamic";
 
 /**
- * The renewal nudge, which vercel.json has been calling every morning at 09:00
- * since it was written and which has never existed until now. The cron fired,
- * got a 404, and nobody was ever reminded that their access was about to end.
+ * The renewal nudge. NOT SCHEDULED. vercel.json no longer lists it, so nothing
+ * calls this and no reminder is sent. The route is kept, working, because the
+ * reason it is off is about aim rather than correctness.
+ *
+ * Every plan grants a flat four months and the product never asks when anyone
+ * is sitting the exam, so this fires fourteen days before a date four months
+ * after purchase, which is a date about our billing and not about them. For
+ * one candidate that lands mid-revision and helps; for another it lands the
+ * week after they sat, and "Renew now to keep access to all 246 stations" is
+ * not what to send someone who has just failed. Expiry also takes nothing
+ * away that is theirs: no report is gated, so they keep every one they earned
+ * and lose the case bank and the ability to record.
+ *
+ * To turn it back on, put the entry back in vercel.json. Before doing that,
+ * either ask for the exam date at checkout and aim this at that, or reword
+ * sendAccessExpiryEmail from a renewal pitch to a statement of what ends and
+ * what does not.
+ *
+ * It was written because vercel.json had been calling an endpoint that did not
+ * exist every morning at 09:00. The cron fired, got a 404, and nobody was ever
+ * reminded that their access was about to end.
  *
  * It reads the plan columns, not the programme ones. sendAccessExpiryEmail was
  * written against has_programme/expires_at, which the three plans replaced with
