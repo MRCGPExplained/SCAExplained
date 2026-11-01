@@ -63,15 +63,26 @@ async function recordExaminerClaudeUsage(
  * who found nothing good to say, which is a different claim from an examiner
  * who did not write about that domain.
  */
+/**
+ * One half of a domain — the examiner's observations, one per line.
+ *
+ * They arrive newline-separated because the dialog's boxes are bullet lists.
+ * A single observation is written inline; several are listed, so the model
+ * can see they are separate points rather than one run-on sentence it has to
+ * guess the joins in.
+ */
+function noteList(label: string, text: string): string {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return "";
+  if (lines.length === 1) return `  ${label}: ${lines[0]}\n`;
+  return `  ${label}:\n` + lines.map((l) => `    ${l}\n`).join("");
+}
+
 function domainNotes(label: string, well: string, improve: string): string {
-  const w = well.trim();
-  const i = improve.trim();
+  const w = noteList("Did well", well);
+  const i = noteList("Could improve", improve);
   if (!w && !i) return `${label}: no notes written.\n`;
-  return (
-    `${label}:\n` +
-    (w ? `  Did well: ${w}\n` : "") +
-    (i ? `  Could improve: ${i}\n` : "")
-  );
+  return `${label}:\n` + w + i;
 }
 
 /**
@@ -152,9 +163,9 @@ export async function generateOverallCommentAction(args: {
         "",
         "Do not rephrase a criticism into something gentler. If the note says a thing was missed, the comment says it was missed.",
         "",
-        "Do not swap a word for a synonym. If the note says the referral was \"right\", the comment says it was right, not that it was appropriate.",
+        "Do not swap a word for a synonym. If the note says the referral was \"right\", the comment says it was right, not that it was appropriate. Leave abbreviations exactly as written: \"ICE\" stays \"ICE\", \"2ww\" stays \"2ww\".",
         "",
-        "The one substitution allowed: write out a clinical abbreviation in full, so \"ICE\" becomes \"ideas, concerns and expectations\" and \"2ww\" becomes \"two week wait\". The candidate reads this once and should not have to decode it.",
+        "The notes may be lists, one observation per line. Join them into sentences. The comment itself is never a list.",
         "",
         "Say nothing about a domain with no notes.",
         "",

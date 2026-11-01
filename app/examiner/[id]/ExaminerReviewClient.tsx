@@ -176,7 +176,9 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     cmWell: "", cmImprove: "",
     roWell: "", roImprove: "",
   });
-  const assistHasNotes = Object.values(assist).some((v) => v.trim());
+  // Stripped, not trimmed: a box holding only the bullet the dialog put there
+  // on focus has nothing in it.
+  const assistHasNotes = Object.values(assist).some((v) => bulletLines(v).length > 0);
 
   function handlePreview() {
     startPreview(async () => {
@@ -532,8 +534,18 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                               setAssistOpen(false);
                               setAiGenError("");
                               startAiGen(async () => {
+                                /*
+                                  Bullets off before it goes. The markers are
+                                  a typing convenience in the dialog; the
+                                  model gets plain lines, one observation
+                                  each, so nothing in the prompt invites a
+                                  list back out of it.
+                                */
+                                const plain = (v: string) => bulletLines(v).join("\n");
                                 const res = await generateOverallCommentAction({
-                                  ...assist,
+                                  dgWell: plain(assist.dgWell), dgImprove: plain(assist.dgImprove),
+                                  cmWell: plain(assist.cmWell), cmImprove: plain(assist.cmImprove),
+                                  roWell: plain(assist.roWell), roImprove: plain(assist.roImprove),
                                   stationTitle: rec.station_title,
                                   recordingId: rec.id,
                                 });
@@ -800,6 +812,27 @@ interface AssistNotes {
   roWell: string; roImprove: string;
 }
 
+/** The marker the notes boxes show. Never leaves the dialog — see bulletLines. */
+const BULLET = "• ";
+
+/**
+ * The real content of a notes box, one observation per line.
+ *
+ * The bullets are a typing aid and nothing more: they are stripped here, so
+ * what reaches the prompt is plain lines and what comes back is prose. Also
+ * what decides whether a box counts as filled in — a box holding nothing but
+ * a marker the examiner tabbed through is empty.
+ *
+ * Tolerant of "-" and "*" as well, because anyone used to writing notes will
+ * paste a list in from somewhere else.
+ */
+function bulletLines(value: string): string[] {
+  return value
+    .split("\n")
+    .map((line) => line.replace(/^\s*[•\-*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
 /**
  * The notes AI Assist drafts from.
  *
@@ -836,11 +869,72 @@ function AssistDialog({
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
+  /*
+    Enter starts a new bullet.
+
+    A plain textarea carrying a bullet character, rather than a rich editor or
+    a contenteditable list: the value stays a string, so it still round-trips
+    through component state and the server action unchanged, and the only cost
+    is stripping the markers on the way out. bulletLines does that, so the
+    model never sees a bullet and the comment never comes back as a list.
+
+    Edits go through execCommand rather than through setState.
+
+    The obvious version — build the new string, set it, then put the caret
+    back by hand — does not work on a controlled textarea. Writing the value
+    moves the caret to 0, and restoring it from a requestAnimationFrame races
+    React's re-render: measured, it lost every time, so each new bullet was
+    inserted at the top and the notes came out in reverse order.
+
+    execCommand("insertText") does the edit the way a keystroke would. The
+    browser owns the caret, native undo keeps working, and React sees an
+    ordinary input event. It is deprecated and still the only thing that does
+    this correctly without a caret-tracking ref per box.
+  */
+  const key = (k: keyof AssistNotes) => (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    const { selectionStart: start, selectionEnd: end, value } = el;
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.execCommand("insertText", false, "\n" + BULLET);
+      return;
+    }
+
+    /*
+      Backspace on an empty bullet removes the bullet rather than eating the
+      space inside the marker and leaving a stranded "•". Only when the caret
+      is directly after a marker with nothing typed after it, so it never
+      interferes with ordinary deleting.
+    */
+    if (e.key === "Backspace" && start === end) {
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const atEmptyMarker =
+        start === lineStart + BULLET.length && value.slice(lineStart, start) === BULLET;
+      if (atEmptyMarker) {
+        e.preventDefault();
+        // Take the newline before it too, so the line disappears rather than
+        // leaving a blank one behind.
+        el.setSelectionRange(lineStart === 0 ? 0 : lineStart - 1, start);
+        document.execCommand("delete");
+      }
+    }
+  };
+
   const box = (k: keyof AssistNotes, ref?: React.RefObject<HTMLTextAreaElement | null>) => (
     <textarea
       ref={ref}
       value={notes[k]}
       onChange={(e) => set(k)(e.target.value)}
+      onKeyDown={key(k)}
+      // The first bullet appears on focus, so an empty box shows what it
+      // wants rather than needing the examiner to guess.
+      onFocus={(e) => {
+        if (!e.currentTarget.value) document.execCommand("insertText", false, BULLET);
+      }}
+      // An untouched box is emptied again, so six focused-but-unused fields
+      // do not sit there looking filled in.
+      onBlur={() => { if (!bulletLines(notes[k]).length) set(k)(""); }}
       rows={3}
       className="w-full rounded-xl px-3 py-2 text-[13px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
       style={{ background: LIGHT_BG, border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
