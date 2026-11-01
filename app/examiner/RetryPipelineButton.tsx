@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { retryAiPipelineAction, checkRetryStatusAction } from "./actions";
 import { createRecordingLogger } from "@/lib/recording-logger";
+import { isPipelineRunning } from "@/lib/recording-state";
 
 const { logStatus, logError, logDuration } = createRecordingLogger("examiner-retry");
 
@@ -69,12 +70,23 @@ export default function RetryPipelineButton({
       const { status, hasGrades, aiError } = await checkRetryStatusAction(recordingId);
       logStatus("poll tick", { recordingId, status, hasGrades });
 
-      // Wait for the run to leave "processing", then judge it. Status is
-      // "ai_graded" on success and on failure alike, so it can't be the signal
-      // on its own — and on a re-mark the previous grades survive a failed run,
-      // so `hasGrades` can't be either. A successful run clears ai_error; a
-      // failed one sets it. That combination is reliable in both cases.
-      if (status && status !== "processing") {
+      /*
+        Wait for the run to leave EVERY running status, then judge it.
+
+        This tested `status !== "processing"` alone. A re-grade claims
+        "grading" instead, so the first poll four seconds in saw a status
+        that was not "processing", found the previous run's grades still in
+        place and ai_error freshly cleared by the claim, and reported
+        success over a run that had not started. A green tick is the worst
+        possible way to be wrong here, because it is the one outcome nobody
+        checks.
+
+        Once it has stopped: status is the same on success and failure, and
+        on a re-mark the old grades survive a failed run, so neither status
+        nor hasGrades can be the signal alone. A successful run clears
+        ai_error and a failed one sets it; that combination holds either way.
+      */
+      if (status && !isPipelineRunning(status)) {
         if (hasGrades && !aiError) {
           logDuration("retry completed", t0);
           logStatus(`reloading in ${RELOAD_DELAY_MS / 1000}s — leaving the console up to read first`);

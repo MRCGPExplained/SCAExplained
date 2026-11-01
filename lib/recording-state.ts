@@ -55,6 +55,22 @@ export function gpRequested(row: GpColumns): boolean {
   return !!(row.submitted_for_review_at || row.gp_requested_at);
 }
 
+/**
+ * The statuses that mean the AI pipeline currently holds this row.
+ *
+ * One list, because the number of them is exactly the sort of thing that
+ * gets out of step. A re-grade claims "grading" and a fresh run claims
+ * "processing", and anything testing for only one of the two is wrong half
+ * the time: the retry button tested `status !== "processing"` and so called
+ * a grading run finished four seconds after it started, over grades that
+ * were still the old ones.
+ */
+export const LIVE_STATUSES = ["uploading", "processing", "grading"] as const;
+
+export function isPipelineRunning(status: string | null | undefined): boolean {
+  return !!status && (LIVE_STATUSES as readonly string[]).includes(status);
+}
+
 export type GpState = "discarded" | "none" | "waiting" | "in_progress" | "sent";
 
 export function gpState(row: GpColumns): GpState {
