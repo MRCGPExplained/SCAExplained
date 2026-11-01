@@ -128,6 +128,8 @@ export function TranscribedChoice({
 
   const c = asking ? copy[asking] : null;
   const blocked = asking === "ai" ? noAi : asking === "gp" ? noGp : false;
+  /** Only where a report is actually about to exist for the room to read. */
+  const shareNote = !blocked && asking !== null && asking !== "discard";
 
   return (
     <div className="flex flex-col items-end gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -167,9 +169,29 @@ export function TranscribedChoice({
             </p>
 
             {!blocked && (
-              <div className="rounded-xl px-3.5 py-3 mb-5 text-[12.5px] leading-[1.55]" style={{ background: WASH, color: DARK }}>
+              <div
+                className={`rounded-xl px-3.5 py-3 text-[12.5px] leading-[1.55] ${shareNote ? "mb-3" : "mb-5"}`}
+                style={{ background: WASH, color: DARK }}
+              >
                 {c.note}
               </div>
+            )}
+
+            {/*
+              Said before the report exists, not discovered afterwards.
+
+              The people who played the patient and watched now find this
+              consultation in their own list, so the mark on it is read by the
+              room rather than by the candidate alone. That was already true —
+              the report page admits whoever holds its link, and the station
+              list has long linked a peer straight to it — but it had never
+              been said anywhere a user would see. Not on discard, where there
+              will be no report to read.
+            */}
+            {shareNote && (
+              <p className="m-0 mb-5 text-[12px] leading-[1.5]" style={{ color: "rgba(51,51,51,0.5)" }}>
+                Whoever was in the room with you can read this report too.
+              </p>
             )}
 
             <div className="flex gap-2.5">

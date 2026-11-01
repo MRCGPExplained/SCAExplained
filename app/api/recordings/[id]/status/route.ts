@@ -18,10 +18,20 @@ export async function GET(_req: Request, { params }: RouteParams) {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "Config error" }, { status: 500 });
 
+  /*
+    No grade columns. This route admits the doctor OR the patient, so every
+    column it ships is readable by both of them, and the six grade columns were
+    one person's mark being handed to the person they practised with — on the
+    wire, four times a minute, while the row that deliberately withholds those
+    same grades renders on screen. No caller ever read them: RecordingProgress
+    types status/has_transcript/audio_complete, the two betatest pollers
+    destructure status alone, and the study room declared ai_data_gathering
+    without reading it.
+  */
   const { data } = await admin
     .from("station_recordings")
     .select(
-      "status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, sent_to_candidate_at, ai_error, doctor_audio_path, patient_audio_path, transcript_formatted"
+      "status, sent_to_candidate_at, ai_error, doctor_audio_path, patient_audio_path, transcript_formatted"
     )
     .eq("id", recordingId)
     .or(`doctor_user_id.eq.${user.id},patient_user_id.eq.${user.id}`)
@@ -33,7 +43,6 @@ export async function GET(_req: Request, { params }: RouteParams) {
   // what separates "transcribing" from "marking", but it is the entire
   // consultation — several thousand words a poller would re-download every few
   // seconds — and the storage paths are only needed for the one boolean below.
-  // Existing callers destructure `status` alone, so the added fields are safe.
   const { transcript_formatted, doctor_audio_path, patient_audio_path, ...rest } = data as typeof data & {
     transcript_formatted: string | null;
     doctor_audio_path: string | null;

@@ -2192,7 +2192,6 @@ export function StudyRoomProvider({
           has_transcript: boolean;
           audio_complete: boolean;
           ai_error: string | null;
-          ai_data_gathering: string | null;
         };
         try {
           const res = await fetch(`/api/recordings/${recordingId}/status`);

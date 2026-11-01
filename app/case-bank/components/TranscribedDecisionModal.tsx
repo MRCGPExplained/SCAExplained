@@ -175,6 +175,21 @@ export function TranscribedDecisionModal({
         <h2 id="decide-heading" className="font-display font-extrabold text-[17px] mb-1.5" style={{ color: DARK }}>
           Consultation recorded
         </h2>
+        {/*
+          Said here, in front of the people it is about, rather than
+          discovered later.
+
+          The patient and the observers now find this consultation in their
+          own recordings list, so the mark on it is read by the room and not
+          by the candidate alone. That has always been true — the report page
+          admits whoever holds its link, and the station list has long linked
+          a peer straight to it — it had simply never been said anywhere a
+          user would see. A statement of fact, not a warning: they are sitting
+          in the call together and about to debrief on exactly this.
+        */}
+        <p className="text-[12.5px] leading-[1.5] m-0 mb-3.5" style={{ color: "rgba(51,51,51,0.5)" }}>
+          Whoever was in the room with you can read the report.
+        </p>
         <div className="flex flex-col gap-2.5">
           {ai === 0
             ? emptyOption("AI feedback", "1 of 0")
