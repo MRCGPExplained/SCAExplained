@@ -55,10 +55,50 @@ async function recordExaminerClaudeUsage(
   }
 }
 
+/**
+ * One domain's block of the prompt.
+ *
+ * A domain with nothing typed says so rather than presenting two empty
+ * labels. "Did well:" followed by nothing reads to the model as an examiner
+ * who found nothing good to say, which is a different claim from an examiner
+ * who did not write about that domain.
+ */
+function domainNotes(label: string, well: string, improve: string): string {
+  const w = well.trim();
+  const i = improve.trim();
+  if (!w && !i) return `${label}: no notes written.\n`;
+  return (
+    `${label}:\n` +
+    (w ? `  Did well: ${w}\n` : "") +
+    (i ? `  Could improve: ${i}\n` : "")
+  );
+}
+
+/**
+ * Draft an overall comment from notes the examiner types for this purpose.
+ *
+ * The six note fields are the only input. Two things it deliberately does not
+ * see:
+ *
+ *   - The three saved domain comments. Handing it those made it a summariser
+ *     of text the candidate was already going to read, so the overall comment
+ *     came back as the same three points in a different order. These notes are
+ *     written separately and are not stored anywhere; they exist to say what
+ *     the summary should be about.
+ *
+ *   - The grades. Brandon's call, and the reasoning is sound: a model told
+ *     "Clear Fail" writes to that label rather than to what the examiner
+ *     observed, and softens or hardens prose the examiner never asked it to.
+ *     The examiner writes what they mean in the notes, and the tone follows
+ *     from that.
+ *
+ * The station title stays. It is the name of the case, not a judgement on it,
+ * and it keeps the draft from misreading what the consultation was about.
+ */
 export async function generateOverallCommentAction(args: {
-  dgGrade: string; dgComment: string;
-  cmGrade: string; cmComment: string;
-  roGrade: string; roComment: string;
+  dgWell: string; dgImprove: string;
+  cmWell: string; cmImprove: string;
+  roWell: string; roImprove: string;
   stationTitle: string;
   recordingId?: string;
 }): Promise<{ text?: string; error?: string }> {
@@ -75,16 +115,17 @@ export async function generateOverallCommentAction(args: {
     body: JSON.stringify({
       model: EXAMINER_CLAUDE_MODEL,
       max_tokens: 300,
-      system: "You are an RCGP examiner writing a brief overall comment to a GP registrar after their SCA consultation. Write in a supportive but honest tone. Use plain sentences, no bullet points, no em dashes. 3-5 sentences maximum.",
+      system: "You are an RCGP examiner writing a brief overall comment to a GP registrar after their SCA consultation. Write in a supportive but honest tone. Use plain sentences, no bullet points, no headings, no em dashes. 3-5 sentences maximum.",
       messages: [{
         role: "user",
         content: `Station: ${args.stationTitle}
 
-Data Gathering (${args.dgGrade}): ${args.dgComment}
-Clinical Management (${args.cmGrade}): ${args.cmComment}
-Relating to Others (${args.roGrade}): ${args.roComment}
+${domainNotes("Data Gathering", args.dgWell, args.dgImprove)}
+${domainNotes("Clinical Management", args.cmWell, args.cmImprove)}
+${domainNotes("Relating to Others", args.roWell, args.roImprove)}
+Write a brief overall comment that summarises performance and highlights the single most important thing to work on.
 
-Write a brief overall comment that summarises performance and highlights the single most important thing to work on. No em dashes.`,
+Use only the notes above. They are an examiner's own observations of this consultation, so do not add specifics of your own, and do not invent anything about a domain whose notes are blank. Write continuous prose: no headings, no bullet points, no em dashes.`,
       }],
     }),
   });

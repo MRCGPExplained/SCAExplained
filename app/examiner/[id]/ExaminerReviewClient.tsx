@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useActionState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
@@ -155,6 +156,27 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [grammarPending, startGrammar] = useTransition();
   const [previewPending, startPreview] = useTransition();
   const [aiGenError, setAiGenError] = useState("");
+
+  /*
+    The AI Assist notes.
+
+    Held here rather than inside the modal so they survive it closing. An
+    examiner who types six careful observations, generates a draft they do not
+    like and shuts the dialog would otherwise have lost all six, which is a
+    worse outcome than the bad draft they were trying to escape.
+
+    Not saved to the database either. They are working notes about what the
+    summary should cover, not feedback the candidate reads; what the candidate
+    reads is whatever ends up in the comment box after the examiner has edited
+    it.
+  */
+  const [assistOpen, setAssistOpen] = useState(false);
+  const [assist, setAssist] = useState({
+    dgWell: "", dgImprove: "",
+    cmWell: "", cmImprove: "",
+    roWell: "", roImprove: "",
+  });
+  const assistHasNotes = Object.values(assist).some((v) => v.trim());
 
   function handlePreview() {
     startPreview(async () => {
@@ -476,26 +498,52 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   <Accordion title="Overall Comment">
                     {!isSent && (
                       <div className="flex gap-2 mb-3 flex-wrap">
+                        {/*
+                          "Assist", not "Generate". It does not write the
+                          comment, it drafts one from notes the examiner
+                          types — and the examiner then edits it and puts
+                          their name to it.
+
+                          No longer gated on the three grades being set. That
+                          gate existed because the grades were fed to the
+                          model and set the draft's tone; they are not sent
+                          any more, so waiting for them would be gating on
+                          something the draft no longer depends on.
+                        */}
                         <button
                           type="button"
-                          disabled={aiGenPending || !dgGrade || !cmGrade || !roGrade}
-                          onClick={() => {
-                            setAiGenError("");
-                            startAiGen(async () => {
-                              const res = await generateOverallCommentAction({
-                                dgGrade, dgComment, cmGrade, cmComment, roGrade, roComment,
-                                stationTitle: rec.station_title,
-                                recordingId: rec.id,
-                              });
-                              if (res.text) setOverallComment(res.text);
-                              else setAiGenError(res.error ?? "Failed");
-                            });
-                          }}
+                          disabled={aiGenPending}
+                          onClick={() => { setAiGenError(""); setAssistOpen(true); }}
                           className="px-3 py-1 rounded-lg text-[11px] font-semibold"
-                          style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending || !dgGrade || !cmGrade || !roGrade ? 0.5 : 1 }}
+                          style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending ? 0.5 : 1 }}
                         >
-                          {aiGenPending ? "Generating…" : "AI Generate"}
+                          {aiGenPending ? "Generating…" : "AI Assist"}
                         </button>
+
+                        {assistOpen && createPortal(
+                          <AssistDialog
+                            notes={assist}
+                            onChange={setAssist}
+                            hasNotes={assistHasNotes}
+                            willOverwrite={!!overallComment.trim()}
+                            pending={aiGenPending}
+                            onClose={() => setAssistOpen(false)}
+                            onGenerate={() => {
+                              setAssistOpen(false);
+                              setAiGenError("");
+                              startAiGen(async () => {
+                                const res = await generateOverallCommentAction({
+                                  ...assist,
+                                  stationTitle: rec.station_title,
+                                  recordingId: rec.id,
+                                });
+                                if (res.text) setOverallComment(res.text);
+                                else setAiGenError(res.error ?? "Failed");
+                              });
+                            }}
+                          />,
+                          document.body
+                        )}
                         <button
                           type="button"
                           disabled={grammarPending || !overallComment.trim()}
@@ -743,6 +791,161 @@ function VoiceNoteSection({ recordingId, initialUrl, readOnly = false }: {
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
     </Accordion>
+  );
+}
+
+interface AssistNotes {
+  dgWell: string; dgImprove: string;
+  cmWell: string; cmImprove: string;
+  roWell: string; roImprove: string;
+}
+
+/**
+ * The notes AI Assist drafts from.
+ *
+ * One dialog rather than a sequence of six, which was the other shape
+ * considered. Six prompts in a row is six clicks forward with no way back, no
+ * sight of what you have already written, and no way to fill in only the two
+ * that matter. All six on one screen is the same information and none of that.
+ *
+ * Nothing here is required, and nothing here is stored. These are working
+ * notes about what the summary should cover; what the candidate reads is
+ * whatever the examiner leaves in the comment box afterwards.
+ */
+function AssistDialog({
+  notes, onChange, hasNotes, willOverwrite, pending, onClose, onGenerate,
+}: {
+  notes: AssistNotes;
+  onChange: (n: AssistNotes) => void;
+  hasNotes: boolean;
+  /** There is already text in the comment box, which generating replaces. */
+  willOverwrite: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onGenerate: () => void;
+}) {
+  const firstRef = useRef<HTMLTextAreaElement>(null);
+  const [confirmingOverwrite, setConfirmingOverwrite] = useState(false);
+
+  useEffect(() => {
+    firstRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
+
+  const box = (k: keyof AssistNotes, ref?: React.RefObject<HTMLTextAreaElement | null>) => (
+    <textarea
+      ref={ref}
+      value={notes[k]}
+      onChange={(e) => set(k)(e.target.value)}
+      rows={3}
+      className="w-full rounded-xl px-3 py-2 text-[13px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
+      style={{ background: LIGHT_BG, border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
+    />
+  );
+
+  const DOMAINS: { label: string; well: keyof AssistNotes; improve: keyof AssistNotes }[] = [
+    { label: "Data Gathering", well: "dgWell", improve: "dgImprove" },
+    { label: "Clinical Management", well: "cmWell", improve: "cmImprove" },
+    { label: "Relating to Others", well: "roWell", improve: "roImprove" },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 px-6 py-8 overflow-y-auto"
+      style={{ background: "rgba(51,51,51,0.55)" }}
+      onClick={() => !pending && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assist-heading"
+        className="w-full max-w-[720px] rounded-2xl p-6 my-auto"
+        style={{ background: "white", boxShadow: "0 20px 60px rgba(51,51,51,0.25)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="assist-heading" className="font-display font-extrabold text-[17px] mb-1.5" style={{ color: NAVY }}>
+          AI Assist
+        </h2>
+        <p className="text-[12.5px] leading-[1.5] m-0 mb-5" style={{ color: "rgba(51,51,51,0.5)" }}>
+          Note what you saw, in your own words, and this drafts an overall comment from it.
+          Leave anything blank that you do not want mentioned. Nothing here is saved or shown
+          to the candidate — only the comment you keep afterwards.
+        </p>
+
+        <div className="flex flex-col gap-4 mb-5">
+          <div className="hidden sm:grid grid-cols-[150px_1fr_1fr] gap-3 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+            <span />
+            <span>Did well</span>
+            <span>Could improve</span>
+          </div>
+          {DOMAINS.map((d, i) => (
+            <div key={d.label} className="grid sm:grid-cols-[150px_1fr_1fr] gap-3 items-start">
+              <span className="text-[13px] font-bold pt-2" style={{ color: NAVY }}>{d.label}</span>
+              <div>
+                {/* The column headers are hidden on a narrow dialog, so each
+                    box names itself there instead of sitting unlabelled. */}
+                <span className="sm:hidden block text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>Did well</span>
+                {box(d.well, i === 0 ? firstRef : undefined)}
+              </div>
+              <div>
+                <span className="sm:hidden block text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>Could improve</span>
+                {box(d.improve)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/*
+          Replacing something already written is the one irreversible thing
+          this dialog does, so it asks. Only when there is something to lose.
+        */}
+        {confirmingOverwrite ? (
+          <div className="rounded-xl px-3.5 py-3 mb-4 text-[12.5px] leading-[1.55]" style={{ background: "#F9F3D9", color: NAVY }}>
+            There is already a comment written. Generating replaces it with the draft, and the
+            text you have now is not recoverable.
+          </div>
+        ) : (
+          !hasNotes && (
+            <p className="text-[12px] m-0 mb-4" style={{ color: "rgba(51,51,51,0.45)" }}>
+              Fill in at least one box. With nothing to go on, a draft would be invented rather
+              than drawn from what you saw.
+            </p>
+          )
+        )}
+
+        <div className="flex gap-2.5 justify-end">
+          <button
+            type="button"
+            onClick={() => (confirmingOverwrite ? setConfirmingOverwrite(false) : onClose())}
+            disabled={pending}
+            className="rounded-lg px-4 py-2.5 text-[13px] font-semibold"
+            style={{ background: "#F4F4F2", border: "none", color: NAVY, cursor: pending ? "default" : "pointer" }}
+          >
+            {confirmingOverwrite ? "Back" : "Cancel"}
+          </button>
+          <button
+            type="button"
+            disabled={!hasNotes || pending}
+            onClick={() => {
+              if (willOverwrite && !confirmingOverwrite) { setConfirmingOverwrite(true); return; }
+              onGenerate();
+            }}
+            className="rounded-lg px-4 py-2.5 text-[13px] font-bold"
+            style={{
+              background: NAVY, border: "none", color: "white",
+              cursor: !hasNotes || pending ? "default" : "pointer",
+              opacity: !hasNotes || pending ? 0.45 : 1,
+            }}
+          >
+            {confirmingOverwrite ? "Replace it" : "Generate draft"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
