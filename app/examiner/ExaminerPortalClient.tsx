@@ -283,15 +283,30 @@ function RecordingCard({
   const href = tab === "ai" ? `/recordings/${rec.id}` : `/examiner/${rec.id}`;
 
   return (
-    <Link
-      href={href}
-      className="block rounded-2xl p-5 transition hover:shadow-md"
+    <div
+      className="relative rounded-2xl p-5 transition hover:shadow-md"
       style={{
         background: "white",
         border: `1px solid ${isPending || isReviewing ? "rgba(245,158,11,0.3)" : "rgba(51,51,51,0.08)"}`,
-        textDecoration: "none",
       }}
     >
+      {/*
+        The whole card is still clickable, but as an overlay rather than as an
+        anchor wrapped around the buttons.
+
+        It was a <Link> containing <button>s. That is invalid HTML and
+        browsers do not agree on it, which is why Run AI Pipeline threw you
+        onto the review page even though its handler calls preventDefault and
+        stopPropagation: starting a re-grade from the queue took you out of
+        the queue you wanted to watch it from. An overlay cannot have that
+        argument, because a click on a button never reaches the anchor.
+      */}
+      <Link
+        href={href}
+        aria-label={`Open Station ${rec.station_number}: ${rec.station_title}`}
+        className="absolute inset-0 rounded-2xl"
+        style={{ textDecoration: "none" }}
+      />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
@@ -311,7 +326,9 @@ function RecordingCard({
             </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
+        {/* Lifted above the overlay, so the controls in here take their own
+            clicks instead of the card's. */}
+        <div className="relative z-10 flex flex-col items-end gap-2">
           <span
             className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.05em]"
             style={{ background: statusChip.bg, color: statusChip.color }}
@@ -345,6 +362,6 @@ function RecordingCard({
           <RetryPipelineButton recordingId={rec.id} hasExistingMark={alreadyMarked} />
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
