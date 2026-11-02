@@ -230,21 +230,33 @@ export default async function RecordingDetailPage({
     hasAiReportFeedback = !!feedback;
   }
 
-  const skillsAssessment = rec.skills_assessment as SkillsAssessment | null;
-  const aiSkills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
-  // A GP's edits win over the model's, the same way examiner_* domain grades
-  // win over ai_*. The AI's version stays in its own column either way.
-  const examinerSkills = rec.examiner_skills_assessment as SkillsAssessment | null;
-  const skills: SkillAnswer[] = Array.isArray(examinerSkills?.skills) && examinerSkills.skills.length
-    ? examinerSkills.skills
-    : aiSkills;
-  const firedRules: FiredRule[] = Array.isArray(rec.case_rules_fired) ? rec.case_rules_fired : [];
-  // Includes retired skills so an old recording still shows a proper label.
-  const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
-
   const isFinal = !!rec.sent_to_candidate_at;
   const hasExaminerGrades = !!(rec.examiner_data_gathering && rec.examiner_clinical_management && rec.examiner_relating_to_others);
   const showExaminerGrades = isFinal || hasExaminerGrades;
+
+  const skillsAssessment = rec.skills_assessment as SkillsAssessment | null;
+  const aiSkills: SkillAnswer[] = Array.isArray(skillsAssessment?.skills) ? skillsAssessment.skills : [];
+  /*
+    A GP's edits win over the model's, the same way examiner_* domain grades
+    win over ai_*. The AI's version stays in its own column either way.
+
+    Behind showExaminerGrades, which is the same gate the domain grades two
+    lines down already used — and the reason this moved up here. Without it
+    the examiner's skills appeared the instant they were written, which was
+    survivable while writing them meant pressing Save and is not now that
+    they save themselves as the examiner types. A rating flipped mid-thought,
+    or a "Needs Improvement" whose "Next time" box is still empty, was on the
+    candidate's report on their next load. The AI's answers show until the
+    gate opens, exactly as the AI's grades do.
+  */
+  const examinerSkills = rec.examiner_skills_assessment as SkillsAssessment | null;
+  const skills: SkillAnswer[] =
+    showExaminerGrades && Array.isArray(examinerSkills?.skills) && examinerSkills.skills.length
+      ? examinerSkills.skills
+      : aiSkills;
+  const firedRules: FiredRule[] = Array.isArray(rec.case_rules_fired) ? rec.case_rules_fired : [];
+  // Includes retired skills so an old recording still shows a proper label.
+  const skillLabels = skills.length ? await loadAllSkillLabels(admin) : {};
 
   /*
     Mark as read the first time the CANDIDATE sees the finalised report.

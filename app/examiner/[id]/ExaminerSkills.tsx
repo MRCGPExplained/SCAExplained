@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { saveExaminerSkillsAction } from "../actions";
 import type { SkillAnswer, SkillRating } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
+
+/*
+  How long after the last keystroke the skills are written.
+
+  Long enough that typing a sentence is one save and not thirty; short enough
+  that an examiner who edits a rating and immediately hits Preview Report has
+  almost always already been saved by the time the page navigates. The blur
+  that any focused textarea fires on the way out closes most of what is left
+  of that gap, because it saves at once rather than waiting out the timer.
+*/
+const AUTOSAVE_MS = 900;
 
 const RATINGS: { value: SkillRating; label: string; color: string; bg: string }[] = [
   { value: "good", label: "Good", color: "#166534", bg: "rgba(34,197,94,0.12)" },
@@ -38,22 +49,77 @@ export default function ExaminerSkills({
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
+  /*
+    The newest rows, readable from a timer without restarting it.
+
+    A debounce that named `rows` as a dependency would cancel and re-arm on
+    every keystroke AND rebuild the effect, so the timer would never be the
+    same timer twice. This way the effect watches a counter and the save
+    reads whatever is current when it fires.
+  */
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const [editCount, setEditCount] = useState(0);
+
   function update(i: number, patch: Partial<SkillAnswer>) {
     setRows((prev) => prev.map((r, j) => (j === i ? { ...r, ...patch } : r)));
     setDirty(true);
     setSaved(false);
+    setEditCount((n) => n + 1);
   }
 
   function save() {
     setError(null);
     startTransition(async () => {
-      const res = await saveExaminerSkillsAction(recordingId, rows);
-      if (res.error) setError(res.error);
-      else {
-        setSaved(true);
-        setDirty(false);
+      /*
+        A throw in here used to be a button press that failed in front of the
+        person who made it. It is now a timer firing in the background while
+        they write, and an uncaught one takes the whole review down with it —
+        every grade, every comment, the notepad. saveExaminerSkillsAction
+        reaches getExaminer and Supabase before it returns anything, and
+        neither of those promises to fail politely.
+
+        dirty is deliberately left set: the next edit or blur tries again.
+      */
+      try {
+        const res = await saveExaminerSkillsAction(recordingId, rowsRef.current);
+        if (res.error) setError(res.error);
+        else {
+          setSaved(true);
+          setDirty(false);
+        }
+      } catch {
+        setError("Could not save — your changes are still here.");
       }
     });
+  }
+
+  /*
+    Autosave, replacing the button.
+
+    Gated on editCount > 0, and that is the whole safety of it: rows are
+    seeded from the AI's answers above, so a save that fired on mount would
+    store the model's own output as the examiner's version of it. The report
+    prefers that column once it is non-empty, and the header below would
+    start claiming "Edited by a GP" about a review nobody had touched.
+    Nothing is written until a human changes something.
+
+    Disabled once sent, like every other input here.
+  */
+  useEffect(() => {
+    if (disabled || editCount === 0) return;
+    const timer = setTimeout(save, AUTOSAVE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editCount, disabled]);
+
+  /*
+    And at once on the way out of a field, so clicking Preview Report or Save
+    straight after an edit does not race the timer above.
+  */
+  function saveNow() {
+    if (disabled || !dirty) return;
+    save();
   }
 
   if (!aiSkills.length) return null;
@@ -71,19 +137,22 @@ export default function ExaminerSkills({
               : "As the AI answered them. Anything you change here replaces it on the report."}
           </p>
         </div>
+        {/*
+          A status line where the Save button was. There is nothing to press:
+          the only thing the button ever told you was whether your work was
+          safe, so that is all that is left of it.
+        */}
         {!disabled && (
-          <div className="flex items-center gap-3">
-            {error && <span className="text-[12px]" style={{ color: "#B91C1C" }}>{error}</span>}
-            {saved && !dirty && <span className="text-[12px]" style={{ color: "#166534" }}>Saved</span>}
-            <button
-              type="button"
-              onClick={save}
-              disabled={pending || !dirty}
-              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold text-white disabled:opacity-40"
-              style={{ background: NAVY, border: "none", cursor: pending || !dirty ? "default" : "pointer" }}
-            >
-              {pending ? "Saving…" : "Save skills"}
-            </button>
+          <div className="flex items-center gap-3 text-[12px]">
+            {error ? (
+              <span style={{ color: "#B91C1C" }}>{error}</span>
+            ) : pending ? (
+              <span style={{ color: "rgba(51,51,51,0.45)" }}>Saving…</span>
+            ) : dirty ? (
+              <span style={{ color: "rgba(51,51,51,0.35)" }}>Unsaved…</span>
+            ) : saved ? (
+              <span style={{ color: "#166534" }}>✓ Saved</span>
+            ) : null}
           </div>
         )}
       </div>
@@ -143,6 +212,7 @@ export default function ExaminerSkills({
                 value={s.comment ?? ""}
                 disabled={disabled}
                 onChange={(e) => update(i, { comment: e.target.value })}
+                onBlur={saveNow}
                 rows={3}
                 placeholder="Comment shown to the candidate…"
                 className="w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-navy/50"
@@ -156,6 +226,7 @@ export default function ExaminerSkills({
                   value={s.improvement ?? ""}
                   disabled={disabled}
                   onChange={(e) => update(i, { improvement: e.target.value })}
+                  onBlur={saveNow}
                   rows={2}
                   placeholder="Next time: what to do differently…"
                   className="w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none mt-2"

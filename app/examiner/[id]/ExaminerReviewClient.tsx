@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useActionState, useTransition } from "react";
+import { useState, useRef, useEffect, useCallback, useActionState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
+import TranscriptKaraoke from "./TranscriptKaraoke";
+import type { TimedTurn } from "@/lib/transcript";
 import type { SkillAnswer } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
@@ -148,6 +150,8 @@ type RecordingFull = {
 
 interface Props {
   recording: RecordingFull;
+  /** The transcript on one clock. Empty when there are no word timings. */
+  turns: TimedTurn[];
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
   voiceNoteUrl: string | null;
@@ -156,8 +160,35 @@ interface Props {
   skillLabels: Record<string, string>;
 }
 
-export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
+export default function ExaminerReviewClient({ recording: rec, turns, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
   const router = useRouter();
+
+  /*
+    The audio position, passed around without going through render.
+
+    The player emits roughly sixty times a second while playing. Putting that
+    in state would re-render this whole component — the grade buttons, the
+    notepad, the three comment boxes — sixty times a second to move one
+    highlight. So listeners register directly and the emitter walks them.
+
+    Both callbacks are stable: the player holds onTime in a ref, and the
+    transcript subscribes once for its lifetime. Neither would be true if
+    these were rebuilt each render.
+  */
+  const timeListeners = useRef(new Set<(t: number) => void>());
+  const emitTime = useCallback((t: number) => {
+    for (const fn of timeListeners.current) fn(t);
+  }, []);
+  const subscribeTime = useCallback((fn: (t: number) => void) => {
+    timeListeners.current.add(fn);
+    return () => {
+      timeListeners.current.delete(fn);
+    };
+  }, []);
+  // Only so the transcript knows whether to follow along; a paused player
+  // should leave the examiner's scroll position where they put it.
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const seekRef = useRef<((t: number) => void) | null>(null);
   const isSent = !!rec.sent_to_candidate_at;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
@@ -359,10 +390,33 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
     <div className="min-h-screen" style={{ background: LIGHT_BG }}>
       <div className="max-w-[1180px] mx-auto px-4 py-10">
 
-        <div className="mb-6">
+        <div className="mb-6 flex items-center gap-4 flex-wrap">
           <Link href="/examiner" className="text-[12px] font-semibold" style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}>
             ← Review Queue
           </Link>
+          {/*
+            The case itself, for reference while marking, in its own tab so
+            the half-written review is still here on the way back.
+
+            A plain <a> rather than <Link>: this is a heavy page an examiner
+            may never open, and prefetching it on hover would fetch the whole
+            station every time the cursor crossed the header.
+
+            It resolves by station number — /case-bank/[station_number] looks
+            up stations.number, and station_recordings carries no station id
+            to use instead. This is the candidate's view of the case: the
+            marking notes are stripped from it (lib/case-bank-types,
+            toCandidateStation) and are not shown to examiners anywhere.
+          */}
+          <a
+            href={`/case-bank/${rec.station_number}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[12px] font-semibold"
+            style={{ color: "rgba(51,51,51,0.45)", textDecoration: "none" }}
+          >
+            Open Station {rec.station_number} ↗
+          </a>
         </div>
 
         <form action={formAction}>
@@ -399,9 +453,23 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 </div>
               </div>
 
-              {/* Station score — sticky, live-updates as grades are selected */}
+              {/*
+                Score and transport, stuck together at the top.
+
+                The player used to sit in the flow below this bar, which meant
+                scrolling to the transcript scrolled the pause button away —
+                and the transcript is the one place you most want to stop the
+                audio. They share a card rather than being two sticky
+                elements because two would need the second to know the height
+                of the first, measured and re-measured on every resize, to
+                stack without overlapping.
+
+                It is a card, not a column: a third track would have cost the
+                main column about 260px of its ~768px, and the domain cards,
+                the four-button grade rows and the transcript all live there.
+              */}
               <div
-                className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between"
+                className="rounded-2xl mb-5"
                 style={{
                   background: "white",
                   border: "1px solid rgba(51,51,51,0.08)",
@@ -411,6 +479,7 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
                 }}
               >
+              <div className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span className="text-[12px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
                     Station Score
@@ -428,18 +497,19 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                 </span>
               </div>
 
-                {/* Audio — at the top */}
                 {(doctorAudioUrl || patientAudioUrl) && (
-                  <div
-                    className="rounded-2xl p-5 mb-4"
-                    style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-                  >
-                    <div className="text-[11px] font-bold uppercase tracking-[0.06em] mb-3" style={{ color: "rgba(51,51,51,0.4)" }}>
-                      Consultation Audio
-                    </div>
-                    <DualTrackPlayer doctorUrl={doctorAudioUrl} patientUrl={patientAudioUrl} />
+                  <div className="px-5 pb-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)", paddingTop: 12 }}>
+                    <DualTrackPlayer
+                      doctorUrl={doctorAudioUrl}
+                      patientUrl={patientAudioUrl}
+                      compact
+                      onTime={emitTime}
+                      onPlayingChange={setAudioPlaying}
+                      seekRef={seekRef}
+                    />
                   </div>
                 )}
+              </div>
 
                 {/* AI pipeline — always available, on every attempt */}
                 <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
@@ -552,14 +622,38 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                   disabled={isSent}
                 />
 
-                {/* Transcript */}
-                {rec.transcript_formatted && (
+                {/*
+                  Transcript.
+
+                  Open by default now that it is a fixed-height scroll box
+                  rather than a thousand lines pushed into the page: it cannot
+                  bury what is under it, and a transcript that has to be
+                  unfolded before it can follow the audio is a transcript that
+                  does not follow the audio.
+
+                  The karaoke version needs word timings. Recordings that have
+                  none — a spike row, anything transcribed before utterances
+                  were kept — fall back to the formatted string, which is the
+                  same thing this always showed.
+                */}
+                {turns.length > 0 ? (
+                  <div className="mb-4">
+                    <Accordion title="Transcript" defaultOpen>
+                      <TranscriptKaraoke
+                        turns={turns}
+                        subscribe={subscribeTime}
+                        isPlaying={audioPlaying}
+                        onSeek={(t) => seekRef.current?.(t)}
+                      />
+                    </Accordion>
+                  </div>
+                ) : rec.transcript_formatted ? (
                   <div className="mb-4">
                     <Accordion title="Transcript" defaultOpen={false}>
                       <TranscriptLines text={rec.transcript_formatted} />
                     </Accordion>
                   </div>
-                )}
+                ) : null}
 
                 {/* Error / success */}
                 {"error" in state && state.error && (

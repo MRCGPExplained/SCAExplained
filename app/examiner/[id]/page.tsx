@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadAllSkillLabels, type SkillAnswer } from "@/lib/skill-framework";
+import { mergedTurns } from "@/lib/transcript";
 import ExaminerReviewClient from "./ExaminerReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ type RecordingFull = {
   started_at: string;
   status: string;
   transcript_formatted: string | null;
+  /** Deepgram's utterances, words and all. See lib/transcript. */
+  transcript_raw: unknown;
   ai_data_gathering: string | null;
   ai_clinical_management: string | null;
   ai_relating_to_others: string | null;
@@ -80,6 +83,28 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
   patientAudioUrl = patientResult.data?.signedUrl ?? null;
   voiceNoteUrl = voiceResult.data?.signedUrl ?? null;
 
+  /*
+    Turned into turns here rather than in the browser.
+
+    The column is 60-70kB of Deepgram JSON — ids, channels, per-word
+    confidences, and each utterance's text repeated outside its words. The
+    turns are what the page actually renders, and they are smaller than the
+    raw they come from, so doing this on the server both saves the parse and
+    cuts the payload. Empty for a spike row or a recording transcribed before
+    utterances were kept, and the client falls back to the formatted string.
+  */
+  const turns = mergedTurns(rec.transcript_raw);
+
+  /*
+    The raw column is not sent on. `turns` replaces it, the client reads
+    nothing else from it, and at 60-70kB it was the largest thing crossing the
+    wire for a page that never opened it. Destructured away rather than
+    overwritten with undefined, so the key is absent from the payload instead
+    of present and empty.
+  */
+  const { transcript_raw: _unusedRaw, ...recordingForClient } = rec;
+  void _unusedRaw;
+
   const aiSkills = rec.skills_assessment?.skills ?? [];
   // Retired skills included, so a report graded under an older question set
   // still shows a label rather than a bare key.
@@ -87,7 +112,8 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
 
   return (
     <ExaminerReviewClient
-      recording={rec}
+      recording={recordingForClient}
+      turns={turns}
       doctorAudioUrl={doctorAudioUrl}
       patientAudioUrl={patientAudioUrl}
       voiceNoteUrl={voiceNoteUrl}
