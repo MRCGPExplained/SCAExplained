@@ -658,6 +658,8 @@ export async function sendExaminerNotificationEmail(args: {
 
 export async function sendExaminerReportEmail(args: {
   to: string;
+  /** The consultation this is about. The button opens it directly. */
+  recordingId: string;
   stationNumber: number;
   stationTitle: string;
   dgGrade: string;
@@ -669,18 +671,20 @@ export async function sendExaminerReportEmail(args: {
   roComment: string;
   overallComment: string;
   /**
-   * Set when this copy is going to someone who was in the room but did not
-   * sit in the doctor's chair — the patient, or an observer.
+   * The doctor's name in the possessive — "Ada's" — on a copy going to
+   * someone who was in the room but did not sit in the doctor's chair.
    *
-   * The body is now the same for everyone: it opens on the station and the
-   * chairs, which say whose consultation it is without anyone having to be
-   * addressed. So this is down to two things — the subject line, which is
-   * all a crowded inbox shows, and where the button goes.
+   * The last thing that still differs between the copies, and it differs in
+   * one place: the subject. The body opens on the station and the chairs,
+   * which say whose consultation it is without addressing anyone, and the
+   * button now opens the same report for everybody. A subject line cannot do
+   * that — it is one line in a list of forty — so it keeps the possessive.
    *
-   * `whose` is a POSSESSIVE from lib/doctor-name, null whenever the name
-   * cannot be trusted, and nothing else may stand in for it.
+   * Comes from doctorPossessive in lib/doctor-name, which returns null for
+   * any display name it cannot vouch for. Nothing else may stand in for it,
+   * and null simply gives the doctor's own plain subject.
    */
-  peer?: { whose: string | null; recordingId: string };
+  whose?: string | null;
   /**
    * Who was in the room, and who marked it.
    *
@@ -704,27 +708,20 @@ export async function sendExaminerReportEmail(args: {
   const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
+  const subject = args.whose
+    ? `${args.whose} SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`
+    : `SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`;
   /*
-    The one place the copies still differ.
+    Everyone gets the report, not a list to find it in.
 
-    The body opens on the station and the chairs, which tell a peer whose
-    consultation it is better than a sentence addressing them would. A
-    subject line cannot do that — it is one line in a list of forty — so it
-    keeps the possessive, and the fallback is the bare "SCA Report" rather
-    than a guess at the name: doctorPossessive returns null for any display
-    name it cannot vouch for.
+    It was the list for the doctor and the report for a peer, because a peer
+    has no list — /recordings is `.eq("doctor_user_id", user.id)`
+    (app/recordings/page.tsx:125) and peer rows were deliberately taken out of
+    My Reviews. But the doctor had no more reason to be routed through an
+    index: the email is about one consultation, so the button opens that
+    consultation. The list is still a click away in the nav.
   */
-  const subject =
-    args.peer && args.peer.whose
-      ? `${args.peer.whose} SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`
-      : `SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`;
-  /*
-    A peer gets the report itself, not the list. /recordings is
-    `.eq("doctor_user_id", user.id)` (app/recordings/page.tsx:125) — peer rows
-    were deliberately taken out of My Reviews, so sending them there would
-    land them on a page with no sign of the case they were just emailed about.
-  */
-  const reportHref = args.peer ? `${origin}/recordings/${args.peer.recordingId}` : `${origin}/recordings`;
+  const reportHref = `${origin}/recordings/${args.recordingId}`;
 
   /*
     The roster, as rows rather than one run-on line, because four labels of

@@ -522,6 +522,7 @@ export async function submitExaminerReviewAction(
     };
 
     const report = {
+      recordingId,
       roster,
       stationNumber: rec.station_number,
       stationTitle: rec.station_title,
@@ -630,7 +631,7 @@ export async function submitExaminerReviewAction(
         it. One observer never showed it: two is where it starts.
       */
       for (const to of peerList) {
-        const ok = await pacedSend({ to, ...report, peer: { whose, recordingId } });
+        const ok = await pacedSend({ to, ...report, whose });
         if (ok) continue;
         peerMissed++;
         console.error("[examiner] report email not sent to someone in the room", { recordingId, to });
