@@ -196,7 +196,11 @@ export function NavDropdown({
               border: `1.5px solid ${DARK}`,
             }}
           >
-            {count > 9 ? "9+" : count}
+            {/* 99+, not 9+. Ten waiting and two hundred waiting are very
+                different days, and the old cap reported them identically.
+                The pill is minWidth with horizontal padding, so it widens
+                for the third character rather than clipping it. */}
+            {count > 99 ? "99+" : count}
           </span>
         )}
       </button>
