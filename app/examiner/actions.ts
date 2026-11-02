@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { withoutEmDashes } from "@/lib/prose";
 import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
+import { doctorPossessive } from "@/lib/doctor-name";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
 
@@ -435,17 +436,25 @@ export async function submitExaminerReviewAction(
 
   const { data: rec } = await admin
     .from("station_recordings")
-    .select("candidate_email, station_number, station_title, doctor_display_name")
+    .select(
+      "candidate_email, station_number, station_title, doctor_display_name, doctor_user_id, patient_user_id, observer_user_ids"
+    )
     .eq("id", recordingId)
     .single<{
       candidate_email: string | null;
       station_number: number;
       station_title: string;
       doctor_display_name: string;
+      doctor_user_id: string | null;
+      patient_user_id: string | null;
+      observer_user_ids: string[] | null;
     }>();
 
   let emailed = true;
-  if (sendNow && rec?.candidate_email) {
+  /** Copies to the others in the room that were meant to go and did not. */
+  let peerMissed = 0;
+
+  if (sendNow && rec) {
     const gradePts: Record<string, Record<string, number>> = {
       dg: { CF: 0, F: 1, P: 2, CP: 3 },
       cm: { CF: 0, F: 1.5, P: 3, CP: 4.5 },
@@ -454,17 +463,16 @@ export async function submitExaminerReviewAction(
     const total = (gradePts.dg[dgGrade] ?? 0) + (gradePts.cm[cmGrade] ?? 0) + (gradePts.ro[roGrade] ?? 0);
 
     /*
-      The result used to be discarded. sendExaminerReportEmail returns false
-      on a Resend error or a missing key and never throws, so a bounced email
-      left the review marked sent, the candidate never told, and nothing
-      recorded anywhere.
+      The marking, written once and sent to everyone who was in the room.
 
-      It is no longer fatal — the review is saved, sent_to_candidate_at is
-      set, and it is now sitting in the candidate's envelope either way — but
-      the GP who pressed Send is the one person who can chase it, so say so.
+      Brandon's call, and it is narrower than it looks: the report page has
+      never gated the grades on which chair you sat in, so the patient and the
+      observers could already open all of this from their envelope. What
+      changes is that it now reaches them without their having to look. The
+      only thing withheld from a peer is the doctor's display name — see the
+      peer field on sendExaminerReportEmail.
     */
-    emailed = await sendExaminerReportEmail({
-      to: rec.candidate_email,
+    const report = {
       candidateName: rec.doctor_display_name,
       stationNumber: rec.station_number,
       stationTitle: rec.station_title,
@@ -476,18 +484,108 @@ export async function submitExaminerReviewAction(
       cmComment,
       roComment,
       overallComment,
-    });
-    if (!emailed) {
-      console.error("[examiner] report email not sent", { recordingId, to: rec.candidate_email });
+    };
+
+    if (rec.candidate_email) {
+      /*
+        The result used to be discarded. sendExaminerReportEmail returns false
+        on a Resend error or a missing key and never throws, so a bounced email
+        left the review marked sent, the candidate never told, and nothing
+        recorded anywhere.
+
+        It is no longer fatal — the review is saved, sent_to_candidate_at is
+        set, and it is now sitting in the candidate's envelope either way — but
+        the GP who pressed Send is the one person who can chase it, so say so.
+      */
+      emailed = await sendExaminerReportEmail({ to: rec.candidate_email, ...report });
+      if (!emailed) {
+        console.error("[examiner] report email not sent", { recordingId, to: rec.candidate_email });
+      }
     }
+
+    /*
+      Everyone else who was in the room.
+
+      doctor_user_id is excluded explicitly rather than for tidiness: a solo
+      practice take writes the doctor into patient_user_id as well
+      (app/betatest/actions.ts:35), so without this the candidate would get a
+      second copy of their own report, that one addressed to them in the third
+      person.
+    */
+    const peerIds = Array.from(
+      new Set(
+        [rec.patient_user_id, ...(rec.observer_user_ids ?? [])].filter(
+          (id): id is string => !!id && id !== rec.doctor_user_id
+        )
+      )
+    );
+
+    /*
+      Addresses, which are not on the row — only candidate_email is, and that
+      is the doctor's. Keyed on the lowercased address so the same person in
+      two chairs is one email, and checked against candidate_email in case a
+      peer resolves to the address that has just been written to.
+    */
+    const peerAddresses = new Map<string, string>();
+    for (const id of peerIds) {
+      // supabase-js returns { data, error } rather than throwing.
+      const { data: authUser, error: lookupErr } = await admin.auth.admin.getUserById(id);
+      const address = authUser?.user?.email;
+      if (lookupErr || !address) {
+        console.error("[examiner] no address for someone in the room", {
+          recordingId,
+          userId: id,
+          error: lookupErr?.message,
+        });
+        peerMissed++;
+        continue;
+      }
+      const key = address.toLowerCase();
+      if (key === (rec.candidate_email ?? "").toLowerCase()) continue;
+      peerAddresses.set(key, address);
+    }
+
+    if (peerAddresses.size > 0) {
+      /*
+        The doctor is named in the possessive and nowhere else. doctorPossessive
+        returns null for a display name it cannot trust — one holding an email
+        address, or the "Tester"/"Doctor" placeholders — and the email then says
+        "The examiner report is ready", exactly as the envelope says "the case".
+      */
+      const whose = doctorPossessive(rec.doctor_display_name);
+      const peerList = Array.from(peerAddresses.values());
+      const results = await Promise.all(
+        peerList.map((to) => sendExaminerReportEmail({ to, ...report, peer: { whose, recordingId } }))
+      );
+      results.forEach((ok, i) => {
+        if (ok) return;
+        peerMissed++;
+        console.error("[examiner] report email not sent to someone in the room", {
+          recordingId,
+          to: peerList[i],
+        });
+      });
+    }
+  }
+
+  /*
+    One warning covering both, because the GP who pressed Send is the only
+    person who can chase any of it, and a half-delivered send they are not
+    told about reads to them as a clean one.
+  */
+  const undelivered: string[] = [];
+  if (sendNow && rec?.candidate_email && !emailed) undelivered.push("the candidate's copy did not go out");
+  if (peerMissed > 0) {
+    undelivered.push(
+      `${peerMissed} ${peerMissed === 1 ? "copy" : "copies"} to the others in the room did not go out`
+    );
   }
 
   return {
     success: true,
-    warning:
-      sendNow && !emailed
-        ? "Saved and sent, but the email did not go out. They can still see it in their inbox on the site."
-        : undefined,
+    warning: undelivered.length
+      ? `Saved and sent, but ${undelivered.join(", and ")}. Everyone who was in the room can still see the report in their envelope on the site.`
+      : undefined,
   };
 }
 

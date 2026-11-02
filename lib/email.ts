@@ -669,6 +669,22 @@ export async function sendExaminerReportEmail(args: {
   cmComment: string;
   roComment: string;
   overallComment: string;
+  /**
+   * Set when this copy is going to someone who was in the room but did not
+   * sit in the doctor's chair — the patient, or an observer.
+   *
+   * The report itself is identical for them: it always was, because the page
+   * has never gated the marking on which chair you sat in (the id is the
+   * permission — app/recordings/[id]/page.tsx). So this changes only the two
+   * places the old copy said "yours", plus where the button goes.
+   *
+   * `whose` is a POSSESSIVE from lib/doctor-name, which is null whenever the
+   * name cannot be trusted, and nothing else may be used in its place.
+   * `candidateName` here is `doctor_display_name`, whose fallback chain ends
+   * at `user.email` — printing it to a peer would publish the doctor's email
+   * address to everyone who was in the room with them.
+   */
+  peer?: { whose: string | null; recordingId: string };
 }): Promise<boolean> {
   if (!(await isResendEnabled())) return false;
   const resend = getResend();
@@ -676,6 +692,35 @@ export async function sendExaminerReportEmail(args: {
 
   const from = process.env.EMAIL_FROM ?? "SCA Focus <bookings@scafocus.com>";
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
+
+  /*
+    Who the copy is addressed to.
+
+    The doctor owns the report, so the doctor is what the sentence is about:
+    "Your report" to them, "Lily's report" to everyone else who was in the
+    room. It said "your examiner report", which put the examiner in the
+    possessive slot — the one person the report does not belong to.
+
+    The fallback is the bare article, matching the envelope line in
+    lib/inbox.ts, and it is a fallback rather than a guess: doctorPossessive
+    returns null for any display name it cannot vouch for.
+  */
+  const whose = args.peer ? escapeHtml(args.peer.whose ?? "The") : null;
+  const heading =
+    whose !== null
+      ? `${whose} report is ready.`
+      : `Your report is ready, ${escapeHtml(args.candidateName)}.`;
+  const subject =
+    args.peer && args.peer.whose
+      ? `${args.peer.whose} SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`
+      : `SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`;
+  /*
+    A peer gets the report itself, not the list. /recordings is
+    `.eq("doctor_user_id", user.id)` (app/recordings/page.tsx:125) — peer rows
+    were deliberately taken out of My Reviews, so sending them there would
+    land them on a page with no sign of the case they were just emailed about.
+  */
+  const reportHref = args.peer ? `${origin}/recordings/${args.peer.recordingId}` : `${origin}/recordings`;
 
   function gradeBadge(g: string): string {
     const styles: Record<string, string> = {
@@ -707,7 +752,7 @@ export async function sendExaminerReportEmail(args: {
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
         <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 6px;">
-          Your examiner report is ready, ${escapeHtml(args.candidateName)}.</p>
+          ${heading}</p>
         <p style="font-size:13px;color:#6b6c85;margin:0;">
           Station ${args.stationNumber}: <strong style="color:${NAVY};">${escapeHtml(args.stationTitle)}</strong>
         </p>
@@ -732,7 +777,7 @@ export async function sendExaminerReportEmail(args: {
         <p style="margin:0;font-size:13.5px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.overallComment)}</p>
       </td></tr>` : ""}
       <tr><td style="padding:20px 28px;">
-        <a href="${origin}/recordings"
+        <a href="${reportHref}"
            style="display:inline-block;background:${NAVY};color:#ffffff;
            font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">
           View Full Report
@@ -749,7 +794,7 @@ export async function sendExaminerReportEmail(args: {
     const { error } = await resend.emails.send({
       from,
       to: args.to,
-      subject: `SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`,
+      subject,
       html,
     });
     if (error) { console.error("[email] Resend error:", error); return false; }

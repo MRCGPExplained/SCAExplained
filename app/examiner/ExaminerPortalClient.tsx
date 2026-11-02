@@ -275,6 +275,7 @@ function RecordingCard({
   // records it rather than from a status a re-grade can overwrite.
   const isReviewing = !!rec.examiner_reviewed_at && !rec.sent_to_candidate_at;
   const isPending = !rec.examiner_reviewed_at && !rec.sent_to_candidate_at;
+  const isSent = !!rec.sent_to_candidate_at;
   const examinerName = rec.examiners?.name ?? null;
   // Offered on every attempt, marked or not. Re-running an already-marked
   // attempt asks for confirmation first, inside the button itself.
@@ -293,9 +294,24 @@ function RecordingCard({
     ? { label: "Sent", bg: "rgba(59,130,246,0.1)", color: "#1D4ED8" }
     : { label: "Reviewed", bg: "rgba(34,197,94,0.1)", color: "#166534" };
 
-  // GP cards go straight to the review page. AI cards read as the report, with
-  // a separate "Manual Overwrite" button that opens the same review page.
-  const href = tab === "ai" ? `/recordings/${rec.id}` : `/examiner/${rec.id}`;
+  /*
+    A finished review opens the report, not the form.
+
+    An unsent GP card is work, so it still opens the marking sheet. A sent one
+    is a record, and what you want from a consultation that is already marked
+    and delivered is the thing the candidate got — which is also the only way
+    to see it as they see it. AI cards have read this way all along; this is
+    the same rule applied to the other tab's finished half.
+
+    Asked of sent_to_candidate_at rather than of a new prop, because that is
+    the same test that put this row in the completed list (see `completed`
+    above). A prop would be a second place for the two to disagree.
+
+    The marking sheet stays one click away, below. It is read-only once sent
+    (every input in ExaminerReviewClient is disabled on isSent), so this takes
+    nothing away — it reorders which of the two you land on.
+  */
+  const href = tab === "ai" || isSent ? `/recordings/${rec.id}` : `/examiner/${rec.id}`;
 
   return (
     <div
@@ -360,7 +376,13 @@ function RecordingCard({
               GP: {rec.examiner_data_gathering} / {rec.examiner_clinical_management} / {rec.examiner_relating_to_others}
             </div>
           )}
-          {tab === "ai" && (
+          {/*
+            On both the cards whose click now goes to the report, so the
+            marking sheet is never more than one step away. Named for what it
+            does in each case: an AI card's sheet is editable and overwrites
+            the model's marks, a sent card's is read-only.
+          */}
+          {(tab === "ai" || isSent) && (
             <button
               type="button"
               onClick={(e) => {
@@ -369,9 +391,19 @@ function RecordingCard({
                 router.push(`/examiner/${rec.id}`);
               }}
               className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-              style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+              style={{
+                background: tab === "ai" ? NAVY : "transparent",
+                // Full-strength navy, not the 0.5-0.55 the metadata lines in
+                // this card use. Measured on white, 0.55 comes out at about
+                // 2.9:1, under the 4.5:1 small text needs; NAVY is 12.6:1. A
+                // label on a control has to be readable in a way a timestamp
+                // beside it does not.
+                color: tab === "ai" ? "white" : NAVY,
+                border: tab === "ai" ? "none" : "1px solid rgba(51,51,51,0.18)",
+                cursor: "pointer",
+              }}
             >
-              Manual Overwrite
+              {tab === "ai" ? "Manual Overwrite" : "Marking Sheet"}
             </button>
           )}
           <RetryPipelineButton recordingId={rec.id} hasExistingMark={alreadyMarked} />
