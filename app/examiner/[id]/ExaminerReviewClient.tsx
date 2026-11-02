@@ -179,6 +179,32 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [assist, setAssist] = useState<AssistNotes>(EMPTY_NOTES);
 
   /*
+    The overall comment is kept across reloads too, but it is not the same
+    problem as the notepad.
+
+    The notepad exists nowhere but the browser, so whatever is there is the
+    truth. This field has a saved version in the database, and a draft can
+    therefore be out of date rather than merely unsaved — if the examiner
+    saves from another machine, or a second tab, the stored draft is older
+    than what the candidate would be sent.
+
+    So the draft records the saved text it was written on top of. It is
+    restored only when that base still matches what the server just sent; if
+    the saved comment has moved on since, the draft is from before that and
+    is dropped. The database wins any disagreement, because it is the version
+    that can actually reach a candidate.
+  */
+  const draftKey = `sca_examiner_overall_${rec.id}`;
+  /*
+    State, not read straight off the prop, because saving does not re-fetch
+    this page. Left on the prop it would still say the pre-save text after a
+    Save, every later edit would be stored against a base the server had
+    moved past, and a reload would throw those edits away as stale. Advanced
+    by hand when the save succeeds instead.
+  */
+  const [savedComment, setSavedComment] = useState(rec.examiner_overall_comment ?? "");
+
+  /*
     Keep the rail ending at the bottom of the window, wherever it currently
     starts. See the comment on the aside itself for why a CSS height cannot
     do this.
@@ -229,6 +255,34 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
       /* See above. Losing the backup is not worth interrupting anyone over. */
     }
   }, [assist, notesKey]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { base?: string; text?: string };
+      if (typeof draft.text !== "string") return;
+      // Written on top of a version that has since been superseded.
+      if ((draft.base ?? "") !== savedComment) {
+        window.localStorage.removeItem(draftKey);
+        return;
+      }
+      if (draft.text !== savedComment) setOverallComment(draft.text);
+    } catch {
+      /* Unreadable or unavailable. The saved comment is already in state. */
+    }
+  }, [draftKey, savedComment]);
+
+  useEffect(() => {
+    try {
+      // Nothing to keep once it matches what is saved — and clearing it is
+      // what stops a stale draft outliving the save that caught up with it.
+      if (overallComment === savedComment) window.localStorage.removeItem(draftKey);
+      else window.localStorage.setItem(draftKey, JSON.stringify({ base: savedComment, text: overallComment }));
+    } catch {
+      /* As above. */
+    }
+  }, [overallComment, savedComment, draftKey]);
   // Stripped, not trimmed: a box holding only the bullet the dialog put there
   // on focus has nothing in it.
   const assistHasNotes = Object.values(assist).some((v) => bulletLines(v).length > 0);
@@ -270,10 +324,16 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [showSuccess, setShowSuccess] = useState(false);
   useEffect(() => {
     if ("success" in state && state.success) {
+      // What was just written is now what is saved, so the draft has caught
+      // up with it and the base for anything typed next is this.
+      setSavedComment(overallComment);
       setShowSuccess(true);
       const t = setTimeout(() => setShowSuccess(false), 3000);
       return () => clearTimeout(t);
     }
+    // overallComment is deliberately not a dependency: this should run when a
+    // save lands, not every time the box is typed in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const hasAi = rec.ai_data_gathering || rec.ai_clinical_management || rec.ai_relating_to_others;
