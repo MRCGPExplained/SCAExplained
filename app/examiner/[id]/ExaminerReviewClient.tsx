@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useActionState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
@@ -158,24 +157,54 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const [aiGenError, setAiGenError] = useState("");
 
   /*
-    The AI Assist notes.
+    The notepad.
 
-    Held here rather than inside the modal so they survive it closing. An
-    examiner who types six careful observations, generates a draft they do not
-    like and shuts the dialog would otherwise have lost all six, which is a
-    worse outcome than the bad draft they were trying to escape.
+    Kept across reloads, which it has to be now that it is always on screen.
+    While these six boxes lived in a dialog they were a minute's work and
+    losing them cost a minute; written up as the examiner listens, they are
+    the record of a whole consultation, and a stray refresh or a back button
+    would take the lot with nothing to recover from.
 
-    Not saved to the database either. They are working notes about what the
-    summary should cover, not feedback the candidate reads; what the candidate
-    reads is whatever ends up in the comment box after the examiner has edited
-    it.
+    localStorage rather than the database. These are working notes about what
+    the comment should cover, not feedback anybody else reads, and the project
+    already keeps this kind of thing per browser — see StationPageClient. It
+    also needs no migration, which matters for something whose value is that
+    it is there today.
+
+    Keyed by recording, because an examiner works through a queue and notes
+    from the last consultation appearing against the next one would be worse
+    than losing them.
   */
-  const [assistOpen, setAssistOpen] = useState(false);
-  const [assist, setAssist] = useState({
-    dgWell: "", dgImprove: "",
-    cmWell: "", cmImprove: "",
-    roWell: "", roImprove: "",
-  });
+  const notesKey = `sca_examiner_notepad_${rec.id}`;
+  const [assist, setAssist] = useState<AssistNotes>(EMPTY_NOTES);
+
+  // Read on mount rather than in useState's initialiser: this component is
+  // server-rendered, and reaching for localStorage during render would make
+  // the first client render disagree with the server's.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(notesKey);
+      if (saved) setAssist({ ...EMPTY_NOTES, ...JSON.parse(saved) });
+    } catch {
+      // A quota error, private browsing, or something that is not JSON. An
+      // empty notepad is the right fallback and there is nothing to tell the
+      // examiner that they could act on.
+    }
+  }, [notesKey]);
+
+  useEffect(() => {
+    try {
+      // Removed rather than stored empty, so clearing the notepad does not
+      // leave a row behind for every consultation an examiner opens.
+      if (Object.values(assist).some((v) => v.trim())) {
+        window.localStorage.setItem(notesKey, JSON.stringify(assist));
+      } else {
+        window.localStorage.removeItem(notesKey);
+      }
+    } catch {
+      /* See above. Losing the backup is not worth interrupting anyone over. */
+    }
+  }, [assist, notesKey]);
   // Stripped, not trimmed: a box holding only the bullet the dialog put there
   // on focus has nothing in it.
   const assistHasNotes = Object.values(assist).some((v) => bulletLines(v).length > 0);
@@ -494,68 +523,27 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               self-start matters: without it the aside stretches to the row
               height and sticky has nothing to move within.
             */}
-            <aside className="min-w-0 self-start" style={{ position: "sticky", top: 12 }}>
+            {/*
+              Scrolls inside itself.
+
+              The rail holds the comment, the voice note and six notepad
+              boxes, which together are taller than most screens. A sticky
+              element taller than the viewport stops behaving like one — it
+              pins until its bottom edge arrives and then scrolls away with
+              the page, so the bottom of the notepad could never be reached
+              while anything on the left was still in view. Capping it to the
+              viewport and giving it its own overflow keeps every field
+              reachable at any scroll position.
+            */}
+            <aside
+              className="min-w-0 self-start overflow-y-auto"
+              style={{ position: "sticky", top: 12, maxHeight: "calc(100vh - 24px)" }}
+            >
                 {/* Overall Comment */}
                 <div className="mb-4">
                   <Accordion title="Overall Comment">
                     {!isSent && (
                       <div className="flex gap-2 mb-3 flex-wrap">
-                        {/*
-                          "Assist", not "Generate". It does not write the
-                          comment, it drafts one from notes the examiner
-                          types — and the examiner then edits it and puts
-                          their name to it.
-
-                          No longer gated on the three grades being set. That
-                          gate existed because the grades were fed to the
-                          model and set the draft's tone; they are not sent
-                          any more, so waiting for them would be gating on
-                          something the draft no longer depends on.
-                        */}
-                        <button
-                          type="button"
-                          disabled={aiGenPending}
-                          onClick={() => { setAiGenError(""); setAssistOpen(true); }}
-                          className="px-3 py-1 rounded-lg text-[11px] font-semibold"
-                          style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: aiGenPending ? 0.5 : 1 }}
-                        >
-                          {aiGenPending ? "Generating…" : "AI Assist"}
-                        </button>
-
-                        {assistOpen && createPortal(
-                          <AssistDialog
-                            notes={assist}
-                            onChange={setAssist}
-                            hasNotes={assistHasNotes}
-                            willOverwrite={!!overallComment.trim()}
-                            pending={aiGenPending}
-                            onClose={() => setAssistOpen(false)}
-                            onGenerate={() => {
-                              setAssistOpen(false);
-                              setAiGenError("");
-                              startAiGen(async () => {
-                                /*
-                                  Bullets off before it goes. The markers are
-                                  a typing convenience in the dialog; the
-                                  model gets plain lines, one observation
-                                  each, so nothing in the prompt invites a
-                                  list back out of it.
-                                */
-                                const plain = (v: string) => bulletLines(v).join("\n");
-                                const res = await generateOverallCommentAction({
-                                  dgWell: plain(assist.dgWell), dgImprove: plain(assist.dgImprove),
-                                  cmWell: plain(assist.cmWell), cmImprove: plain(assist.cmImprove),
-                                  roWell: plain(assist.roWell), roImprove: plain(assist.roImprove),
-                                  stationTitle: rec.station_title,
-                                  recordingId: rec.id,
-                                });
-                                if (res.text) setOverallComment(res.text);
-                                else setAiGenError(res.error ?? "Failed");
-                              });
-                            }}
-                          />,
-                          document.body
-                        )}
                         <button
                           type="button"
                           disabled={grammarPending || !overallComment.trim()}
@@ -591,6 +579,45 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
                     </div>
                   </Accordion>
                 </div>
+
+                {/*
+                  Its own block, not a section inside the Overall Comment
+                  accordion above. It sits directly under the voice note
+                  either way, and this way collapsing that accordion cannot
+                  take the notepad with it — a notepad you have to go and
+                  reopen is not one you write in as you go.
+                */}
+                {!isSent && (
+                  <Notepad
+                    notes={assist}
+                    onChange={setAssist}
+                    hasNotes={assistHasNotes}
+                    willOverwrite={!!overallComment.trim()}
+                    pending={aiGenPending}
+                    error={aiGenError}
+                    onConvert={() => {
+                      setAiGenError("");
+                      startAiGen(async () => {
+                        /*
+                          Bullets off before it goes. The markers are a typing
+                          convenience; the model gets plain lines, one
+                          observation each, so nothing in the prompt invites a
+                          list back out of it.
+                        */
+                        const plain = (v: string) => bulletLines(v).join("\n");
+                        const res = await generateOverallCommentAction({
+                          dgWell: plain(assist.dgWell), dgImprove: plain(assist.dgImprove),
+                          cmWell: plain(assist.cmWell), cmImprove: plain(assist.cmImprove),
+                          roWell: plain(assist.roWell), roImprove: plain(assist.roImprove),
+                          stationTitle: rec.station_title,
+                          recordingId: rec.id,
+                        });
+                        if (res.text) setOverallComment(res.text);
+                        else setAiGenError(res.error ?? "Failed");
+                      });
+                    }}
+                  />
+                )}
             </aside>
 
           </div>
@@ -812,8 +839,14 @@ interface AssistNotes {
   roWell: string; roImprove: string;
 }
 
-/** The marker the notes boxes show. Never leaves the dialog — see bulletLines. */
+/** The marker the notes boxes show. Never leaves the notepad — see bulletLines. */
 const BULLET = "• ";
+
+const EMPTY_NOTES: AssistNotes = {
+  dgWell: "", dgImprove: "",
+  cmWell: "", cmImprove: "",
+  roWell: "", roImprove: "",
+};
 
 /**
  * The real content of a notes box, one observation per line.
@@ -845,69 +878,46 @@ function bulletLines(value: string): string[] {
  * notes about what the summary should cover; what the candidate reads is
  * whatever the examiner leaves in the comment box afterwards.
  */
-function AssistDialog({
-  notes, onChange, hasNotes, willOverwrite, pending, onClose, onGenerate,
+/**
+ * The examiner's notepad: six boxes, always on screen, and the button that
+ * turns them into the overall comment.
+ *
+ * It replaced a dialog behind an "AI Assist" button. The dialog asked the
+ * examiner to recall the consultation once it was over; these boxes sit in
+ * the rail the whole time, so observations go down as they happen. That makes
+ * the notes the thing being written and the comment the thing derived from
+ * them, which is the right way round.
+ *
+ * Stacked rather than the dialog's three-by-two grid. The rail is 360px, so
+ * two columns would be about 165px each, which is not a width anyone types a
+ * sentence in.
+ */
+function Notepad({
+  notes, onChange, hasNotes, willOverwrite, pending, error, onConvert,
 }: {
   notes: AssistNotes;
   onChange: (n: AssistNotes) => void;
   hasNotes: boolean;
-  /** There is already text in the comment box, which generating replaces. */
+  /** There is already a comment, which converting replaces. */
   willOverwrite: boolean;
   pending: boolean;
-  onClose: () => void;
-  onGenerate: () => void;
+  error: string;
+  onConvert: () => void;
 }) {
-  const firstRef = useRef<HTMLTextAreaElement>(null);
-  const [confirmingOverwrite, setConfirmingOverwrite] = useState(false);
-
-  /*
-    Both of these must run once, on mount, and never again.
-
-    They were one effect keyed on [onClose], and onClose is an inline arrow in
-    the parent, so it is a new function on every parent render. Every keystroke
-    changes the notes state, which re-renders the parent, which re-ran this
-    effect, which called focus() — dragging the caret back to the first box
-    from wherever the examiner was actually typing. Clicking the fourth box and
-    typing one character put you back in the first, which reads as the boxes
-    being unclickable, and it broke Tab for the same reason.
-
-    The escape handler reads onClose through a ref so it always calls the
-    current one without being re-subscribed.
-  */
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => { firstRef.current?.focus(); }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeRef.current(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  const [confirming, setConfirming] = useState(false);
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
   /*
     Enter starts a new bullet.
 
-    A plain textarea carrying a bullet character, rather than a rich editor or
-    a contenteditable list: the value stays a string, so it still round-trips
-    through component state and the server action unchanged, and the only cost
-    is stripping the markers on the way out. bulletLines does that, so the
-    model never sees a bullet and the comment never comes back as a list.
-
-    Edits go through execCommand rather than through setState.
-
-    The obvious version — build the new string, set it, then put the caret
-    back by hand — does not work on a controlled textarea. Writing the value
-    moves the caret to 0, and restoring it from a requestAnimationFrame races
-    React's re-render: measured, it lost every time, so each new bullet was
-    inserted at the top and the notes came out in reverse order.
-
-    execCommand("insertText") does the edit the way a keystroke would. The
-    browser owns the caret, native undo keeps working, and React sees an
-    ordinary input event. It is deprecated and still the only thing that does
-    this correctly without a caret-tracking ref per box.
+    Edits go through execCommand rather than through setState with the caret
+    put back by hand. The obvious version does not work on a controlled
+    textarea: writing the value moves the caret to 0, and restoring it from a
+    requestAnimationFrame races React's re-render — measured, it lost every
+    time, and the notes came out in reverse order. execCommand does the edit
+    the way a keystroke would, so the browser owns the caret and native undo
+    keeps working.
   */
   const key = (k: keyof AssistNotes) => (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
@@ -919,50 +929,36 @@ function AssistDialog({
       return;
     }
 
-    /*
-      Backspace on an empty bullet removes the bullet rather than eating the
-      space inside the marker and leaving a stranded "•". Only when the caret
-      is directly after a marker with nothing typed after it, so it never
-      interferes with ordinary deleting.
-    */
+    // Backspace on an empty bullet takes the whole line, rather than eating
+    // the space inside the marker and leaving a stranded "•".
     if (e.key === "Backspace" && start === end) {
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-      const atEmptyMarker =
-        start === lineStart + BULLET.length && value.slice(lineStart, start) === BULLET;
-      if (atEmptyMarker) {
+      if (start === lineStart + BULLET.length && value.slice(lineStart, start) === BULLET) {
         e.preventDefault();
-        // Take the newline before it too, so the line disappears rather than
-        // leaving a blank one behind.
         el.setSelectionRange(lineStart === 0 ? 0 : lineStart - 1, start);
         document.execCommand("delete");
       }
     }
   };
 
-  const box = (k: keyof AssistNotes, ref?: React.RefObject<HTMLTextAreaElement | null>) => (
+  const box = (k: keyof AssistNotes) => (
     <textarea
-      ref={ref}
       value={notes[k]}
       onChange={(e) => set(k)(e.target.value)}
       onKeyDown={key(k)}
       // The first bullet appears on focus, so an empty box shows what it
-      // wants rather than needing the examiner to guess.
-      onFocus={(e) => {
-        if (!e.currentTarget.value) document.execCommand("insertText", false, BULLET);
-      }}
+      // wants rather than leaving the examiner to guess.
+      onFocus={(e) => { if (!e.currentTarget.value) document.execCommand("insertText", false, BULLET); }}
       /*
-        No onBlur tidy-up, on purpose.
-
-        Clearing a box that holds only its marker means a setState on the way
-        out of every field, which is a re-render in the middle of the click
-        that is moving focus somewhere else. That is a bad place for one and
-        it buys nothing: a stray marker in an untouched box is invisible to
-        everything that matters, because bulletLines strips it before the
-        prompt sees it and before hasNotes counts the box as filled in.
+        No onBlur tidy-up, on purpose. Clearing a box that holds only its
+        marker means a setState on the way out of every field, which is a
+        re-render in the middle of the click that is moving focus somewhere
+        else. It buys nothing either: bulletLines strips a stray marker
+        before the prompt sees it and before hasNotes counts the box.
       */
-      rows={3}
-      className="w-full rounded-xl px-3 py-2 text-[13px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
-      style={{ background: LIGHT_BG, border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
+      rows={2}
+      className="w-full rounded-lg px-2.5 py-1.5 text-[12.5px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
+      style={{ background: "white", border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
     />
   );
 
@@ -973,96 +969,68 @@ function AssistDialog({
   ];
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50 px-6 py-8 overflow-y-auto"
-      style={{ background: "rgba(51,51,51,0.55)" }}
-      onClick={() => !pending && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="assist-heading"
-        className="w-full max-w-[720px] rounded-2xl p-6 my-auto"
-        style={{ background: "white", boxShadow: "0 20px 60px rgba(51,51,51,0.25)" }}
-        onClick={(e) => e.stopPropagation()}
+    <div className="rounded-2xl p-5" style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)" }}>
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>
+        Notepad
+      </h3>
+      <p className="text-[11.5px] leading-[1.45] m-0 mb-3" style={{ color: "rgba(51,51,51,0.42)" }}>
+        Jot things down as you listen. Nothing here is saved to the report or shown to the candidate.
+      </p>
+
+      <button
+        type="button"
+        disabled={!hasNotes || pending}
+        onClick={() => {
+          if (willOverwrite && !confirming) { setConfirming(true); return; }
+          setConfirming(false);
+          onConvert();
+        }}
+        className="w-full rounded-lg py-2 text-[12.5px] font-bold mb-1.5"
+        style={{
+          background: NAVY, border: "none", color: "white",
+          cursor: !hasNotes || pending ? "default" : "pointer",
+          opacity: !hasNotes || pending ? 0.4 : 1,
+        }}
       >
-        <h2 id="assist-heading" className="font-display font-extrabold text-[17px] mb-1.5" style={{ color: NAVY }}>
-          AI Assist
-        </h2>
-        <p className="text-[12.5px] leading-[1.5] m-0 mb-5" style={{ color: "rgba(51,51,51,0.5)" }}>
-          Note what you saw, in your own words, and this drafts an overall comment from it.
-          Leave anything blank that you do not want mentioned. Nothing here is saved or shown
-          to the candidate — only the comment you keep afterwards.
+        {pending ? "Converting…" : confirming ? "Replace the comment?" : "Convert to Examiner Report"}
+      </button>
+
+      {/*
+        Replacing a comment already written is the one thing here that cannot
+        be undone, so it asks. Only when there is something to lose.
+      */}
+      {confirming && (
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="w-full text-[11.5px] mb-1.5"
+          style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
+        >
+          Cancel, keep what is written
+        </button>
+      )}
+
+      {error && <p className="text-[11px] m-0 mb-2" style={{ color: "#B91C1C" }}>{error}</p>}
+      {!hasNotes && !error && (
+        <p className="text-[11px] m-0 mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
+          Write at least one note first.
         </p>
+      )}
 
-        <div className="flex flex-col gap-4 mb-5">
-          <div className="hidden sm:grid grid-cols-[150px_1fr_1fr] gap-3 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
-            <span />
-            <span>Did well</span>
-            <span>Could improve</span>
+      <div className="flex flex-col gap-3 mt-3">
+        {DOMAINS.map((d) => (
+          <div key={d.label}>
+            <div className="text-[12px] font-bold mb-1.5" style={{ color: NAVY }}>{d.label}</div>
+            <label className="block text-[10.5px] font-bold uppercase tracking-[0.05em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Did well
+            </label>
+            {box(d.well)}
+            <label className="block text-[10.5px] font-bold uppercase tracking-[0.05em] mt-2 mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Could improve
+            </label>
+            {box(d.improve)}
           </div>
-          {DOMAINS.map((d, i) => (
-            <div key={d.label} className="grid sm:grid-cols-[150px_1fr_1fr] gap-3 items-start">
-              <span className="text-[13px] font-bold pt-2" style={{ color: NAVY }}>{d.label}</span>
-              <div>
-                {/* The column headers are hidden on a narrow dialog, so each
-                    box names itself there instead of sitting unlabelled. */}
-                <span className="sm:hidden block text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>Did well</span>
-                {box(d.well, i === 0 ? firstRef : undefined)}
-              </div>
-              <div>
-                <span className="sm:hidden block text-[11px] font-bold uppercase tracking-[0.06em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>Could improve</span>
-                {box(d.improve)}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/*
-          Replacing something already written is the one irreversible thing
-          this dialog does, so it asks. Only when there is something to lose.
-        */}
-        {confirmingOverwrite ? (
-          <div className="rounded-xl px-3.5 py-3 mb-4 text-[12.5px] leading-[1.55]" style={{ background: "#F9F3D9", color: NAVY }}>
-            There is already a comment written. Generating replaces it with the draft, and the
-            text you have now is not recoverable.
-          </div>
-        ) : (
-          !hasNotes && (
-            <p className="text-[12px] m-0 mb-4" style={{ color: "rgba(51,51,51,0.45)" }}>
-              Fill in at least one box. With nothing to go on, a draft would be invented rather
-              than drawn from what you saw.
-            </p>
-          )
-        )}
-
-        <div className="flex gap-2.5 justify-end">
-          <button
-            type="button"
-            onClick={() => (confirmingOverwrite ? setConfirmingOverwrite(false) : onClose())}
-            disabled={pending}
-            className="rounded-lg px-4 py-2.5 text-[13px] font-semibold"
-            style={{ background: "#F4F4F2", border: "none", color: NAVY, cursor: pending ? "default" : "pointer" }}
-          >
-            {confirmingOverwrite ? "Back" : "Cancel"}
-          </button>
-          <button
-            type="button"
-            disabled={!hasNotes || pending}
-            onClick={() => {
-              if (willOverwrite && !confirmingOverwrite) { setConfirmingOverwrite(true); return; }
-              onGenerate();
-            }}
-            className="rounded-lg px-4 py-2.5 text-[13px] font-bold"
-            style={{
-              background: NAVY, border: "none", color: "white",
-              cursor: !hasNotes || pending ? "default" : "pointer",
-              opacity: !hasNotes || pending ? 0.45 : 1,
-            }}
-          >
-            {confirmingOverwrite ? "Replace it" : "Generate draft"}
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );
