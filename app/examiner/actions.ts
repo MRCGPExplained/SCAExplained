@@ -510,7 +510,6 @@ export async function submitExaminerReviewAction(
     };
 
     const report = {
-      candidateName: rec.doctor_display_name,
       roster,
       stationNumber: rec.station_number,
       stationTitle: rec.station_title,

@@ -658,7 +658,6 @@ export async function sendExaminerNotificationEmail(args: {
 
 export async function sendExaminerReportEmail(args: {
   to: string;
-  candidateName: string;
   stationNumber: number;
   stationTitle: string;
   dgGrade: string;
@@ -673,16 +672,13 @@ export async function sendExaminerReportEmail(args: {
    * Set when this copy is going to someone who was in the room but did not
    * sit in the doctor's chair — the patient, or an observer.
    *
-   * The report itself is identical for them: it always was, because the page
-   * has never gated the marking on which chair you sat in (the id is the
-   * permission — app/recordings/[id]/page.tsx). So this changes only the two
-   * places the old copy said "yours", plus where the button goes.
+   * The body is now the same for everyone: it opens on the station and the
+   * chairs, which say whose consultation it is without anyone having to be
+   * addressed. So this is down to two things — the subject line, which is
+   * all a crowded inbox shows, and where the button goes.
    *
-   * `whose` is a POSSESSIVE from lib/doctor-name, which is null whenever the
-   * name cannot be trusted, and nothing else may be used in its place.
-   * `candidateName` here is `doctor_display_name`, whose fallback chain ends
-   * at `user.email` — printing it to a peer would publish the doctor's email
-   * address to everyone who was in the room with them.
+   * `whose` is a POSSESSIVE from lib/doctor-name, null whenever the name
+   * cannot be trusted, and nothing else may stand in for it.
    */
   peer?: { whose: string | null; recordingId: string };
   /**
@@ -709,22 +705,15 @@ export async function sendExaminerReportEmail(args: {
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scafocus.com";
 
   /*
-    Who the copy is addressed to.
+    The one place the copies still differ.
 
-    The doctor owns the report, so the doctor is what the sentence is about:
-    "Your report" to them, "Lily's report" to everyone else who was in the
-    room. It said "your examiner report", which put the examiner in the
-    possessive slot — the one person the report does not belong to.
-
-    The fallback is the bare article, matching the envelope line in
-    lib/inbox.ts, and it is a fallback rather than a guess: doctorPossessive
-    returns null for any display name it cannot vouch for.
+    The body opens on the station and the chairs, which tell a peer whose
+    consultation it is better than a sentence addressing them would. A
+    subject line cannot do that — it is one line in a list of forty — so it
+    keeps the possessive, and the fallback is the bare "SCA Report" rather
+    than a guess at the name: doctorPossessive returns null for any display
+    name it cannot vouch for.
   */
-  const whose = args.peer ? escapeHtml(args.peer.whose ?? "The") : null;
-  const heading =
-    whose !== null
-      ? `${whose} report is ready.`
-      : `Your report is ready, ${escapeHtml(args.candidateName)}.`;
   const subject =
     args.peer && args.peer.whose
       ? `${args.peer.whose} SCA Report: Station ${args.stationNumber}, ${args.stationTitle}`
@@ -794,10 +783,8 @@ export async function sendExaminerReportEmail(args: {
         <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">SCA Focus</p>
       </td></tr>
       <tr><td style="padding:28px 28px 8px;">
-        <p style="font-size:16px;color:${NAVY};font-weight:700;margin:0 0 6px;">
-          ${heading}</p>
-        <p style="font-size:13px;color:#6b6c85;margin:0;">
-          Station ${args.stationNumber}: <strong style="color:${NAVY};">${escapeHtml(args.stationTitle)}</strong>
+        <p style="font-size:16px;color:#6b6c85;font-weight:400;margin:0;">
+          Station ${args.stationNumber}: <strong style="color:${NAVY};font-weight:700;">${escapeHtml(args.stationTitle)}</strong>
         </p>
         ${rosterHtml}
       </td></tr>
