@@ -358,9 +358,9 @@ export async function examinerLogoutAction() {
 }
 
 export async function submitExaminerReviewAction(
-  _prevState: { error?: string; success?: boolean; warning?: string },
+  _prevState: { error?: string; success?: boolean; warning?: string; sent?: boolean },
   formData: FormData
-): Promise<{ error?: string; success?: boolean; warning?: string }> {
+): Promise<{ error?: string; success?: boolean; warning?: string; sent?: boolean }> {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
@@ -388,9 +388,38 @@ export async function submitExaminerReviewAction(
   // rather than moving it into the GP review queue/completed lists.
   const { data: current } = await admin
     .from("station_recordings")
-    .select("submitted_for_review_at, gp_requested_at")
+    .select("submitted_for_review_at, gp_requested_at, sent_to_candidate_at")
     .eq("id", recordingId)
-    .single<GpColumns>();
+    .single<GpColumns & { sent_to_candidate_at: string | null }>();
+
+  /*
+    A report is sent once.
+
+    The buttons are hidden once sent_to_candidate_at is set, which covers a
+    reload and nothing else: a second click before the page catches up, a
+    tab left open from this morning, a retry after a timeout that actually
+    landed — each of those reached here and each wrote a fresh
+    sent_to_candidate_at and emailed the whole room again. The window is not
+    theoretical now that a send is several emails paced a half-second apart.
+
+    Checked on the server because that is the only place it holds. A disabled
+    button is a courtesy; this is the rule.
+
+    Fails closed on an unreadable row. Refusing a first send over a transient
+    read error costs a reload; the other way round costs everyone in the room
+    a duplicate report, and there is no unsending one.
+  */
+  if (sendNow) {
+    if (!current) {
+      return { error: "Could not check whether this has already been sent, so nothing was sent. Reload and try again." };
+    }
+    if (current.sent_to_candidate_at) {
+      const when = new Date(current.sent_to_candidate_at).toLocaleString("en-GB", {
+        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+      });
+      return { error: `Already sent to the candidate on ${when}. Nothing was sent again.` };
+    }
+  }
   /*
     Whether this was ever sent to a GP, asked of the columns that record it
     rather than of the status string.
@@ -431,6 +460,14 @@ export async function submitExaminerReviewAction(
     .eq("id", recordingId);
 
   if (updateErr) return { error: updateErr.message };
+
+  /*
+    So the page this was submitted from comes back with sent_to_candidate_at
+    set, which is what hides the buttons. Without it the form sits there
+    offering to send a report that has already gone, and only the server
+    guard above stands between the examiner and a second one.
+  */
+  revalidatePath(`/examiner/${recordingId}`);
 
   // Snapshot the GP-review cost onto the consultation ledger the first time a
   // GP reviews it (whether a normal GP review or an AI-pile manual overwrite —
@@ -650,6 +687,9 @@ export async function submitExaminerReviewAction(
 
   return {
     success: true,
+    // Only true when a send actually happened here, so the navbar's count
+    // moves for a send and not for a draft save.
+    sent: sendNow,
     warning: undelivered.length
       ? `Saved and sent, but ${undelivered.join(", and ")}. Everyone who was in the room can still see the report in their envelope on the site.`
       : undefined,

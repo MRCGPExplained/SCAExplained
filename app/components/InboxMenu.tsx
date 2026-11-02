@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavDropdown, navDropdownRowStyle, when } from "./NavDropdown";
 import { fetchInboxAction, markReplyReadAction } from "./inbox-actions";
-import { inboxLine, REPORT_READ_EVENT, type Inbox, type InboxMessage } from "@/lib/inbox";
+import { inboxLine, type Inbox, type InboxMessage } from "@/lib/inbox";
+import { REPORT_READ_EVENT } from "@/lib/nav-events";
 
 /**
  * The envelope, and the two kinds of thing behind it.

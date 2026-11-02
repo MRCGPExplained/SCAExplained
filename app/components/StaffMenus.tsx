@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavDropdown, navDropdownRowStyle, when, initials } from "./NavDropdown";
 import { fetchReviewQueueAction, fetchFeedbackQueueAction } from "./staff-actions";
 import type { ReviewWaiting, FeedbackWaiting } from "@/lib/staff-nav";
+import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
 
 /**
  * The two staff icons, as previews rather than plain links.
@@ -92,6 +93,31 @@ export function ReviewQueueMenu({ initialCount }: { initialCount: number | null 
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const ticket = useRef(0);
+
+  /*
+    A send takes a consultation out of this queue, and the icon has to show it
+    without waiting for the next full page load.
+
+    The count is handed to the navbar by the root layout, which a client-side
+    navigation does not refetch, so an examiner who sends a report watches the
+    number stay where it was for the rest of the session. The page that sent
+    it says so instead — and only once the server confirmed the send, so a
+    duplicate that was refused does not move the number.
+
+    rows may still be null here, because the panel need never have been
+    opened. The count is decremented either way; the list catches up when it
+    is next loaded.
+  */
+  useEffect(() => {
+    function onSent(e: Event) {
+      const id = (e as CustomEvent<string>).detail;
+      if (typeof id !== "string") return;
+      setRows((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
+      setCount((c) => (c === null ? c : Math.max(0, c - 1)));
+    }
+    window.addEventListener(REVIEW_SENT_EVENT, onSent);
+    return () => window.removeEventListener(REVIEW_SENT_EVENT, onSent);
+  }, []);
 
   async function load() {
     const mine = ++ticket.current;

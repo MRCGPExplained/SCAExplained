@@ -9,6 +9,7 @@ import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
 import type { TimedTurn } from "@/lib/transcript";
+import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
 import type { SkillAnswer } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
@@ -189,7 +190,15 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
   // should leave the examiner's scroll position where they put it.
   const [audioPlaying, setAudioPlaying] = useState(false);
   const seekRef = useRef<((t: number) => void) | null>(null);
-  const isSent = !!rec.sent_to_candidate_at;
+  /*
+    Sent in this tab, believed before the server component catches up.
+
+    revalidatePath brings sent_to_candidate_at back and that is what really
+    hides the buttons, but it is a round trip, and the gap between "sent" and
+    the buttons going away is exactly where a second click lands.
+  */
+  const [justSent, setJustSent] = useState(false);
+  const isSent = !!rec.sent_to_candidate_at || justSent;
 
   const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
   const [cmGrade, setCmGrade] = useState<Grade | "">((rec.examiner_clinical_management ?? rec.ai_clinical_management ?? "") as Grade | "");
@@ -370,7 +379,15 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
 
   const [state, formAction, pending] = useActionState(submitExaminerReviewAction, {});
   const [showSuccess, setShowSuccess] = useState(false);
+  // One announcement per send. The effect below runs twice per state in
+  // React's development double-invoke, and the navbar would count down twice.
+  const announced = useRef(false);
   useEffect(() => {
+    if ("sent" in state && state.sent && !announced.current) {
+      announced.current = true;
+      setJustSent(true);
+      window.dispatchEvent(new CustomEvent(REVIEW_SENT_EVENT, { detail: rec.id }));
+    }
     if ("success" in state && state.success) {
       // What was just written is now what is saved, so the draft has caught
       // up with it and the base for anything typed next is this.

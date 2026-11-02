@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { REPORT_READ_EVENT } from "@/lib/inbox";
+import { REPORT_READ_EVENT } from "@/lib/nav-events";
 
 /**
  * Renders nothing. Tells the navbar that this report has just been read.
