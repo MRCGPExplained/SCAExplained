@@ -178,6 +178,30 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
   const notesKey = `sca_examiner_notepad_${rec.id}`;
   const [assist, setAssist] = useState<AssistNotes>(EMPTY_NOTES);
 
+  /*
+    Keep the rail ending at the bottom of the window, wherever it currently
+    starts. See the comment on the aside itself for why a CSS height cannot
+    do this.
+  */
+  const railRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const fit = () => {
+      const top = el.getBoundingClientRect().top;
+      // A floor, so that a short window leaves something usable rather than
+      // collapsing the rail to nothing.
+      el.style.maxHeight = `${Math.max(240, window.innerHeight - top - 12)}px`;
+    };
+    fit();
+    window.addEventListener("scroll", fit, { passive: true });
+    window.addEventListener("resize", fit);
+    return () => {
+      window.removeEventListener("scroll", fit);
+      window.removeEventListener("resize", fit);
+    };
+  }, []);
+
   // Read on mount rather than in useState's initialiser: this component is
   // server-rendered, and reaching for localStorage during render would make
   // the first client render disagree with the server's.
@@ -524,20 +548,29 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
               height and sticky has nothing to move within.
             */}
             {/*
-              Scrolls inside itself.
+              Scrolls inside itself, to a height measured from where it
+              actually is.
 
               The rail holds the comment, the voice note and six notepad
-              boxes, which together are taller than most screens. A sticky
-              element taller than the viewport stops behaving like one — it
-              pins until its bottom edge arrives and then scrolls away with
-              the page, so the bottom of the notepad could never be reached
-              while anything on the left was still in view. Capping it to the
-              viewport and giving it its own overflow keeps every field
-              reachable at any scroll position.
+              boxes, which together are taller than most screens, so it needs
+              its own overflow: a sticky element taller than the viewport
+              stops behaving like one.
+
+              The height cannot be calc(100vh - 24px). That is right only once
+              the rail has stuck to the top; before that it starts wherever
+              the grid row does — measured at 145px down — so a full-viewport
+              rail hung 121px below the fold and four of the six notepad boxes
+              could not be seen, never mind clicked. Its own scrollbar was no
+              help, because the part of it that was off-screen was the
+              scrollbar's own lower half.
+
+              So it is measured instead, on scroll and on resize, and always
+              ends exactly at the bottom of the window.
             */}
             <aside
+              ref={railRef}
               className="min-w-0 self-start overflow-y-auto"
-              style={{ position: "sticky", top: 12, maxHeight: "calc(100vh - 24px)" }}
+              style={{ position: "sticky", top: 12 }}
             >
                 {/* Overall Comment */}
                 <div className="mb-4">
@@ -879,6 +912,59 @@ function bulletLines(value: string): string[] {
  * whatever the examiner leaves in the comment box afterwards.
  */
 /**
+ * One notepad box. Grows with what is typed, and keeps its first line
+ * bulleted.
+ *
+ * Its own component so each box can hold the ref the auto-grow needs — the
+ * same measure-and-set that AutoTextarea uses for the comment box above.
+ *
+ * The first marker is added here, on change, rather than on focus. On focus
+ * it was inserted with execCommand, which needs a settled selection inside
+ * the element and did not reliably have one: the first thing typed into a box
+ * came out unbulleted. Adding it the moment there is something to mark has no
+ * such dependency, and the caret stays where React puts it, at the end of
+ * what was just typed.
+ */
+function NoteBox({ value, onChange, onKeyDown }: {
+  value: string;
+  onChange: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Collapse first, or scrollHeight reports the old, taller box and the
+    // field can only ever grow.
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => {
+        const raw = e.target.value;
+        onChange(raw && !/^\s*[•\-*]/.test(raw) ? BULLET + raw : raw);
+      }}
+      onKeyDown={onKeyDown}
+      rows={1}
+      className="w-full rounded-lg px-2.5 py-1.5 text-[12.5px] outline-none focus:border-navy/40 resize-none overflow-hidden"
+      style={{
+        background: "white",
+        border: "1px solid rgba(51,51,51,0.12)",
+        color: NAVY,
+        lineHeight: 1.5,
+        minHeight: "2.4rem",
+        fontFamily: "inherit",
+      }}
+    />
+  );
+}
+
+/**
  * The examiner's notepad: six boxes, always on screen, and the button that
  * turns them into the overall comment.
  *
@@ -942,24 +1028,7 @@ function Notepad({
   };
 
   const box = (k: keyof AssistNotes) => (
-    <textarea
-      value={notes[k]}
-      onChange={(e) => set(k)(e.target.value)}
-      onKeyDown={key(k)}
-      // The first bullet appears on focus, so an empty box shows what it
-      // wants rather than leaving the examiner to guess.
-      onFocus={(e) => { if (!e.currentTarget.value) document.execCommand("insertText", false, BULLET); }}
-      /*
-        No onBlur tidy-up, on purpose. Clearing a box that holds only its
-        marker means a setState on the way out of every field, which is a
-        re-render in the middle of the click that is moving focus somewhere
-        else. It buys nothing either: bulletLines strips a stray marker
-        before the prompt sees it and before hasNotes counts the box.
-      */
-      rows={2}
-      className="w-full rounded-lg px-2.5 py-1.5 text-[12.5px] leading-[1.5] outline-none focus:border-navy/40 resize-y"
-      style={{ background: "white", border: "1px solid rgba(51,51,51,0.12)", color: NAVY }}
-    />
+    <NoteBox value={notes[k]} onChange={set(k)} onKeyDown={key(k)} />
   );
 
   const DOMAINS: { label: string; well: keyof AssistNotes; improve: keyof AssistNotes }[] = [
