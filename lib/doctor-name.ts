@@ -14,7 +14,23 @@
  * None of those can be told apart from someone with a genuinely one-word name,
  * so none of them are used. This returns null when it cannot be sure, and the
  * caller says nothing rather than guessing.
+ *
+ * printableName below answers a looser question — "may this be shown to
+ * someone else as a name" — and allows a one-word name, because a name is
+ * only ambiguous with a placeholder when you are trying to split it. Both
+ * refuse anything holding an "@", which is the fallback that matters: it
+ * would publish the person's email address to everyone in the room.
  */
+export function printableName(displayName: string | null | undefined): string | null {
+  const raw = (displayName ?? "").trim();
+  if (!raw || raw.includes("@")) return null;
+  // The two placeholders the fallback chains produce. "Doctor: Doctor" and
+  // "Patient: Tester" are worse than an absent line, and neither can be told
+  // from a real name by shape, only by value.
+  if (raw === "Tester" || raw === "Doctor" || raw === "Patient") return null;
+  return raw;
+}
+
 export function doctorFirstName(displayName: string | null | undefined): string | null {
   const raw = (displayName ?? "").trim();
   if (!raw || raw.includes("@") || !raw.includes(" ")) return null;

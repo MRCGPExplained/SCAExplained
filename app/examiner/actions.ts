@@ -8,7 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { withoutEmDashes } from "@/lib/prose";
 import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
-import { doctorPossessive } from "@/lib/doctor-name";
+import { doctorPossessive, printableName } from "@/lib/doctor-name";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
 
@@ -437,7 +437,7 @@ export async function submitExaminerReviewAction(
   const { data: rec } = await admin
     .from("station_recordings")
     .select(
-      "candidate_email, station_number, station_title, doctor_display_name, doctor_user_id, patient_user_id, observer_user_ids"
+      "candidate_email, station_number, station_title, doctor_display_name, patient_display_name, doctor_user_id, patient_user_id, observer_user_ids"
     )
     .eq("id", recordingId)
     .single<{
@@ -445,6 +445,7 @@ export async function submitExaminerReviewAction(
       station_number: number;
       station_title: string;
       doctor_display_name: string;
+      patient_display_name: string | null;
       doctor_user_id: string | null;
       patient_user_id: string | null;
       observer_user_ids: string[] | null;
@@ -472,8 +473,45 @@ export async function submitExaminerReviewAction(
       only thing withheld from a peer is the doctor's display name — see the
       peer field on sendExaminerReportEmail.
     */
+    /*
+      Who was in the room, for the block under the station title.
+
+      The doctor and the patient are denormalised onto the row; the observers
+      are only ids, so their names come from user_profiles in one go and are
+      put back in the order the array holds them rather than the order the
+      rows come back in.
+
+      The examiner is the person pressing Send, which is the same id written
+      to examiner_id in updatePayload above — not a second lookup that could
+      disagree with it.
+    */
+    const observerIds = (rec.observer_user_ids ?? []).filter(Boolean);
+    let observerNames: string[] = [];
+    if (observerIds.length > 0) {
+      // supabase-js returns { data, error } rather than throwing.
+      const { data: profiles, error: profileErr } = await admin
+        .from("user_profiles")
+        .select("id, display_name")
+        .in("id", observerIds);
+      if (profileErr) {
+        console.error("[examiner] could not read observer names", { recordingId, error: profileErr.message });
+      }
+      const byId = new Map((profiles ?? []).map((p) => [p.id as string, p.display_name as string | null]));
+      observerNames = observerIds
+        .map((id) => printableName(byId.get(id)))
+        .filter((n): n is string => !!n);
+    }
+
+    const roster = {
+      doctor: printableName(rec.doctor_display_name),
+      patient: printableName(rec.patient_display_name),
+      observers: observerNames,
+      examiner: printableName(examiner.name),
+    };
+
     const report = {
       candidateName: rec.doctor_display_name,
+      roster,
       stationNumber: rec.station_number,
       stationTitle: rec.station_title,
       dgGrade,

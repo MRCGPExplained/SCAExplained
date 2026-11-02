@@ -685,6 +685,21 @@ export async function sendExaminerReportEmail(args: {
    * address to everyone who was in the room with them.
    */
   peer?: { whose: string | null; recordingId: string };
+  /**
+   * Who was in the room, and who marked it.
+   *
+   * Every name here has been through printableName, so an absent one is
+   * absent on purpose and its row is dropped rather than filled with a
+   * placeholder. The examiner is named because the report page has always
+   * named them — "Marked by Dr X", app/recordings/[id]/page.tsx:433 — to
+   * whoever opens it, so this repeats what the link already shows.
+   */
+  roster?: {
+    doctor: string | null;
+    patient: string | null;
+    observers: string[];
+    examiner: string | null;
+  };
 }): Promise<boolean> {
   if (!(await isResendEnabled())) return false;
   const resend = getResend();
@@ -722,6 +737,34 @@ export async function sendExaminerReportEmail(args: {
   */
   const reportHref = args.peer ? `${origin}/recordings/${args.peer.recordingId}` : `${origin}/recordings`;
 
+  /*
+    The roster, as rows rather than one run-on line, because four labels of
+    different lengths read as a list and not as a sentence. A row with no
+    usable name is dropped: "Doctor: Doctor" says less than nothing, and the
+    placeholder is indistinguishable from a real name except by value.
+  */
+  const rosterRows: Array<[string, string]> = [];
+  if (args.roster) {
+    const { doctor, patient, observers, examiner } = args.roster;
+    if (doctor) rosterRows.push(["Doctor", doctor]);
+    if (patient) rosterRows.push(["Patient", patient]);
+    if (observers.length) rosterRows.push([observers.length > 1 ? "Observers" : "Observer", observers.join(", ")]);
+    if (examiner) rosterRows.push(["Examiner", examiner]);
+  }
+  const rosterHtml = rosterRows.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 0;">
+        ${rosterRows
+          .map(
+            ([label, value]) =>
+              `<tr>
+                <td style="padding:1px 10px 1px 0;font-size:12.5px;color:#6b6c85;vertical-align:top;white-space:nowrap;">${label}:</td>
+                <td style="padding:1px 0;font-size:12.5px;color:#3a3b66;vertical-align:top;">${escapeHtml(value)}</td>
+              </tr>`
+          )
+          .join("")}
+      </table>`
+    : "";
+
   function gradeBadge(g: string): string {
     const styles: Record<string, string> = {
       CF: "background:#fee2e2;color:#b91c1c;",
@@ -756,6 +799,7 @@ export async function sendExaminerReportEmail(args: {
         <p style="font-size:13px;color:#6b6c85;margin:0;">
           Station ${args.stationNumber}: <strong style="color:${NAVY};">${escapeHtml(args.stationTitle)}</strong>
         </p>
+        ${rosterHtml}
       </td></tr>
       <tr><td style="padding:12px 28px;">
         <table role="presentation" width="100%" style="background:#f3f2fb;border-radius:10px;">
