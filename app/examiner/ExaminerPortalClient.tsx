@@ -88,8 +88,23 @@ export default function ExaminerPortalClient({ gpRows, aiRows, examiners }: Prop
   // Sent or not sent. The one thing that actually finishes a GP review, and
   // the one thing the pipeline never writes. Splitting on `status` meant a
   // consultation being re-graded belonged to neither list and disappeared.
-  const queue = gpFiltered.filter((r) => !r.sent_to_candidate_at);
-  const completed = gpFiltered.filter((r) => !!r.sent_to_candidate_at);
+  //
+  /*
+    The two lists want opposite orders, so neither can inherit the query's.
+
+    The queue is work, and work is taken oldest first: the candidate who has
+    been waiting longest is the one owed a review, and newest-first buries
+    them under every consultation recorded since. Completed is a record of
+    what has been done, where the useful end is the recent one.
+  */
+  const queue = gpFiltered
+    .filter((r) => !r.sent_to_candidate_at)
+    .slice()
+    .sort((a, b) => +new Date(a.started_at) - +new Date(b.started_at));
+  const completed = gpFiltered
+    .filter((r) => !!r.sent_to_candidate_at)
+    .slice()
+    .sort((a, b) => +new Date(b.started_at) - +new Date(a.started_at));
 
   const aiFiltered = useMemo(
     () => aiRows.filter((r) => withinRange(r.started_at, dateRange) && matchesUser(r, userQuery)),

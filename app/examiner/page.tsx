@@ -52,7 +52,7 @@ export default async function ExaminerPage() {
     "id, station_number, station_title, doctor_display_name, candidate_email, started_at, status, ai_data_gathering, ai_clinical_management, ai_relating_to_others, ai_graded_at, examiner_data_gathering, examiner_clinical_management, examiner_relating_to_others, examiner_reviewed_at, submitted_for_review_at, gp_requested_at, sent_to_candidate_at, discarded_at, doctor_audio_path, examiner_id, manually_checked_at, examiners!station_recordings_examiner_id_fkey(name)";
   // site_settings is no longer read here: the AI pipeline button is offered on
   // every attempt, and the pipeline reports what happened if it can't run.
-  const [gpResult, aiResult, examinersResult] = admin
+  const [queueResult, doneResult, aiResult, examinersResult] = admin
     ? await Promise.all([
         admin
           .from("station_recordings")
@@ -71,7 +71,28 @@ export default async function ExaminerPage() {
           */
           .not("submitted_for_review_at", "is", null)
           .is("discarded_at", null)
-          .order("started_at", { ascending: false })
+          /*
+            Oldest first, and the cap is why it matters rather than the
+            display order — the portal sorts each list itself.
+
+            This list becomes two: the queue, which is unsent, and completed,
+            which is sent. Ordered newest-first a full cap would drop the
+            oldest rows, and the oldest unsent row is precisely the candidate
+            who has been waiting longest — the one a queue exists to surface.
+            Completed is fetched separately below so it can keep its own end.
+          */
+          .is("sent_to_candidate_at", null)
+          .order("started_at", { ascending: true })
+          .limit(200),
+        admin
+          .from("station_recordings")
+          .select(QUEUE_COLUMNS)
+          // The finished half. Newest first, because what is wanted from a
+          // record of completed work is the recent end of it.
+          .not("submitted_for_review_at", "is", null)
+          .not("sent_to_candidate_at", "is", null)
+          .is("discarded_at", null)
+          .order("sent_to_candidate_at", { ascending: false })
           .limit(200),
         admin
           .from("station_recordings")
@@ -90,9 +111,15 @@ export default async function ExaminerPage() {
           .limit(200),
         admin.from("examiners").select("id, name").order("name"),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
-  const gpRows = (gpResult.data ?? []) as unknown as QueueRow[];
+  // Handed to the portal as one list, which splits it on sent_to_candidate_at
+  // exactly as before. The split is unchanged; only which rows survive a full
+  // cap, and that is now the right end of each half.
+  const gpRows = [
+    ...((queueResult.data ?? []) as unknown as QueueRow[]),
+    ...((doneResult.data ?? []) as unknown as QueueRow[]),
+  ];
   const aiRows = (aiResult.data ?? []) as unknown as QueueRow[];
   const examiners = (examinersResult.data ?? []) as { id: string; name: string }[];
 
