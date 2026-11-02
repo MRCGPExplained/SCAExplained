@@ -14,6 +14,18 @@ import { snapshotGpReview } from "@/lib/consultation-costs";
 
 const EXAMINER_CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
+/*
+  The smallest gap between two Resend requests from this action.
+
+  Resend's default allowance is two requests a second, and the SDK carries no
+  retry of its own — `rate_limit_exceeded` is returned as an ordinary failure
+  and the email is simply gone. 550ms keeps a whole roomful under that with
+  room to spare. A consultation is at most a handful of emails, so the cost is
+  a second or so on the Send button; app/api/cron/nudge sends serially for the
+  same reason.
+*/
+const SEND_GAP_MS = 550;
+
 // Records the token usage + cost of an examiner-initiated Claude call.
 // Best-effort: never blocks the examiner's action.
 async function recordExaminerClaudeUsage(
@@ -523,6 +535,21 @@ export async function submitExaminerReviewAction(
       overallComment,
     };
 
+    /*
+      Every send in this action goes through here, so the pacing holds across
+      the candidate's copy and the peers' alike rather than only within the
+      peer loop. The stamp is taken before the request rather than after, so
+      the gap is measured between starts and the time a send itself takes is
+      slack on top of it.
+    */
+    let lastSendAt = 0;
+    const pacedSend = async (opts: Parameters<typeof sendExaminerReportEmail>[0]) => {
+      const wait = SEND_GAP_MS - (Date.now() - lastSendAt);
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      lastSendAt = Date.now();
+      return sendExaminerReportEmail(opts);
+    };
+
     if (rec.candidate_email) {
       /*
         The result used to be discarded. sendExaminerReportEmail returns false
@@ -534,7 +561,7 @@ export async function submitExaminerReviewAction(
         set, and it is now sitting in the candidate's envelope either way — but
         the GP who pressed Send is the one person who can chase it, so say so.
       */
-      emailed = await sendExaminerReportEmail({ to: rec.candidate_email, ...report });
+      emailed = await pacedSend({ to: rec.candidate_email, ...report });
       if (!emailed) {
         console.error("[examiner] report email not sent", { recordingId, to: rec.candidate_email });
       }
@@ -582,26 +609,32 @@ export async function submitExaminerReviewAction(
       peerAddresses.set(key, address);
     }
 
-    if (peerAddresses.size > 0) {
+    const peerList = Array.from(peerAddresses.values());
+    if (peerList.length > 0) {
       /*
         The doctor is named in the possessive and nowhere else. doctorPossessive
         returns null for a display name it cannot trust — one holding an email
-        address, or the "Tester"/"Doctor" placeholders — and the email then says
-        "The examiner report is ready", exactly as the envelope says "the case".
+        address, or the "Tester"/"Doctor" placeholders — and the subject is then
+        the bare "SCA Report", exactly as the envelope says "the case".
       */
       const whose = doctorPossessive(rec.doctor_display_name);
-      const peerList = Array.from(peerAddresses.values());
-      const results = await Promise.all(
-        peerList.map((to) => sendExaminerReportEmail({ to, ...report, peer: { whose, recordingId } }))
-      );
-      results.forEach((ok, i) => {
-        if (ok) return;
+
+      /*
+        One at a time, through the same gate as the candidate's copy.
+
+        This was Promise.all, which fired every peer at once. A room with two
+        observers is three peers, so three requests landed together against an
+        allowance of two a second, and the one that lost came back as a plain
+        failure with nothing to retry it. The GP would have been told a copy
+        did not go out, which is true and no use to the person who did not get
+        it. One observer never showed it: two is where it starts.
+      */
+      for (const to of peerList) {
+        const ok = await pacedSend({ to, ...report, peer: { whose, recordingId } });
+        if (ok) continue;
         peerMissed++;
-        console.error("[examiner] report email not sent to someone in the room", {
-          recordingId,
-          to: peerList[i],
-        });
-      });
+        console.error("[examiner] report email not sent to someone in the room", { recordingId, to });
+      }
     }
   }
 
