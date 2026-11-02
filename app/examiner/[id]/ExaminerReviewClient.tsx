@@ -69,15 +69,32 @@ function GradeSelector({ name, value, onChange }: { name: string; value: Grade |
 }
 
 function Accordion({
-  title, badge, defaultOpen = true, bg, children,
+  title, badge, defaultOpen = true, openWhen, bg, children,
 }: {
   title: string;
   badge?: React.ReactNode;
   defaultOpen?: boolean;
+  /**
+   * Opens the section when this turns true, wherever it was before.
+   *
+   * For a section that starts closed because it is empty and then has
+   * something put into it by something other than the examiner — a generated
+   * draft, a restored one. Without it, pressing Convert drops text into a
+   * collapsed box and reads as nothing having happened.
+   *
+   * It only ever opens. Closing is the examiner's to do, and a section that
+   * shut itself because a field went briefly empty would be worse than one
+   * that stayed open.
+   */
+  openWhen?: boolean;
   bg?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (openWhen) setOpen(true);
+  }, [openWhen]);
   return (
     <div style={{ background: bg ?? "white", border: `1px solid ${bg ? "rgba(245,158,11,0.18)" : "rgba(51,51,51,0.08)"}`, borderRadius: 16, overflow: "hidden" }}>
       <button
@@ -634,7 +651,25 @@ export default function ExaminerReviewClient({ recording: rec, doctorAudioUrl, p
             >
                 {/* Overall Comment */}
                 <div className="mb-4">
-                  <Accordion title="Overall Comment">
+                  {/*
+                    Closed while it is empty, which for most of a review it
+                    is. Note-taking and comment-writing happen one after the
+                    other, not together: the examiner jots in the notepad
+                    throughout and the comment appears at the end. An empty
+                    190px box sitting above the notepad all that time is the
+                    single biggest thing pushing the rail past the height of
+                    the window.
+
+                    openWhen covers the two ways text arrives without the
+                    examiner opening anything: Convert writing a draft, and a
+                    draft restored from the last session, which lands after
+                    mount and so cannot be caught by defaultOpen.
+                  */}
+                  <Accordion
+                    title="Overall Comment"
+                    defaultOpen={!!overallComment}
+                    openWhen={!!overallComment}
+                  >
                     {!isSent && (
                       <div className="flex gap-2 mb-3 flex-wrap">
                         <button
@@ -1099,12 +1134,12 @@ function Notepad({
 
   return (
     <div className="rounded-2xl p-5" style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)" }}>
-      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>
+      {/* No explanatory line under this. Six boxes headed "did well" and
+          "could improve" explain themselves, and the sentence that was here
+          cost 32px of a rail that has none to spare. */}
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-2.5" style={{ color: "rgba(51,51,51,0.45)" }}>
         Notepad
       </h3>
-      <p className="text-[11.5px] leading-[1.45] m-0 mb-3" style={{ color: "rgba(51,51,51,0.42)" }}>
-        Jot things down as you listen. Nothing here is saved to the report or shown to the candidate.
-      </p>
 
       <button
         type="button"
