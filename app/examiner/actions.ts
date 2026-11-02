@@ -530,10 +530,6 @@ export async function submitExaminerReviewAction(
       cmGrade,
       roGrade,
       totalPts: total,
-      dgComment,
-      cmComment,
-      roComment,
-      overallComment,
     };
 
     /*

@@ -666,10 +666,6 @@ export async function sendExaminerReportEmail(args: {
   cmGrade: string;
   roGrade: string;
   totalPts: number;
-  dgComment: string;
-  cmComment: string;
-  roComment: string;
-  overallComment: string;
   /**
    * The doctor's name in the possessive — "Ada's" — on a copy going to
    * someone who was in the room but did not sit in the doctor's chair.
@@ -763,11 +759,19 @@ export async function sendExaminerReportEmail(args: {
     return `<span style="display:inline-block;padding:2px 10px;border-radius:6px;font-weight:700;font-size:12px;${s}">${g}: ${labels[g] ?? g}</span>`;
   }
 
-  function domainRow(label: string, max: string, grade: string, comment: string): string {
-    return `<tr><td style="padding:14px 0;border-bottom:1px solid rgba(26,27,82,0.07);">
+  /*
+    The grade, and not the comment that goes with it.
+
+    The email says how it went; the report says why. A domain comment is the
+    part worth reading beside the transcript and the examiner's voice note,
+    and neither of those can travel in an email — so the comment read better
+    on the page than it ever did here, and taking it out of the inbox costs
+    nothing it was actually delivering.
+  */
+  function domainRow(label: string, max: string, grade: string): string {
+    return `<tr><td style="padding:12px 0;border-bottom:1px solid rgba(26,27,82,0.07);">
       <p style="margin:0 0 6px;font-size:12px;color:#6b6c85;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">${label} <span style="font-weight:400;text-transform:none;">(max ${max})</span></p>
-      <p style="margin:0 0 6px;">${gradeBadge(grade)}</p>
-      ${comment ? `<p style="margin:6px 0 0;font-size:13px;color:#3a3b66;line-height:1.6;">${escapeHtml(comment)}</p>` : ""}
+      <p style="margin:0;">${gradeBadge(grade)}</p>
     </td></tr>`;
   }
 
@@ -795,16 +799,18 @@ export async function sendExaminerReportEmail(args: {
       </td></tr>
       <tr><td style="padding:12px 28px 0;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          ${domainRow("Data Gathering &amp; Diagnosis", "3 pts", args.dgGrade, args.dgComment)}
-          ${domainRow("Clinical Management", "4.5 pts", args.cmGrade, args.cmComment)}
-          ${domainRow("Relating to Others", "3 pts", args.roGrade, args.roComment)}
+          ${domainRow("Data Gathering &amp; Diagnosis", "3 pts", args.dgGrade)}
+          ${domainRow("Clinical Management", "4.5 pts", args.cmGrade)}
+          ${domainRow("Relating to Others", "3 pts", args.roGrade)}
         </table>
       </td></tr>
-      ${args.overallComment ? `<tr><td style="padding:16px 28px 8px;">
-        <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6c85;font-weight:700;">Overall Comment</p>
-        <p style="margin:0;font-size:13.5px;line-height:1.65;color:#3a3b66;white-space:pre-wrap;">${escapeHtml(args.overallComment)}</p>
-      </td></tr>` : ""}
-      <tr><td style="padding:20px 28px;">
+      <tr><td style="padding:16px 28px 0;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6b6c85;">
+          Your examiner&rsquo;s written comments and voice note are in the full report,
+          alongside the recording and the transcript.
+        </p>
+      </td></tr>
+      <tr><td style="padding:14px 28px 20px;">
         <a href="${reportHref}"
            style="display:inline-block;background:${NAVY};color:#ffffff;
            font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">
