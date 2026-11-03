@@ -51,23 +51,41 @@ function GradeBadge({ grade }: { grade: string }) {
   );
 }
 
-function GradeSelector({ name, value, onChange }: { name: string; value: Grade | ""; onChange: (g: Grade) => void }) {
+function GradeSelector({ name, value, onChange, compact, disabled }: {
+  name: string;
+  value: Grade | "";
+  onChange: (g: Grade) => void;
+  /** Letters only. Twelve buttons share one line in the score bar, and
+   *  "Clear Fail" three times over does not fit beside a transport. */
+  compact?: boolean;
+  disabled?: boolean;
+}) {
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className={compact ? "flex gap-1" : "flex gap-2 flex-wrap"}>
       {GRADES.map((g) => (
         <button
           key={g}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(g)}
-          className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition"
+          // The words move to a tooltip rather than being lost: CF and CP are
+          // not self-explanatory to anyone who has not marked before.
+          title={compact ? GRADE_STYLE[g].label : undefined}
+          className={compact
+            ? "px-2 py-1 rounded-md text-[11.5px] font-bold transition"
+            : "px-3 py-1.5 rounded-lg text-[12px] font-bold transition"}
           style={{
             background: value === g ? GRADE_STYLE[g].bg : "rgba(51,51,51,0.05)",
             color: value === g ? GRADE_STYLE[g].color : "rgba(51,51,51,0.4)",
             border: value === g ? `1.5px solid ${GRADE_STYLE[g].color}30` : "1.5px solid transparent",
+            cursor: disabled ? "default" : "pointer",
+            // The chosen one stays legible; the rest recede, so a sent review
+            // reads as a record rather than as a form you could still fill in.
+            opacity: disabled && value !== g ? 0.35 : 1,
           }}
         >
           {g}
-          <span className="ml-1 font-normal text-[10px]">{GRADE_STYLE[g].label}</span>
+          {!compact && <span className="ml-1 font-normal text-[10px]">{GRADE_STYLE[g].label}</span>}
         </button>
       ))}
       <input type="hidden" name={name} value={value} />
@@ -336,6 +354,22 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     try {
       const raw = window.localStorage.getItem(sixKey);
       if (raw) {
+        /*
+          A sent review is a record, not a draft.
+
+          Restoring here put grades on screen that were never sent, under a
+          header reading "Report already sent" and beside a banner saying
+          they had been restored — so the page disagreed with the report in
+          the candidate's inbox and looked confident about it. There is also
+          nothing to restore FOR: every control is read-only from here on.
+          The record is dropped rather than kept, because it can never be
+          saved now.
+        */
+        if (rec.sent_to_candidate_at) {
+          window.localStorage.removeItem(sixKey);
+          setSixHydrated(true);
+          return;
+        }
         const saved = JSON.parse(raw) as { base?: Partial<SixFields>; draft?: Partial<SixFields> };
         if (saved.base && saved.draft && sameSix(saved.base, seeded)) {
           const d = saved.draft;
@@ -365,12 +399,15 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     if (!sixHydrated) return;
     const current: SixFields = { dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment };
     try {
-      if (sameSix(current, savedSix)) window.localStorage.removeItem(sixKey);
+      // Once it is sent there is no draft to keep: the controls are
+      // read-only and the record could never be saved from here.
+      if (isSent) window.localStorage.removeItem(sixKey);
+      else if (sameSix(current, savedSix)) window.localStorage.removeItem(sixKey);
       else window.localStorage.setItem(sixKey, JSON.stringify({ base: savedSix, draft: current }));
     } catch {
       // Storage full or blocked. The work is still on screen.
     }
-  }, [sixHydrated, dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment, savedSix, sixKey]);
+  }, [sixHydrated, isSent, dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment, savedSix, sixKey]);
 
   /*
     Keep the rail ending at the bottom of the window, wherever it currently
@@ -600,6 +637,35 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const roPts = pts(roGrade, "ro");
   const totalPts = dgPts !== null && cmPts !== null && roPts !== null ? dgPts + cmPts + roPts : null;
 
+  /*
+    The three domains, once.
+
+    Defined here rather than inline in the cards, because the grades are set
+    in the score bar at the top and the comments are written in the cards
+    below, and those two places have to agree about what a domain is. Two
+    copies of this list would drift the first time one was edited.
+  */
+  const DOMAINS = [
+    {
+      key: "dg", short: "DG", label: "Data Gathering & Diagnosis", max: 3, points: dgPts,
+      grade: dgGrade, setGrade: setDgGrade, comment: dgComment, setComment: setDgComment,
+      commentName: "dg_comment" as const,
+      aiGrade: rec.ai_data_gathering, aiComment: rec.ai_comment_data_gathering,
+    },
+    {
+      key: "cm", short: "CM", label: "Clinical Management", max: 4.5, points: cmPts,
+      grade: cmGrade, setGrade: setCmGrade, comment: cmComment, setComment: setCmComment,
+      commentName: "cm_comment" as const,
+      aiGrade: rec.ai_clinical_management, aiComment: rec.ai_comment_clinical_management,
+    },
+    {
+      key: "ro", short: "RO", label: "Relating to Others", max: 3, points: roPts,
+      grade: roGrade, setGrade: setRoGrade, comment: roComment, setComment: setRoComment,
+      commentName: "ro_comment" as const,
+      aiGrade: rec.ai_relating_to_others, aiComment: rec.ai_comment_relating_to_others,
+    },
+  ];
+
   const allCommentsSet = dgComment.trim().length > 0 && cmComment.trim().length > 0 && roComment.trim().length > 0;
   const canSubmit = !!dgGrade && !!cmGrade && !!roGrade && allCommentsSet;
 
@@ -742,23 +808,31 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             is not room for both columns. Still two columns, as asked; just
             narrower ones.
           */}
+          {/*
+            Above the columns, not inside one.
+
+            It names the consultation, which is true of the whole page, so it
+            was the one thing in the left column that was not about the left
+            column — and it pushed the score bar, the first thing you reach
+            for, a card's height down. Full width also lets the roster sit on
+            one line instead of wrapping in a 768px track.
+          */}
+          <div className="rounded-2xl p-6 mb-5" style={{ background: NAVY, color: "white" }}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1 opacity-50">
+              Station {rec.station_number}
+            </div>
+            <h1 className="font-display font-extrabold text-[22px] mb-3">{rec.station_title}</h1>
+            <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap">
+              <span>Doctor: {rec.doctor_display_name}</span>
+              <span>Patient: {rec.patient_display_name}</span>
+              <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" })}</span>
+              {isSent && <span style={{ color: "#86efac" }}>✓ Report already sent</span>}
+            </div>
+          </div>
+
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-5 items-start">
 
             <div className="min-w-0">
-              {/* Station header */}
-              <div className="rounded-2xl p-6 mb-5" style={{ background: NAVY, color: "white" }}>
-                <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1 opacity-50">
-                  Station {rec.station_number}
-                </div>
-                <h1 className="font-display font-extrabold text-[22px] mb-3">{rec.station_title}</h1>
-                <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap">
-                  <span>Doctor: {rec.doctor_display_name}</span>
-                  <span>Patient: {rec.patient_display_name}</span>
-                  <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" })}</span>
-                  {isSent && <span style={{ color: "#86efac" }}>✓ Report already sent</span>}
-                </div>
-              </div>
-
               {/*
                 Score and transport, stuck together at the top.
 
@@ -785,21 +859,40 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
                 }}
               >
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-[12px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
-                    Station Score
-                  </span>
-                  <div className="flex items-center gap-2 text-[11px]" style={{ color: "rgba(51,51,51,0.35)" }}>
-                    <span>DG: {dgPts !== null ? `${dgPts}/3` : "—"}</span>
-                    <span>·</span>
-                    <span>CM: {cmPts !== null ? `${cmPts}/4.5` : "—"}</span>
-                    <span>·</span>
-                    <span>RO: {roPts !== null ? `${roPts}/3` : "—"}</span>
-                  </div>
+              {/*
+                The grades live here, not in the cards.
+
+                They are three rows of four buttons and they are needed on
+                every review; the domain comments beneath them are long and,
+                measured over the reviews written so far, changed about twice
+                in nine. Keeping the small, always-needed control pinned and
+                the large, rarely-touched one in the page is the right way
+                round — and it puts the grade next to the running total, so
+                the consequence of a click is visible in the same glance.
+
+                This bar replaced a read-only "DG: 2/3 · CM: 3/4.5" line. The
+                points are still here, just beside the buttons that set them.
+              */}
+              <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+                  {DOMAINS.map((d) => (
+                    <div key={d.key} className="flex items-center gap-2">
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-[0.06em]"
+                        style={{ color: "rgba(51,51,51,0.4)" }}
+                        title={d.label}
+                      >
+                        {d.short}
+                      </span>
+                      <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
+                      <span className="text-[10px] tabular-nums" style={{ color: "rgba(51,51,51,0.3)" }}>
+                        {d.points !== null ? `${d.points}/${d.max}` : `—/${d.max}`}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <span className="font-extrabold text-[22px]" style={{ color: NAVY }}>
-                  {totalPts !== null ? `${totalPts} / 10.5 pts` : "— / 10.5 pts"}
+                <span className="font-extrabold text-[20px] tabular-nums" style={{ color: NAVY }}>
+                  {totalPts !== null ? `${totalPts} / 10.5` : "— / 10.5"}
                 </span>
               </div>
 
@@ -816,6 +909,23 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   </div>
                 )}
               </div>
+
+                {/*
+                  Said out loud, because a silent restore of six fields is
+                  indistinguishable from the page having loaded normally, and
+                  the one thing the examiner needs to know is that what is on
+                  screen is NOT what the server has.
+
+                  Directly under the score bar, which is where the restored
+                  grades now are. It sat beside Save and Send, a full page
+                  below the thing it was describing, which is a notice you
+                  read after you have already acted on it.
+                */}
+                {sixRestored && !showSuccess && (
+                  <p className="text-[12px] m-0 mb-4 px-1" style={{ color: "#92400e" }}>
+                    Restored your unsaved grades and comments from this browser. Not saved yet.
+                  </p>
+                )}
 
                 {/* AI pipeline — always available, on every attempt */}
                 <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
@@ -838,44 +948,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
 
                 {/* Domain cards — flat, full width, AI context inline */}
                 <div className="flex flex-col gap-4 mb-4">
-                  {([
-                    {
-                      key: "dg",
-                      label: "Data Gathering & Diagnosis",
-                      max: 3,
-                      grade: dgGrade,
-                      setGrade: setDgGrade,
-                      comment: dgComment,
-                      setComment: setDgComment,
-                      commentName: "dg_comment" as const,
-                      aiGrade: rec.ai_data_gathering,
-                      aiComment: rec.ai_comment_data_gathering,
-                    },
-                    {
-                      key: "cm",
-                      label: "Clinical Management",
-                      max: 4.5,
-                      grade: cmGrade,
-                      setGrade: setCmGrade,
-                      comment: cmComment,
-                      setComment: setCmComment,
-                      commentName: "cm_comment" as const,
-                      aiGrade: rec.ai_clinical_management,
-                      aiComment: rec.ai_comment_clinical_management,
-                    },
-                    {
-                      key: "ro",
-                      label: "Relating to Others",
-                      max: 3,
-                      grade: roGrade,
-                      setGrade: setRoGrade,
-                      comment: roComment,
-                      setComment: setRoComment,
-                      commentName: "ro_comment" as const,
-                      aiGrade: rec.ai_relating_to_others,
-                      aiComment: rec.ai_comment_relating_to_others,
-                    },
-                  ]).map(({ key, label, max, grade, setGrade, comment, setComment, commentName, aiGrade, aiComment }) => (
+                  {DOMAINS.map(({ key, label, max, grade, comment, setComment, commentName, aiGrade, aiComment }) => (
                     <div
                       key={key}
                       className="rounded-2xl overflow-hidden"
@@ -905,9 +978,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                         </div>
                       )}
 
-                      {/* Examiner grading */}
+                      {/* The comment only. The grade for this domain is set
+                          in the score bar at the top of the column, where it
+                          stays in view while the audio plays. */}
                       <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
-                        <GradeSelector name={`${key}_grade`} value={grade} onChange={setGrade} />
                         <AutoTextarea
                           name={commentName}
                           value={comment}
@@ -967,18 +1041,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 )}
                 {showSuccess && (
                   <p className="text-[12px] mb-3" style={{ color: "#166534" }}>✓ Saved successfully.</p>
-                )}
-                {/*
-                  Said out loud, because a silent restore of six fields of
-                  prose is indistinguishable from the page having loaded
-                  normally — and the one thing the examiner needs to know is
-                  that what is on screen is NOT what the server has. Stays up
-                  until a save clears it.
-                */}
-                {sixRestored && !showSuccess && (
-                  <p className="text-[12px] mb-3" style={{ color: "#92400e" }}>
-                    Restored your unsaved grades and comments from this browser. Not saved yet.
-                  </p>
                 )}
                 {/* A failed email is not a failed review — the candidate has it in
                     their inbox on the site either way — but the GP who pressed Send
