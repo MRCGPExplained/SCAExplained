@@ -10,7 +10,7 @@ import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
 import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
 import { useDictation } from "./useDictation";
-import { PRESET_FIELDS, TONE, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
+import { PRESET_FIELDS, TONE, type DomainHalfNotes, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
 import type { TimedTurn } from "@/lib/transcript";
 import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
@@ -616,29 +616,29 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   // Stripped, not trimmed: a box holding only the bullet the dialog put there
   // on focus has nothing in it.
   /*
-    A ticked phrase is a note like any other.
+    A ticked phrase is NOT a note like any other, which is why these travel
+    separately now.
 
-    The preset text goes in as the examiner wrote it, with whatever they
-    typed against it joined on after a dash — one line per observation, the
-    same shape the typed notes arrive in, which is what oneLine guarantees.
-    The copy-editor prompt already forbids rephrasing and synonym-swapping,
-    which is what protects a phrase that was curated once and is meant to
-    read the same way every time.
+    They used to be flattened together — preset, an em dash, then whatever
+    was typed against it, all in one line, indistinguishable from a line the
+    examiner typed by hand. That cost both of them. A curated phrase was
+    exposed to the grammar pass it does not need, and a hand-typed line was
+    protected by the no-rephrasing rule that exists to keep curated phrases
+    word-perfect, so the roughest text on the page was the text the editor
+    was least willing to touch.
 
     Presets first, then the free text. They are the recurring points and tend
     to be the ones worth leading on; anything typed by hand is specific to
     this consultation and reads better after them.
   */
-  const notesFor = useCallback((field: PresetField, raw: string): string => {
+  const notesFor = useCallback((field: PresetField, raw: string): DomainHalfNotes => {
     const selection = picked[field] ?? {};
-    const ticked = (presets[field] ?? [])
-      .filter((p) => p.id in selection)
-      .map((p) => {
-        const phrase = oneLine(p.text);
-        const comment = oneLine(selection[p.id] ?? "");
-        return comment ? `${phrase} — ${comment}` : phrase;
-      });
-    return [...ticked, ...bulletLines(raw)].join("\n");
+    return {
+      ticked: (presets[field] ?? [])
+        .filter((p) => p.id in selection)
+        .map((p) => ({ phrase: oneLine(p.text), note: oneLine(selection[p.id] ?? "") })),
+      typed: bulletLines(raw),
+    };
   }, [picked, presets]);
 
   /*

@@ -10,7 +10,7 @@ import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { doctorPossessive, printableName } from "@/lib/doctor-name";
 import { MAX_PRESETS_PER_FIELD, MAX_PRESET_LENGTH, savePresetField } from "@/lib/examiner-presets-store";
-import { PRESET_FIELDS, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
+import { PRESET_FIELDS, type DomainHalfNotes, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
 
@@ -71,6 +71,77 @@ async function recordExaminerClaudeUsage(
 }
 
 /**
+ * A half as it arrives over the wire, made safe to read.
+ *
+ * This is a server action, so the argument is whatever was POSTed, not
+ * whatever the client component believes it sent. Two cases are real rather
+ * than theoretical: a browser tab left open across a deploy still holds the
+ * old client and sends the six halves as plain strings, and anything else
+ * that can reach a server action can send nothing at all. Neither should
+ * reach the prompt builder as undefined.
+ *
+ * The string branch is a genuine fallback, not defensive clutter: it keeps a
+ * stale tab working, with every line treated as hand-typed, which is the
+ * safe way round. Mistaking a typed line for a curated phrase would protect
+ * it from the grammar pass it needs; mistaking a curated phrase for a typed
+ * line only exposes it to an edit the no-rephrasing rule still forbids.
+ */
+function asHalf(value: unknown): DomainHalfNotes {
+  if (typeof value === "string") {
+    return { ticked: [], typed: value.split("\n").map((l) => l.trim()).filter(Boolean) };
+  }
+  if (!value || typeof value !== "object") return { ticked: [], typed: [] };
+  const half = value as Partial<DomainHalfNotes>;
+  return {
+    ticked: Array.isArray(half.ticked)
+      ? half.ticked
+          .filter((t): t is { phrase: string; note: string } =>
+            !!t && typeof t.phrase === "string" && t.phrase.trim() !== "")
+          .map((t) => ({
+            phrase: t.phrase.trim(),
+            note: typeof t.note === "string" ? t.note.trim() : "",
+          }))
+      : [],
+    typed: Array.isArray(half.typed)
+      ? half.typed.map((l) => String(l).trim()).filter(Boolean)
+      : [],
+  };
+}
+
+function halfHasNotes(half: DomainHalfNotes): boolean {
+  return half.ticked.length > 0 || half.typed.length > 0;
+}
+
+/**
+ * One half of a domain — the examiner's observations, one per line, each
+ * marked with where it came from.
+ *
+ * The markers are the point. A curated phrase and a line typed while
+ * listening need opposite handling, and the editor cannot tell them apart
+ * from the words alone — both are short, both are in the imperative or the
+ * past tense, and the typed one is often the better written of the two.
+ *
+ * A phrase's own note is labelled rather than punctuated off. It was "X :: Y"
+ * first, and Y went missing: measured twice on the same input, a typed
+ * "really nicely done" was discarded and an invented "- also good" put in its
+ * place. A bare separator reads as annotation, and annotation is droppable.
+ * Spelling out whose words they are is what stopped it.
+ *
+ * Not a dash either way. The hyphen is load-bearing in this examiner's prose
+ * and an em dash is scrubbed from the output, so neither can be spared as a
+ * separator without muddling what the model is being shown.
+ */
+function noteList(label: string, half: DomainHalfNotes): string {
+  const lines = [
+    ...half.ticked.map((t) =>
+      t.note ? `[phrase] ${t.phrase} [examiner wrote: ${t.note}]` : `[phrase] ${t.phrase}`),
+    ...half.typed.map((l) => `[typed] ${l}`),
+  ];
+  if (lines.length === 0) return "";
+  return `  ${label}:\n` + lines.map((l) => `    ${l}\n`).join("");
+}
+
+/**
  * One domain's block of the prompt.
  *
  * A domain with nothing typed says so rather than presenting two empty
@@ -78,22 +149,7 @@ async function recordExaminerClaudeUsage(
  * who found nothing good to say, which is a different claim from an examiner
  * who did not write about that domain.
  */
-/**
- * One half of a domain — the examiner's observations, one per line.
- *
- * They arrive newline-separated because the dialog's boxes are bullet lists.
- * A single observation is written inline; several are listed, so the model
- * can see they are separate points rather than one run-on sentence it has to
- * guess the joins in.
- */
-function noteList(label: string, text: string): string {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (lines.length === 0) return "";
-  if (lines.length === 1) return `  ${label}: ${lines[0]}\n`;
-  return `  ${label}:\n` + lines.map((l) => `    ${l}\n`).join("");
-}
-
-function domainNotes(label: string, well: string, improve: string): string {
+function domainNotes(label: string, well: DomainHalfNotes, improve: DomainHalfNotes): string {
   const w = noteList("Did well", well);
   const i = noteList("Could improve", improve);
   if (!w && !i) return `${label}: no notes written.\n`;
@@ -120,16 +176,55 @@ function domainNotes(label: string, well: string, improve: string): string {
  *
  * The station title stays. It is the name of the case, not a judgement on it,
  * and it keeps the draft from misreading what the consultation was about.
+ *
+ * WHY THE PROMPT LOOKS THE WAY IT DOES. It is not a style invented here. The
+ * three reviews Brandon has written by hand — stations 72, 73 and 83, which
+ * is the entire corpus, 1,265 words — were classified clause by clause, and
+ * the shape below is what that found:
+ *
+ *   - Credits put the candidate in the subject slot about three quarters of
+ *     the time, but the praise itself almost never does. The action is second
+ *     person and past tense, then an impersonal tag carries the verdict:
+ *     "which was good", "- excellent", "well done". Four interchangeable
+ *     forms of one move.
+ *   - Criticisms drop the candidate from the subject slot: 22% against 75%.
+ *     What fills the gap is the bare imperative, not the skill as a noun.
+ *     "Don't forget SOCRATES", not "SOCRATES was forgotten".
+ *   - The hyphen does two opposite jobs. After a credit it carries praise, six
+ *     times out of six. Before an improvement it is a label, four times out of
+ *     four. It never once carries a negative impression. Hence the rule
+ *     forbidding an appraisal tag after a criticism: a prompt told only
+ *     "sometimes add an impression after a hyphen" would write "- not great".
+ *
+ * The preset lists then turn out to be written in exactly those two
+ * registers, which is most of why this can afford to add so little: all 24
+ * Did well phrases are subjectless past-tense verb phrases, and all 24 Could
+ * improve phrases are bare imperatives. A ticked phrase is already most of a
+ * sentence in his voice, and "You" plus a tag is the rest of it.
+ *
+ * ONE THING IT CANNOT PRODUCE. Every one of the three reports closes by
+ * naming what would change the grade ("With the right diagnosis and
+ * management this would be a pass"). That needs the grades, which this
+ * deliberately does not receive, per the second point above. The closing line
+ * stays the examiner's to type, and the prompt is told not to attempt it
+ * rather than left to guess at it.
  */
 export async function generateOverallCommentAction(args: {
-  dgWell: string; dgImprove: string;
-  cmWell: string; cmImprove: string;
-  roWell: string; roImprove: string;
+  dgWell: DomainHalfNotes; dgImprove: DomainHalfNotes;
+  cmWell: DomainHalfNotes; cmImprove: DomainHalfNotes;
+  roWell: DomainHalfNotes; roImprove: DomainHalfNotes;
   stationTitle: string;
   recordingId?: string;
 }): Promise<{ text?: string; error?: string }> {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
+
+  const dgWell = asHalf(args.dgWell);
+  const dgImprove = asHalf(args.dgImprove);
+  const cmWell = asHalf(args.cmWell);
+  const cmImprove = asHalf(args.cmImprove);
+  const roWell = asHalf(args.roWell);
+  const roImprove = asHalf(args.roImprove);
 
   /*
     Nothing to copy-edit, as grammarCheckAction already says of itself.
@@ -140,8 +235,7 @@ export async function generateOverallCommentAction(args: {
     call goes out on a prompt that is just the station title, and whatever
     comes back replaces the examiner's overall comment.
   */
-  const anyNotes = [args.dgWell, args.dgImprove, args.cmWell, args.cmImprove, args.roWell, args.roImprove]
-    .some((n) => n.trim());
+  const anyNotes = [dgWell, dgImprove, cmWell, cmImprove, roWell, roImprove].some(halfHasNotes);
   if (!anyNotes) return { error: "No notes to convert." };
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -157,9 +251,21 @@ export async function generateOverallCommentAction(args: {
         300 was enough while this wrote a 3-5 sentence summary of its own. It
         now carries the examiner's six notes through largely intact, so the
         ceiling has to clear what they might type rather than what a summary
-        would run to. 600 is roughly 450 words.
+        would run to.
+
+        600 was NOT that ceiling, and the three reviews Brandon has written by
+        hand say so: 315, 505 and 445 words, so the longest is around 670
+        tokens before the headings and the appraisal tags this now adds. 600
+        would have truncated his own median report. Truncation here is not a
+        shorter comment, it is a comment that stops mid-sentence and replaces
+        the examiner's draft with the fragment.
+
+        1500 is far above anything measured. Output is billed per token
+        generated, not per token allowed, so the headroom costs nothing, and
+        a ceiling set just above the longest thing seen so far is how this
+        one came to be too low in the first place.
       */
-      max_tokens: 600,
+      max_tokens: 1500,
       /*
         Low, because the job is to keep somebody's words rather than to find
         better ones. Unset, the API defaults to 1.0, which is the setting
@@ -181,32 +287,52 @@ export async function generateOverallCommentAction(args: {
       system: [
         "You are copy-editing an RCGP examiner's notes into the overall comment a GP registrar will read.",
         "",
-        "Use the examiner's words. Fix grammar, spelling, punctuation and tense, join fragments into sentences, and put the points in a sensible order. Nothing else. A note that is already a clean sentence comes through unchanged.",
+        "HOW THE NOTES ARRIVE. Each domain has a Did well half and a Could improve half, one observation per line.",
+        "A line marked [phrase] is wording the examiner curated in advance and ticked for this consultation. Reproduce it word for word. Do not reword it, do not shorten it, do not improve it.",
+        "Where a [phrase] line ends with \"[examiner wrote: ...]\", those are the examiner's own words about this candidate. They must appear in the comment. Never discard them and never replace them with wording of your own.",
+        "A line marked [typed] was written at speed while listening. This is where spelling, grammar, agreement and the joins between fragments need the work.",
         "",
-        "Add nothing at all:",
+        "SHAPE. One section per domain that has notes. Open each with its heading on its own line, as plain text, in capitals, followed by a colon, exactly: \"DATA GATHERING:\", \"CLINICAL MANAGEMENT:\", \"RTO:\". Those three strings and no others. The notes below label the third domain \"Relating to Others\" in full; its heading is still the abbreviation \"RTO:\", which is what this examiner writes. The first sentence begins on the line directly below the heading, with no blank line between them. One blank line between sections. Write nothing at all about a domain with no notes, not even its heading.",
+        "Within a section, the Did well material and the Could improve material are two separate paragraphs with a blank line between them, in that order. Never run the credit and the criticism together in one paragraph. Where a section has only one of the two halves, it has only one paragraph.",
+        "",
+        "DID WELL. Name the action in the second person, then appraise it impersonally. That order is the house style and it does not vary.",
+        "The ticked phrases are already past-tense verb phrases with no subject, so putting \"You\" in front is the whole job: \"Allowed the patient their golden minute\" becomes \"You allowed the patient their golden minute\".",
+        "The appraisal is a short tag attached to the same sentence, never a sentence of its own. Where the phrase carries \"[examiner wrote: ...]\", those words ARE its appraisal: \"Allowed the patient their golden minute [examiner wrote: really nicely done]\" becomes \"You allowed the patient their golden minute, really nicely done.\" Where the phrase carries nothing, choose from exactly these: which was good, which was really good, which is good, excellent, also good, well done, very well handled.",
+        "VARY THE TAG. Never use the same one twice in a row, and never give every credit in a section the same tag. This examiner alternates between these forms, and a comment that appraises eight things in a row as \"which was good\" does not read like him.",
+        "Two ways to attach it, and the split is not optional. Most credits take a comma: \"You screened for the relevant red flags, which was good.\" Then count the credits in the section: where there are two or more, EXACTLY ONE of them instead takes a space, a hyphen and a space, lower case after it: \"You asked about hydration and activity - also good.\" One per such section, not none and not two. A section with a single credit uses the comma.",
+        "Give the hyphen to a credit the examiner typed no appraisal against. Their own words are never dropped or replaced to make room for it, and if every credit in the section carries their wording then that section has no hyphen.",
+        "Where there is no specific action to report and the note is only praise, leave it as the examiner wrote it, including as a fragment: \"Really good rapport.\" stays that way.",
+        "",
+        "COULD IMPROVE. Keep the candidate out of the subject position when naming what was missed.",
+        "The ticked phrases here are already instructions, and they stay instructions: \"Try to ask ICE earlier\" stays \"Try to ask ICE earlier\". Do not convert one into \"You should have asked ICE earlier\" or \"You did not ask ICE early enough\".",
+        "Where the examiner's note ties a fix to a moment in this consultation, put the moment first and then \"you could\": \"When the patient said they did not know which to do, you could say that both options would work and ask if they have a preference.\"",
+        "Never attach an appraisal tag to a criticism. A hyphen in front of an improvement is a label, not an appraisal, and it appears only where the examiner wrote one.",
+        "",
+        "ADD NOTHING AT ALL:",
         "- No explanation of why a point matters.",
         "- No advice or recommendation the examiner did not write.",
-        "- No verdict on whether something was good, appropriate or correct.",
+        "- No clinical content of any kind. Not a drug, a dose, a test, a timescale, a red flag or a diagnosis that is not already in the notes.",
+        "- No verdict beyond the Did well appraisal tag above. Nothing about the grade, the score, or whether the consultation passed.",
         "- No praise, softening or encouragement that is not in the notes.",
         "",
         "Do not rephrase a criticism into something gentler. If the note says a thing was missed, the comment says it was missed.",
         "",
         "Do not swap a word for a synonym. If the note says the referral was \"right\", the comment says it was right, not that it was appropriate. Leave abbreviations exactly as written: \"ICE\" stays \"ICE\", \"2ww\" stays \"2ww\".",
         "",
-        "The notes may be lists, one observation per line. Join them into sentences. The comment itself is never a list.",
+        "KEEP EVERY OBSERVATION. Each line in the notes appears in the comment. Do not drop one as redundant and do not merge two of them into a single point.",
         "",
-        "Say nothing about a domain with no notes.",
+        "Do not shorten or split a long sentence. This examiner writes long sentences and they are his. Fix what is wrong inside one and leave its length alone. A note that is already a clean sentence comes through unchanged.",
         "",
-        "Plain prose, addressed to the candidate as \"you\". No headings, no bullet points, no em dashes. As short as the notes allow.",
+        "Addressed to the candidate as \"you\". No bullet points and no em dashes.",
       ].join("\n"),
       messages: [{
         role: "user",
         content: `Station: ${args.stationTitle}
 
-${domainNotes("Data Gathering", args.dgWell, args.dgImprove)}
-${domainNotes("Clinical Management", args.cmWell, args.cmImprove)}
-${domainNotes("Relating to Others", args.roWell, args.roImprove)}
-Copy-edit these notes into the overall comment. The examiner's words, corrected and joined up. Nothing added.`,
+${domainNotes("Data Gathering", dgWell, dgImprove)}
+${domainNotes("Clinical Management", cmWell, cmImprove)}
+${domainNotes("Relating to Others", roWell, roImprove)}
+Copy-edit these notes into the overall comment. The examiner's words, corrected and joined up, in the shape described. Nothing added.`,
       }],
     }),
   });

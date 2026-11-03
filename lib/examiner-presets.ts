@@ -57,6 +57,29 @@ export interface ExaminerPreset {
 }
 
 /**
+ * One half of one domain — Did well or Could improve — as Convert receives it.
+ *
+ * Kept in two parts rather than flattened into lines, because the two kinds
+ * of text must not be edited the same way and the copy editor cannot tell
+ * them apart once they are joined.
+ *
+ *   - A ticked phrase was curated once, deliberately, to read the same way on
+ *     every report it appears on. It is close to inviolable: the only work it
+ *     needs is the pronoun in front of it.
+ *   - A typed line was written at speed while listening to a consultation. It
+ *     is where the spelling, the agreement and the joins actually need doing.
+ *
+ * `note` is whatever was typed against a ticked phrase. On a Did well half
+ * that is where the appraisal comes from, which is the whole reason the pair
+ * has to stay a pair: flattened to "phrase — note" the editor could not tell
+ * the curated half from the hand-written half of the same line.
+ */
+export interface DomainHalfNotes {
+  ticked: { phrase: string; note: string }[];
+  typed: string[];
+}
+
+/**
  * Did Well reads as a verb — what the candidate DID.
  * Could Improve reads as a recommendation — what to try NEXT time.
  *
