@@ -8,6 +8,9 @@ import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
+import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
+import { PRESET_FIELDS, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
+import type { PresetMap } from "@/lib/examiner-presets-store";
 import type { TimedTurn } from "@/lib/transcript";
 import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
 import type { SkillAnswer } from "@/lib/skill-framework";
@@ -153,6 +156,8 @@ interface Props {
   recording: RecordingFull;
   /** The transcript on one clock. Empty when there are no word timings. */
   turns: TimedTurn[];
+  /** The shared tick lists, as stored. */
+  presets: PresetMap;
   doctorAudioUrl: string | null;
   patientAudioUrl: string | null;
   voiceNoteUrl: string | null;
@@ -161,7 +166,7 @@ interface Props {
   skillLabels: Record<string, string>;
 }
 
-export default function ExaminerReviewClient({ recording: rec, turns, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
+export default function ExaminerReviewClient({ recording: rec, turns, presets: initialPresets, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
   const router = useRouter();
 
   /*
@@ -233,6 +238,21 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
     than losing them.
   */
   const notesKey = `sca_examiner_notepad_${rec.id}`;
+  /*
+    The lists are shared and the ticks are not.
+
+    Editing a preset writes to site_settings and changes it for every
+    examiner, so that lives in state only to keep the rail in step with the
+    dialog without a reload. The ticks belong to one consultation and one
+    person, and go to localStorage beside the notepad — the same place, for
+    the same reason: a draft review should survive a refresh.
+  */
+  const picksKey = `sca_examiner_picks_${rec.id}`;
+  const [presets, setPresets] = useState<PresetMap>(initialPresets);
+  const [picked, setPicked] = useState<Record<PresetField, PresetSelection>>(() =>
+    Object.fromEntries(PRESET_FIELDS.map((f) => [f, {}])) as Record<PresetField, PresetSelection>
+  );
+
   const [assist, setAssist] = useState<AssistNotes>(EMPTY_NOTES);
 
   /*
@@ -290,6 +310,29 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
   // the first client render disagree with the server's.
   useEffect(() => {
     try {
+      const saved = window.localStorage.getItem(picksKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<Record<PresetField, PresetSelection>>;
+        setPicked((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // Same reasoning as the notepad below: nothing ticked is the right
+      // fallback and there is nothing here an examiner could act on.
+    }
+  }, [picksKey]);
+
+  useEffect(() => {
+    try {
+      const anything = PRESET_FIELDS.some((f) => Object.keys(picked[f] ?? {}).length > 0);
+      if (anything) window.localStorage.setItem(picksKey, JSON.stringify(picked));
+      else window.localStorage.removeItem(picksKey);
+    } catch {
+      // Storage full or blocked. The ticks are still on screen.
+    }
+  }, [picked, picksKey]);
+
+  useEffect(() => {
+    try {
       const saved = window.localStorage.getItem(notesKey);
       if (saved) setAssist({ ...EMPTY_NOTES, ...JSON.parse(saved) });
     } catch {
@@ -342,7 +385,36 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
   }, [overallComment, savedComment, draftKey]);
   // Stripped, not trimmed: a box holding only the bullet the dialog put there
   // on focus has nothing in it.
-  const assistHasNotes = Object.values(assist).some((v) => bulletLines(v).length > 0);
+  /*
+    A ticked phrase is a note like any other.
+
+    The preset text goes in as the examiner wrote it, with whatever they
+    typed against it joined on after a dash — one line per observation, the
+    same shape the typed notes arrive in. The copy-editor prompt already
+    forbids rephrasing and synonym-swapping, which is what protects a phrase
+    that was curated once and is meant to read the same way every time.
+
+    Presets first, then the free text. They are the recurring points and tend
+    to be the ones worth leading on; anything typed by hand is specific to
+    this consultation and reads better after them.
+  */
+  function notesFor(field: PresetField, raw: string): string {
+    const selection = picked[field] ?? {};
+    const ticked = (presets[field] ?? [])
+      .filter((p) => p.id in selection)
+      .map((p) => {
+        const comment = (selection[p.id] ?? "").trim();
+        return comment ? `${p.text} — ${comment}` : p.text;
+      });
+    return [...ticked, ...bulletLines(raw)].join("\n");
+  }
+
+  // Convert is offered on ticks alone. Someone whose whole review is four
+  // ticked phrases has said something, and the button has no business being
+  // greyed out at them.
+  const assistHasNotes =
+    Object.values(assist).some((v) => bulletLines(v).length > 0) ||
+    PRESET_FIELDS.some((f) => Object.keys(picked[f] ?? {}).length > 0);
 
   function handlePreview() {
     startPreview(async () => {
@@ -829,6 +901,11 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
                 {!isSent && (
                   <Notepad
                     notes={assist}
+                    presets={presets}
+                    picked={picked}
+                    onPickedChange={(field, selection) => setPicked((prev) => ({ ...prev, [field]: selection }))}
+                    onPresetsChange={(field, next) => setPresets((prev) => ({ ...prev, [field]: next }))}
+                    disabled={isSent}
                     onChange={setAssist}
                     hasNotes={assistHasNotes}
                     willOverwrite={!!overallComment.trim()}
@@ -843,11 +920,13 @@ export default function ExaminerReviewClient({ recording: rec, turns, doctorAudi
                           observation each, so nothing in the prompt invites a
                           list back out of it.
                         */
-                        const plain = (v: string) => bulletLines(v).join("\n");
                         const res = await generateOverallCommentAction({
-                          dgWell: plain(assist.dgWell), dgImprove: plain(assist.dgImprove),
-                          cmWell: plain(assist.cmWell), cmImprove: plain(assist.cmImprove),
-                          roWell: plain(assist.roWell), roImprove: plain(assist.roImprove),
+                          dgWell: notesFor("dg_well", assist.dgWell),
+                          dgImprove: notesFor("dg_improve", assist.dgImprove),
+                          cmWell: notesFor("cm_well", assist.cmWell),
+                          cmImprove: notesFor("cm_improve", assist.cmImprove),
+                          roWell: notesFor("ro_well", assist.roWell),
+                          roImprove: notesFor("ro_improve", assist.roImprove),
                           stationTitle: rec.station_title,
                           recordingId: rec.id,
                         });
@@ -1185,10 +1264,17 @@ function NoteBox({ value, onChange, onKeyDown }: {
  * sentence in.
  */
 function Notepad({
-  notes, onChange, hasNotes, willOverwrite, pending, error, onConvert,
+  notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
+  hasNotes, willOverwrite, pending, error, onConvert,
 }: {
   notes: AssistNotes;
   onChange: (n: AssistNotes) => void;
+  presets: PresetMap;
+  picked: Record<PresetField, PresetSelection>;
+  onPickedChange: (field: PresetField, selection: PresetSelection) => void;
+  onPresetsChange: (field: PresetField, next: ExaminerPreset[]) => void;
+  /** Sent reviews are read-only, here as everywhere else on this page. */
+  disabled: boolean;
   hasNotes: boolean;
   /** There is already a comment, which converting replaces. */
   willOverwrite: boolean;
@@ -1237,10 +1323,16 @@ function Notepad({
     <NoteBox value={notes[k]} onChange={set(k)} onKeyDown={key(k)} />
   );
 
-  const DOMAINS: { label: string; well: keyof AssistNotes; improve: keyof AssistNotes }[] = [
-    { label: "Data Gathering", well: "dgWell", improve: "dgImprove" },
-    { label: "Clinical Management", well: "cmWell", improve: "cmImprove" },
-    { label: "Relating to Others", well: "roWell", improve: "roImprove" },
+  const DOMAINS: {
+    label: string;
+    well: keyof AssistNotes;
+    improve: keyof AssistNotes;
+    wellField: PresetField;
+    improveField: PresetField;
+  }[] = [
+    { label: "Data Gathering", well: "dgWell", improve: "dgImprove", wellField: "dg_well", improveField: "dg_improve" },
+    { label: "Clinical Management", well: "cmWell", improve: "cmImprove", wellField: "cm_well", improveField: "cm_improve" },
+    { label: "Relating to Others", well: "roWell", improve: "roImprove", wellField: "ro_well", improveField: "ro_improve" },
   ];
 
   return (
@@ -1296,14 +1388,33 @@ function Notepad({
         {DOMAINS.map((d) => (
           <div key={d.label}>
             <div className="text-[12px] font-bold mb-1.5" style={{ color: NAVY }}>{d.label}</div>
-            <label className="block text-[10.5px] font-bold uppercase tracking-[0.05em] mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Did well
-            </label>
+
+            {/* Tick list, then the free text under it. The presets carry what
+                recurs; the box carries what does not, and every consultation
+                has some of both. */}
+            <PresetChecklist
+              field={d.wellField}
+              label="Did well"
+              presets={presets[d.wellField] ?? []}
+              selection={picked[d.wellField] ?? {}}
+              onSelectionChange={(s) => onPickedChange(d.wellField, s)}
+              onPresetsChange={(p) => onPresetsChange(d.wellField, p)}
+              disabled={disabled}
+            />
             {box(d.well)}
-            <label className="block text-[10.5px] font-bold uppercase tracking-[0.05em] mt-2 mb-1" style={{ color: "rgba(51,51,51,0.4)" }}>
-              Could improve
-            </label>
-            {box(d.improve)}
+
+            <div className="mt-2.5">
+              <PresetChecklist
+                field={d.improveField}
+                label="Could improve"
+                presets={presets[d.improveField] ?? []}
+                selection={picked[d.improveField] ?? {}}
+                onSelectionChange={(s) => onPickedChange(d.improveField, s)}
+                onPresetsChange={(p) => onPresetsChange(d.improveField, p)}
+                disabled={disabled}
+              />
+              {box(d.improve)}
+            </div>
           </div>
         ))}
       </div>

@@ -9,6 +9,8 @@ import { withoutEmDashes } from "@/lib/prose";
 import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { doctorPossessive, printableName } from "@/lib/doctor-name";
+import { MAX_PRESETS_PER_FIELD, MAX_PRESET_LENGTH, savePresetField } from "@/lib/examiner-presets-store";
+import { PRESET_FIELDS, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
 import { getCurrentPricing, claudeCostUsd, usdToGbp } from "@/lib/pricing";
 import { snapshotGpReview } from "@/lib/consultation-costs";
 
@@ -349,6 +351,53 @@ export async function checkRetryStatusAction(
     hasGrades: !!data?.ai_data_gathering,
     aiError: data?.ai_error ?? null,
   };
+}
+
+/**
+ * Replaces one Did Well / Could Improve tick list.
+ *
+ * The whole list arrives each time rather than an add, an edit and a move:
+ * reordering is a drag, and a drag is only ever expressible as the new order
+ * of everything. Sending the list makes add, rename, delete and reorder the
+ * same call, which is also why there is one of these rather than four.
+ *
+ * Everything is re-checked here. The browser is where the dragging happened,
+ * not where the rules live.
+ */
+export async function saveExaminerPresetsAction(
+  field: string,
+  presets: ExaminerPreset[]
+): Promise<{ error?: string; success?: boolean }> {
+  const examiner = await getExaminer();
+  if (!examiner) return { error: "Not authorised." };
+
+  if (!PRESET_FIELDS.includes(field as PresetField)) return { error: "Unknown list." };
+  if (!Array.isArray(presets)) return { error: "Bad list." };
+  if (presets.length > MAX_PRESETS_PER_FIELD) {
+    return { error: `That is more than ${MAX_PRESETS_PER_FIELD} presets.` };
+  }
+
+  const cleaned: ExaminerPreset[] = [];
+  const seen = new Set<string>();
+  for (const entry of presets) {
+    const text = String(entry?.text ?? "").trim();
+    const id = String(entry?.id ?? "").trim();
+    // A blank one is dropped rather than refused: it is what an empty row
+    // left behind in the editor looks like, not something worth an error.
+    if (!text || !id) continue;
+    if (text.length > MAX_PRESET_LENGTH) return { error: "One of those is too long." };
+    if (seen.has(id)) continue;
+    seen.add(id);
+    cleaned.push({ id, text });
+  }
+
+  const admin = getSupabaseAdmin();
+  if (!admin) return { error: "Server error." };
+
+  const { error } = await savePresetField(admin, field as PresetField, cleaned);
+  if (error) return { error };
+
+  return { success: true };
 }
 
 export async function examinerLogoutAction() {

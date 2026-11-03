@@ -3,6 +3,7 @@ import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadAllSkillLabels, type SkillAnswer } from "@/lib/skill-framework";
 import { mergedTurns } from "@/lib/transcript";
+import { loadPresetMap } from "@/lib/examiner-presets-store";
 import ExaminerReviewClient from "./ExaminerReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +95,9 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
     utterances were kept, and the client falls back to the formatted string.
   */
   const turns = mergedTurns(rec.transcript_raw);
+  // Read here rather than fetched by the rail on mount, so the tick lists are
+  // on the page in the first paint instead of appearing a beat later.
+  const presets = await loadPresetMap(admin);
 
   /*
     The raw column is not sent on. `turns` replaces it, the client reads
@@ -114,6 +118,7 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
     <ExaminerReviewClient
       recording={recordingForClient}
       turns={turns}
+      presets={presets}
       doctorAudioUrl={doctorAudioUrl}
       patientAudioUrl={patientAudioUrl}
       voiceNoteUrl={voiceNoteUrl}
