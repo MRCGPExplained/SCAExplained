@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { saveExaminerPresetsAction } from "../actions";
 import { presetId, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
 import { MAX_PRESETS_PER_FIELD } from "@/lib/examiner-presets-store";
@@ -93,7 +93,7 @@ function GrowingInput({
  * This is an addition to it and not a replacement: the presets are for what
  * recurs, the box is for what does not.
  */
-export function PresetChecklist({
+export const PresetChecklist = memo(function PresetChecklist({
   field,
   label,
   presets,
@@ -107,8 +107,19 @@ export function PresetChecklist({
   label: string;
   presets: ExaminerPreset[];
   selection: PresetSelection;
-  onSelectionChange: (next: PresetSelection) => void;
-  onPresetsChange: (next: ExaminerPreset[]) => void;
+  /*
+    Both callbacks take the field back, which the parent already knows and
+    this component is already holding.
+
+    It reads like redundancy and it is the thing that makes memo possible.
+    The caller used to close over the field — onSelectionChange={(s) =>
+    onPickedChange(d.wellField, s)} — which is a new function on every
+    render, so six tick lists of eight rows each rebuilt on every character
+    typed into a note box above them. Handed the field back, the caller can
+    pass one stable handler to all six.
+  */
+  onSelectionChange: (field: PresetField, next: PresetSelection) => void;
+  onPresetsChange: (field: PresetField, next: ExaminerPreset[]) => void;
   disabled?: boolean;
   /** Presets are hidden for this examiner. The heading still belongs to the
    *  box below it, so only the list goes. */
@@ -128,11 +139,11 @@ export function PresetChecklist({
     const next = { ...selection };
     if (id in next) delete next[id];
     else next[id] = "";
-    onSelectionChange(next);
+    onSelectionChange(field, next);
   }
 
   function setComment(id: string, comment: string) {
-    onSelectionChange({ ...selection, [id]: comment });
+    onSelectionChange(field, { ...selection, [id]: comment });
   }
 
   /*
@@ -243,14 +254,14 @@ export function PresetChecklist({
           presets={presets}
           onClose={() => setEditing(false)}
           onSaved={(next) => {
-            onPresetsChange(next);
+            onPresetsChange(field, next);
             setEditing(false);
           }}
         />
       )}
     </div>
   );
-}
+});
 
 /**
  * Add, rename, delete and reorder, all as one saved list.

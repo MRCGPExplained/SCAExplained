@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { activeWordIndex, wordCues, type TimedTurn } from "@/lib/transcript";
 
 const NAVY = "#333333";
@@ -24,11 +24,24 @@ const HIGHLIGHT = "rgba(246,212,75,0.55)";
  *     which fires about every 250ms — slower than the median word, so words
  *     would be stepped over.
  *
+ * Both of those stop the CLOCK re-rendering this. Neither stops the PARENT,
+ * which is why the export below is memo'd: every state change in the review
+ * page — each keystroke in a comment box, each letter of the notepad, each
+ * tick — re-rendered all two thousand spans, and the ref callback on each
+ * one is an inline arrow, so React detached and reattached every ref as
+ * well. The whole point of the two rules above is that this list is built
+ * once; it is only true if the parent cannot rebuild it either.
+ *
+ * Memo is load-bearing, so its props have to stay stable: `turns` comes
+ * straight from the server component, `subscribe` is a useCallback, and
+ * `onSeek` is one too. An inline arrow in any of them turns this back into
+ * what it was.
+ *
  * Auto-scroll only happens while the audio is playing. An examiner who has
  * scrolled back to re-read something has paused to do it, and a box that
  * yanked itself back every few hundred milliseconds would be unusable.
  */
-export default function TranscriptKaraoke({
+function TranscriptKaraoke({
   turns,
   subscribe,
   onSeek,
@@ -148,3 +161,5 @@ export default function TranscriptKaraoke({
     </div>
   );
 }
+
+export default memo(TranscriptKaraoke);

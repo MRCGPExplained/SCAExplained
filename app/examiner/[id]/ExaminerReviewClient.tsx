@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useActionState, useTransition } from "react";
+import { memo, useState, useRef, useEffect, useCallback, useActionState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
@@ -197,6 +197,13 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [audioPlaying, setAudioPlaying] = useState(false);
   const seekRef = useRef<((t: number) => void) | null>(null);
   /*
+    Stable, because TranscriptKaraoke is memo'd and an inline arrow here
+    would defeat it — the transcript would go back to rebuilding two thousand
+    spans on every keystroke in every box on this page. No deps: it reads the
+    ref, which is the reason the ref exists.
+  */
+  const handleSeek = useCallback((t: number) => seekRef.current?.(t), []);
+  /*
     Sent in this tab, believed before the server component catches up.
 
     revalidatePath brings sent_to_candidate_at back and that is what really
@@ -206,12 +213,23 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [justSent, setJustSent] = useState(false);
   const isSent = !!rec.sent_to_candidate_at || justSent;
 
-  const [dgGrade, setDgGrade] = useState<Grade | "">((rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "");
-  const [cmGrade, setCmGrade] = useState<Grade | "">((rec.examiner_clinical_management ?? rec.ai_clinical_management ?? "") as Grade | "");
-  const [roGrade, setRoGrade] = useState<Grade | "">((rec.examiner_relating_to_others ?? rec.ai_relating_to_others ?? "") as Grade | "");
-  const [dgComment, setDgComment] = useState(rec.examiner_comment_data_gathering ?? rec.ai_comment_data_gathering ?? "");
-  const [cmComment, setCmComment] = useState(rec.examiner_comment_clinical_management ?? rec.ai_comment_clinical_management ?? "");
-  const [roComment, setRoComment] = useState(rec.examiner_comment_relating_to_others ?? rec.ai_comment_relating_to_others ?? "");
+  /*
+    What the server sent, through the same ?? chain the boxes seed from.
+
+    One function rather than six inline chains, because it is used three
+    times — to seed the state, as the base a stored draft is checked against,
+    and as the thing a draft is compared to in order to know whether there is
+    anything unsaved. Those three had to agree, and six copied expressions
+    would eventually not.
+  */
+  const seeded = seedSix(rec);
+
+  const [dgGrade, setDgGrade] = useState<Grade | "">(seeded.dgGrade);
+  const [cmGrade, setCmGrade] = useState<Grade | "">(seeded.cmGrade);
+  const [roGrade, setRoGrade] = useState<Grade | "">(seeded.roGrade);
+  const [dgComment, setDgComment] = useState(seeded.dgComment);
+  const [cmComment, setCmComment] = useState(seeded.cmComment);
+  const [roComment, setRoComment] = useState(seeded.roComment);
   const [overallComment, setOverallComment] = useState(rec.examiner_overall_comment ?? "");
 
   const [aiGenPending, startAiGen] = useTransition();
@@ -281,6 +299,78 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     by hand when the save succeeds instead.
   */
   const [savedComment, setSavedComment] = useState(rec.examiner_overall_comment ?? "");
+
+  /*
+    The three grades and three domain comments, mirrored like everything else
+    on this page.
+
+    They were the only work here with no backstop. The notepad, the ticks and
+    the overall-comment draft are all kept per recording for the reason set
+    out above — "a stray refresh or a back button would take the lot" — and
+    these six, which are the ones that actually gate Send, were plain state.
+    Worse than a plain loss: coming back, the notepad and every tick are
+    still there, so the page reads as "nothing was lost" while the grades and
+    comments have quietly reverted to what the server last had.
+
+    A database autosave is not available here. submitExaminerReviewAction
+    rejects the whole call until all three grades are valid, which is exactly
+    the half-finished window being protected, and it would churn status and
+    examiner_reviewed_at on every keystroke.
+
+    Stored with its base, like the overall comment and for the same reason:
+    the database has a version of these that can move on. The draft is
+    restored only if every base field still matches what the server just
+    sent; if any has changed the whole record is dropped, because a
+    per-field merge would let half a stale review through.
+  */
+  const sixKey = `sca_examiner_review_${rec.id}`;
+  /** The six as the server last had them. Advanced by hand on save, because
+   *  saving does not re-fetch this page. */
+  const [savedSix, setSavedSix] = useState<SixFields>(seeded);
+  /** The restore has run. The writer below must not touch storage before it
+   *  does, or the mount render erases the draft it is about to read. */
+  const [sixHydrated, setSixHydrated] = useState(false);
+  const [sixRestored, setSixRestored] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(sixKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as { base?: Partial<SixFields>; draft?: Partial<SixFields> };
+        if (saved.base && saved.draft && sameSix(saved.base, seeded)) {
+          const d = saved.draft;
+          setDgGrade((d.dgGrade ?? "") as Grade | "");
+          setCmGrade((d.cmGrade ?? "") as Grade | "");
+          setRoGrade((d.roGrade ?? "") as Grade | "");
+          setDgComment(d.dgComment ?? "");
+          setCmComment(d.cmComment ?? "");
+          setRoComment(d.roComment ?? "");
+          setSixRestored(true);
+        } else {
+          // Superseded by a save from somewhere else. The database wins, the
+          // same way a stale overall-comment draft is dropped below.
+          window.localStorage.removeItem(sixKey);
+        }
+      }
+    } catch {
+      // Unreadable or blocked. What the server sent is already on screen.
+    }
+    setSixHydrated(true);
+    // seeded is this render's read of the props and would re-run this on
+    // every revalidate; the restore belongs to mount alone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sixKey]);
+
+  useEffect(() => {
+    if (!sixHydrated) return;
+    const current: SixFields = { dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment };
+    try {
+      if (sameSix(current, savedSix)) window.localStorage.removeItem(sixKey);
+      else window.localStorage.setItem(sixKey, JSON.stringify({ base: savedSix, draft: current }));
+    } catch {
+      // Storage full or blocked. The work is still on screen.
+    }
+  }, [sixHydrated, dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment, savedSix, sixKey]);
 
   /*
     Keep the rail ending at the bottom of the window, wherever it currently
@@ -400,7 +490,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     to be the ones worth leading on; anything typed by hand is specific to
     this consultation and reads better after them.
   */
-  function notesFor(field: PresetField, raw: string): string {
+  const notesFor = useCallback((field: PresetField, raw: string): string => {
     const selection = picked[field] ?? {};
     const ticked = (presets[field] ?? [])
       .filter((p) => p.id in selection)
@@ -410,7 +500,54 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         return comment ? `${phrase} — ${comment}` : phrase;
       });
     return [...ticked, ...bulletLines(raw)].join("\n");
-  }
+  }, [picked, presets]);
+
+  /*
+    Notepad is memo'd, so everything handed to it has to be stable.
+
+    These three were inline arrows, which meant Notepad — six note boxes and
+    six tick lists, forty-eight rows in all — re-rendered on every keystroke
+    in every other box on the page. Measured on a real-length review, that
+    was the single largest slice of the cost of typing a domain comment,
+    larger than the two thousand transcript spans.
+
+    Each dependency list says what the handler actually reads. An empty one
+    is not a shortcut: these two only call setState with an updater, so they
+    read nothing from the render that made them.
+  */
+  const handlePickedChange = useCallback(
+    (field: PresetField, selection: PresetSelection) =>
+      setPicked((prev) => ({ ...prev, [field]: selection })),
+    []
+  );
+  const handlePresetsChange = useCallback(
+    (field: PresetField, next: ExaminerPreset[]) =>
+      setPresets((prev) => ({ ...prev, [field]: next })),
+    []
+  );
+
+  const handleConvert = useCallback(() => {
+    setAiGenError("");
+    startAiGen(async () => {
+      /*
+        Bullets off before it goes. The markers are a typing convenience; the
+        model gets plain lines, one observation each, so nothing in the
+        prompt invites a list back out of it.
+      */
+      const res = await generateOverallCommentAction({
+        dgWell: notesFor("dg_well", assist.dgWell),
+        dgImprove: notesFor("dg_improve", assist.dgImprove),
+        cmWell: notesFor("cm_well", assist.cmWell),
+        cmImprove: notesFor("cm_improve", assist.cmImprove),
+        roWell: notesFor("ro_well", assist.roWell),
+        roImprove: notesFor("ro_improve", assist.roImprove),
+        stationTitle: rec.station_title,
+        recordingId: rec.id,
+      });
+      if (res.text) setOverallComment(res.text);
+      else setAiGenError(res.error ?? "Failed");
+    });
+  }, [assist, notesFor, rec.station_title, rec.id, startAiGen]);
 
   // Convert is offered on ticks alone. Someone whose whole review is four
   // ticked phrases has said something, and the button has no business being
@@ -492,6 +629,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
       // What was just written is now what is saved, so the draft has caught
       // up with it and the base for anything typed next is this.
       setSavedComment(overallComment);
+      // Same for the six. This is what clears the stored record, through the
+      // writer's sameSix check, and what any later draft is measured against.
+      setSavedSix({ dgGrade, cmGrade, roGrade, dgComment, cmComment, roComment });
+      setSixRestored(false);
       setShowSuccess(true);
       const t = setTimeout(() => setShowSuccess(false), 3000);
       return () => clearTimeout(t);
@@ -808,7 +949,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                         turns={turns}
                         subscribe={subscribeTime}
                         isPlaying={audioPlaying}
-                        onSeek={(t) => seekRef.current?.(t)}
+                        onSeek={handleSeek}
                       />
                     </Accordion>
                   </div>
@@ -826,6 +967,18 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 )}
                 {showSuccess && (
                   <p className="text-[12px] mb-3" style={{ color: "#166534" }}>✓ Saved successfully.</p>
+                )}
+                {/*
+                  Said out loud, because a silent restore of six fields of
+                  prose is indistinguishable from the page having loaded
+                  normally — and the one thing the examiner needs to know is
+                  that what is on screen is NOT what the server has. Stays up
+                  until a save clears it.
+                */}
+                {sixRestored && !showSuccess && (
+                  <p className="text-[12px] mb-3" style={{ color: "#92400e" }}>
+                    Restored your unsaved grades and comments from this browser. Not saved yet.
+                  </p>
                 )}
                 {/* A failed email is not a failed review — the candidate has it in
                     their inbox on the site either way — but the GP who pressed Send
@@ -1051,37 +1204,15 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     recordingId={rec.id}
                     presets={presets}
                     picked={picked}
-                    onPickedChange={(field, selection) => setPicked((prev) => ({ ...prev, [field]: selection }))}
-                    onPresetsChange={(field, next) => setPresets((prev) => ({ ...prev, [field]: next }))}
+                    onPickedChange={handlePickedChange}
+                    onPresetsChange={handlePresetsChange}
                     disabled={isSent}
                     onChange={setAssist}
                     hasNotes={assistHasNotes}
                     willOverwrite={!!overallComment.trim()}
                     pending={aiGenPending}
                     error={aiGenError}
-                    onConvert={() => {
-                      setAiGenError("");
-                      startAiGen(async () => {
-                        /*
-                          Bullets off before it goes. The markers are a typing
-                          convenience; the model gets plain lines, one
-                          observation each, so nothing in the prompt invites a
-                          list back out of it.
-                        */
-                        const res = await generateOverallCommentAction({
-                          dgWell: notesFor("dg_well", assist.dgWell),
-                          dgImprove: notesFor("dg_improve", assist.dgImprove),
-                          cmWell: notesFor("cm_well", assist.cmWell),
-                          cmImprove: notesFor("cm_improve", assist.cmImprove),
-                          roWell: notesFor("ro_well", assist.roWell),
-                          roImprove: notesFor("ro_improve", assist.roImprove),
-                          stationTitle: rec.station_title,
-                          recordingId: rec.id,
-                        });
-                        if (res.text) setOverallComment(res.text);
-                        else setAiGenError(res.error ?? "Failed");
-                      });
-                    }}
+                    onConvert={handleConvert}
                   />
                 )}
             </aside>
@@ -1305,6 +1436,43 @@ interface AssistNotes {
   roWell: string; roImprove: string;
 }
 
+/** The six fields that gate Send: three grades and three domain comments. */
+type SixFields = {
+  dgGrade: Grade | "";
+  cmGrade: Grade | "";
+  roGrade: Grade | "";
+  dgComment: string;
+  cmComment: string;
+  roComment: string;
+};
+
+const SIX_KEYS: (keyof SixFields)[] = ["dgGrade", "cmGrade", "roGrade", "dgComment", "cmComment", "roComment"];
+
+function seedSix(rec: RecordingFull): SixFields {
+  return {
+    dgGrade: (rec.examiner_data_gathering ?? rec.ai_data_gathering ?? "") as Grade | "",
+    cmGrade: (rec.examiner_clinical_management ?? rec.ai_clinical_management ?? "") as Grade | "",
+    roGrade: (rec.examiner_relating_to_others ?? rec.ai_relating_to_others ?? "") as Grade | "",
+    dgComment: rec.examiner_comment_data_gathering ?? rec.ai_comment_data_gathering ?? "",
+    cmComment: rec.examiner_comment_clinical_management ?? rec.ai_comment_clinical_management ?? "",
+    roComment: rec.examiner_comment_relating_to_others ?? rec.ai_comment_relating_to_others ?? "",
+  };
+}
+
+function sameSix(a: Partial<SixFields>, b: SixFields): boolean {
+  return SIX_KEYS.every((k) => (a[k] ?? "") === b[k]);
+}
+
+/*
+  Shared empties, so a missing field does not hand PresetChecklist a brand
+  new [] or {} on every render and defeat the memo on it. Both maps are
+  normally complete — defaultPresetMap fills all six, and picked is seeded
+  with all six — so these are the fallback never being the thing that makes
+  the rail slow.
+*/
+const NO_PRESETS: ExaminerPreset[] = [];
+const NO_SELECTION: PresetSelection = {};
+
 /** The marker the notes boxes show. Never leaves the notepad — see bulletLines. */
 const BULLET = "• ";
 
@@ -1436,8 +1604,17 @@ function NoteBox({ value, onChange, onKeyDown }: {
  * Stacked rather than the dialog's three-by-two grid. The rail is 360px, so
  * two columns would be about 165px each, which is not a width anyone types a
  * sentence in.
+ *
+ * MEMO'D, and the reason is measured rather than assumed. This subtree is
+ * six textareas and six tick lists — forty-eight rows — and it has nothing
+ * to do with the domain comment boxes in the other column. Left unmemo'd it
+ * re-rendered on every character typed anywhere on the page, and on a
+ * real-length review that was a bigger slice of the cost of a keystroke than
+ * the two thousand transcript spans were. Its callbacks are useCallback'd at
+ * the call site for the same reason; an inline arrow in any of them undoes
+ * this.
  */
-function Notepad({
+const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
   recordingId, hasNotes, willOverwrite, pending, error, onConvert,
 }: {
@@ -1658,10 +1835,10 @@ function Notepad({
             <PresetChecklist
               field={d.wellField}
               label="Did well"
-              presets={presets[d.wellField] ?? []}
-              selection={picked[d.wellField] ?? {}}
-              onSelectionChange={(s) => onPickedChange(d.wellField, s)}
-              onPresetsChange={(p) => onPresetsChange(d.wellField, p)}
+              presets={presets[d.wellField] ?? NO_PRESETS}
+              selection={picked[d.wellField] ?? NO_SELECTION}
+              onSelectionChange={onPickedChange}
+              onPresetsChange={onPresetsChange}
               disabled={disabled}
               collapsed={!showPresets}
             />
@@ -1671,10 +1848,10 @@ function Notepad({
               <PresetChecklist
                 field={d.improveField}
                 label="Could improve"
-                presets={presets[d.improveField] ?? []}
-                selection={picked[d.improveField] ?? {}}
-                onSelectionChange={(s) => onPickedChange(d.improveField, s)}
-                onPresetsChange={(p) => onPresetsChange(d.improveField, p)}
+                presets={presets[d.improveField] ?? NO_PRESETS}
+                selection={picked[d.improveField] ?? NO_SELECTION}
+                onSelectionChange={onPickedChange}
+                onPresetsChange={onPresetsChange}
                 disabled={disabled}
                 collapsed={!showPresets}
               />
@@ -1685,7 +1862,7 @@ function Notepad({
       </div>
     </div>
   );
-}
+});
 
 function AutoTextarea({ name, value, onChange, placeholder, disabled }: {
   /** Omitted when something else submits the value — see the overall comment. */
