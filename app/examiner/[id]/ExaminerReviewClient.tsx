@@ -454,10 +454,21 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
 
   const [state, formAction, pending] = useActionState(submitExaminerReviewAction, {});
   const [showSuccess, setShowSuccess] = useState(false);
+  /** Send has been asked for once and is waiting to be confirmed. */
+  const [confirmingSend, setConfirmingSend] = useState(false);
   // One announcement per send. The effect below runs twice per state in
   // React's development double-invoke, and the navbar would count down twice.
   const announced = useRef(false);
   useEffect(() => {
+    /*
+      Any action landing disarms the send confirmation.
+
+      Mostly this matters for the one that fails: an error returns the normal
+      three buttons so the message can be read and the send retried
+      deliberately, rather than leaving a primed Send sitting under the
+      cursor. A question that stays asked stops being a question.
+    */
+    setConfirmingSend(false);
     if ("sent" in state && state.sent && !announced.current) {
       announced.current = true;
       setJustSent(true);
@@ -761,8 +772,17 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   <p className="text-[12px] mb-3" style={{ color: "#92400e" }}>{state.warning as string}</p>
                 )}
 
-                {/* Action buttons */}
-                {!isSent && (
+                {/*
+                  Action buttons, or the question that stands in front of one
+                  of them.
+
+                  Sending is the only thing on this page that cannot be taken
+                  back, and until now it was a single click on the third of
+                  three equal buttons, immediately beside Save Draft. The
+                  server guard stops a report going twice; nothing stopped one
+                  going early.
+                */}
+                {!isSent && !confirmingSend && (
                   <div className="flex gap-2.5 flex-wrap">
                     <button
                       type="submit"
@@ -788,16 +808,77 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                         </svg>
                       )}
                     </button>
+                    {/*
+                      type="button": this one asks first. The submit that
+                      actually sends is the armed button below, which is a
+                      different element in a different place.
+                    */}
                     <button
-                      type="submit"
-                      name="send_now"
-                      value="1"
+                      type="button"
+                      onClick={() => setConfirmingSend(true)}
                       disabled={pending || !canSubmit}
                       className="flex-1 rounded-xl py-3 text-[13px] font-bold"
                       style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !canSubmit ? 0.5 : 1 }}
                     >
                       {pending ? "Sending…" : "Send to Candidate"}
                     </button>
+                  </div>
+                )}
+
+                {!isSent && confirmingSend && (
+                  <div>
+                    {/*
+                      What the click does, not whether they are sure. "Are you
+                      sure" is answered yes by reflex; a sentence naming who
+                      receives this is the thing that stops a send that was
+                      meant to be a save.
+
+                      "everyone else who was in the room" rather than a list:
+                      the observers are ids on the row and resolving them to
+                      names is the send action's job, on the server. A number
+                      this page guessed at would be worse than a phrase that
+                      is always true.
+                    */}
+                    <p className="text-[12.5px] mb-2.5" style={{ color: NAVY, lineHeight: 1.5 }}>
+                      This emails the report to {rec.doctor_display_name} and everyone else who was
+                      in the room. It cannot be unsent.
+                    </p>
+                    {/*
+                      Confirm on the LEFT, Cancel where Send used to be.
+
+                      A confirmation that appears under the cursor is no
+                      confirmation at all — a double click on Send would arm
+                      it and then press it. With the order swapped, the second
+                      click of a double lands on Cancel.
+
+                      While this is up it is also the form's only submit
+                      button, which is safe today because the form holds no
+                      single-line text input for Enter to submit from — only
+                      textareas, a checkbox and two hidden fields. Add one and
+                      Enter would send from it, so add a Save Draft submit
+                      back into this block at the same time.
+                    */}
+                    <div className="flex gap-2.5 flex-wrap">
+                      <button
+                        type="submit"
+                        name="send_now"
+                        value="1"
+                        disabled={pending || !canSubmit}
+                        className="flex-1 rounded-xl py-3 text-[13px] font-bold"
+                        style={{ background: NAVY, border: "none", color: "white", cursor: "pointer", opacity: pending || !canSubmit ? 0.5 : 1 }}
+                      >
+                        {pending ? "Sending…" : "Yes, send the report"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingSend(false)}
+                        disabled={pending}
+                        className="flex-1 rounded-xl py-3 text-[13px] font-bold"
+                        style={{ background: "rgba(51,51,51,0.07)", border: "none", color: NAVY, cursor: "pointer", opacity: pending ? 0.5 : 1 }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
             </div>
