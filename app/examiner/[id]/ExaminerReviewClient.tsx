@@ -9,6 +9,7 @@ import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
 import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
+import { useDictation } from "./useDictation";
 import { PRESET_FIELDS, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
 import type { TimedTurn } from "@/lib/transcript";
@@ -1229,6 +1230,8 @@ function NoteBox({ value, onChange, onKeyDown }: {
   return (
     <textarea
       ref={ref}
+      // Found by the dictation listener on the notepad container. See useDictation.
+      data-dictate
       value={value}
       onChange={(e) => {
         const raw = e.target.value;
@@ -1283,6 +1286,8 @@ function Notepad({
   onConvert: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [dictateError, setDictateError] = useState<string | null>(null);
+  const dictation = useDictation(setDictateError);
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
@@ -1336,13 +1341,44 @@ function Notepad({
   ];
 
   return (
-    <div className="rounded-2xl p-5" style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)" }}>
+    <div
+      className="rounded-2xl p-5"
+      style={{ background: "rgba(51,51,51,0.04)", border: "1px solid rgba(51,51,51,0.08)" }}
+      /*
+        One set of handlers for every field in here.
+
+        Capture, so the slash is settled before the note boxes' own Enter and
+        Backspace handling sees the key. On the container rather than the
+        fields because the per-preset detail inputs appear and disappear as
+        boxes are ticked, and nothing that has to be attached to them would
+        survive that.
+      */
+      onKeyDownCapture={dictation.onKeyDownCapture}
+      onKeyUp={dictation.onKeyUp}
+      onBlurCapture={dictation.onBlurCapture}
+    >
       {/* No explanatory line under this. Six boxes headed "did well" and
           "could improve" explain themselves, and the sentence that was here
           cost 32px of a rail that has none to spare. */}
-      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-2.5" style={{ color: "rgba(51,51,51,0.45)" }}>
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>
         Notepad
       </h3>
+
+      {/*
+        The only sign that dictation exists, so it says the key when idle
+        rather than only appearing once something is happening. It doubles as
+        the recording indicator, which has to be visible anyway: a page that
+        is quietly holding the microphone open should say so.
+      */}
+      <p className="text-[10.5px] m-0 mb-2.5" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
+        {dictateError
+          ? dictateError
+          : dictation.state === "listening"
+          ? "● Listening — let go of / to stop"
+          : dictation.state === "transcribing"
+          ? "Transcribing…"
+          : "Hold / in any box to dictate"}
+      </p>
 
       <button
         type="button"

@@ -100,6 +100,12 @@ export function PresetChecklist({
                 {ticked && (
                   <input
                     type="text"
+                    // Dictation is handled by one listener on the notepad's
+                    // container, which finds its target by this attribute —
+                    // so these inputs get it without being wired for it,
+                    // which they could not be: they do not exist until the
+                    // box above them is ticked.
+                    data-dictate
                     value={selection[preset.id] ?? ""}
                     disabled={disabled}
                     onChange={(e) => setComment(preset.id, e.target.value)}
