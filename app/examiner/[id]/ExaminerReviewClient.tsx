@@ -10,7 +10,7 @@ import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
 import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
 import { useDictation } from "./useDictation";
-import { PRESET_FIELDS, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
+import { PRESET_FIELDS, TONE, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
 import type { TimedTurn } from "@/lib/transcript";
 import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
@@ -72,7 +72,7 @@ function GradeSelector({ name, value, onChange, compact, disabled }: {
           // not self-explanatory to anyone who has not marked before.
           title={compact ? GRADE_STYLE[g].label : undefined}
           className={compact
-            ? "px-2 py-1 rounded-md text-[11.5px] font-bold transition"
+            ? "px-1.5 py-1 rounded-md text-[11.5px] font-bold transition"
             : "px-3 py-1.5 rounded-lg text-[12px] font-bold transition"}
           style={{
             background: value === g ? GRADE_STYLE[g].bg : "rgba(51,51,51,0.05)",
@@ -488,26 +488,23 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   */
   const railRef = useRef<HTMLElement>(null);
   /*
-    The score bar is a full-width sticky above both columns now, so the rail
-    has to stop below it rather than at 12.
+    The score bar is back inside the left column, so the rail is free to
+    stick at 12 again.
 
-    The two used to be in different grid tracks, which is what kept them from
-    overlapping without either knowing the other's height. They share a
-    column edge now, so the rail is told where the bar ends — measured,
-    because that height depends on whether the bar's own row wraps.
+    It spent a while full-width above both columns, which cost the rail the
+    bar's height — the rail had to start below it. In the left track the two
+    cannot collide however far the page scrolls, which is the arrangement
+    this had originally, and the notepad gets those 64 pixels back.
   */
-  const scoreBarRef = useRef<HTMLDivElement>(null);
+  const STICKY_TOP = 12;
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
     const fit = () => {
-      const barBottom = scoreBarRef.current?.getBoundingClientRect().height ?? 0;
-      const stickyTop = 12 + (barBottom ? barBottom + 8 : 0);
-      el.style.top = `${stickyTop}px`;
       // Measured where it actually sits, not where it will stick: before the
       // page has scrolled that far the rail starts further down, and a rail
       // sized for the stuck position would hang below the fold.
-      const top = Math.max(el.getBoundingClientRect().top, stickyTop);
+      const top = Math.max(el.getBoundingClientRect().top, STICKY_TOP);
       /*
         PAGE_FOOT is the page's own bottom padding (py-10), and leaving room
         for it is what keeps the rail off the score bar.
@@ -997,97 +994,106 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             </div>
           </div>
 
-          {/*
-            Score and transport, stuck together at the top.
-
-            The player used to sit in the flow below this bar, which meant
-            scrolling to the transcript scrolled the pause button away —
-            and the transcript is the one place you most want to stop the
-            audio. They share a card rather than being two sticky
-            elements because two would need the second to know the height
-            of the first, measured and re-measured on every resize, to
-            stack without overlapping.
-
-            ABOVE BOTH COLUMNS, not inside the left one. It was in the left
-            column while that column was 768px wide. At the equal widths the
-            columns have now it is 564px, and twelve grade buttons plus a
-            total do not fit on one line in that — the bar wrapped to two
-            rows. It is about the whole review anyway, like the station
-            header above it, and full width it also stays in view while the
-            examiner is working in the right-hand column.
-          */}
-          <div
-            ref={scoreBarRef}
-            className="rounded-2xl mb-5"
-            style={{
-              background: "white",
-              border: "1px solid rgba(51,51,51,0.08)",
-              position: "sticky",
-              top: 12,
-              zIndex: 20,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-            }}
-          >
-          {/*
-            The grades live here, not in the cards.
-
-            They are three rows of four buttons and they are needed on
-            every review; the domain comments beneath them are long and,
-            measured over the reviews written so far, changed about twice
-            in nine. Keeping the small, always-needed control pinned and
-            the large, rarely-touched one in the page is the right way
-            round — and it puts the grade next to the running total, so
-            the consequence of a click is visible in the same glance.
-
-            This bar replaced a read-only "DG: 2/3 · CM: 3/4.5" line. The
-            points are still here, just beside the buttons that set them.
-          */}
-          <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
-              {DOMAINS.map((d) => (
-                <div key={d.key} className="flex items-center gap-2">
-                  {/* The label is the way into the comment. The grades
-                      are up here and the comments are not, so without
-                      this, checking what you wrote means scrolling. */}
-                  <button
-                    type="button"
-                    onClick={() => setOpenDomain(d.key)}
-                    className="text-[10px] font-bold uppercase tracking-[0.06em]"
-                    style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
-                    title={`${d.label} — open the comment`}
-                  >
-                    {d.short}
-                  </button>
-                  <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
-                  <span className="text-[10px] tabular-nums" style={{ color: "rgba(51,51,51,0.3)" }}>
-                    {d.points !== null ? `${d.points}/${d.max}` : `—/${d.max}`}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <span className="font-extrabold text-[20px] tabular-nums" style={{ color: NAVY }}>
-              {totalPts !== null ? `${totalPts} / 10.5` : "— / 10.5"}
-            </span>
-          </div>
-
-            {(doctorAudioUrl || patientAudioUrl) && (
-              <div className="px-5 pb-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)", paddingTop: 12 }}>
-                <DualTrackPlayer
-                  doctorUrl={doctorAudioUrl}
-                  patientUrl={patientAudioUrl}
-                  compact
-                  onTime={emitTime}
-                  onPlayingChange={setAudioPlaying}
-                  seekRef={seekRef}
-                  toggleRef={togglePlayRef}
-                />
-              </div>
-            )}
-          </div>
-
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
 
             <div className="min-w-0">
+
+            {/*
+              Score and transport, stuck together at the top.
+
+              The player used to sit in the flow below this bar, which meant
+              scrolling to the transcript scrolled the pause button away —
+              and the transcript is the one place you most want to stop the
+              audio. They share a card rather than being two sticky
+              elements because two would need the second to know the height
+              of the first, measured and re-measured on every resize, to
+              stack without overlapping.
+
+              IN THE LEFT COLUMN, and it is the notepad that decides that.
+              Full width above both columns the bar read more comfortably,
+              but the rail opposite then had to start below it, and that is
+              64px off the length of the notepad — which is the thing being
+              written in for most of a review. The two are in separate grid
+              tracks here, so neither can slide under the other however far
+              the page scrolls, and the rail sticks at 12 again.
+
+              The per-domain points went to make it fit. At 564px twelve
+              grade buttons, three labels, three point readouts and a total
+              wrapped to two rows; the readouts were the only part saying
+              something the grade beside them and the total at the end do not
+              already say. The exact figure is still a hover away.
+            */}
+            <div
+              className="rounded-2xl mb-5"
+              style={{
+                background: "white",
+                border: "1px solid rgba(51,51,51,0.08)",
+                position: "sticky",
+                top: 12,
+                zIndex: 20,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+              }}
+            >
+            {/*
+              The grades live here, not in the cards.
+
+              They are three rows of four buttons and they are needed on
+              every review; the domain comments beneath them are long and,
+              measured over the reviews written so far, changed about twice
+              in nine. Keeping the small, always-needed control pinned and
+              the large, rarely-touched one in the page is the right way
+              round — and it puts the grade next to the running total, so
+              the consequence of a click is visible in the same glance.
+
+              This bar replaced a read-only "DG: 2/3 · CM: 3/4.5" line.
+            */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-x-3 gap-y-2 flex-wrap">
+                {DOMAINS.map((d) => (
+                  <div key={d.key} className="flex items-center gap-1.5">
+                    {/* The label is the way into the comment. The grades are
+                        up here and the comments are not, so without this,
+                        checking what you wrote means scrolling. It carries
+                        the points too now they are off the bar: the one
+                        place anyone would think to look for them. */}
+                    <button
+                      type="button"
+                      onClick={() => setOpenDomain(d.key)}
+                      className="text-[10px] font-bold uppercase tracking-[0.06em]"
+                      style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                      title={`${d.label} — ${d.points !== null ? `${d.points} of ${d.max} points` : `max ${d.max} points`}. Opens the comment.`}
+                    >
+                      {d.short}
+                    </button>
+                    <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
+                  </div>
+                ))}
+              </div>
+              {/* The score is the number; the ceiling is a reminder, and it
+                  does not need to be the same size as the thing it reminds
+                  you about. Shrinking it is also most of what keeps this row
+                  on one line at 564px. */}
+              <span className="font-extrabold text-[20px] tabular-nums whitespace-nowrap" style={{ color: NAVY }}>
+                {totalPts !== null ? totalPts : "—"}
+                <span className="font-semibold text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}> / 10.5</span>
+              </span>
+            </div>
+
+              {(doctorAudioUrl || patientAudioUrl) && (
+                <div className="px-5 pb-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)", paddingTop: 12 }}>
+                  <DualTrackPlayer
+                    doctorUrl={doctorAudioUrl}
+                    patientUrl={patientAudioUrl}
+                    compact
+                    onTime={emitTime}
+                    onPlayingChange={setAudioPlaying}
+                    seekRef={seekRef}
+                    toggleRef={togglePlayRef}
+                  />
+                </div>
+              )}
+            </div>
+
 
                 {/*
                   Said out loud, because a silent restore of six fields is
@@ -1875,10 +1881,12 @@ function oneLine(value: string): string {
  * such dependency, and the caret stays where React puts it, at the end of
  * what was just typed.
  */
-function NoteBox({ value, onChange, onKeyDown }: {
+function NoteBox({ value, onChange, onKeyDown, tone }: {
   value: string;
   onChange: (v: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  /** Did Well or Could Improve, for the wash. See TONE. */
+  tone: Tone;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -1905,8 +1913,8 @@ function NoteBox({ value, onChange, onKeyDown }: {
       rows={1}
       className="w-full rounded-lg px-2.5 py-1.5 text-[12.5px] outline-none focus:border-navy/40 resize-none overflow-hidden"
       style={{
-        background: "white",
-        border: "1px solid rgba(51,51,51,0.12)",
+        background: TONE[tone].bg,
+        border: `1px solid ${TONE[tone].border}`,
         color: NAVY,
         lineHeight: 1.5,
         minHeight: "2.4rem",
@@ -2043,8 +2051,8 @@ const Notepad = memo(function Notepad({
     }
   };
 
-  const box = (k: keyof AssistNotes) => (
-    <NoteBox value={notes[k]} onChange={set(k)} onKeyDown={key(k)} />
+  const box = (k: keyof AssistNotes, tone: Tone) => (
+    <NoteBox value={notes[k]} onChange={set(k)} onKeyDown={key(k)} tone={tone} />
   );
 
   const DOMAINS: {
@@ -2167,9 +2175,10 @@ const Notepad = memo(function Notepad({
               onSelectionChange={onPickedChange}
               onPresetsChange={onPresetsChange}
               disabled={disabled}
+              tone="well"
               collapsed={!showPresets}
             />
-            {box(d.well)}
+            {box(d.well, "well")}
 
             <div className="mt-2.5">
               <PresetChecklist
@@ -2180,9 +2189,10 @@ const Notepad = memo(function Notepad({
                 onSelectionChange={onPickedChange}
                 onPresetsChange={onPresetsChange}
                 disabled={disabled}
+                tone="improve"
                 collapsed={!showPresets}
               />
-              {box(d.improve)}
+              {box(d.improve, "improve")}
             </div>
           </div>
         ))}

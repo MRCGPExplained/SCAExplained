@@ -142,6 +142,29 @@ export const FIELD_LABEL: Record<PresetField, string> = {
 export const PRESETS_SETTING_KEY = "examiner_presets";
 
 /**
+ * The wash on every box in a half of the notepad.
+ *
+ * Did Well and Could Improve alternate down a single column six times, and
+ * the only thing telling them apart was a small grey heading. Tinting the
+ * boxes themselves means the half you are typing into is obvious from the
+ * colour under the cursor rather than from reading upwards.
+ *
+ * Faint on purpose. These sit behind the examiner's own writing, so they
+ * have to survive being looked at for forty minutes — the greens and ambers
+ * here are the same hues the skills ratings use, at about a third of the
+ * strength.
+ */
+export const TONE: Record<"well" | "improve", { bg: string; border: string }> = {
+  // Green is the stronger alpha of the two on purpose: at the same value it
+  // reads lighter than amber, and the point is that the two halves carry
+  // equal weight rather than equal numbers.
+  well: { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.28)" },
+  improve: { bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.3)" },
+};
+
+export type Tone = keyof typeof TONE;
+
+/**
  * Ids are derived from the text rather than random, so the defaults are the
  * same on every machine and a tick made before anyone edited the list still
  * resolves afterwards. Once a preset is saved its id is fixed and editing the

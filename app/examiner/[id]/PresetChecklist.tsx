@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { saveExaminerPresetsAction } from "../actions";
-import { presetId, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
+import { TONE, presetId, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import { MAX_PRESETS_PER_FIELD } from "@/lib/examiner-presets-store";
 
 const NAVY = "#333333";
@@ -102,6 +102,7 @@ export const PresetChecklist = memo(function PresetChecklist({
   onSelectionChange,
   onPresetsChange,
   disabled,
+  tone,
   collapsed,
 }: {
   field: PresetField;
@@ -122,6 +123,8 @@ export const PresetChecklist = memo(function PresetChecklist({
   onSelectionChange: (field: PresetField, next: PresetSelection) => void;
   onPresetsChange: (field: PresetField, next: ExaminerPreset[]) => void;
   disabled?: boolean;
+  /** Which half of the notepad this is, for the wash on its boxes. */
+  tone: Tone;
   /** Presets are hidden for this examiner. The heading still belongs to the
    *  box below it, so only the list goes. */
   collapsed?: boolean;
@@ -234,8 +237,8 @@ export const PresetChecklist = memo(function PresetChecklist({
                     style={{
                       marginLeft: 22,
                       width: "calc(100% - 22px)",
-                      border: "1px solid rgba(51,51,51,0.15)",
-                      background: "white",
+                      border: `1px solid ${TONE[tone].border}`,
+                      background: TONE[tone].bg,
                       color: NAVY,
                       outline: "none",
                       lineHeight: 1.45,
