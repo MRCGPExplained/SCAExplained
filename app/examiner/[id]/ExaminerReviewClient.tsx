@@ -270,7 +270,27 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
       const el = document.activeElement as HTMLElement | null;
       if (el) {
         const tag = el.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
+        // A select opens on space, and a contenteditable has no simple
+        // notion of empty. Both keep the key.
+        if (tag === "SELECT" || el.isContentEditable) return;
+        if (tag === "INPUT" || tag === "TEXTAREA") {
+          /*
+            An EMPTY box yields the key.
+
+            A space only ever separates things, so in a box with nothing in
+            it there is nothing for it to do — no sentence starts with one
+            and nothing here would keep it. That makes the key free exactly
+            where the examiner is most likely to be sitting: clicked into
+            the box they are about to write in, listening before they type.
+
+            Emptiness is bulletLines', not the raw string's, so a box
+            holding only the "• " the notepad put there counts as empty —
+            the same test the rest of this file uses to decide whether a
+            note box has anything in it.
+          */
+          const field = el as HTMLInputElement | HTMLTextAreaElement;
+          if (bulletLines(field.value).length > 0) return;
+        }
       }
       const toggle = togglePlayRef.current;
       if (!toggle) return;
