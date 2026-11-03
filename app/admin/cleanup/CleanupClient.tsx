@@ -142,9 +142,12 @@ function CleanupCard({
 export function CleanupClient({
   initialEmptyRooms,
   initialExpiredGuests,
+  initialOrphans,
 }: {
   initialEmptyRooms: number;
   initialExpiredGuests: number;
+  /** null means the server tried and could not read it, not "not asked". */
+  initialOrphans: OrphanSweep | null;
 }) {
   const [roomsCount, setRoomsCount] = useState<number | null>(initialEmptyRooms);
   const [roomsLoading, setRoomsLoading] = useState(false);
@@ -165,10 +168,12 @@ export function CleanupClient({
     nobody investigates a consultation from two months ago. Audio is the thing
     a candidate paid for, so it keeps its own, longer cutoff.
   */
-  const [orphans, setOrphans] = useState<OrphanSweep | null>(null);
+  const [orphans, setOrphans] = useState<OrphanSweep | null>(initialOrphans);
   const [orphansLoading, setOrphansLoading] = useState(false);
   const [orphansResult, setOrphansResult] = useState("");
-  const [orphansFailed, setOrphansFailed] = useState(false);
+  // The page asked on the way in, so a null here is a failure rather than a
+  // question nobody put yet, and the card says so instead of showing a dash.
+  const [orphansFailed, setOrphansFailed] = useState(initialOrphans === null);
 
   const [logDays, setLogDays] = useState(30);
   const [logCount, setLogCount] = useState<number | null>(null);

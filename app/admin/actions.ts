@@ -365,6 +365,8 @@ async function listBucketObjects(
   }
 
   const out: BucketObject[] = [];
+  const prefixes: string[] = [];
+
   for (const entry of data ?? []) {
     const full = prefix ? `${prefix}/${entry.name}` : entry.name;
     const size = (entry.metadata as { size?: number } | null)?.size;
@@ -376,10 +378,25 @@ async function listBucketObjects(
 
     // A prefix. Two levels is the whole of this bucket's shape
     // (stationId/file); the cap is only there so a surprise cannot spin.
-    if (depth <= 0) continue;
-    const nested = await listBucketObjects(supabase, full, depth - 1);
-    if (nested === null) return null;
-    out.push(...nested);
+    if (depth > 0) prefixes.push(full);
+  }
+
+  /*
+    All the folders at once.
+
+    One folder per station that has an image, and this used to await them in
+    a loop — three round trips today, because two stations have images, and
+    two hundred and forty seven if they all did. That cost was invisible
+    while the count was only fetched on a button press, and the page now
+    fetches it on load, so a sequential walk would have made the whole
+    Cleanup page as slow as the bucket is wide.
+  */
+  if (prefixes.length > 0) {
+    const nested = await Promise.all(prefixes.map((p) => listBucketObjects(supabase, p, depth - 1)));
+    // One failed listing poisons the whole answer: a partial list makes
+    // every file it did not see look like an orphan, and that feeds a delete.
+    if (nested.some((n) => n === null)) return null;
+    for (const batch of nested) out.push(...(batch as BucketObject[]));
   }
 
   return out;
