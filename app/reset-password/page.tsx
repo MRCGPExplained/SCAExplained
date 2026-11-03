@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -9,6 +9,17 @@ import { endOtherSessions } from "@/lib/single-session";
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 
+/**
+ * How long to wait for the recovery session before calling the link spent.
+ *
+ * The session is not there at mount. The browser client has to read the URL
+ * the redirect arrived with and exchange it, which is a round trip, so
+ * getSession() on the first tick says "no" for a link that is perfectly
+ * good. onAuthStateChange fires when it lands; this is only the backstop for
+ * when it never does.
+ */
+const SESSION_GRACE_MS = 4000;
+
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -16,6 +27,50 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
+  /** null while still waiting; true once a session arrived; false once not. */
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+
+  // One client for the page. Two would each hold their own listener for the
+  // same cookie-backed session, which is twice the work for one answer.
+  const supabaseRef = useRef<ReturnType<typeof createSupabaseBrowserClient> | null>(null);
+  if (!supabaseRef.current) supabaseRef.current = createSupabaseBrowserClient();
+  const supabase = supabaseRef.current;
+
+  /*
+    Is this link still good?
+
+    A recovery link works once. Opening it a second time — going back to the
+    email after the first tab has already done its job, which is exactly what
+    happened to a real user on 3 November — gets "Email link is invalid or
+    has expired" from Supabase's /verify, and lands here with no session.
+
+    Until now the form rendered anyway, so the reply to a careful new
+    password was whatever updateUser said about a missing session. Asking
+    first means the page can say the one useful thing instead: the link is
+    spent, here is how to get another.
+  */
+  useEffect(() => {
+    let settled = false;
+    const arrive = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      setSignedIn(ok);
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) arrive(true);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) arrive(true);
+    });
+    const timer = setTimeout(() => arrive(false), SESSION_GRACE_MS);
+
+    return () => {
+      settled = true;
+      clearTimeout(timer);
+      sub.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,7 +79,6 @@ export default function ResetPasswordPage() {
     if (password !== confirm) { setError("Passwords do not match."); return; }
 
     setPending(true);
-    const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.updateUser({ password });
     setPending(false);
 
@@ -68,10 +122,46 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="rounded-2xl p-8" style={{ background: "white", border: "1px solid rgba(51,51,51,0.10)", boxShadow: "0 4px 24px rgba(51,51,51,0.07)" }}>
-          <h1 className="font-display font-bold text-[20px] mb-1" style={{ color: DARK }}>Choose a new password</h1>
-          <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.5)" }}>At least 6 characters.</p>
+          <h1 className="font-display font-bold text-[20px] mb-1" style={{ color: DARK }}>
+            {signedIn === false && !done ? "This link has already been used" : "Choose a new password"}
+          </h1>
+          <p className="text-[13px] mb-6" style={{ color: "rgba(51,51,51,0.5)" }}>
+            {signedIn === false && !done
+              ? "A reset link only works once, and only for a little while."
+              : "At least 6 characters."}
+          </p>
 
-          {done ? (
+          {signedIn === null && !done ? (
+            <p className="text-[13px]" style={{ color: "rgba(51,51,51,0.45)" }}>Checking your link…</p>
+          ) : signedIn === false && !done ? (
+            /*
+              Deliberately not an error box. Nothing has gone wrong with the
+              account and nothing the person did was a mistake — the link has
+              simply been spent, usually by this same link having already
+              worked in another tab. The only thing that helps is the next
+              step, so that is what the panel is.
+            */
+            <div className="flex flex-col gap-4">
+              <p className="text-[13px] m-0" style={{ color: "rgba(51,51,51,0.6)", lineHeight: 1.6 }}>
+                If you opened the link twice, the first one may already have signed you in — try
+                the sign-in page before asking for another.
+              </p>
+              <Link
+                href="/forgot-password"
+                className="w-full rounded-lg py-3 font-display font-bold text-[14px] text-center no-underline"
+                style={{ background: DARK, color: "white" }}
+              >
+                Send me a new link
+              </Link>
+              <Link
+                href="/login"
+                className="text-[12.5px] text-center no-underline"
+                style={{ color: "rgba(51,51,51,0.45)" }}
+              >
+                Back to sign in
+              </Link>
+            </div>
+          ) : done ? (
             <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)", color: "#166534" }}>
               Password updated. Redirecting you to sign in…
             </div>
