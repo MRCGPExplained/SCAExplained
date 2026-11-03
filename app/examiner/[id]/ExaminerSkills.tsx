@@ -29,12 +29,15 @@ export default function ExaminerSkills({
   examinerSkills,
   labels,
   disabled,
+  bare = false,
 }: {
   recordingId: string;
   aiSkills: SkillAnswer[];
   examinerSkills: SkillAnswer[] | null;
   labels: Record<string, string>;
   disabled: boolean;
+  /** Rendered inside something that already draws a card and a title. */
+  bare?: boolean;
 }) {
   // The AI's answers are the starting point, not a separate thing to merge:
   // an examiner edits what is there rather than filling in a blank form.
@@ -124,13 +127,33 @@ export default function ExaminerSkills({
 
   if (!aiSkills.length) return null;
 
+  /*
+    `bare` drops the card and the title, for when something outside already
+    provides both — the accordion this now sits in. Without it the section
+    is a white card inside a white card with its own heading repeated under
+    the one you just clicked.
+
+    Two className strings rather than two wrapper components. A component
+    defined in here is a new type on every render, so React would unmount
+    and rebuild this whole subtree between keystrokes — taking the focus out
+    of the field being typed in with it.
+  */
+  const shellClass = bare
+    ? "-mx-5 -mb-5"
+    : "rounded-2xl overflow-hidden mb-4";
+  const shellStyle = bare
+    ? undefined
+    : { background: "white", border: "1px solid rgba(51,51,51,0.08)" };
+
   return (
-    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}>
+    <div className={shellClass} style={shellStyle}>
       <div className="px-5 pt-5 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
-            Skills Assessment
-          </div>
+          {!bare && (
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Skills Assessment
+            </div>
+          )}
           <p className="text-[12px] m-0 mt-1" style={{ color: "rgba(51,51,51,0.45)" }}>
             {examinerSkills?.length
               ? "Edited by a GP. The candidate sees your version."

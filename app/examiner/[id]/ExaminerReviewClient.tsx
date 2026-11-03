@@ -778,7 +778,16 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     },
   ];
 
-  const allCommentsSet = dgComment.trim().length > 0 && cmComment.trim().length > 0 && roComment.trim().length > 0;
+  /*
+    How many of the three domain comments have something in them.
+
+    It matters now that they live behind a fold. Send is gated on all three,
+    so a collapsed section hiding an empty one would leave the examiner with
+    a greyed-out Send and nothing on screen saying why. The count goes on the
+    section's own header, and an incomplete set opens it.
+  */
+  const commentsWritten = DOMAINS.filter((d) => d.comment.trim().length > 0).length;
+  const allCommentsSet = commentsWritten === 3;
   const canSubmit = !!dgGrade && !!cmGrade && !!roGrade && allCommentsSet;
 
   const [state, formAction, pending] = useActionState(submitExaminerReviewAction, {});
@@ -1097,87 +1106,24 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   </p>
                 )}
 
-                {/* AI pipeline — always available, on every attempt */}
-                <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span>
-                      {hasAi
-                        ? "AI pre-assessment complete. Re-running replaces the AI grades below."
-                        : rec.ai_error
-                          ? "AI grading did not complete for this consultation. Running it again reuses the existing transcript, so it goes straight to grading."
-                          : "No AI pre-assessment — transcription was disabled or the pipeline did not complete."}
-                    </span>
-                    <RetryPipelineButton recordingId={rec.id} hasExistingMark={!!hasAi} />
-                  </div>
-                  {rec.ai_error && (
-                    <span className="text-[11px] font-mono px-2.5 py-2 rounded-lg" style={{ background: "rgba(185,28,28,0.06)", color: "#B91C1C", wordBreak: "break-word" }}>
-                      {rec.ai_error}
-                    </span>
-                  )}
-                </div>
-
-                {/* Domain cards — flat, full width, AI context inline */}
-                <div className="flex flex-col gap-4 mb-4">
-                  {DOMAINS.map(({ key, label, max, grade, comment, setComment, commentName, aiGrade, aiComment }) => (
-                    <div
-                      key={key}
-                      className="rounded-2xl overflow-hidden"
-                      style={{ background: "white", border: "1px solid rgba(51,51,51,0.08)" }}
-                    >
-                      {/* Card header */}
-                      <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(51,51,51,0.07)" }}>
-                        <span className="text-[14px] font-bold" style={{ color: NAVY }}>{label}</span>
-                        <div className="flex items-center gap-2">
-                          {grade && <GradeBadge grade={grade} />}
-                          <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.35)" }}>
-                            {grade ? `${pts(grade, key)} / ${max} pts` : `max ${max} pts`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* AI context inline */}
-                      {(aiGrade || aiComment) && (
-                        <div className="px-5 py-3" style={{ background: "rgba(51,51,51,0.03)", borderBottom: "1px solid rgba(51,51,51,0.06)" }}>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.35)" }}>AI Pre-Assessment</span>
-                            {aiGrade && <GradeBadge grade={aiGrade} />}
-                          </div>
-                          {aiComment && (
-                            <p className="text-[12.5px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.6)" }}>{aiComment}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* The comment only. The grade for this domain is set
-                          in the score bar at the top of the column, where it
-                          stays in view while the audio plays. */}
-                      <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
-                        {/* No name: the hidden field at the top of the form
-                            submits this, so the card is free to be collapsed
-                            or shown twice. */}
-                        <AutoTextarea
-                          value={comment}
-                          onChange={setComment}
-                          placeholder="Add a comment…"
-                          disabled={isSent}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <ExaminerSkills
-                  recordingId={rec.id}
-                  aiSkills={aiSkills}
-                  examinerSkills={examinerSkills}
-                  labels={skillLabels}
-                  disabled={isSent}
-                />
-
                 {/*
-                  Transcript.
+                  MOVE 3: the transcript first, everything else folded under
+                  it.
 
-                  Open by default now that it is a fixed-height scroll box
+                  This column used to open with three tall domain cards and a
+                  skills table, and the transcript — the thing the examiner
+                  actually reads while the audio plays — came fourth. The
+                  order now matches how often each is used: the transcript is
+                  the column, and the three sections below it are what you
+                  reach for when you want them.
+
+                  Folding these is only safe because the domain comments are
+                  submitted by hidden fields at the top of the form. An
+                  accordion unmounts its body, and a form field inside one
+                  vanishing from the FormData is exactly what nulled the
+                  overall comment.
+
+                  Open by default, because it is a fixed-height scroll box
                   rather than a thousand lines pushed into the page: it cannot
                   bury what is under it, and a transcript that has to be
                   unfolded before it can follow the audio is a transcript that
@@ -1206,6 +1152,118 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     </Accordion>
                   </div>
                 ) : null}
+
+                {/*
+                  The three domain comments, together.
+
+                  They were three full cards carrying a title, a grade badge,
+                  a points line, the AI's paragraph and a box. The grade and
+                  the points are in the score bar now and the AI's paragraph
+                  has a section of its own, so what is left is the label and
+                  the box — and three of those are one section, not three
+                  cards.
+
+                  It opens itself when any of them is empty. Send is gated on
+                  all three, and a fold hiding the reason a button is grey is
+                  the kind of thing that gets blamed on the button.
+                */}
+                <div className="mb-4">
+                  <Accordion
+                    title="Domain comments"
+                    defaultOpen={commentsWritten < 3}
+                    badge={
+                      commentsWritten < 3 ? (
+                        <span className="text-[11px] font-semibold" style={{ color: "#92400e" }}>
+                          {commentsWritten} of 3 written
+                        </span>
+                      ) : undefined
+                    }
+                  >
+                    <div className="flex flex-col gap-4">
+                      {DOMAINS.map(({ key, label, max, grade, comment, setComment }) => (
+                        <div key={key}>
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
+                            {grade && <GradeBadge grade={grade} />}
+                            <span className="text-[11px]" style={{ color: "rgba(51,51,51,0.35)" }}>
+                              {grade ? `${pts(grade, key)} / ${max} pts` : `max ${max} pts`}
+                            </span>
+                          </div>
+                          {/* No name: the hidden field at the top of the form
+                              submits this, so this box is free to be folded
+                              away or shown twice. */}
+                          <AutoTextarea
+                            value={comment}
+                            onChange={setComment}
+                            placeholder="Add a comment…"
+                            disabled={isSent}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </Accordion>
+                </div>
+
+                {/*
+                  What the model said, and the button that makes it say it
+                  again.
+
+                  The pipeline strip used to sit at the top of the column on
+                  its own, reading "re-running replaces the AI grades below" —
+                  which was true when the AI's paragraphs were below it. They
+                  are in here with it now, which is where a control that
+                  replaces them belongs.
+                */}
+                <div className="mb-4">
+                  <Accordion title="AI pre-assessment" defaultOpen={false}>
+                    <div className="rounded-xl px-4 py-3 mb-4 text-[12px] flex flex-col gap-3" style={{ background: "rgba(51,51,51,0.05)", border: "1px solid rgba(51,51,51,0.1)", color: "rgba(51,51,51,0.5)" }}>
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <span>
+                          {hasAi
+                            ? "AI pre-assessment complete. Re-running replaces the grades and comments here."
+                            : rec.ai_error
+                              ? "AI grading did not complete for this consultation. Running it again reuses the existing transcript, so it goes straight to grading."
+                              : "No AI pre-assessment — transcription was disabled or the pipeline did not complete."}
+                        </span>
+                        <RetryPipelineButton recordingId={rec.id} hasExistingMark={!!hasAi} />
+                      </div>
+                      {rec.ai_error && (
+                        <span className="text-[11px] font-mono px-2.5 py-2 rounded-lg" style={{ background: "rgba(185,28,28,0.06)", color: "#B91C1C", wordBreak: "break-word" }}>
+                          {rec.ai_error}
+                        </span>
+                      )}
+                    </div>
+
+                    {hasAi ? (
+                      <div className="flex flex-col gap-3">
+                        {DOMAINS.map(({ key, label, aiGrade, aiComment }) => (
+                          <div key={key}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[12px] font-bold" style={{ color: NAVY }}>{label}</span>
+                              {aiGrade && <GradeBadge grade={aiGrade} />}
+                            </div>
+                            <p className="text-[12.5px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.6)", whiteSpace: "pre-wrap" }}>
+                              {aiComment || "No comment."}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </Accordion>
+                </div>
+
+                <div className="mb-4">
+                  <Accordion title="Skills assessment" defaultOpen={false}>
+                    <ExaminerSkills
+                      recordingId={rec.id}
+                      aiSkills={aiSkills}
+                      examinerSkills={examinerSkills}
+                      labels={skillLabels}
+                      disabled={isSent}
+                      bare
+                    />
+                  </Accordion>
+                </div>
 
                 {/* Error / success */}
                 {"error" in state && state.error && (
