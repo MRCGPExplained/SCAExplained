@@ -19,11 +19,15 @@ export type PresetSelection = Record<string, string>;
  * are three lines, and an input would show the middle of one with each end
  * scrolled out of sight.
  *
- * It still behaves as a single line of TEXT, though, which is the part a
- * plain textarea gets wrong. Enter is suppressed and pasted newlines are
- * flattened to spaces: these strings are rendered into a tick list, joined
- * into the notes, and read by the copy-editor, and a line break inside one
- * would travel all the way to the candidate.
+ * Enter makes a new line, and a pasted one is kept. A long phrase is easier
+ * to read broken where you chose to break it than reflowed to the box, and
+ * that is the examiner's call to make while they are writing.
+ *
+ * It is only a line break on the way OUT that would cause trouble: notes
+ * reach the copy-editor one observation per line. That is handled once, at
+ * the join — see oneLine in ExaminerReviewClient — rather than by refusing
+ * the key here, which is the difference between a constraint the data has
+ * and a constraint the typist has.
  *
  * resize and overflow are forced here rather than left to the caller's
  * classes. Without overflow hidden, scrollHeight reports the visible box and
@@ -67,10 +71,7 @@ function GrowingInput({
       value={value}
       disabled={disabled}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value.replace(/\s*\n+\s*/g, " "))}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.preventDefault();
-      }}
+      onChange={(e) => onChange(e.target.value)}
       className={className}
       style={{ ...style, resize: "none", overflow: "hidden", fontFamily: "inherit" }}
     />
@@ -197,7 +198,11 @@ export function PresetChecklist({
                     onChange={() => toggle(preset.id)}
                     style={{ marginTop: 3, accentColor: NAVY, flexShrink: 0 }}
                   />
-                  <span className="text-[12px] leading-snug" style={{ color: ticked ? NAVY : "rgba(51,51,51,0.6)" }}>
+                  {/* pre-wrap, because a preset may have been written across
+                      two lines on purpose. Collapsing it here would show the
+                      author something other than what they saved, and show it
+                      differently again the next time they opened the editor. */}
+                  <span className="text-[12px] leading-snug" style={{ color: ticked ? NAVY : "rgba(51,51,51,0.6)", whiteSpace: "pre-wrap" }}>
                     {preset.text}
                   </span>
                 </label>

@@ -391,9 +391,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
 
     The preset text goes in as the examiner wrote it, with whatever they
     typed against it joined on after a dash — one line per observation, the
-    same shape the typed notes arrive in. The copy-editor prompt already
-    forbids rephrasing and synonym-swapping, which is what protects a phrase
-    that was curated once and is meant to read the same way every time.
+    same shape the typed notes arrive in, which is what oneLine guarantees.
+    The copy-editor prompt already forbids rephrasing and synonym-swapping,
+    which is what protects a phrase that was curated once and is meant to
+    read the same way every time.
 
     Presets first, then the free text. They are the recurring points and tend
     to be the ones worth leading on; anything typed by hand is specific to
@@ -404,8 +405,9 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     const ticked = (presets[field] ?? [])
       .filter((p) => p.id in selection)
       .map((p) => {
-        const comment = (selection[p.id] ?? "").trim();
-        return comment ? `${p.text} — ${comment}` : p.text;
+        const phrase = oneLine(p.text);
+        const comment = oneLine(selection[p.id] ?? "");
+        return comment ? `${phrase} — ${comment}` : phrase;
       });
     return [...ticked, ...bulletLines(raw)].join("\n");
   }
@@ -1188,6 +1190,26 @@ function bulletLines(value: string): string[] {
     .split("\n")
     .map((line) => line.replace(/^\s*[•\-*]\s*/, "").trim())
     .filter(Boolean);
+}
+
+/**
+ * A preset phrase, or the detail typed against it, as one line.
+ *
+ * Enter makes a new line in those boxes, because a long phrase is easier to
+ * read broken where you chose to break it. Downstream it is not: notes reach
+ * the copy-editor one observation per line — noteList in actions.ts splits on
+ * "\n" and the prompt is told each line is a separate point. A break inside a
+ * detail would therefore arrive as a second observation, orphaned from the
+ * preset it belongs to and with no "— " to show what it was about.
+ *
+ * Rejoined with a space, not a semicolon or a full stop. The break is being
+ * used for width, mid-thought, so a space gives back the sentence that was
+ * typed; inventing punctuation would put a mark in the examiner's writing
+ * that they did not make, which is the one thing this whole path exists to
+ * avoid.
+ */
+function oneLine(value: string): string {
+  return value.replace(/\s*\n+\s*/g, " ").trim();
 }
 
 /**
