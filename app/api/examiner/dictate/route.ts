@@ -47,13 +47,21 @@ async function recordDictationCost(
     const pricing = await getCurrentPricing(admin);
     if (!pricing) return;
 
-    const billable = deepgramBillableMinutes(durationSec);
+    /*
+      A duration that is not a number would reach the insert as NaN, and
+      every figure derived from it with it — billable minutes, both costs.
+      Postgres refuses NaN in a numeric column, so the row would be lost to
+      the catch below and the spend would vanish silently, which is the one
+      outcome a ledger must not have.
+    */
+    const seconds = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0;
+    const billable = deepgramBillableMinutes(seconds);
     const costUsd = deepgramCostUsd(billable, pricing);
 
     const { error } = await admin.from("deepgram_usage").insert({
       recording_id: recordingId,
       role: "dictation",
-      audio_duration_s: durationSec,
+      audio_duration_s: seconds,
       billable_min: billable,
       model: DICTATE_MODEL,
       request_id: requestId,
