@@ -17,6 +17,24 @@ import {
   deleteImageAction,
 } from "../actions";
 
+/**
+ * The host part of a URL, or "" if it is not one yet.
+ *
+ * `new URL(x)` throws on anything short of a complete URL, and this is read
+ * while someone is typing — so the very first character threw, the handler
+ * died before its setState, and the controlled input snapped straight back
+ * to empty. The field could not be filled in at all.
+ */
+function hostnameOf(value: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return "";
+  }
+}
+
 const SUBJECTS = [
   "Cardiovascular",
   "Respiratory",
@@ -686,7 +704,7 @@ export function StationForm({ station }: { station?: Station }) {
                   <div className="flex flex-col gap-2">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Original URL</label>
-                      <input type="text" value={rec.originalUrl ?? ""} onChange={(e) => { const updated = [...imageRecords]; updated[idx] = { ...rec, originalUrl: e.target.value, attributedTo: rec.attributedTo || (e.target.value ? new URL(e.target.value).hostname : "") }; setImageRecords(updated); }} className="w-full px-2 py-1.5 rounded-lg border border-navy/15 text-[12px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition" placeholder="https://example.com/image.jpg" />
+                      <input type="text" value={rec.originalUrl ?? ""} onChange={(e) => { const updated = [...imageRecords]; updated[idx] = { ...rec, originalUrl: e.target.value, attributedTo: rec.attributedTo || hostnameOf(e.target.value) }; setImageRecords(updated); }} className="w-full px-2 py-1.5 rounded-lg border border-navy/15 text-[12px] text-navy bg-[#F3F2FB] outline-none focus:border-navy/40 transition" placeholder="https://example.com/image.jpg" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-[0.06em] mb-1 text-navy/50">Image Attributed to</label>

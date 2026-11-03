@@ -21,6 +21,33 @@ function parseLines(raw: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * The image list entries, which are JSON records rather than bare URLs.
+ *
+ * The form writes `{"supabaseUrl":"…","originalUrl":"…","attributedTo":"…"}`
+ * per line, but rows written before that format existed hold the URL on its
+ * own, so every reader has to accept both. StationForm and the case-bank page
+ * each parse the whole record because they render the attribution too; this
+ * answers the narrower question of which file an entry points at, which is
+ * all a delete needs to know.
+ *
+ * Not exported: this is a "use server" module, where every export has to be
+ * an async server action. A sync helper exported from here fails the Next
+ * compiler — and does not fail tsc, so the build is the only thing that
+ * catches it.
+ */
+function imageRecordUrl(entry: string): string {
+  try {
+    const parsed = JSON.parse(entry);
+    if (parsed && typeof parsed === "object" && typeof parsed.supabaseUrl === "string") {
+      return parsed.supabaseUrl;
+    }
+  } catch {
+    // Not JSON: an old row holding the URL by itself.
+  }
+  return entry;
+}
+
 function stationFromForm(formData: FormData) {
   const imageUrlsRaw = String(formData.get("image_urls_manual") ?? "").trim();
   const imageUrls = imageUrlsRaw
@@ -85,7 +112,22 @@ function stationFromForm(formData: FormData) {
     trainer_qa: trainerQa,
     audio_notes:
       String(formData.get("audio_notes") ?? "").trim() || null,
-    image_urls: imageUrls.length > 0 ? imageUrls : null,
+    /*
+      Omitted when empty, never written as null.
+
+      This was `imageUrls.length > 0 ? imageUrls : null`, which made every
+      save a potential wipe: the list lives in React state on the form, so
+      anything that reset that state — a re-render from scratch, a tab
+      restored from history, an upload whose reply never arrived — left the
+      hidden field blank, and Save then cleared images that were on the row
+      and files that were in the bucket.
+
+      Leaving the key out entirely means the column is untouched instead.
+      Nothing is lost by that: images are removed through deleteImageAction,
+      which owns both the row and the bucket, and never through an empty
+      box on a form.
+    */
+    ...(imageUrls.length > 0 ? { image_urls: imageUrls } : {}),
     marking_notes_data_gathering:
       String(formData.get("marking_notes_data_gathering") ?? "").trim() || null,
     marking_notes_clinical_management:
@@ -209,6 +251,47 @@ export async function uploadImageAction(
     .from("station-images")
     .getPublicUrl(path);
 
+  /*
+    Written to the row here, not left for the form to carry.
+
+    deleteImageAction has always updated stations.image_urls itself, so a
+    delete stuck the moment it was clicked. An upload did not: it returned a
+    URL into React state, and that state only reached the database if the
+    admin went on to press Save with it still intact. The file was in the
+    bucket either way, which is why four copies of the same image could sit
+    in storage against a row that said it had none.
+
+    The asymmetry was the bug. An upload now lands in the same two places a
+    delete removes it from.
+
+    Read-modify-write, like the delete. Two uploads racing could lose one,
+    which is a far smaller problem than the one being fixed, and the form
+    still submits the full list afterwards.
+  */
+  const record = JSON.stringify({ supabaseUrl: publicUrl });
+  const { data: station, error: readErr } = await supabase
+    .from("stations")
+    .select("number, image_urls")
+    .eq("id", stationId)
+    .single<{ number: number; image_urls: string[] | null }>();
+
+  if (readErr) {
+    // The file is uploaded; only the row is not. Say so rather than
+    // reporting success and losing it quietly.
+    return { error: `Uploaded, but could not attach it to the station: ${readErr.message}` };
+  }
+
+  const { error: attachErr } = await supabase
+    .from("stations")
+    .update({ image_urls: [...(station.image_urls ?? []), record] })
+    .eq("id", stationId);
+
+  if (attachErr) {
+    return { error: `Uploaded, but could not attach it to the station: ${attachErr.message}` };
+  }
+
+  if (station.number) revalidatePath(`/case-bank/${station.number}`);
+
   return { imageUrl: publicUrl };
 }
 
@@ -235,7 +318,17 @@ export async function deleteImageAction(
     await supabase.storage.from("station-images").remove([storagePath]);
   }
 
-  const updatedUrls = (station.image_urls ?? []).filter((url) => url !== imageUrl);
+  /*
+    Compared on the URL inside the record, not on the stored string.
+
+    The form passes the bare supabaseUrl while the row holds a JSON record
+    wrapping it, so a plain !== matched nothing: the file was removed from
+    the bucket and its entry stayed on the station, leaving a broken image
+    that could not be deleted again.
+  */
+  const updatedUrls = (station.image_urls ?? []).filter(
+    (entry) => imageRecordUrl(entry) !== imageUrl
+  );
 
   const { error } = await supabase
     .from("stations")
