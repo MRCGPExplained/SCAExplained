@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { endOtherSessions } from "@/lib/single-session";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
@@ -28,6 +29,29 @@ export default function ResetPasswordPage() {
     setPending(false);
 
     if (error) { setError(error.message); return; }
+
+    /*
+      A new password ends the old devices.
+
+      Two reasons, and the ordinary one is the stronger. Changing a password
+      is how someone responds to losing control of an account, and a reset
+      that leaves every other signed-in device exactly where it was does not
+      do the one thing it was reached for.
+
+      The other is that this closes a hole in the one-device rule. Signing in
+      through the login form ends other sessions (app/case-bank/actions.ts),
+      and so does /auth/callback — but only when it is handed a code or a
+      token_hash to act on. A recovery that arrives without either falls
+      through both branches, so the reset path enforced nothing: an account
+      could come out of it signed in on two machines at once, which is what
+      was actually found on a live account before this was added.
+
+      Not fatal if it fails, the same as everywhere else it is called. The
+      password has already been changed by this point, and erroring here
+      would tell someone their reset had not worked when it had.
+    */
+    await endOtherSessions(supabase);
+
     setDone(true);
     setTimeout(() => router.push("/login"), 2500);
   }
