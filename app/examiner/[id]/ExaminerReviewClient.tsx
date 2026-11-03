@@ -902,6 +902,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 {!isSent && (
                   <Notepad
                     notes={assist}
+                    recordingId={rec.id}
                     presets={presets}
                     picked={picked}
                     onPickedChange={(field, selection) => setPicked((prev) => ({ ...prev, [field]: selection }))}
@@ -1268,9 +1269,11 @@ function NoteBox({ value, onChange, onKeyDown }: {
  */
 function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
-  hasNotes, willOverwrite, pending, error, onConvert,
+  recordingId, hasNotes, willOverwrite, pending, error, onConvert,
 }: {
   notes: AssistNotes;
+  /** Only so a dictation can be costed against the review it was spoken into. */
+  recordingId: string;
   onChange: (n: AssistNotes) => void;
   presets: PresetMap;
   picked: Record<PresetField, PresetSelection>;
@@ -1287,7 +1290,7 @@ function Notepad({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [dictateError, setDictateError] = useState<string | null>(null);
-  const dictation = useDictation(setDictateError);
+  const dictation = useDictation(recordingId, setDictateError);
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 

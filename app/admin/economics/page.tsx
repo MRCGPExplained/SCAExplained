@@ -68,7 +68,7 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
     scoped("revenue_events", "amount_gross_gbp, stripe_fee_gbp, user_id, created_at"),
     scoped("daily_usage", "participant_minutes, room_duration_s, max_participants, cost_gbp, created_at"),
     scoped("claude_usage", "input_tokens, output_tokens, cost_gbp, created_at"),
-    scoped("deepgram_usage", "audio_duration_s, cost_gbp, created_at"),
+    scoped("deepgram_usage", "role, audio_duration_s, cost_gbp, created_at"),
     admin.from("consultation_costs").select("deepgram_cost_gbp, claude_cost_gbp, daily_cost_gbp, gp_cost_gbp, created_at"),
     admin.from("revenue_events").select("amount_gross_gbp, stripe_fee_gbp, user_id, created_at"),
   ]);
@@ -147,8 +147,19 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   const clCosts = claude.map((r) => num(r.cost_gbp));
 
   // ── Deepgram analytics ──────────────────────────────────────────────────────
-  const dgDurations = deepgram.map((r) => num(r.audio_duration_s));
-  const dgCosts = deepgram.map((r) => num(r.cost_gbp));
+  /*
+    Consultation tracks and examiner dictation are both Deepgram and both on
+    this table, told apart by role. Split here because they answer different
+    questions: one is the cost of running a consultation, the other the cost
+    of a GP talking instead of typing, and averaging them together would
+    flatter the first and hide the second.
+  */
+  const dgTracks = deepgram.filter((r) => r.role !== "dictation");
+  const dgDictation = deepgram.filter((r) => r.role === "dictation");
+  const dgDurations = dgTracks.map((r) => num(r.audio_duration_s));
+  const dgCosts = dgTracks.map((r) => num(r.cost_gbp));
+  const dictationSeconds = dgDictation.reduce((t, r) => t + num(r.audio_duration_s), 0);
+  const dictationCost = dgDictation.reduce((t, r) => t + num(r.cost_gbp), 0);
 
   // ── Over-time monthly series (all time) ─────────────────────────────────────
   type MB = { revenue: number; stripe: number; deepgram: number; claude: number; daily: number; gp: number; consultations: number };
@@ -350,6 +361,13 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
           <Stat label="Avg transcription duration" value={dgDurations.length ? `${(mean(dgDurations) / 60).toFixed(1)} min` : "—"} />
           <Stat label="Avg Deepgram cost / track" value={dgCosts.length ? gbp(mean(dgCosts)) : "—"} />
           <Stat label="Avg per consultation" value={consultations ? gbp(dgCost / consultations) : "—"} />
+        </Card>
+
+        <Card title="Examiner dictation">
+          <Stat label="Dictations" value={String(dgDictation.length)} />
+          <Stat label="Minutes spoken" value={`${(dictationSeconds / 60).toFixed(1)} min`} />
+          <Stat label="Cost" value={gbp(dictationCost)} />
+          <Stat label="Avg per dictation" value={dgDictation.length ? gbp(dictationCost / dgDictation.length) : "—"} />
         </Card>
       </div>
 

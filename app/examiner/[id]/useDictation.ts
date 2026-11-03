@@ -76,7 +76,7 @@ function insertAtCaret(el: Field, text: string) {
   document.execCommand("insertText", false, text);
 }
 
-export function useDictation(onError?: (message: string | null) => void) {
+export function useDictation(recordingId: string, onError?: (message: string | null) => void) {
   const [state, setState] = useState<DictationState>("idle");
 
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -250,7 +250,10 @@ export function useDictation(onError?: (message: string | null) => void) {
         try {
           const res = await fetch("/api/examiner/dictate", {
             method: "POST",
-            headers: { "Content-Type": blob.type || "audio/webm" },
+            headers: {
+              "Content-Type": blob.type || "audio/webm",
+              "x-recording-id": recordingId,
+            },
             body: blob,
           });
           const data = await res.json();
@@ -275,7 +278,7 @@ export function useDictation(onError?: (message: string | null) => void) {
 
       mr.stop();
     },
-    [onError, release]
+    [onError, release, recordingId]
   );
 
   /** Abandon a hold if focus leaves mid-press; otherwise the key-up never comes. */
