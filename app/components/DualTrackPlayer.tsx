@@ -17,6 +17,7 @@ export default function DualTrackPlayer({
   onPlayingChange,
   compact = false,
   seekRef,
+  toggleRef,
 }: {
   doctorUrl: string | null;
   patientUrl: string | null;
@@ -35,6 +36,9 @@ export default function DualTrackPlayer({
   compact?: boolean;
   /** Filled with a seek function, so a parent can drive the position. */
   seekRef?: { current: ((t: number) => void) | null };
+  /** Filled with the play/pause toggle, so a parent can drive it from a key
+   *  without the examiner reaching for the transport. */
+  toggleRef?: { current: (() => void) | null };
 }) {
   const doctorRef = useRef<HTMLAudioElement | null>(null);
   const patientRef = useRef<HTMLAudioElement | null>(null);
@@ -62,7 +66,22 @@ export default function DualTrackPlayer({
     const doctor = doctorRef.current;
     if (!doctor) return;
 
-    if (playing) {
+    /*
+      Which way to toggle is asked of the ELEMENT, not of `playing`.
+
+      `playing` is a render value and it lags: the play branch awaits
+      play() before setting it, so two presses inside that await both see
+      "not playing" and both call play(). Measured with four quick
+      spacebars, which produced pause, play, play, play. It also drifts when
+      the audio ends — the element is paused while the state still says
+      playing, so the next press called pause() on something already
+      stopped and did nothing visible.
+
+      The element knows. `playing` stays, because the button label and the
+      rAF loop need a render value, but it is a reflection of this, never
+      the thing being tested.
+    */
+    if (!doctor.paused) {
       doctor.pause();
       patientRef.current?.pause();
       setPlaying(false);
@@ -97,6 +116,7 @@ export default function DualTrackPlayer({
   }
 
   if (seekRef) seekRef.current = seekTo;
+  if (toggleRef) toggleRef.current = togglePlay;
 
   /*
     The position, at frame rate, while playing and never otherwise. A loop

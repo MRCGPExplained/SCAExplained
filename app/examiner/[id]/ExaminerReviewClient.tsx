@@ -221,6 +221,65 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     ref, which is the reason the ref exists.
   */
   const handleSeek = useCallback((t: number) => seekRef.current?.(t), []);
+
+  /*
+    Spacebar plays and pauses, so marking does not need the mouse.
+
+    Only when nothing that owns the key has focus. A space typed into a note
+    box is a space — that is not negotiable, and it is why this is a focus
+    test rather than the line-start test the "/" dictation key uses: a slash
+    never starts a sentence, a space does nothing else but separate words.
+
+    The focus-visible check is what makes buttons work both ways. A control
+    the examiner TABBED to owns its own space key — that is how a keyboard
+    user presses it, and stealing it would break the grade buttons for
+    anyone not using a mouse. A control they merely CLICKED holds focus by
+    accident, so the key belongs to the audio. Clicking a grade and then
+    hitting space to resume is the normal case, and it works.
+
+    preventDefault because space scrolls the page a screenful otherwise,
+    which on a page this tall is the opposite of helpful.
+  */
+  const togglePlayRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.code !== "Space" && e.key !== " ") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      /*
+        One test, and it is the one Brandon asked for: is the examiner
+        typing? If a text field has focus the space is a space. Everything
+        else on this page yields the key to the audio.
+
+        TWO CLEVERER VERSIONS WERE TRIED AND BOTH FAILED, MEASURED.
+
+        Asking :focus-visible of whatever holds focus does not work: the
+        body is focusable and pressing a key on it is exactly what promotes
+        it, so the first space played and every space after it was
+        swallowed. Asking it only of buttons does not work either — Chrome
+        latches the heuristic for the session, so once the examiner has
+        used the keyboard at all (which pressing space IS), a button they
+        then click with the mouse still reports as keyboard-focused. Tested
+        with a real click: space re-pressed the button instead of pausing.
+
+        So buttons lose space on this page, and that is a deliberate cost
+        rather than an oversight. Enter still activates every one of them,
+        which is the other half of the platform convention and the half
+        that keyboard users can rely on here. preventDefault below is what
+        stops a focused button firing as well as the audio toggling.
+      */
+      const el = document.activeElement as HTMLElement | null;
+      if (el) {
+        const tag = el.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
+      }
+      const toggle = togglePlayRef.current;
+      if (!toggle) return;
+      e.preventDefault();
+      toggle();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
   /*
     Sent in this tab, believed before the server component catches up.
 
@@ -673,6 +732,8 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [showSuccess, setShowSuccess] = useState(false);
   /** Send has been asked for once and is waiting to be confirmed. */
   const [confirmingSend, setConfirmingSend] = useState(false);
+  /** Which domain's comment is open in the dialog, by key, or none. */
+  const [openDomain, setOpenDomain] = useState<string | null>(null);
   // One announcement per send. The effect below runs twice per state in
   // React's development double-invoke, and the navbar would count down twice.
   const announced = useRef(false);
@@ -765,6 +826,22 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             on what is on screen.
           */}
           <input type="hidden" name="overall_comment" value={overallComment} />
+
+          {/*
+            The three domain comments travel the same way, for the same
+            reason, and before they need to.
+
+            Each is shown in two places now — the card and the modal behind
+            the score bar's DG/CM/RO buttons — and a <textarea name="..."> in
+            each would put two entries in the FormData. More to the point,
+            the next step of this layout change collapses the cards into an
+            accordion, and an accordion unmounts its body: exactly what wiped
+            the overall comment. Lifting the fields out now means that step
+            cannot repeat it.
+          */}
+          {DOMAINS.map((d) => (
+            <input key={d.key} type="hidden" name={d.commentName} value={d.comment} />
+          ))}
 
           {/*
             The form's default button. It does nothing a person can see, and
@@ -877,13 +954,18 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
                   {DOMAINS.map((d) => (
                     <div key={d.key} className="flex items-center gap-2">
-                      <span
+                      {/* The label is the way into the comment. The grades
+                          are up here and the comments are not, so without
+                          this, checking what you wrote means scrolling. */}
+                      <button
+                        type="button"
+                        onClick={() => setOpenDomain(d.key)}
                         className="text-[10px] font-bold uppercase tracking-[0.06em]"
-                        style={{ color: "rgba(51,51,51,0.4)" }}
-                        title={d.label}
+                        style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                        title={`${d.label} — open the comment`}
                       >
                         {d.short}
-                      </span>
+                      </button>
                       <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
                       <span className="text-[10px] tabular-nums" style={{ color: "rgba(51,51,51,0.3)" }}>
                         {d.points !== null ? `${d.points}/${d.max}` : `—/${d.max}`}
@@ -905,6 +987,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                       onTime={emitTime}
                       onPlayingChange={setAudioPlaying}
                       seekRef={seekRef}
+                      toggleRef={togglePlayRef}
                     />
                   </div>
                 )}
@@ -982,8 +1065,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                           in the score bar at the top of the column, where it
                           stays in view while the audio plays. */}
                       <div className="px-5 pb-5 pt-4 flex flex-col gap-3">
+                        {/* No name: the hidden field at the top of the form
+                            submits this, so the card is free to be collapsed
+                            or shown twice. */}
                         <AutoTextarea
-                          name={commentName}
                           value={comment}
                           onChange={setComment}
                           placeholder="Add a comment…"
@@ -1281,6 +1366,24 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
 
           </div>
         </form>
+
+        {/* Outside the form: it is a view onto state the form already
+            carries in its hidden fields, not a field of its own. */}
+        {openDomain && (() => {
+          const d = DOMAINS.find((x) => x.key === openDomain);
+          if (!d) return null;
+          return (
+            <DomainCommentDialog
+              label={d.label}
+              aiGrade={d.aiGrade}
+              aiComment={d.aiComment}
+              value={d.comment}
+              onChange={d.setComment}
+              disabled={isSent}
+              onClose={() => setOpenDomain(null)}
+            />
+          );
+        })()}
 
       </div>
     </div>
@@ -1925,6 +2028,110 @@ const Notepad = memo(function Notepad({
     </div>
   );
 });
+
+/**
+ * One domain's comment, reachable from the score bar.
+ *
+ * The grades moved to the top of the page and the comments did not, so
+ * checking what you wrote about Data Gathering meant scrolling back down
+ * past everything. The DG/CM/RO labels beside each grade open this instead:
+ * the AI's paragraph for reference and your own comment, editable, at the
+ * width a paragraph deserves rather than a card's.
+ *
+ * It edits the same state the card does — they are two views of one string,
+ * which is safe because neither carries the form field any more. See the
+ * hidden inputs at the top of the form.
+ */
+function DomainCommentDialog({
+  label, aiGrade, aiComment, value, onChange, disabled, onClose,
+}: {
+  label: string;
+  aiGrade: string | null;
+  aiComment: string | null;
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const boxRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    // Straight into the box: this is opened to read or to write, and a
+    // caret already there saves the click that would otherwise follow.
+    boxRef.current?.focus();
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, 160)}px`;
+  }, [value]);
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label={label}
+        className="rounded-2xl w-full"
+        style={{ background: "white", maxWidth: 680, maxHeight: "82vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
+      >
+        <div className="px-6 pt-6 pb-2 flex items-center gap-2">
+          <h2 className="font-display font-bold text-[16px] m-0" style={{ color: NAVY }}>{label}</h2>
+        </div>
+
+        {(aiGrade || aiComment) && (
+          <div className="mx-6 mb-4 rounded-xl px-4 py-3" style={{ background: "rgba(51,51,51,0.03)" }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.35)" }}>AI Pre-Assessment</span>
+              {aiGrade && <GradeBadge grade={aiGrade} />}
+            </div>
+            {aiComment && (
+              <p className="text-[12.5px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.6)", whiteSpace: "pre-wrap" }}>{aiComment}</p>
+            )}
+          </div>
+        )}
+
+        <div className="px-6">
+          <textarea
+            ref={boxRef}
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Add a comment…"
+            className="w-full rounded-lg px-3 py-2 text-[13px] resize-none overflow-hidden"
+            style={{ border: "1px solid rgba(51,51,51,0.12)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6, minHeight: 160 }}
+          />
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[12.5px] font-bold px-4 py-2 rounded-lg"
+            style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AutoTextarea({ name, value, onChange, placeholder, disabled }: {
   /** Omitted when something else submits the value — see the overall comment. */
