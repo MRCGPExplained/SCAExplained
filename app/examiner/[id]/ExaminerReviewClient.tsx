@@ -526,6 +526,34 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
           <input type="hidden" name="recordingId" value={rec.id} />
 
           {/*
+            The form's default button. It does nothing a person can see, and
+            it is load-bearing.
+
+            Enter on a focused control implicitly submits the form, and the
+            browser picks the FIRST submit button to do it with. A text input
+            is not required for this: measured in Chrome, Enter on a preset
+            tick box submits, and it submits with whatever that first button
+            is. While the send confirmation is up, the only other submit in
+            this form is "Yes, send the report" — so that key press sent the
+            report to the candidate and the whole room, with no second click
+            and nothing on screen having been pressed at all.
+
+            First in the DOM, never disabled, always send_now=0. The visible
+            buttons below are then free to change, appear and disappear
+            without implicit submission ever being able to do more than save
+            a draft.
+          */}
+          <button
+            type="submit"
+            name="send_now"
+            value="0"
+            tabIndex={-1}
+            aria-hidden="true"
+            className="sr-only"
+          />
+
+
+          {/*
             Two columns, at every width.
 
             The right rail is where the examiner writes; the left is what they
@@ -851,12 +879,11 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                       it and then press it. With the order swapped, the second
                       click of a double lands on Cancel.
 
-                      While this is up it is also the form's only submit
-                      button, which is safe today because the form holds no
-                      single-line text input for Enter to submit from — only
-                      textareas, a checkbox and two hidden fields. Add one and
-                      Enter would send from it, so add a Save Draft submit
-                      back into this block at the same time.
+                      While this is up it is the only submit button anyone can
+                      see, which is why the form opens with a hidden one. Enter
+                      on a tick box submits via the FIRST submit button, and
+                      for an hour that was this one. See the note at the top of
+                      the form.
                     */}
                     <div className="flex gap-2.5 flex-wrap">
                       <button
