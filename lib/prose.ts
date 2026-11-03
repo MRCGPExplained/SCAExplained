@@ -21,6 +21,39 @@
  * Unspaced en dashes are left alone. Those are ranges ("3-5 sentences"), and
  * turning one into a comma would change what it says.
  */
+/**
+ * Two things the examiner-comment prompt asks for and does not reliably get.
+ *
+ * Both qualify for code rather than prompt text on the same test: neither
+ * needs to know what the writing means, so neither is a judgement a model has
+ * to be trusted with. Asking harder had already been tried on both.
+ *
+ *   - The third domain's heading. The prompt names "RTO:" as the only
+ *     permitted spelling, but the notes handed to the model label that domain
+ *     "Relating to Others" in full, so it harmonises the two. Stable at RTO
+ *     until the closing rules were added, then one run in two.
+ *
+ *   - A FINAL WORD heading with nothing underneath. On a review with no Could
+ *     improve notes there are no takeaways to list, and the prompt says to
+ *     drop the heading along with them. It writes the heading anyway, leaving
+ *     a label standing over a blank line.
+ *
+ * The empty-heading rule fires only when the sign-off follows the heading
+ * directly, which is the one arrangement that means the list is missing.
+ * Anything else and the heading stays: a stripped bullet marker would
+ * otherwise cost the examiner three takeaways, and losing content is worse
+ * than leaving a stray heading for them to delete.
+ */
+export function tidyExaminerComment(text: string): string {
+  if (!text) return text;
+
+  return text
+    .replace(/^RELATING TO OTHERS:[ \t]*$/gim, "RTO:")
+    .replace(/\n*^FINAL WORD:[ \t]*\n+(?=(?:Well done\b|Overall well done\b|\s*$))/gim, "\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function withoutEmDashes(text: string): string {
   if (!text) return text;
 

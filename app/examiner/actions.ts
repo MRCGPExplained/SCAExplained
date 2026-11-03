@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
 import { getExaminer } from "@/lib/examiner-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { withoutEmDashes } from "@/lib/prose";
+import { tidyExaminerComment, withoutEmDashes } from "@/lib/prose";
 import { gpRequested, type GpColumns } from "@/lib/recording-state";
 import { sendExaminerReportEmail } from "@/lib/email";
 import { doctorPossessive, printableName } from "@/lib/doctor-name";
@@ -289,6 +289,7 @@ export async function generateOverallCommentAction(args: {
         "",
         "HOW THE NOTES ARRIVE. Each domain has a Did well half and a Could improve half, one observation per line.",
         "A line marked [phrase] is wording the examiner curated in advance and ticked for this consultation. Reproduce it word for word. Do not reword it, do not shorten it, do not improve it.",
+        "That includes the first word. Do not prepend anything to a [phrase] line to make it read in parallel with another one: \"Ask about all medication\" stays \"Ask about all medication\", never \"Try to ask about all medication\", however the lines around it begin.",
         "Where a [phrase] line ends with \"[examiner wrote: ...]\", those are the examiner's own words about this candidate. They must appear in the comment. Never discard them and never replace them with wording of your own.",
         "A line marked [typed] was written at speed while listening. This is where spelling, grammar, agreement and the joins between fragments need the work.",
         "",
@@ -308,6 +309,15 @@ export async function generateOverallCommentAction(args: {
         "Where the examiner's note ties a fix to a moment in this consultation, put the moment first and then \"you could\": \"When the patient said they did not know which to do, you could say that both options would work and ask if they have a preference.\"",
         "Never attach an appraisal tag to a criticism. A hyphen in front of an improvement is a label, not an appraisal, and it appears only where the examiner wrote one.",
         "",
+        "CLOSING. After the last domain section, a blank line, then \"FINAL WORD:\" on its own line.",
+        "Directly under it, up to three lines, each starting with a hyphen and NO space after the hyphen, which is how this examiner writes them: \"-Don't forget SOCRATES\".",
+        "Each line is one thing to take away, and every one of them comes from the Could improve notes. Never from the Did well notes. Never a point that is not in the notes at all.",
+        "Choose the three that matter most for this candidate. Three distinct points, not one point worded three ways. Where the notes hold fewer than three improvements, write one line each and no more.",
+        "Where the notes hold no improvements at all, there is no FINAL WORD at all: drop the heading with the lines, and close with the sign-off on its own after a blank line. A heading standing over nothing is worse than no heading.",
+        "A line drawn from a [phrase] stays word for word. A line drawn from a [typed] note may be tightened to the length of a bullet, in the examiner's own words.",
+        "Then a blank line, then the sign-off on its own line, which is exactly \"Overall well done.\" Never name or address the candidate in it: you are not told who they are, and the examiner adds a name themselves if they want one.",
+        "Nothing else belongs in the closing. No sentence introducing the list, no summary of the consultation, no judgement on how it went overall, and nothing about the grade, the score, the pass mark or whether it passed. You are not told those and must not infer them. The examiner adds that themselves if they want it.",
+        "",
         "ADD NOTHING AT ALL:",
         "- No explanation of why a point matters.",
         "- No advice or recommendation the examiner did not write.",
@@ -323,7 +333,7 @@ export async function generateOverallCommentAction(args: {
         "",
         "Do not shorten or split a long sentence. This examiner writes long sentences and they are his. Fix what is wrong inside one and leave its length alone. A note that is already a clean sentence comes through unchanged.",
         "",
-        "Addressed to the candidate as \"you\". No bullet points and no em dashes.",
+        "Addressed to the candidate as \"you\". No em dashes anywhere. No bullet points anywhere except the FINAL WORD lines described above.",
       ].join("\n"),
       messages: [{
         role: "user",
@@ -340,8 +350,10 @@ Copy-edit these notes into the overall comment. The examiner's words, corrected 
   if (!res.ok) return { error: "AI request failed." };
   const data = await res.json();
   // The prompt asks for no em dashes twice and they still arrive. Asking is
-  // a preference; this is the part that decides.
-  const text = withoutEmDashes((data.content?.[0]?.text ?? "").trim());
+  // a preference; this is the part that decides. tidyExaminerComment follows
+  // for the same reason, on the heading spelling and the empty FINAL WORD,
+  // and runs second so a stripped bullet marker leaves its heading alone.
+  const text = tidyExaminerComment(withoutEmDashes((data.content?.[0]?.text ?? "").trim()));
   await recordExaminerClaudeUsage("overall_comment", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
 }
