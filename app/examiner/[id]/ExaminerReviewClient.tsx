@@ -94,32 +94,25 @@ function GradeSelector({ name, value, onChange, compact, disabled }: {
 }
 
 function Accordion({
-  title, badge, defaultOpen = true, openWhen, bg, children,
+  title, badge, defaultOpen = true, bg, children,
 }: {
   title: string;
   badge?: React.ReactNode;
   defaultOpen?: boolean;
-  /**
-   * Opens the section when this turns true, wherever it was before.
-   *
-   * For a section that starts closed because it is empty and then has
-   * something put into it by something other than the examiner — a generated
-   * draft, a restored one. Without it, pressing Convert drops text into a
-   * collapsed box and reads as nothing having happened.
-   *
-   * It only ever opens. Closing is the examiner's to do, and a section that
-   * shut itself because a field went briefly empty would be worse than one
-   * that stayed open.
-   */
-  openWhen?: boolean;
   bg?: string;
   children: React.ReactNode;
 }) {
+  /*
+    There was an openWhen prop here, to spring a collapsed section open when
+    something other than the examiner put text in it. It existed for one
+    caller — the Overall Comment accordion, which started closed because an
+    empty 190px box above the notepad was the biggest thing pushing the rail
+    past the window. That accordion is gone: the comment and the notes take
+    turns in a half-width column now, so neither has to be folded away to
+    make room for the other, and the machinery for unfolding it goes with it.
+  */
   const [open, setOpen] = useState(defaultOpen);
 
-  useEffect(() => {
-    if (openWhen) setOpen(true);
-  }, [openWhen]);
   return (
     <div style={{ background: bg ?? "white", border: `1px solid ${bg ? "rgba(245,158,11,0.18)" : "rgba(51,51,51,0.08)"}`, borderRadius: 16, overflow: "hidden" }}>
       <button
@@ -494,14 +487,47 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     do this.
   */
   const railRef = useRef<HTMLElement>(null);
+  /*
+    The score bar is a full-width sticky above both columns now, so the rail
+    has to stop below it rather than at 12.
+
+    The two used to be in different grid tracks, which is what kept them from
+    overlapping without either knowing the other's height. They share a
+    column edge now, so the rail is told where the bar ends — measured,
+    because that height depends on whether the bar's own row wraps.
+  */
+  const scoreBarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
     const fit = () => {
-      const top = el.getBoundingClientRect().top;
+      const barBottom = scoreBarRef.current?.getBoundingClientRect().height ?? 0;
+      const stickyTop = 12 + (barBottom ? barBottom + 8 : 0);
+      el.style.top = `${stickyTop}px`;
+      // Measured where it actually sits, not where it will stick: before the
+      // page has scrolled that far the rail starts further down, and a rail
+      // sized for the stuck position would hang below the fold.
+      const top = Math.max(el.getBoundingClientRect().top, stickyTop);
+      /*
+        PAGE_FOOT is the page's own bottom padding (py-10), and leaving room
+        for it is what keeps the rail off the score bar.
+
+        A sticky element parks at the bottom of its containing block. At the
+        very bottom of the page the rail's grid row ends 40px above the
+        window — that padding — so a rail sized to (window − top − 12) is
+        28px too tall to sit at its sticky offset, and parks 28px higher,
+        with its head under the bar. Measured: exactly 20px of overlap.
+
+        Padding does not fix it. On the grid it lands outside the grid areas
+        and only makes the page taller, which moved max scroll by the same
+        amount and made the overlap 100px; on the left column it makes the
+        row taller and the document taller together, so the row still ends
+        40px above the window. The rail simply has to be shorter.
+      */
+      const PAGE_FOOT = 40;
       // A floor, so that a short window leaves something usable rather than
       // collapsing the rail to nothing.
-      el.style.maxHeight = `${Math.max(240, window.innerHeight - top - 12)}px`;
+      el.style.maxHeight = `${Math.max(240, window.innerHeight - top - PAGE_FOOT - 12)}px`;
     };
     fit();
     window.addEventListener("scroll", fit, { passive: true });
@@ -660,8 +686,15 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         stationTitle: rec.station_title,
         recordingId: rec.id,
       });
-      if (res.text) setOverallComment(res.text);
-      else setAiGenError(res.error ?? "Failed");
+      if (res.text) {
+        setOverallComment(res.text);
+        // Straight to what was just written. Converting is the moment the
+        // notes stop being the work and the comment starts, so the column
+        // follows — the accordion this replaced sprang open for the same
+        // reason, and leaving the examiner on the notes to go and find it
+        // would be a click asking what they obviously want.
+        setRailTab("comment");
+      } else setAiGenError(res.error ?? "Failed");
     });
   }, [assist, notesFor, rec.station_title, rec.id, startAiGen]);
 
@@ -754,6 +787,24 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [confirmingSend, setConfirmingSend] = useState(false);
   /** Which domain's comment is open in the dialog, by key, or none. */
   const [openDomain, setOpenDomain] = useState<string | null>(null);
+
+  /*
+    Which half of the writing column is showing.
+
+    Notes and the overall comment are used one after the other, never
+    together — the examiner jots throughout and the comment appears at the
+    end — which is what the Overall Comment accordion's own comment said
+    when it was closed-by-default for the same reason. Two things used in
+    sequence do not need to share a 360px column; they can take turns and
+    have half the page each.
+
+    Notes first, because that is where a review starts. A sent review has no
+    notepad at all, so it opens on the comment, which is the only thing
+    there is to look at.
+  */
+  const [railTab, setRailTab] = useState<"notes" | "comment">(
+    rec.sent_to_candidate_at ? "comment" : "notes"
+  );
   // One announcement per send. The effect below runs twice per state in
   // React's development double-invoke, and the navbar would count down twice.
   const announced = useRef(false);
@@ -900,10 +951,20 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             while the domain cards and the transcript are still in view — which
             is the point of an overall comment.
 
-            The rail track is minmax(0,360px) rather than a flat 360px so that
-            it gives way instead of forcing a horizontal scrollbar when there
-            is not room for both columns. Still two columns, as asked; just
-            narrower ones.
+            EQUAL TRACKS NOW, where the right one used to be 360px.
+
+            The narrow rail had the width allocated backwards. Measured over
+            the reviews written so far, a grade changed twice in nine and a
+            domain comment twice in nine, while a long overall comment —
+            1,719 characters on average — was written every time. The widest
+            column held the thing edited least and the narrowest held the
+            thing written most, because the rail had to fit the notepad AND
+            the comment stacked on top of each other. They take turns now,
+            so each gets half the page.
+
+            minmax(0, 1fr) rather than 1fr on both: a plain 1fr floors at
+            min-content, so a long transcript word or a wide preset would
+            push the grid out and force a horizontal scrollbar.
           */}
           {/*
             Above the columns, not inside one.
@@ -927,91 +988,97 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-5 items-start">
+          {/*
+            Score and transport, stuck together at the top.
+
+            The player used to sit in the flow below this bar, which meant
+            scrolling to the transcript scrolled the pause button away —
+            and the transcript is the one place you most want to stop the
+            audio. They share a card rather than being two sticky
+            elements because two would need the second to know the height
+            of the first, measured and re-measured on every resize, to
+            stack without overlapping.
+
+            ABOVE BOTH COLUMNS, not inside the left one. It was in the left
+            column while that column was 768px wide. At the equal widths the
+            columns have now it is 564px, and twelve grade buttons plus a
+            total do not fit on one line in that — the bar wrapped to two
+            rows. It is about the whole review anyway, like the station
+            header above it, and full width it also stays in view while the
+            examiner is working in the right-hand column.
+          */}
+          <div
+            ref={scoreBarRef}
+            className="rounded-2xl mb-5"
+            style={{
+              background: "white",
+              border: "1px solid rgba(51,51,51,0.08)",
+              position: "sticky",
+              top: 12,
+              zIndex: 20,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+            }}
+          >
+          {/*
+            The grades live here, not in the cards.
+
+            They are three rows of four buttons and they are needed on
+            every review; the domain comments beneath them are long and,
+            measured over the reviews written so far, changed about twice
+            in nine. Keeping the small, always-needed control pinned and
+            the large, rarely-touched one in the page is the right way
+            round — and it puts the grade next to the running total, so
+            the consequence of a click is visible in the same glance.
+
+            This bar replaced a read-only "DG: 2/3 · CM: 3/4.5" line. The
+            points are still here, just beside the buttons that set them.
+          */}
+          <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+              {DOMAINS.map((d) => (
+                <div key={d.key} className="flex items-center gap-2">
+                  {/* The label is the way into the comment. The grades
+                      are up here and the comments are not, so without
+                      this, checking what you wrote means scrolling. */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenDomain(d.key)}
+                    className="text-[10px] font-bold uppercase tracking-[0.06em]"
+                    style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                    title={`${d.label} — open the comment`}
+                  >
+                    {d.short}
+                  </button>
+                  <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
+                  <span className="text-[10px] tabular-nums" style={{ color: "rgba(51,51,51,0.3)" }}>
+                    {d.points !== null ? `${d.points}/${d.max}` : `—/${d.max}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <span className="font-extrabold text-[20px] tabular-nums" style={{ color: NAVY }}>
+              {totalPts !== null ? `${totalPts} / 10.5` : "— / 10.5"}
+            </span>
+          </div>
+
+            {(doctorAudioUrl || patientAudioUrl) && (
+              <div className="px-5 pb-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)", paddingTop: 12 }}>
+                <DualTrackPlayer
+                  doctorUrl={doctorAudioUrl}
+                  patientUrl={patientAudioUrl}
+                  compact
+                  onTime={emitTime}
+                  onPlayingChange={setAudioPlaying}
+                  seekRef={seekRef}
+                  toggleRef={togglePlayRef}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
 
             <div className="min-w-0">
-              {/*
-                Score and transport, stuck together at the top.
-
-                The player used to sit in the flow below this bar, which meant
-                scrolling to the transcript scrolled the pause button away —
-                and the transcript is the one place you most want to stop the
-                audio. They share a card rather than being two sticky
-                elements because two would need the second to know the height
-                of the first, measured and re-measured on every resize, to
-                stack without overlapping.
-
-                It is a card, not a column: a third track would have cost the
-                main column about 260px of its ~768px, and the domain cards,
-                the four-button grade rows and the transcript all live there.
-              */}
-              <div
-                className="rounded-2xl mb-5"
-                style={{
-                  background: "white",
-                  border: "1px solid rgba(51,51,51,0.08)",
-                  position: "sticky",
-                  top: 12,
-                  zIndex: 20,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-                }}
-              >
-              {/*
-                The grades live here, not in the cards.
-
-                They are three rows of four buttons and they are needed on
-                every review; the domain comments beneath them are long and,
-                measured over the reviews written so far, changed about twice
-                in nine. Keeping the small, always-needed control pinned and
-                the large, rarely-touched one in the page is the right way
-                round — and it puts the grade next to the running total, so
-                the consequence of a click is visible in the same glance.
-
-                This bar replaced a read-only "DG: 2/3 · CM: 3/4.5" line. The
-                points are still here, just beside the buttons that set them.
-              */}
-              <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
-                  {DOMAINS.map((d) => (
-                    <div key={d.key} className="flex items-center gap-2">
-                      {/* The label is the way into the comment. The grades
-                          are up here and the comments are not, so without
-                          this, checking what you wrote means scrolling. */}
-                      <button
-                        type="button"
-                        onClick={() => setOpenDomain(d.key)}
-                        className="text-[10px] font-bold uppercase tracking-[0.06em]"
-                        style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
-                        title={`${d.label} — open the comment`}
-                      >
-                        {d.short}
-                      </button>
-                      <GradeSelector name={`${d.key}_grade`} value={d.grade} onChange={d.setGrade} compact disabled={isSent} />
-                      <span className="text-[10px] tabular-nums" style={{ color: "rgba(51,51,51,0.3)" }}>
-                        {d.points !== null ? `${d.points}/${d.max}` : `—/${d.max}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <span className="font-extrabold text-[20px] tabular-nums" style={{ color: NAVY }}>
-                  {totalPts !== null ? `${totalPts} / 10.5` : "— / 10.5"}
-                </span>
-              </div>
-
-                {(doctorAudioUrl || patientAudioUrl) && (
-                  <div className="px-5 pb-4" style={{ borderTop: "1px solid rgba(51,51,51,0.07)", paddingTop: 12 }}>
-                    <DualTrackPlayer
-                      doctorUrl={doctorAudioUrl}
-                      patientUrl={patientAudioUrl}
-                      compact
-                      onTime={emitTime}
-                      onPlayingChange={setAudioPlaying}
-                      seekRef={seekRef}
-                      toggleRef={togglePlayRef}
-                    />
-                  </div>
-                )}
-              </div>
 
                 {/*
                   Said out loud, because a silent restore of six fields is
@@ -1297,27 +1364,49 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
               className="min-w-0 self-start overflow-y-auto"
               style={{ position: "sticky", top: 12 }}
             >
-                {/* Overall Comment */}
-                <div className="mb-4">
-                  {/*
-                    Closed while it is empty, which for most of a review it
-                    is. Note-taking and comment-writing happen one after the
-                    other, not together: the examiner jots in the notepad
-                    throughout and the comment appears at the end. An empty
-                    190px box sitting above the notepad all that time is the
-                    single biggest thing pushing the rail past the height of
-                    the window.
+                {/*
+                  Two panels, one at a time.
 
-                    openWhen covers the two ways text arrives without the
-                    examiner opening anything: Convert writing a draft, and a
-                    draft restored from the last session, which lands after
-                    mount and so cannot be caught by defaultOpen.
-                  */}
-                  <Accordion
-                    title="Overall Comment"
-                    defaultOpen={!!overallComment}
-                    openWhen={!!overallComment}
-                  >
+                  Unmounting rather than hiding is safe because none of this
+                  state lives down here: the notes, the ticks and the comment
+                  are all held by this component, and the comment's form
+                  field is a hidden input at the top of the form. The panel
+                  is a view; switching away from it loses nothing.
+
+                  No pill on a sent review — there is no notepad to switch
+                  to, so a two-way control with one dead half would be worse
+                  than no control.
+                */}
+                {!isSent && (
+                  <div className="flex p-1 rounded-xl mb-3" style={{ background: "rgba(51,51,51,0.06)" }}>
+                    {([["notes", "Notes"], ["comment", "Comment"]] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setRailTab(key)}
+                        className="flex-1 rounded-lg py-1.5 text-[12px] font-bold flex items-center justify-center gap-1.5"
+                        style={{
+                          background: railTab === key ? "white" : "transparent",
+                          color: railTab === key ? NAVY : "rgba(51,51,51,0.45)",
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: railTab === key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                        }}
+                      >
+                        {label}
+                        {/* A comment exists, said without switching to it —
+                            the one thing you would otherwise flip across to
+                            check. */}
+                        {key === "comment" && !!overallComment.trim() && (
+                          <span aria-label="written" style={{ width: 5, height: 5, borderRadius: 5, background: railTab === key ? NAVY : "rgba(51,51,51,0.3)" }} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {railTab === "comment" && (
+                  <div>
                     {!isSent && (
                       <div className="flex gap-2 mb-3 flex-wrap">
                         <button
@@ -1340,8 +1429,8 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     )}
                     {aiGenError && <p className="text-[11px] text-red-600 mb-2">{aiGenError}</p>}
                     {/* No name: the hidden field at the top of the form is
-                        what submits this, because this one unmounts when the
-                        accordion closes. */}
+                        what submits this, because this one unmounts whenever
+                        the other panel is showing. */}
                     <AutoTextarea
                       value={overallComment}
                       onChange={setOverallComment}
@@ -1355,17 +1444,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                         readOnly={isSent}
                       />
                     </div>
-                  </Accordion>
-                </div>
+                  </div>
+                )}
 
-                {/*
-                  Its own block, not a section inside the Overall Comment
-                  accordion above. It sits directly under the voice note
-                  either way, and this way collapsing that accordion cannot
-                  take the notepad with it — a notepad you have to go and
-                  reopen is not one you write in as you go.
-                */}
-                {!isSent && (
+                {railTab === "notes" && !isSent && (
                   <Notepad
                     notes={assist}
                     recordingId={rec.id}
@@ -1786,9 +1868,11 @@ function NoteBox({ value, onChange, onKeyDown }: {
  * the notes the thing being written and the comment the thing derived from
  * them, which is the right way round.
  *
- * Stacked rather than the dialog's three-by-two grid. The rail is 360px, so
- * two columns would be about 165px each, which is not a width anyone types a
- * sentence in.
+ * Stacked rather than the dialog's three-by-two grid. That was decided when
+ * the rail was 360px and two columns would have been 165px each; the column
+ * is half the page now, but two columns of it are still only about 280px,
+ * which is not a width anyone types a sentence in. The extra width goes into
+ * the boxes instead.
  *
  * MEMO'D, and the reason is measured rather than assumed. This subtree is
  * six textareas and six tick lists — forty-eight rows — and it has nothing

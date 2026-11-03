@@ -82,12 +82,13 @@ function GrowingInput({
  * The tick list under a Did Well or Could Improve box.
  *
  * NOT TWO COLUMNS, and that is a departure from the screenshot this came
- * from. That form is full page width; this lives in a 360px rail beside the
- * marking, and "Offer the plan as a question rather than a statement, so
- * shared decision making is obvious" does not share a 320px line with a
- * text box. So the comment sits under its phrase instead, and only once the
- * phrase is ticked — which also keeps eight presets to eight lines until the
- * examiner actually starts using them.
+ * from. That form is full page width; this lives in the writing column
+ * beside the marking — 360px when this was written, half the page now — and
+ * "Offer the plan as a question rather than a statement, so shared decision
+ * making is obvious" still does not want to share its line with a text box.
+ * So the comment sits under its phrase instead, and only once the phrase is
+ * ticked — which also keeps eight presets to eight lines until the examiner
+ * actually starts using them.
  *
  * The free-text box the examiner already had stays where it was, below this.
  * This is an addition to it and not a replacement: the presets are for what
