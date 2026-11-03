@@ -415,9 +415,23 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   // Convert is offered on ticks alone. Someone whose whole review is four
   // ticked phrases has said something, and the button has no business being
   // greyed out at them.
+  /*
+    Counted through the live list, the same way notesFor counts.
+
+    It used to count raw keys of picked, which is not the same number: a tick
+    whose preset has since been deleted — by this examiner in the Edit
+    dialog, or by another, since the lists are shared — stays in the saved
+    picks but resolves to nothing. The button therefore lit up for ticks the
+    conversion would discard, and pressing it sent the model a prompt holding
+    nothing but the station title, then wrote the reply over the comment, all
+    behind a "Replace the comment?" confirm that made it look deliberate.
+
+    Now the button, the "N ticked" badge in PresetChecklist and the notes
+    that actually go out all ask the same question.
+  */
   const assistHasNotes =
     Object.values(assist).some((v) => bulletLines(v).length > 0) ||
-    PRESET_FIELDS.some((f) => Object.keys(picked[f] ?? {}).length > 0);
+    PRESET_FIELDS.some((f) => (presets[f] ?? []).some((p) => p.id in (picked[f] ?? {})));
 
   function handlePreview() {
     startPreview(async () => {
@@ -524,6 +538,26 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
 
         <form action={formAction}>
           <input type="hidden" name="recordingId" value={rec.id} />
+
+          {/*
+            The overall comment travels as a hidden field, not as the textarea
+            that shows it.
+
+            That textarea lives inside the Overall Comment accordion, and an
+            accordion unmounts its body — so collapsing it took the field out
+            of the form. A Save or a Send then carried no overall_comment at
+            all, the server read "" and wrote null, and the draft effect below
+            removed the localStorage copy because the live state still matched
+            what it thought had just been saved. Both copies of the comment,
+            destroyed by tidying the rail — which the accordion's own comment
+            recommends doing.
+
+            Here it is outside every accordion and always submitted, whatever
+            is open. The same pattern GradeSelector already uses for the
+            grades, for the same reason: what the form sends should not depend
+            on what is on screen.
+          */}
+          <input type="hidden" name="overall_comment" value={overallComment} />
 
           {/*
             The form's default button. It does nothing a person can see, and
@@ -985,8 +1019,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                       </div>
                     )}
                     {aiGenError && <p className="text-[11px] text-red-600 mb-2">{aiGenError}</p>}
+                    {/* No name: the hidden field at the top of the form is
+                        what submits this, because this one unmounts when the
+                        accordion closes. */}
                     <AutoTextarea
-                      name="overall_comment"
                       value={overallComment}
                       onChange={setOverallComment}
                       placeholder="Optional overall comment to the candidate…"
@@ -1652,7 +1688,8 @@ function Notepad({
 }
 
 function AutoTextarea({ name, value, onChange, placeholder, disabled }: {
-  name: string;
+  /** Omitted when something else submits the value — see the overall comment. */
+  name?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;

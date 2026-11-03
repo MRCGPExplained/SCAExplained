@@ -131,6 +131,19 @@ export async function generateOverallCommentAction(args: {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
+  /*
+    Nothing to copy-edit, as grammarCheckAction already says of itself.
+
+    The client will not offer the button on empty notes, but the client is
+    not the only thing that can call this, and what it costs to be wrong is
+    specific: domainNotes writes "no notes written" three times, a billed
+    call goes out on a prompt that is just the station title, and whatever
+    comes back replaces the examiner's overall comment.
+  */
+  const anyNotes = [args.dgWell, args.dgImprove, args.cmWell, args.cmImprove, args.roWell, args.roImprove]
+    .some((n) => n.trim());
+  if (!anyNotes) return { error: "No notes to convert." };
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -423,7 +436,22 @@ export async function submitExaminerReviewAction(
   const dgComment = String(formData.get("dg_comment") ?? "").trim();
   const cmComment = String(formData.get("cm_comment") ?? "").trim();
   const roComment = String(formData.get("ro_comment") ?? "").trim();
-  const overallComment = String(formData.get("overall_comment") ?? "").trim();
+  /*
+    Absent and empty are different things for this one.
+
+    An empty box means "no overall comment" and should clear the column. A
+    MISSING key means the form did not carry the field, which is not a
+    statement about the comment at all — and it used to read as one: the
+    textarea sat inside an accordion, collapsing it unmounted the field, and
+    the next save nulled a comment nobody had touched.
+
+    The client no longer submits it from inside the accordion, so this cannot
+    arise from that route again. Kept because the rule belongs on the side
+    that writes the column: no form that forgets this field can erase what is
+    stored, whatever a future caller looks like.
+  */
+  const overallRaw = formData.get("overall_comment");
+  const overallComment = String(overallRaw ?? "").trim();
   const sendNow = formData.get("send_now") === "1";
 
   const validGrades = ["CF", "F", "P", "CP"];
@@ -489,7 +517,9 @@ export async function submitExaminerReviewAction(
     examiner_comment_data_gathering: dgComment || null,
     examiner_comment_clinical_management: cmComment || null,
     examiner_comment_relating_to_others: roComment || null,
-    examiner_overall_comment: overallComment || null,
+    // Left out entirely when the field was absent, so the stored comment
+    // survives a submit that did not mention it. See overallRaw above.
+    ...(overallRaw !== null ? { examiner_overall_comment: overallComment || null } : {}),
     examiner_reviewed_at: now,
     status: isAiPile ? "ai_graded" : sendNow ? "sent" : "reviewing",
   };

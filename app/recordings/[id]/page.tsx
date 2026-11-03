@@ -603,7 +603,12 @@ export default async function RecordingDetailPage({
                   <span className="text-[13px] font-bold" style={{ color: NAVY }}>{label}</span>
                 </div>
                 {comments[key] ? (
-                  <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.7)" }}>
+                  // pre-wrap, for the same reason as the overall comment
+                  // above: these boxes are textareas, Enter puts a real break
+                  // in, and the column stores it. Without this the paragraphs
+                  // an examiner typed arrive as one block, and they cannot
+                  // tell, because the box they wrote them in shows the breaks.
+                  <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(51,51,51,0.7)", whiteSpace: "pre-wrap" }}>
                     {comments[key]}
                   </p>
                 ) : (
