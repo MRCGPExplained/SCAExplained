@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { saveExaminerPresetsAction } from "../actions";
 import { presetId, type ExaminerPreset, type PresetField } from "@/lib/examiner-presets";
 import { MAX_PRESETS_PER_FIELD } from "@/lib/examiner-presets-store";
@@ -9,6 +9,73 @@ const NAVY = "#333333";
 
 /** Ticked preset id to the comment typed against it, which may be "". */
 export type PresetSelection = Record<string, string>;
+
+/**
+ * A box as tall as what is in it.
+ *
+ * A textarea rather than an input, because an input is one line high and
+ * nothing typed here is one line. The longest default preset is 95
+ * characters, and a dictated detail is a spoken sentence — in this rail both
+ * are three lines, and an input would show the middle of one with each end
+ * scrolled out of sight.
+ *
+ * It still behaves as a single line of TEXT, though, which is the part a
+ * plain textarea gets wrong. Enter is suppressed and pasted newlines are
+ * flattened to spaces: these strings are rendered into a tick list, joined
+ * into the notes, and read by the copy-editor, and a line break inside one
+ * would travel all the way to the candidate.
+ *
+ * resize and overflow are forced here rather than left to the caller's
+ * classes. Without overflow hidden, scrollHeight reports the visible box and
+ * the measurement below never grows; it is not a style choice, so it is not
+ * the caller's to get wrong.
+ */
+function GrowingInput({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  className,
+  style,
+  dictate,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  /** Marks the box for the dictation listener on the notepad container. */
+  dictate?: boolean;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Collapse first, or scrollHeight reports the box at its old height and
+    // deleting a line would never shrink it. Same as NoteBox.
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      {...(dictate ? { "data-dictate": true } : {})}
+      value={value}
+      disabled={disabled}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value.replace(/\s*\n+\s*/g, " "))}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.preventDefault();
+      }}
+      className={className}
+      style={{ ...style, resize: "none", overflow: "hidden", fontFamily: "inherit" }}
+    />
+  );
+}
 
 /**
  * The tick list under a Did Well or Could Improve box.
@@ -33,6 +100,7 @@ export function PresetChecklist({
   onSelectionChange,
   onPresetsChange,
   disabled,
+  collapsed,
 }: {
   field: PresetField;
   label: string;
@@ -41,8 +109,19 @@ export function PresetChecklist({
   onSelectionChange: (next: PresetSelection) => void;
   onPresetsChange: (next: ExaminerPreset[]) => void;
   disabled?: boolean;
+  /** Presets are hidden for this examiner. The heading still belongs to the
+   *  box below it, so only the list goes. */
+  collapsed?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+
+  /*
+    Counted against the live list, not against the selection, which is the
+    same filter the conversion uses — a tick whose preset has since been
+    deleted contributes nothing to the report, so it is not reported here as
+    if it did.
+  */
+  const tickedHere = presets.filter((p) => p.id in selection).length;
 
   function toggle(id: string) {
     const next = { ...selection };
@@ -53,6 +132,31 @@ export function PresetChecklist({
 
   function setComment(id: string, comment: string) {
     onSelectionChange({ ...selection, [id]: comment });
+  }
+
+  /*
+    Hidden, but not silent.
+
+    The heading stays, because it names the box underneath and without it the
+    rail is six unlabelled text areas. And if anything is still ticked it
+    says so: those phrases go into the report whether or not the list that
+    produced them is on screen, and input you cannot see is worse than
+    clutter. Nothing to say when nothing is ticked, which is the case for an
+    examiner who has hidden these because they never use them.
+  */
+  if (collapsed) {
+    return (
+      <div className="flex items-baseline gap-1.5 mb-1.5">
+        <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.4)" }}>
+          {label}
+        </span>
+        {tickedHere > 0 && (
+          <span className="text-[10px]" style={{ color: "rgba(51,51,51,0.35)" }}>
+            · {tickedHere} ticked
+          </span>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -98,19 +202,18 @@ export function PresetChecklist({
                   </span>
                 </label>
                 {ticked && (
-                  <input
-                    type="text"
+                  <GrowingInput
                     // Dictation is handled by one listener on the notepad's
                     // container, which finds its target by this attribute —
-                    // so these inputs get it without being wired for it,
+                    // so these boxes get it without being wired for it,
                     // which they could not be: they do not exist until the
                     // box above them is ticked.
-                    data-dictate
+                    dictate
                     value={selection[preset.id] ?? ""}
                     disabled={disabled}
-                    onChange={(e) => setComment(preset.id, e.target.value)}
+                    onChange={(v) => setComment(preset.id, v)}
                     placeholder="Add detail (optional)…"
-                    className="w-full rounded-md px-2 py-1 text-[11.5px] mt-1 mb-1"
+                    className="rounded-md px-2 py-1 text-[11.5px] mt-1 mb-1"
                     style={{
                       marginLeft: 22,
                       width: "calc(100% - 22px)",
@@ -118,6 +221,7 @@ export function PresetChecklist({
                       background: "white",
                       color: NAVY,
                       outline: "none",
+                      lineHeight: 1.45,
                     }}
                   />
                 )}
@@ -277,13 +381,12 @@ function EditPresetsDialog({
               >
                 ⠿
               </span>
-              <input
-                type="text"
+              <GrowingInput
                 value={row.text}
-                onChange={(e) => edit(index, e.target.value)}
+                onChange={(v) => edit(index, v)}
                 placeholder="New preset…"
                 className="flex-1 rounded-md px-2 py-1 text-[12.5px]"
-                style={{ border: "1px solid rgba(51,51,51,0.15)", background: "white", color: NAVY, outline: "none", minWidth: 0 }}
+                style={{ border: "1px solid rgba(51,51,51,0.15)", background: "white", color: NAVY, outline: "none", minWidth: 0, lineHeight: 1.45 }}
               />
               <button type="button" onClick={() => move(index, index - 1)} disabled={index === 0}
                 aria-label="Move up"

@@ -1162,6 +1162,10 @@ interface AssistNotes {
 /** The marker the notes boxes show. Never leaves the notepad — see bulletLines. */
 const BULLET = "• ";
 
+/** Set when this examiner has hidden the tick lists. Deliberately one key for
+ *  the whole browser rather than one per recording — see the toggle. */
+const PRESETS_HIDDEN_KEY = "sca_examiner_presets_hidden";
+
 const EMPTY_NOTES: AssistNotes = {
   dgWell: "", dgImprove: "",
   cmWell: "", cmImprove: "",
@@ -1292,6 +1296,48 @@ function Notepad({
   const [dictateError, setDictateError] = useState<string | null>(null);
   const dictation = useDictation(recordingId, setDictateError);
 
+  /*
+    Whether the tick lists are on screen at all.
+
+    Two ways of working, and neither is wrong: one examiner picks from the
+    presets and types the exception, another types the lot and finds eight
+    tick boxes above every box in the way. So it is a preference rather than
+    a setting, and it belongs to the person.
+
+    NOT KEYED BY RECORDING, unlike every other stored key in this file. The
+    notes and the ticks are a draft of one review and must not follow the
+    examiner to the next consultation; how they like the rail laid out is the
+    opposite — having to hide the lists again on every review in the queue
+    would make the toggle not worth having.
+
+    Shown is the default, so the lists are not invisible to someone who has
+    never heard of this button. Read on mount rather than in the initialiser,
+    because this renders on the server first: reaching for localStorage
+    during render is what makes a hydration mismatch.
+  */
+  const [showPresets, setShowPresets] = useState(true);
+  useEffect(() => {
+    try {
+      setShowPresets(window.localStorage.getItem(PRESETS_HIDDEN_KEY) !== "1");
+    } catch {
+      // Storage blocked. Shown is the right fallback and the toggle still
+      // works for this page.
+    }
+  }, []);
+
+  function togglePresets() {
+    setShowPresets((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
+        else window.localStorage.setItem(PRESETS_HIDDEN_KEY, "1");
+      } catch {
+        // It just will not be remembered past this page.
+      }
+      return next;
+    });
+  }
+
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
   /*
@@ -1363,9 +1409,21 @@ function Notepad({
       {/* No explanatory line under this. Six boxes headed "did well" and
           "could improve" explain themselves, and the sentence that was here
           cost 32px of a rail that has none to spare. */}
-      <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0 mb-1" style={{ color: "rgba(51,51,51,0.45)" }}>
-        Notepad
-      </h3>
+      <div className="flex items-baseline justify-between gap-2 mb-1">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
+          Notepad
+        </h3>
+        {/* Same faint treatment as Edit presets. It is a thing you set once
+            and then forget, not part of marking a consultation. */}
+        <button
+          type="button"
+          onClick={togglePresets}
+          className="text-[10px]"
+          style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", flexShrink: 0 }}
+        >
+          {showPresets ? "Hide presets" : "Show presets"}
+        </button>
+      </div>
 
       {/*
         The only sign that dictation exists, so it says the key when idle
@@ -1439,6 +1497,7 @@ function Notepad({
               onSelectionChange={(s) => onPickedChange(d.wellField, s)}
               onPresetsChange={(p) => onPresetsChange(d.wellField, p)}
               disabled={disabled}
+              collapsed={!showPresets}
             />
             {box(d.well)}
 
@@ -1451,6 +1510,7 @@ function Notepad({
                 onSelectionChange={(s) => onPickedChange(d.improveField, s)}
                 onPresetsChange={(p) => onPresetsChange(d.improveField, p)}
                 disabled={disabled}
+                collapsed={!showPresets}
               />
               {box(d.improve)}
             </div>
