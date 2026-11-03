@@ -315,6 +315,74 @@ export interface OrphanSweep {
   bytes: number;
   /** Unreferenced but too recent to touch. */
   held: number;
+  /**
+   * How many objects the scan actually saw.
+   *
+   * On the card beside the answer, because the first version of this reported
+   * "0 found" for a bucket holding six files and there was no way to tell
+   * that apart from a bucket that was genuinely clean. A zero next to
+   * "scanned 0 files" is a broken scan; a zero next to "scanned 6" is good
+   * news. The number is cheap and it makes the sweep answerable.
+   */
+  scanned: number;
+}
+
+/**
+ * Every object in the bucket, whatever shape the client reports folders in.
+ *
+ * list() returns prefixes and objects together in one array, and the only
+ * difference between them is supposed to be that a prefix has a null id.
+ * This swept on `id !== null` and found nothing in a bucket with six files
+ * in it, so that is not reliably the difference — an undefined id fails that
+ * test exactly as a populated one does.
+ *
+ * The test here is metadata instead: a real object has a size, a prefix has
+ * nothing. Anything without one is descended into, which also means a file
+ * sitting at the bucket root is seen rather than skipped.
+ *
+ * Returns null on any failed read, so a partial listing can never reach the
+ * caller — every file it failed to see would look like an orphan, and that
+ * answer feeds a delete.
+ */
+interface BucketObject {
+  path: string;
+  bytes: number;
+  createdAt: string | null;
+}
+
+async function listBucketObjects(
+  supabase: SupabaseClient,
+  prefix: string,
+  depth: number
+): Promise<BucketObject[] | null> {
+  const { data, error } = await supabase.storage
+    .from("station-images")
+    .list(prefix, { limit: 1000 });
+
+  if (error) {
+    console.error(`[cleanup] could not list "${prefix}"`, error.message);
+    return null;
+  }
+
+  const out: BucketObject[] = [];
+  for (const entry of data ?? []) {
+    const full = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const size = (entry.metadata as { size?: number } | null)?.size;
+
+    if (size !== undefined && size !== null) {
+      out.push({ path: full, bytes: Number(size), createdAt: entry.created_at ?? null });
+      continue;
+    }
+
+    // A prefix. Two levels is the whole of this bucket's shape
+    // (stationId/file); the cap is only there so a surprise cannot spin.
+    if (depth <= 0) continue;
+    const nested = await listBucketObjects(supabase, full, depth - 1);
+    if (nested === null) return null;
+    out.push(...nested);
+  }
+
+  return out;
 }
 
 /**
@@ -352,50 +420,29 @@ async function findOrphanStationImages(
     }
   }
 
-  // One level of folders, named for the station id, then the files in each.
-  const { data: folders, error: foldersErr } = await supabase.storage
-    .from("station-images")
-    .list("", { limit: 1000 });
-
-  if (foldersErr) {
-    console.error("[cleanup] could not list station-images", foldersErr.message);
-    return null;
-  }
+  const objects = await listBucketObjects(supabase, "", 3);
+  if (objects === null) return null;
 
   const paths: string[] = [];
   let bytes = 0;
   let held = 0;
 
-  for (const folder of folders ?? []) {
-    // A prefix has no id of its own; a file sitting at the bucket root has one.
-    if (folder.id !== null) continue;
+  for (const object of objects) {
+    if (referenced.has(object.path)) continue;
 
-    const { data: files, error: filesErr } = await supabase.storage
-      .from("station-images")
-      .list(folder.name, { limit: 1000 });
-
-    if (filesErr) {
-      console.error("[cleanup] could not list", folder.name, filesErr.message);
-      return null;
+    const created = Date.parse(object.createdAt ?? "");
+    // An unparseable date is held rather than swept. It is the only field
+    // standing between a just-uploaded file and deletion.
+    if (!Number.isFinite(created) || now - created < ORPHAN_MIN_AGE_MS) {
+      held++;
+      continue;
     }
 
-    for (const file of files ?? []) {
-      if (file.id === null) continue;
-      const full = `${folder.name}/${file.name}`;
-      if (referenced.has(full)) continue;
-
-      const created = Date.parse(file.created_at ?? "");
-      if (!Number.isFinite(created) || now - created < ORPHAN_MIN_AGE_MS) {
-        held++;
-        continue;
-      }
-
-      paths.push(full);
-      bytes += Number((file.metadata as { size?: number } | null)?.size ?? 0);
-    }
+    paths.push(object.path);
+    bytes += object.bytes;
   }
 
-  return { sweep: { count: paths.length, bytes, held }, paths };
+  return { sweep: { count: paths.length, bytes, held, scanned: objects.length }, paths };
 }
 
 export async function countOrphanStationImagesAction(): Promise<OrphanSweep | null> {

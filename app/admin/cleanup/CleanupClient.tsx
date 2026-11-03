@@ -248,7 +248,7 @@ export function CleanupClient({
     setOrphansLoading(false);
     if (result.error) { setOrphansResult(""); setOrphansFailed(true); return; }
     setOrphansResult(`Deleted ${result.deleted} file${result.deleted === 1 ? "" : "s"}. No station lost an image.`);
-    setOrphans({ count: 0, bytes: 0, held: orphans?.held ?? 0 });
+    setOrphans({ count: 0, bytes: 0, held: orphans?.held ?? 0, scanned: orphans?.scanned ?? 0 });
   }
 
   async function refreshLogs() {
@@ -380,6 +380,17 @@ export function CleanupClient({
             {orphans && orphans.count > 0 && (
               <p className="text-[12px] m-0 text-navy/50">
                 {(orphans.bytes / 1_000_000).toFixed(1)} MB
+              </p>
+            )}
+            {/*
+              Next to the answer, because the first version of this card said
+              "0 found" about a bucket with six files in it. A zero beside
+              "scanned 0" is a broken scan; a zero beside "scanned 6" means
+              there is nothing to clean.
+            */}
+            {orphans && (
+              <p className="text-[12px] m-0 text-navy/40">
+                Scanned {orphans.scanned} file{orphans.scanned === 1 ? "" : "s"} in the bucket.
               </p>
             )}
             {orphans && orphans.held > 0 && (
