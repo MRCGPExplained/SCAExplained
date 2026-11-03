@@ -981,12 +981,28 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             for, a card's height down. Full width also lets the roster sit on
             one line instead of wrapping in a 768px track.
           */}
-          <div className="rounded-2xl p-6 mb-5" style={{ background: NAVY, color: "white" }}>
-            <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1 opacity-50">
-              Station {rec.station_number}
+          {/*
+            Two lines: what the case is, then who was in it.
+
+            It was three — the station number, the title and the roster each
+            on their own — across a bar the full width of the page, so most
+            of what it occupied was air. The number is four characters and
+            belongs beside the title it numbers, not above it.
+
+            items-baseline, so the small caps sit on the title's baseline
+            rather than being centred against a 21px line and floating. The
+            wrap is there for a title long enough to need the whole row; it
+            then takes the second line and the roster the third, which is
+            where it started and only for the cases that need it.
+          */}
+          <div className="rounded-2xl px-6 py-4 mb-4" style={{ background: NAVY, color: "white" }}>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-[0.07em] opacity-50 whitespace-nowrap">
+                Station {rec.station_number}
+              </span>
+              <h1 className="font-display font-extrabold text-[21px] m-0">{rec.station_title}</h1>
             </div>
-            <h1 className="font-display font-extrabold text-[22px] mb-3">{rec.station_title}</h1>
-            <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap">
+            <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap mt-1.5">
               <span>Doctor: {rec.doctor_display_name}</span>
               <span>Patient: {rec.patient_display_name}</span>
               <span>{new Date(rec.started_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" })}</span>
