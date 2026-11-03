@@ -10,6 +10,9 @@ import {
   deleteOldCandidateAudioAction,
   countOldRecordingLogsAction,
   deleteOldRecordingLogsAction,
+  countOrphanStationImagesAction,
+  deleteOrphanStationImagesAction,
+  type OrphanSweep,
   type AudioSweep,
 } from "../actions";
 
@@ -162,6 +165,11 @@ export function CleanupClient({
     nobody investigates a consultation from two months ago. Audio is the thing
     a candidate paid for, so it keeps its own, longer cutoff.
   */
+  const [orphans, setOrphans] = useState<OrphanSweep | null>(null);
+  const [orphansLoading, setOrphansLoading] = useState(false);
+  const [orphansResult, setOrphansResult] = useState("");
+  const [orphansFailed, setOrphansFailed] = useState(false);
+
   const [logDays, setLogDays] = useState(30);
   const [logCount, setLogCount] = useState<number | null>(null);
   const [logLoading, setLogLoading] = useState(false);
@@ -220,6 +228,27 @@ export function CleanupClient({
     // half of this card and it has not changed. countAudio rather than
     // refreshAudio, which would wipe the line just written.
     await countAudio();
+  }
+
+  async function refreshOrphans() {
+    setOrphansLoading(true);
+    setOrphansResult("");
+    setOrphansFailed(false);
+    const sweep = await countOrphanStationImagesAction();
+    // null is a read that failed, not a bucket with nothing in it. Left as
+    // null so the badge shows an em dash rather than a confident zero.
+    if (!sweep) setOrphansFailed(true);
+    setOrphans(sweep);
+    setOrphansLoading(false);
+  }
+
+  async function deleteOrphans() {
+    setOrphansLoading(true);
+    const result = await deleteOrphanStationImagesAction();
+    setOrphansLoading(false);
+    if (result.error) { setOrphansResult(""); setOrphansFailed(true); return; }
+    setOrphansResult(`Deleted ${result.deleted} file${result.deleted === 1 ? "" : "s"}. No station lost an image.`);
+    setOrphans({ count: 0, bytes: 0, held: orphans?.held ?? 0 });
   }
 
   async function refreshLogs() {
@@ -328,6 +357,36 @@ export function CleanupClient({
               />
               <span className="text-[13px] text-navy/60">days</span>
             </div>
+          </div>
+        }
+      />
+
+      <CleanupCard
+        title="Orphaned Station Images"
+        description="Files in the station-images bucket that no station points at. These are uploads that reached storage and never made it onto a row — the shape of a bug that is now fixed, but the files it left behind are still paying for themselves."
+        count={orphans?.count ?? null}
+        loading={orphansLoading}
+        onRefresh={refreshOrphans}
+        onDelete={deleteOrphans}
+        deleteLabel="Delete Orphaned Images"
+        result={orphansResult}
+        note={
+          <div className="mb-3 flex flex-col gap-1">
+            {orphansFailed && (
+              <p className="text-[12px] m-0 text-red-700">
+                Could not read the bucket or the stations. Nothing was counted or deleted — the number above is not a zero, it is unknown.
+              </p>
+            )}
+            {orphans && orphans.count > 0 && (
+              <p className="text-[12px] m-0 text-navy/50">
+                {(orphans.bytes / 1_000_000).toFixed(1)} MB
+              </p>
+            )}
+            {orphans && orphans.held > 0 && (
+              <p className="text-[12px] m-0 text-navy/50">
+                {orphans.held} held back — unreferenced, but uploaded in the last hour and so possibly still being attached.
+              </p>
+            )}
           </div>
         }
       />

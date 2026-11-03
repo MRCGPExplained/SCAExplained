@@ -3,6 +3,7 @@
 import { validateThreshold, validateMinAssessable, validateSkillPrompt } from "@/lib/skill-framework";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isAdmin, getCurrentAdminName } from "@/lib/admin-auth";
 import { sendFeedbackReplyEmail } from "@/lib/email";
@@ -293,6 +294,140 @@ export async function uploadImageAction(
   if (station.number) revalidatePath(`/case-bank/${station.number}`);
 
   return { imageUrl: publicUrl };
+}
+
+/**
+ * How recent an object has to be to be left alone by the orphan sweep.
+ *
+ * uploadImageAction attaches a file to its station in the same call that
+ * uploads it, so the window where a real image looks orphaned is the few
+ * milliseconds between the two writes. An hour is that window several
+ * thousand times over. It also covers the one case the attach can genuinely
+ * fail — the action returns "Uploaded, but could not attach it" — by leaving
+ * the admin an hour to notice before the file can be swept.
+ */
+const ORPHAN_MIN_AGE_MS = 60 * 60 * 1000;
+
+export interface OrphanSweep {
+  /** Unreferenced and old enough to delete. */
+  count: number;
+  /** Their total size, because "12 files" and "12 files, 400MB" are different decisions. */
+  bytes: number;
+  /** Unreferenced but too recent to touch. */
+  held: number;
+}
+
+/**
+ * Files in station-images that no station points at.
+ *
+ * Matched on the storage path rather than the whole URL, because an entry may
+ * be a JSON record or a bare URL, and because the public URL's prefix changes
+ * if the project ever moves. The path after the bucket is the only part that
+ * identifies the object.
+ *
+ * Fails closed by returning null: a read that half worked would make every
+ * image it failed to see look like an orphan, and this function's answer is
+ * fed straight to a delete.
+ */
+async function findOrphanStationImages(
+  supabase: SupabaseClient,
+  now: number
+): Promise<{ sweep: OrphanSweep; paths: string[] } | null> {
+  const { data: stations, error: stationsErr } = await supabase
+    .from("stations")
+    .select("image_urls");
+
+  if (stationsErr) {
+    console.error("[cleanup] could not read stations", stationsErr.message);
+    return null;
+  }
+
+  const marker = "/object/public/station-images/";
+  const referenced = new Set<string>();
+  for (const row of stations ?? []) {
+    for (const entry of (row.image_urls ?? []) as string[]) {
+      const url = imageRecordUrl(entry);
+      const at = url.indexOf(marker);
+      referenced.add(at === -1 ? url : url.slice(at + marker.length));
+    }
+  }
+
+  // One level of folders, named for the station id, then the files in each.
+  const { data: folders, error: foldersErr } = await supabase.storage
+    .from("station-images")
+    .list("", { limit: 1000 });
+
+  if (foldersErr) {
+    console.error("[cleanup] could not list station-images", foldersErr.message);
+    return null;
+  }
+
+  const paths: string[] = [];
+  let bytes = 0;
+  let held = 0;
+
+  for (const folder of folders ?? []) {
+    // A prefix has no id of its own; a file sitting at the bucket root has one.
+    if (folder.id !== null) continue;
+
+    const { data: files, error: filesErr } = await supabase.storage
+      .from("station-images")
+      .list(folder.name, { limit: 1000 });
+
+    if (filesErr) {
+      console.error("[cleanup] could not list", folder.name, filesErr.message);
+      return null;
+    }
+
+    for (const file of files ?? []) {
+      if (file.id === null) continue;
+      const full = `${folder.name}/${file.name}`;
+      if (referenced.has(full)) continue;
+
+      const created = Date.parse(file.created_at ?? "");
+      if (!Number.isFinite(created) || now - created < ORPHAN_MIN_AGE_MS) {
+        held++;
+        continue;
+      }
+
+      paths.push(full);
+      bytes += Number((file.metadata as { size?: number } | null)?.size ?? 0);
+    }
+  }
+
+  return { sweep: { count: paths.length, bytes, held }, paths };
+}
+
+export async function countOrphanStationImagesAction(): Promise<OrphanSweep | null> {
+  if (!(await isAdmin())) return null;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const found = await findOrphanStationImages(supabase, Date.now());
+  return found?.sweep ?? null;
+}
+
+export async function deleteOrphanStationImagesAction(): Promise<ActionResult & { deleted?: number }> {
+  if (!(await isAdmin())) return { error: "Not authorised." };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: "Database not available." };
+
+  /*
+    Recomputed here rather than taking a list from the browser.
+
+    The count the admin saw came from this same function a moment ago, but a
+    list of paths sent up from a page is a list of files anyone who can reach
+    this action gets to choose. The only thing crossing the wire is "sweep",
+    and what that means is decided on the server.
+  */
+  const found = await findOrphanStationImages(supabase, Date.now());
+  if (!found) return { error: "Could not read the bucket or the stations, so nothing was deleted." };
+  if (found.paths.length === 0) return { success: true, deleted: 0 };
+
+  const { error } = await supabase.storage.from("station-images").remove(found.paths);
+  if (error) return { error: error.message };
+
+  return { success: true, deleted: found.paths.length };
 }
 
 export async function deleteImageAction(
