@@ -31,7 +31,7 @@ const SEND_GAP_MS = 550;
 // Records the token usage + cost of an examiner-initiated Claude call.
 // Best-effort: never blocks the examiner's action.
 async function recordExaminerClaudeUsage(
-  callType: "overall_comment" | "grammar_check",
+  callType: "overall_comment" | "grammar_check" | "autofill_ticked",
   model: string,
   usage: {
     input_tokens?: number;
@@ -356,6 +356,186 @@ Copy-edit these notes into the overall comment. The examiner's words, corrected 
   const text = tidyExaminerComment(withoutEmDashes((data.content?.[0]?.text ?? "").trim()));
   await recordExaminerClaudeUsage("overall_comment", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
   return { text };
+}
+
+/**
+ * Find the moment in the transcript behind each ticked phrase.
+ *
+ * The examiner has already decided what the candidate did; this only looks
+ * for where. That split is the whole justification for the feature: judging
+ * is theirs, searching 2,200 words is not work a person should be doing.
+ *
+ * NOTHING FOUND IS A REAL ANSWER, and the prompt says so four times. A model
+ * that can only return an example returns one for every tick, including the
+ * ticks where the candidate did not quite do the thing — and an invented
+ * "at 4:12 you screened for red flags" is far worse than an empty box,
+ * because a timestamp reads as proof. The same failure has happened on this
+ * page before: generateOverallCommentAction had to be told not to invent
+ * clinical advice after it produced fluid-volume guidance no examiner wrote.
+ *
+ * The two halves are asked different questions, because they are different
+ * questions. A Did well phrase has a moment: the candidate did it, and it is
+ * somewhere in the transcript. A Could improve phrase is usually a NEGATIVE,
+ * and a negative has no moment to point at. Asked for one anyway, a model
+ * will manufacture the place where the thing should have happened. So the
+ * improve side is asked for absence, which is checkable, or for the moment a
+ * gap actually shows.
+ *
+ * These answers reach the candidate. They become the appraisal tags and the
+ * detail in the overall comment, so anything invented here is not a note in
+ * a private pad, it is a sentence in a report sent under a GP's name.
+ */
+export async function autofillTickedAction(args: {
+  transcript: string;
+  /** Ticked phrases with no comment yet, each with the half it belongs to. */
+  items: { id: string; phrase: string; half: "well" | "improve"; domain: string }[];
+  /**
+   * The case author's list of what this station is designed to cover.
+   *
+   * A transcript on its own is a record with no standard in it: it says what
+   * was said and nothing about whether that was enough. This is the standard,
+   * and it is human-written, which is what makes it usable here. "The case
+   * expects a urine culture and nothing in the transcript mentions one" is
+   * checkable against two records with no model opinion in between.
+   */
+  expected?: { dataGathering: string[]; management: string[] } | null;
+  /**
+   * The skills assessment, as a POINTER and not as a source.
+   *
+   * Thirteen closed questions already answered, which is the fastest way to
+   * know which absences are real and worth looking for. But it is the model's
+   * own earlier opinion, so it may not be quoted back: an examiner reading
+   * "the AI marked this down" in their own notepad is reading the machine
+   * agreeing with itself, dressed as evidence, and any mistake in the grading
+   * would ride into the report under their name.
+   *
+   */
+  skills?: { label: string; rating: string; improvement?: string }[];
+  /**
+   * The AI's own grade and comment for each domain.
+   *
+   * Brandon's call, against my advice, and his reason is a good one: those
+   * comments are already specific to this consultation, so the detail in
+   * them is tailored in a way a fresh search has to work for.
+   *
+   * The risk I raised and he accepted is circularity. An examiner reading
+   * their own notepad takes what is in it as evidence, and if it came from
+   * the model's earlier opinion then the machine is agreeing with itself and
+   * any mistake in the grading rides into the report under a GP's name.
+   *
+   * So the prompt splits the two things these comments contain. The
+   * SPECIFICS are transcript-derived and may be reused: "did not ask about
+   * swelling around the eyes" names something checkable. The VERDICTS may
+   * not: "data gathering was below standard" is an opinion, and the
+   * examiner's tick already settled that question anyway.
+   */
+  aiDomains?: { domain: string; grade: string | null; comment: string | null }[];
+  recordingId?: string;
+}): Promise<{ filled?: Record<string, string>; error?: string }> {
+  const examiner = await getExaminer();
+  if (!examiner) return { error: "Not authorised." };
+
+  const items = (args.items ?? []).filter((i) => i && i.id && i.phrase?.trim());
+  if (items.length === 0) return { error: "Nothing ticked that needs filling." };
+  if (!args.transcript?.trim()) return { error: "No transcript to search." };
+
+  const lines = items
+    .map((i, n) => `${n + 1}. [${i.domain} / ${i.half === "well" ? "Did well" : "Could improve"}] ${i.phrase}`)
+    .join("\n");
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: EXAMINER_CLAUDE_MODEL,
+      max_tokens: 2000,
+      // Low, for the same reason as the copy editor: the job is to locate
+      // something that is there, not to compose something that reads well.
+      temperature: 0,
+      system: [
+        "An RCGP examiner has ticked phrases describing a candidate's consultation. For each one, find the evidence in the transcript. You are searching, not judging: whether the phrase is true is the examiner's call and has already been made.",
+        "",
+        "FINDING NOTHING IS A CORRECT ANSWER. Return null for a phrase whose evidence you cannot point to. Do not stretch, do not approximate, and do not offer the nearest thing. An examiner reads a filled box as proof that the moment exists, so a plausible invention is worse to them than an empty one. Expect to return null sometimes; a run that finds something for every phrase is a run that has made something up.",
+        "",
+        "DID WELL. Say where it happened, in one short phrase, with the timestamp if the transcript carries one: \"at 6:18, asked what she thought was causing it\". Describe the moment in your own words rather than quoting: the transcript is machine-written and carries filler and mis-heard words, and quoting puts sentences in the candidate's mouth. Null if the candidate did not visibly do it.",
+        "",
+        "COULD IMPROVE. These are mostly things that did NOT happen, and a thing that did not happen has no moment. Never invent the point where it should have occurred. Two honest answers: state the absence, which can be checked (\"no mention of red flags anywhere in the consultation\"), or name the moment a gap shows (\"at 7:40 the patient raised the worry themselves, unprompted\"). Null if neither is true.",
+        "",
+        "WHAT THE CASE EXPECTED, where it is given, is the case author's list of what this station is designed to cover. The transcript says what happened; this says what good looks like. Use it to judge whether something is genuinely absent rather than merely unsaid, and to know what to search for. Do not quote it as though it were evidence: that a case expects something is not proof the candidate skipped it, the transcript is.",
+        "",
+        "THE SKILLS ASSESSMENT, where it is given, is an earlier automated pass over the same consultation. Treat it as a pointer to where to look and nothing more. Never cite it, never refer to it, and never write that something was marked down or rated: an examiner reading that in their own notes is reading a machine agreeing with itself. If it says a thing is missing, go and confirm the absence in the transcript before you report one.",
+        "",
+        "THE AI DOMAIN COMMENTS, where they are given, are that same earlier pass written out per domain. They hold two different things and you may use only one of them. The SPECIFICS are fair game: where a comment names something concrete, such as a question not asked or a symptom not covered, that detail came from the transcript and you may reuse it. The VERDICTS are not: never write that a domain was weak, strong, below standard or graded anything. The examiner's tick has already settled whether the phrase is true; you are only saying where.",
+        "",
+        "Every answer you give is therefore one of exactly two things: a moment in the transcript, or an absence from the transcript. Nothing else qualifies, whatever the other material says.",
+        "",
+        "A phrase often carries a judgement word: early, briefly, clearly, specifically, well, good. That judgement is the examiner's and they have already made it by ticking. Find the underlying thing and say when it happened. Do not withhold an answer because you would have rated the qualifier differently, and do not argue with it. \"Elicited ICE early\" is answered by finding where ICE was elicited.",
+        "",
+        "LENGTH. One sentence. Two only where one genuinely will not carry it, which should be rare. These are read and edited at speed by someone part-way through a review, so short beats complete. No advice, no judgement, no praise.",
+        "",
+        "Reply with JSON only: an object mapping each phrase's number, as a string, to its answer or to null. Every number listed must appear.",
+      ].join("\n"),
+      messages: [{
+        role: "user",
+        content: [
+          `TRANSCRIPT:\n${args.transcript}`,
+          args.expected?.dataGathering?.length
+            ? `\nWHAT THE CASE EXPECTED, data gathering:\n${args.expected.dataGathering.map((x) => `- ${x}`).join("\n")}`
+            : "",
+          args.expected?.management?.length
+            ? `\nWHAT THE CASE EXPECTED, management:\n${args.expected.management.map((x) => `- ${x}`).join("\n")}`
+            : "",
+          args.skills?.length
+            ? `\nSKILLS ASSESSMENT, a pointer only, never to be cited:\n${args.skills
+                .map((s) => `- ${s.label}: ${s.rating}${s.improvement ? ` (${s.improvement})` : ""}`)
+                .join("\n")}`
+            : "",
+          args.aiDomains?.some((d) => d.comment)
+            ? `\nAI DOMAIN COMMENTS, specifics reusable, verdicts not:\n${args.aiDomains
+                .filter((d) => d.comment)
+                .map((d) => `- ${d.domain}: ${d.comment}`)
+                .join("\n")}`
+            : "",
+          `\nPHRASES:\n${lines}`,
+          "\nFind the evidence for each. null where there is none.",
+        ].filter(Boolean).join("\n"),
+      }],
+    }),
+  });
+
+  if (!res.ok) return { error: "AI request failed." };
+  const data = await res.json();
+  await recordExaminerClaudeUsage("autofill_ticked", data.model ?? EXAMINER_CLAUDE_MODEL, data.usage ?? {}, args.recordingId);
+
+  const raw = (data.content?.[0]?.text ?? "").trim();
+  let parsed: Record<string, unknown>;
+  try {
+    // Models fence JSON about as often as not, whatever the prompt says.
+    const body = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    parsed = JSON.parse(body);
+  } catch {
+    return { error: "Could not read the reply." };
+  }
+
+  /*
+    Nulls are dropped rather than written as empty strings. An empty string
+    would be stored as the examiner's own comment on that tick, which is how
+    "found nothing" would quietly become "the examiner looked and had nothing
+    to add" — and would clear the marker that says this text is unreviewed.
+  */
+  const filled: Record<string, string> = {};
+  items.forEach((item, n) => {
+    const value = parsed[String(n + 1)];
+    if (typeof value !== "string") return;
+    const text = withoutEmDashes(value.trim());
+    if (text) filled[item.id] = text;
+  });
+
+  return { filled };
 }
 
 export async function grammarCheckAction(args: { text: string; recordingId?: string }): Promise<{ text?: string; error?: string }> {

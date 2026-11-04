@@ -3,14 +3,14 @@
 import { memo, useState, useRef, useEffect, useCallback, useActionState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction } from "../actions";
+import { submitExaminerReviewAction, generateOverallCommentAction, grammarCheckAction, autofillTickedAction } from "../actions";
 import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
 import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
 import { useDictation } from "./useDictation";
-import { PRESET_FIELDS, TONE, type DomainHalfNotes, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
+import { FIELD_LABEL, PRESET_FIELDS, TONE, type DomainHalfNotes, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
 import type { StationMaterial } from "@/lib/case-bank-types";
 import { DoctorBriefContent, PatientStoryContent } from "@/app/case-bank/components/BriefContent";
@@ -659,11 +659,152 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     is not a shortcut: these two only call setState with an updater, so they
     read nothing from the render that made them.
   */
+  /*
+    What the AI wrote against each ticked phrase, by preset id.
+
+    The TEXT, not a boolean, and that is the whole trick. "Has the examiner
+    edited this?" is then a comparison between what is in the box and what
+    was put there, which needs no previous-value ref, no diffing in the
+    change handler and no onEdit callback threaded through two components.
+    It is also more honest than a flag: an examiner who edits and then undoes
+    back to the AI's sentence is looking at the AI's sentence again, and the
+    marker comes back.
+
+    This is the part that actually keeps the feature honest. A dialog shown
+    on every use is read once and clicked through for the rest of the
+    examiner's life; a marker beside the text is in front of them while they
+    read it, and what is still marked at the end is exactly what nobody has
+    checked.
+  */
+  const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
+
+  /*
+    Unchanged by the autofill feature, and that is the point of storing the
+    AI's text rather than a flag: nothing here has to know the feature
+    exists. Typing, dictating and unticking all arrive through this one
+    handler, and all three stop the marker showing for free, because all
+    three leave the box holding something other than what the AI put in it.
+  */
   const handlePickedChange = useCallback(
     (field: PresetField, selection: PresetSelection) =>
       setPicked((prev) => ({ ...prev, [field]: selection })),
     []
   );
+  /*
+    Autofill: find the moment behind each ticked phrase that has no comment.
+
+    Only empty ones. Overwriting something the examiner typed would be the
+    feature taking back the judgement it is supposed to be supporting, and
+    there would be no way to tell afterwards which sentences were theirs.
+  */
+  const [autofillOpen, setAutofillOpen] = useState(false);
+  // Stable, because Notepad is memo'd and an inline arrow here would rebuild
+  // forty-eight tick rows on every keystroke in any box.
+  const openAutofill = useCallback(() => setAutofillOpen(true), []);
+  const [autofillError, setAutofillError] = useState("");
+  const [autofillNote, setAutofillNote] = useState("");
+  const [autofillPending, startAutofill] = useTransition();
+
+  const runAutofill = useCallback(() => {
+    setAutofillError("");
+    setAutofillNote("");
+    const current = picked;
+    const items = PRESET_FIELDS.flatMap((field) => {
+      const selection = current[field] ?? {};
+      const half: "well" | "improve" = field.endsWith("_well") ? "well" : "improve";
+      const domain = FIELD_LABEL[field].split(" — ")[0];
+      return (presets[field] ?? [])
+        .filter((p) => p.id in selection && !(selection[p.id] ?? "").trim())
+        .map((p) => ({ id: p.id, phrase: p.text, half, domain }));
+    });
+
+    if (items.length === 0) {
+      setAutofillError("Every ticked phrase already has a comment.");
+      return;
+    }
+
+    /*
+      Timestamps where there are any. The prompt asks for them and they are
+      the most useful part of an answer — "at 6:18" is the thing that saves
+      the scroll back. The formatted string is the fallback for a recording
+      transcribed before word timings were kept.
+    */
+    const transcript = turns.length
+      ? turns
+          .map((t) => {
+            const m = Math.floor(t.start / 60);
+            const s = Math.floor(t.start % 60).toString().padStart(2, "0");
+            return `[${m}:${s}] ${t.speaker}: ${t.words.map((w) => w.text).join(" ")}`;
+          })
+          .join("\n")
+      : rec.transcript_formatted ?? "";
+
+    startAutofill(async () => {
+      const res = await autofillTickedAction({
+        transcript,
+        items,
+        // The case author's standard, so an absence can be judged against
+        // what the station was built to test rather than against nothing.
+        expected: station
+          ? { dataGathering: station.data_gathering ?? [], management: station.management ?? [] }
+          : null,
+        // A pointer to where to look, named and labelled but never quotable.
+        skills: aiSkills.map((s) => ({
+          label: skillLabels[s.skill] ?? s.skill,
+          rating: s.rating,
+          improvement: s.improvement ?? undefined,
+        })),
+        // Already tailored to this consultation, which is why they are here.
+        // The prompt may reuse the specifics in them and not the verdicts.
+        aiDomains: [
+          { domain: "Data Gathering", grade: rec.ai_data_gathering, comment: rec.ai_comment_data_gathering },
+          { domain: "Clinical Management", grade: rec.ai_clinical_management, comment: rec.ai_comment_clinical_management },
+          { domain: "Relating to Others", grade: rec.ai_relating_to_others, comment: rec.ai_comment_relating_to_others },
+        ],
+        recordingId: rec.id,
+      });
+      if (res.error || !res.filled) {
+        setAutofillError(res.error ?? "Failed");
+        return;
+      }
+      const filled = res.filled;
+      const ids = Object.keys(filled);
+      setPicked((prev) => {
+        const next = { ...prev };
+        for (const field of PRESET_FIELDS) {
+          const selection = next[field] ?? {};
+          let touched = false;
+          const copy = { ...selection };
+          for (const id of ids) {
+            if (id in selection && !(selection[id] ?? "").trim()) {
+              copy[id] = filled[id];
+              touched = true;
+            }
+          }
+          if (touched) next[field] = copy;
+        }
+        return next;
+      });
+      setAiFilled((marks) => {
+        const next = { ...marks };
+        for (const id of ids) next[id] = filled[id];
+        return next;
+      });
+      setAutofillOpen(false);
+      /*
+        Say how many were left alone. A run that fills everything has almost
+        certainly invented something, so the count is not trivia: it is the
+        number worth being suspicious of, reported the other way round.
+      */
+      const missed = items.length - ids.length;
+      setAutofillNote(
+        missed === 0
+          ? `Filled all ${items.length}. Check each one against the transcript.`
+          : `Filled ${ids.length} of ${items.length}. No evidence found for the other ${missed}, left empty.`
+      );
+    });
+  }, [picked, presets, turns, station, aiSkills, skillLabels, rec]);
+
   const handlePresetsChange = useCallback(
     (field: PresetField, next: ExaminerPreset[]) =>
       setPresets((prev) => ({ ...prev, [field]: next })),
@@ -1606,6 +1747,9 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     error={aiGenError}
                     onConvert={handleConvert}
                     onOpenStation={station ? setStationTab : undefined}
+                    onAutofill={isSent ? undefined : openAutofill}
+                    aiFilled={aiFilled}
+                    autofillNote={autofillNote}
                   />
                 )}
             </aside>
@@ -1630,6 +1774,70 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             />
           );
         })()}
+
+        {/*
+          Shown on every use, deliberately, and not relied on.
+
+          A dialog that appears every time stops being read by about the
+          fifth review, which is a fact about people rather than a fault in
+          the wording. It is here because the first time matters and because
+          the step should not be frictionless; the thing actually doing the
+          work is the marker beside each filled comment.
+        */}
+        {autofillOpen && (
+          <div
+            className="fixed inset-0 flex items-center justify-center px-4"
+            style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !autofillPending) setAutofillOpen(false);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-label="Autofill ticked phrases"
+              className="rounded-2xl w-full"
+              style={{ background: "white", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
+            >
+              <div className="px-6 pt-6">
+                <h2 className="font-display font-bold text-[16px] m-0 mb-3" style={{ color: "#B45309" }}>
+                  Warning
+                </h2>
+                <p className="text-[13px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.75)" }}>
+                  This populates the ticked preset fields that should be filled by the examiner with
+                  AI comments. To ensure the honesty of our product please carefully review and edit
+                  these comments to match your honest assessment.
+                </p>
+                <p className="text-[12px] leading-relaxed m-0 mt-3" style={{ color: "rgba(51,51,51,0.5)" }}>
+                  Only empty boxes are filled, anything you have written is left alone, and each
+                  filled box is marked until you edit it.
+                </p>
+                {autofillError && (
+                  <p className="text-[12px] m-0 mt-3" style={{ color: "#B91C1C" }}>{autofillError}</p>
+                )}
+              </div>
+              <div className="px-6 py-5 flex gap-2 justify-end flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setAutofillOpen(false)}
+                  disabled={autofillPending}
+                  className="rounded-lg px-4 py-2 text-[13px] font-bold"
+                  style={{ background: "rgba(51,51,51,0.07)", color: NAVY, border: "none", cursor: autofillPending ? "default" : "pointer" }}
+                >
+                  Go Back
+                </button>
+                <button
+                  type="button"
+                  onClick={runAutofill}
+                  disabled={autofillPending}
+                  className="rounded-lg px-4 py-2 text-[13px] font-bold"
+                  style={{ background: NAVY, color: "white", border: "none", cursor: autofillPending ? "default" : "pointer", opacity: autofillPending ? 0.6 : 1 }}
+                >
+                  {autofillPending ? "Searching the transcript…" : "Yes, I understand"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Same reasoning as above, and read-only besides: nothing in here is
             a field, so it has no business inside the form. */}
@@ -2062,7 +2270,7 @@ function NoteBox({ value, onChange, onKeyDown, tone }: {
  */
 const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
-  recordingId, hasNotes, willOverwrite, pending, error, onConvert, onOpenStation,
+  recordingId, hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled, autofillNote,
 }: {
   notes: AssistNotes;
   /** Only so a dictation can be costed against the review it was spoken into. */
@@ -2083,6 +2291,13 @@ const Notepad = memo(function Notepad({
   /** Opens the station modal on a domain's tab. Absent when the recording's
    *  station_number matched no row, which leaves the headings plain. */
   onOpenStation?: (tab: StationTab) => void;
+  /** Opens the autofill warning. Absent once the review is sent. */
+  onAutofill?: () => void;
+  /** What the AI wrote against each ticked phrase, by preset id. The text,
+   *  so the marker is a comparison rather than a flag someone has to clear. */
+  aiFilled: Record<string, string>;
+  /** What the last autofill run did, or empty. */
+  autofillNote: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [dictateError, setDictateError] = useState<string | null>(null);
@@ -2254,6 +2469,19 @@ const Notepad = memo(function Notepad({
             as one sentence, and the rail has the vertical room where it has
             no horizontal room at all. */}
         <div className="flex flex-col items-end gap-0.5" style={{ flexShrink: 0 }}>
+          {/* First, because it is the one that does something to the review
+              rather than to the layout. Styled like its neighbours all the
+              same: it is still a thing you reach for, not the main act. */}
+          {onAutofill && (
+            <button
+              type="button"
+              onClick={onAutofill}
+              className="text-[10px]"
+              style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+            >
+              Autofill Ticked
+            </button>
+          )}
           <button
             type="button"
             onClick={togglePresets}
@@ -2389,6 +2617,7 @@ const Notepad = memo(function Notepad({
               disabled={disabled}
               tone="well"
               collapsed={!showPresets}
+              aiFilled={aiFilled}
             />
             {showFreeText && box(d.well, "well")}
 
@@ -2403,12 +2632,25 @@ const Notepad = memo(function Notepad({
                 disabled={disabled}
                 tone="improve"
                 collapsed={!showPresets}
+              aiFilled={aiFilled}
               />
               {showFreeText && box(d.improve, "improve")}
             </div>
           </div>
         ))}
       </div>
+
+      {/*
+        What the last autofill run did, and in particular what it did NOT
+        find. A run that fills everything is the suspicious one, so the count
+        left empty is worth putting in front of the examiner rather than
+        leaving them to notice the gaps.
+      */}
+      {autofillNote && (
+        <p className="text-[11px] m-0 mt-3 rounded-lg px-3 py-2" style={{ background: "rgba(245,158,11,0.1)", color: "#92400E" }}>
+          {autofillNote}
+        </p>
+      )}
 
       {/* Both halves hidden leaves six domain labels and nothing to write in,
           which looks broken rather than chosen. The two buttons above are
