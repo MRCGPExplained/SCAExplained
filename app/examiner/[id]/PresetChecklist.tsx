@@ -115,6 +115,7 @@ export const PresetChecklist = memo(function PresetChecklist({
   tone,
   collapsed,
   aiFilled,
+  hideInputs,
 }: {
   field: PresetField;
   label: string;
@@ -151,6 +152,14 @@ export const PresetChecklist = memo(function PresetChecklist({
    * keep stable rather than six.
    */
   aiFilled?: Record<string, string>;
+  /**
+   * Keep the per-tick detail box closed.
+   *
+   * For the listening pass, where ticking is the fast part and every open
+   * box pushes the next tick further down the rail. The text is not cleared,
+   * only not rendered, and a row holding one still says so with a dot.
+   */
+  hideInputs?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -161,6 +170,10 @@ export const PresetChecklist = memo(function PresetChecklist({
     if it did.
   */
   const tickedHere = presets.filter((p) => p.id in selection).length;
+  /** Ticked here and still holding exactly what the AI wrote. */
+  const aiHere = presets.filter(
+    (p) => p.id in selection && aiFilled?.[p.id] !== undefined && aiFilled[p.id] === (selection[p.id] ?? "")
+  ).length;
 
   function toggle(id: string) {
     const next = { ...selection };
@@ -192,6 +205,20 @@ export const PresetChecklist = memo(function PresetChecklist({
         {tickedHere > 0 && (
           <span className="text-[10px]" style={{ color: "rgba(51,51,51,0.35)" }}>
             · {tickedHere} ticked
+          </span>
+        )}
+        {/*
+          And how many of them are still the AI's words.
+
+          The last arrangement in which unchecked machine text could be on a
+          review with nothing on screen saying so. Collapsing hides the
+          phrases and the (AI) marks beside them, so the count comes up here
+          instead, which is why autofill can leave the examiner's layout
+          preferences alone rather than overriding them.
+        */}
+        {aiHere > 0 && (
+          <span className="text-[10px] font-bold" style={{ color: AI_MARK }}>
+            · {aiHere} AI
           </span>
         )}
       </div>
@@ -242,24 +269,29 @@ export const PresetChecklist = memo(function PresetChecklist({
                       differently again the next time they opened the editor. */}
                   <span className="text-[12px] leading-snug" style={{ color: ticked ? NAVY : "rgba(51,51,51,0.6)", whiteSpace: "pre-wrap" }}>
                     {preset.text}
+                    {/*
+                      Beside the phrase rather than under the box, so it is
+                      visible whether or not the detail boxes are open. That
+                      is the whole reason it moved: with the inputs closed
+                      the old label under the box rendered nowhere, and a
+                      marker you cannot see while scanning a collapsed list
+                      is not a marker.
+
+                      Goes the moment the text stops matching what the AI
+                      wrote, which typing, dictating and unticking all do.
+                    */}
+                    {aiFilled?.[preset.id] !== undefined && aiFilled[preset.id] === (selection[preset.id] ?? "") && (
+                      <span
+                        title="AI wrote this, not yet checked"
+                        className="text-[10px] font-bold"
+                        style={{ color: AI_MARK, marginLeft: 5 }}
+                      >
+                        (AI)
+                      </span>
+                    )}
                   </span>
                 </label>
-                {ticked && aiFilled?.[preset.id] !== undefined && aiFilled[preset.id] === (selection[preset.id] ?? "") && (
-                  /*
-                    The marker that does the actual work of keeping this
-                    honest. It sits against the text rather than in a dialog
-                    nobody reads by their fifth review, and it goes the
-                    moment the examiner types into the box below, so what is
-                    still marked at the end is exactly what nobody checked.
-                  */
-                  <div
-                    className="text-[10px] font-bold uppercase tracking-[0.05em] mt-1"
-                    style={{ marginLeft: 22, color: AI_MARK }}
-                  >
-                    AI wrote this — check it
-                  </div>
-                )}
-                {ticked && (
+                {ticked && !hideInputs && (
                   <GrowingInput
                     // Dictation is handled by one listener on the notepad's
                     // container, which finds its target by this attribute —
@@ -276,10 +308,6 @@ export const PresetChecklist = memo(function PresetChecklist({
                       marginLeft: 22,
                       width: "calc(100% - 22px)",
                       border: `1px solid ${TONE[tone].border}`,
-                      // Amber left edge while it is still the AI's sentence,
-                      // so the marked boxes are findable by scanning the
-                      // column rather than by reading every label.
-                      borderLeft: aiFilled?.[preset.id] !== undefined && aiFilled[preset.id] === (selection[preset.id] ?? "") ? `2px solid ${AI_MARK}` : `1px solid ${TONE[tone].border}`,
                       background: TONE[tone].bg,
                       color: NAVY,
                       outline: "none",

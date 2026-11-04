@@ -799,17 +799,59 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     a spinner afterwards. By the time Done is pressed the boxes are usually
     already filled.
   */
+  /*
+    The detail box under each ticked phrase, closed.
+
+    For the listening pass. Ticking is the fast part and every open box pushes
+    the next tick further down the rail, so an examiner marking while the
+    audio runs is chasing a moving target. Closed, the six lists are a column
+    of phrases to click.
+
+    Hiding does not unmount anything the examiner wrote: the text lives in
+    `picked` in this component, and PresetChecklist stops rendering the box
+    rather than clearing it.
+  */
+  const [showPresetInputs, setShowPresetInputs] = useState(true);
+  useEffect(() => {
+    try {
+      setShowPresetInputs(window.localStorage.getItem(PRESET_INPUTS_HIDDEN_KEY) !== "1");
+    } catch {
+      // Shown is the right fallback, as with its two siblings.
+    }
+  }, []);
+
+  const togglePresetInputs = useCallback(() => {
+    setShowPresetInputs((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.removeItem(PRESET_INPUTS_HIDDEN_KEY);
+        else window.localStorage.setItem(PRESET_INPUTS_HIDDEN_KEY, "1");
+      } catch {
+        // It just will not be remembered past this page.
+      }
+      return next;
+    });
+  }, []);
+
+  /*
+    One domain at a time, from the pills beside the heading.
+
+    NOT persisted, unlike the three layout toggles. Which domain you are
+    working on belongs to the half hour you are in, not to how you like the
+    rail laid out, and a filter that survived into the next review would hide
+    two thirds of it from someone who had forgotten they set it.
+  */
+  const [domainOnly, setDomainOnly] = useState<"all" | "dg" | "cm" | "ro">("all");
+
   const [autofillStage, setAutofillStage] = useState<"warn" | "improve" | null>(null);
   // Stable, because Notepad is memo'd and an inline arrow here would rebuild
   // forty-eight tick rows on every keystroke in any box.
   const openAutofill = useCallback(() => setAutofillStage("warn"), []);
   const [autofillError, setAutofillError] = useState("");
-  const [autofillNote, setAutofillNote] = useState("");
   const [autofillPending, startAutofill] = useTransition();
 
   const runAutofill = useCallback(() => {
     setAutofillError("");
-    setAutofillNote("");
     const current = picked;
     /*
       DID WELL ONLY. Could improve ticks are not sent.
@@ -917,21 +959,32 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         Force the tick lists open, and clear the stored preference with them.
 
         Hidden, a PresetChecklist renders its label and nothing else: no
-        comment boxes and so no "AI wrote this" markers. Autofilling into a
+        comment boxes and no phrases to carry the (AI) marks. Autofilling into a
         collapsed list would put unreviewed machine text into the review with
         the one thing meant to flag it rendered nowhere, which is the exact
         failure this feature is built to avoid.
 
-        The stored preference goes too, not just the state. Leaving it set
-        would hide the lists again on the next load, with the unchecked text
-        still sitting in them.
+        Three things, because there are three ways to be looking elsewhere:
+        the lists collapsed, the detail boxes closed, or the rail filtered to
+        one domain. Any of them would leave text the AI wrote on screen
+        nowhere, which is the failure this feature exists to avoid arriving
+        by a side door.
+
+        STATE ONLY. The stored preferences are deliberately left alone, which
+        is Brandon's call and the right one: how he likes the rail laid out
+        is a setting, and a one-off action has no business rewriting a
+        setting. He opens the next review the way he asked to open it.
+
+        I had been clearing them, worried that a reload mid-review would hide
+        unchecked text again. That worry is handled better elsewhere and
+        without touching anything of his: the (AI) mark now sits beside the
+        phrase rather than under the box, so closing the boxes does not hide
+        it, and a collapsed list carries the count in its summary. There is
+        no arrangement of these three in which unchecked text is invisible.
       */
       setShowPresets(true);
-      try {
-        window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
-      } catch {
-        // Nothing to undo: the state above is what matters this session.
-      }
+      setShowPresetInputs(true);
+      setDomainOnly("all");
 
       /*
         The dialog is NOT closed here. It is on stage two by now and the
@@ -939,16 +992,12 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         somebody is typing in, because a network call they cannot see has
         come back, would be the rudest possible way to deliver good news.
 
-        Say how many were left alone. A run that fills everything has almost
-        certainly invented something, so the count is not trivia: it is the
-        number worth being suspicious of, reported the other way round.
+        No count of what was filled or skipped. I wanted one, on the grounds
+        that a run which fills everything is the suspicious one, and Brandon
+        cut it: the boxes themselves say which were filled, and a line of
+        statistics above them is one more thing to read past. The (AI) marks
+        carry the same information without being prose.
       */
-      const missed = items.length - ids.length;
-      setAutofillNote(
-        missed === 0
-          ? `Filled all ${items.length}. Check each one against the transcript.`
-          : `Filled ${ids.length} of ${items.length}. No evidence found for the other ${missed}, left empty.`
-      );
     });
   }, [picked, presets, turns, aiSkills, skillLabels, rec]);
 
@@ -1895,11 +1944,14 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     onOpenStation={station ? setStationTab : undefined}
                     onAutofill={isSent ? undefined : openAutofill}
                     aiFilled={aiFilled}
-                    autofillNote={autofillNote}
                     showPresets={showPresets}
                     onTogglePresets={togglePresets}
                     showFreeText={showFreeText}
                     onToggleFreeText={toggleFreeText}
+                    showPresetInputs={showPresetInputs}
+                    onTogglePresetInputs={togglePresetInputs}
+                    domainOnly={domainOnly}
+                    onDomainOnlyChange={setDomainOnly}
                     dictation={dictation}
                     dictateError={dictateError}
                   />
@@ -1978,10 +2030,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   exaggerates.
                 </p>
 
-                <p className="text-[12px] leading-relaxed m-0 mt-3" style={{ color: "rgba(51,51,51,0.5)" }}>
-                  Only empty boxes are filled, anything you have written is left alone, and each AI
-                  filled box has a marker which is only removed when you edit it.
-                </p>
                 {autofillError && (
                   <p className="text-[12px] m-0 mt-3" style={{ color: "#B91C1C" }}>{autofillError}</p>
                 )}
@@ -2023,7 +2071,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             dictateError={dictateError}
             pending={autofillPending}
             error={autofillError}
-            note={autofillNote}
             onConvert={handleConvert}
             willOverwrite={!!overallComment.trim()}
             onClose={() => setAutofillStage(null)}
@@ -2307,6 +2354,10 @@ const PRESETS_HIDDEN_KEY = "sca_examiner_presets_hidden";
  *  they like the rail laid out, not part of the review in front of them. */
 const FREE_TEXT_HIDDEN_KEY = "sca_examiner_free_text_hidden";
 
+/** Set when this examiner keeps the per-tick detail boxes closed. Same scope
+ *  as its two siblings: a layout preference, not part of any one review. */
+const PRESET_INPUTS_HIDDEN_KEY = "sca_examiner_preset_inputs_hidden";
+
 /**
  * The notepad card's tint, flattened, for the sticky domain labels.
  *
@@ -2461,8 +2512,8 @@ function NoteBox({ value, onChange, onKeyDown, tone }: {
  */
 const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
-  hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled, autofillNote,
-  showPresets, onTogglePresets, showFreeText, onToggleFreeText, dictation, dictateError,
+  hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled,
+  showPresets, onTogglePresets, showFreeText, onToggleFreeText, showPresetInputs, onTogglePresetInputs, domainOnly, onDomainOnlyChange, dictation, dictateError,
 }: {
   notes: AssistNotes;
   onChange: (n: AssistNotes) => void;
@@ -2486,8 +2537,6 @@ const Notepad = memo(function Notepad({
   /** What the AI wrote against each ticked phrase, by preset id. The text,
    *  so the marker is a comparison rather than a flag someone has to clear. */
   aiFilled: Record<string, string>;
-  /** What the last autofill run did, or empty. */
-  autofillNote: string;
   /** The two layout toggles. Owned by the parent because autofill has to be
    *  able to force the tick lists back open, and an examiner cannot check
    *  what an AI wrote inside a list that is collapsed. */
@@ -2495,6 +2544,12 @@ const Notepad = memo(function Notepad({
   onTogglePresets: () => void;
   showFreeText: boolean;
   onToggleFreeText: () => void;
+  /** The per-tick detail boxes are closed, for a fast listening pass. */
+  showPresetInputs: boolean;
+  onTogglePresetInputs: () => void;
+  /** Show one domain only. Not persisted: it belongs to this half hour. */
+  domainOnly: "all" | "dg" | "cm" | "ro";
+  onDomainOnlyChange: (d: "all" | "dg" | "cm" | "ro") => void;
   /** Lifted to the parent so the Could Improve dialog, which renders outside
    *  this component, can hold the same microphone rather than a second one. */
   dictation: ReturnType<typeof useDictation>;
@@ -2582,9 +2637,44 @@ const Notepad = memo(function Notepad({
           "could improve" explain themselves, and the sentence that was here
           cost 32px of a rail that has none to spare. */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
-          Notepad
-        </h3>
+        <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
+            Notepad
+          </h3>
+          {/*
+            One domain at a time, for an examiner working through the rail
+            domain by domain rather than top to bottom.
+
+            Sits beside the heading rather than above the lists so it reads
+            as what the notepad is showing, not as a fourth thing to fill in.
+            The sticky headings are kept: these two answer different
+            questions, this one "show me only this", those one "which am I
+            in", and the sticky labels still do their job inside a filter.
+
+            ALL is a pill rather than a second click on the active one.
+            Clicking the thing that is already on to turn it off is a
+            convention people learn, not one they guess, and the cost of
+            guessing wrong here is two thirds of the notepad staying hidden.
+          */}
+          <div className="flex gap-1">
+            {([["all", "All"], ["dg", "DG"], ["cm", "CM"], ["ro", "RTO"]] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onDomainOnlyChange(key)}
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{
+                  background: domainOnly === key ? NAVY : "rgba(51,51,51,0.06)",
+                  color: domainOnly === key ? "white" : "rgba(51,51,51,0.45)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         {/* Same faint treatment as Edit presets. These are things you set
             once and then forget, not part of marking a consultation. Stacked
             rather than side by side: two underlined phrases on one line read
@@ -2619,6 +2709,14 @@ const Notepad = memo(function Notepad({
             style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
           >
             {showFreeText ? "Hide free text" : "Show free text"}
+          </button>
+          <button
+            type="button"
+            onClick={onTogglePresetInputs}
+            className="text-[10px]"
+            style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+          >
+            {showPresetInputs ? "Keep preset inputs hidden" : "Show preset inputs"}
           </button>
         </div>
       </div>
@@ -2680,7 +2778,7 @@ const Notepad = memo(function Notepad({
       )}
 
       <div className="flex flex-col gap-3 mt-3">
-        {DOMAINS.map((d) => (
+        {DOMAINS.filter((d) => domainOnly === "all" || d.wellField.startsWith(domainOnly)).map((d) => (
           <div key={d.label}>
             {/*
               Which domain you are in, without having to scroll back up for it.
@@ -2739,6 +2837,7 @@ const Notepad = memo(function Notepad({
               disabled={disabled}
               tone="well"
               collapsed={!showPresets}
+              hideInputs={!showPresetInputs}
               aiFilled={aiFilled}
             />
             {showFreeText && box(d.well, "well")}
@@ -2754,6 +2853,7 @@ const Notepad = memo(function Notepad({
                 disabled={disabled}
                 tone="improve"
                 collapsed={!showPresets}
+              hideInputs={!showPresetInputs}
               aiFilled={aiFilled}
               />
               {showFreeText && box(d.improve, "improve")}
@@ -2762,17 +2862,6 @@ const Notepad = memo(function Notepad({
         ))}
       </div>
 
-      {/*
-        What the last autofill run did, and in particular what it did NOT
-        find. A run that fills everything is the suspicious one, so the count
-        left empty is worth putting in front of the examiner rather than
-        leaving them to notice the gaps.
-      */}
-      {autofillNote && (
-        <p className="text-[11px] m-0 mt-3 rounded-lg px-3 py-2" style={{ background: "rgba(245,158,11,0.1)", color: "#92400E" }}>
-          {autofillNote}
-        </p>
-      )}
 
       {/* Both halves hidden leaves six domain labels and nothing to write in,
           which looks broken rather than chosen. The two buttons above are
@@ -2820,7 +2909,7 @@ const Notepad = memo(function Notepad({
  * what is typed here is the version specific to this candidate.
  */
 function ImproveDialog({
-  presets, picked, onPickedChange, aiFilled, dictation, dictateError, pending, error, note, onConvert, willOverwrite, onClose,
+  presets, picked, onPickedChange, aiFilled, dictation, dictateError, pending, error, onConvert, willOverwrite, onClose,
 }: {
   presets: PresetMap;
   picked: Record<PresetField, PresetSelection>;
@@ -2830,7 +2919,6 @@ function ImproveDialog({
   dictateError: string | null;
   pending: boolean;
   error: string;
-  note: string;
   /** Runs the notepad Convert and flips the rail to the comment. */
   onConvert: () => void;
   /** An overall comment already exists, so Convert would replace it. */
@@ -2929,7 +3017,10 @@ function ImproveDialog({
                       <div className="text-[9.5px] font-bold uppercase tracking-[0.05em]" style={{ color: "rgba(51,51,51,0.3)" }}>
                         {r.domain}
                       </div>
-                      <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>{r.phrase}</div>
+                      <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>
+                        {r.phrase}
+                        {isAi && <span className="text-[10px] font-bold" style={{ color: AI_MARK, marginLeft: 5 }}>(AI)</span>}
+                      </div>
                       <textarea
                         data-dictate
                         rows={2}
@@ -2939,17 +3030,11 @@ function ImproveDialog({
                         className="w-full rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none"
                         style={{
                           border: `1px solid ${TONE.well.border}`,
-                          borderLeft: isAi ? `2px solid ${AI_MARK}` : `1px solid ${TONE.well.border}`,
                           background: TONE.well.bg,
                           color: NAVY,
                           resize: "vertical",
                         }}
                       />
-                      {isAi && (
-                        <div className="text-[9.5px] font-bold uppercase tracking-[0.05em] mt-0.5" style={{ color: AI_MARK }}>
-                          AI wrote this — check it
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -2982,7 +3067,6 @@ function ImproveDialog({
                       rows={2}
                       value={picked[r.field]?.[r.id] ?? ""}
                       onChange={(e) => setComment(r.field, r.id, e.target.value)}
-                      placeholder="Hold / and say what happened here, or leave blank…"
                       className="w-full rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none"
                       style={{
                         border: `1px solid ${TONE.improve.border}`,
@@ -3004,7 +3088,7 @@ function ImproveDialog({
               ? error
               : pending
               ? "Filling the Did Well boxes…"
-              : note || "Did Well boxes filled."}
+              : ""}
           </span>
           <div className="flex gap-2 flex-wrap">
             {/* Everything typed here is already in `picked`, so leaving is
