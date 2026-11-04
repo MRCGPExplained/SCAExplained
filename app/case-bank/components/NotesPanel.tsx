@@ -14,6 +14,7 @@ export function NotesPanel({
 }) {
   const [content, setContent] = useState(initialContent);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -22,7 +23,25 @@ export function NotesPanel({
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
-      await saveNotesAction(stationId, content);
+      /*
+        The result is checked, which it was not before.
+
+        saveNotesAction returns { error } rather than throwing, as every
+        supabase-js call in this project does, so awaiting it and then setting
+        "Saved ✓" announced success whatever came back. That mattered more
+        than it looks: the station_notes table does not exist, so every save
+        this panel has ever attempted has failed, and the panel said it had
+        saved each time.
+
+        Nobody has seen it, because nothing mounts this component. If anything
+        ever does, it now says what happened.
+      */
+      const res = await saveNotesAction(stationId, content);
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      setError(null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }, 500);
@@ -66,12 +85,12 @@ export function NotesPanel({
         }}
       />
 
-      {(content || saved) && (
+      {(content || saved || error) && (
         <div
           className="px-4 pb-2.5 text-[10px]"
-          style={{ color: saved ? "#22C55E" : "rgba(26,27,82,0.35)" }}
+          style={{ color: error ? "#B91C1C" : saved ? "#22C55E" : "rgba(26,27,82,0.35)" }}
         >
-          {saved ? "Saved ✓" : "Auto-saved"}
+          {error ? `Not saved: ${error}` : saved ? "Saved ✓" : "Auto-saved"}
         </div>
       )}
     </div>

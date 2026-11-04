@@ -1,6 +1,31 @@
 ﻿-- ============================================================
 -- SCA Case Bank - run this in the Supabase SQL editor
 -- ============================================================
+--
+-- THIS FILE IS A DESIGN, NOT A RECORD OF THE DATABASE.
+--
+-- Checked against production on 2026-11-04: of the eleven tables below, four
+-- do not exist. stations, station_stars, station_reports, study_rooms,
+-- room_participants, friend_requests and user_profiles are live. These are
+-- not:
+--
+--   case_bank_access         -- no code references it; access is user_access
+--   case_bank_reminders_sent -- no code references it
+--   station_attempts         -- no code references it
+--   station_notes            -- referenced by two lines, see below
+--
+-- The first three are harmless: nothing reads or writes them, so they are
+-- simply a plan that was not carried out.
+--
+-- station_notes is the one that cost somebody an afternoon. app/case-bank/
+-- actions.ts saveNotesAction upserts into it and app/admin/actions.ts deletes
+-- from it, which reads exactly like a working feature whose table has gone
+-- missing. It is not: NotesPanel, the only caller, is never mounted anywhere,
+-- and nothing reads notes back. The feature was never finished, so no note
+-- has ever been written or lost.
+--
+-- If you are about to wire something to a table named in this file, check it
+-- exists first.
 
 -- Subscriber access (one row per 90-day purchase)
 create table if not exists case_bank_access (
