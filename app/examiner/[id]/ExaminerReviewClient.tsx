@@ -1945,12 +1945,13 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 */}
                 <p className="text-[12.5px] leading-relaxed m-0 mt-3" style={{ color: "#92400E" }}>
                   Could Improve is left for you. The AI can find what happened in the transcript. It
-                  cannot reliably find what is missing, and when pushed it overstates.
+                  cannot reliably find what is missing, and when pushed to do so it overstates or
+                  exaggerates.
                 </p>
 
                 <p className="text-[12px] leading-relaxed m-0 mt-3" style={{ color: "rgba(51,51,51,0.5)" }}>
-                  Only empty boxes are filled, anything you have written is left alone, and each
-                  filled box is marked until you edit it.
+                  Only empty boxes are filled, anything you have written is left alone, and each AI
+                  filled box has a marker which is only removed when you edit it.
                 </p>
                 {autofillError && (
                   <p className="text-[12px] m-0 mt-3" style={{ color: "#B91C1C" }}>{autofillError}</p>

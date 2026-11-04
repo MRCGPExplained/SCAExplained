@@ -5,6 +5,16 @@ import { saveExaminerPresetsAction } from "../actions";
 import { TONE, presetId, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import { MAX_PRESETS_PER_FIELD } from "@/lib/examiner-presets-store";
 
+/**
+ * The colour of an unreviewed AI comment.
+ *
+ * Violet because the two colours already on these boxes are taken: green
+ * is Did Well and amber is Could Improve, so an amber marker on an amber
+ * box read as part of the tone rather than as a warning about the text.
+ * This belongs to no half, which is the point.
+ */
+const AI_MARK = "#6D28D9";
+
 const NAVY = "#333333";
 
 /** Ticked preset id to the comment typed against it, which may be "". */
@@ -244,7 +254,7 @@ export const PresetChecklist = memo(function PresetChecklist({
                   */
                   <div
                     className="text-[10px] font-bold uppercase tracking-[0.05em] mt-1"
-                    style={{ marginLeft: 22, color: "#B45309" }}
+                    style={{ marginLeft: 22, color: AI_MARK }}
                   >
                     AI wrote this — check it
                   </div>
@@ -269,7 +279,7 @@ export const PresetChecklist = memo(function PresetChecklist({
                       // Amber left edge while it is still the AI's sentence,
                       // so the marked boxes are findable by scanning the
                       // column rather than by reading every label.
-                      borderLeft: aiFilled?.[preset.id] !== undefined && aiFilled[preset.id] === (selection[preset.id] ?? "") ? "2px solid #B45309" : `1px solid ${TONE[tone].border}`,
+                      borderLeft: aiFilled?.[preset.id] !== undefined && aiFilled[preset.id] === (selection[preset.id] ?? "") ? `2px solid ${AI_MARK}` : `1px solid ${TONE[tone].border}`,
                       background: TONE[tone].bg,
                       color: NAVY,
                       outline: "none",
