@@ -365,6 +365,29 @@ Copy-edit these notes into the overall comment. The examiner's words, corrected 
  * for where. That split is the whole justification for the feature: judging
  * is theirs, searching 2,200 words is not work a person should be doing.
  *
+ * WHAT IT IS SHOWN was settled by measurement, not argument. Five context
+ * configurations were run against two real consultations whose ground truth
+ * comes from Brandon's own written reviews, scored on criteria fixed before
+ * the results were seen. Recall of genuinely-true phrases, out of sixteen:
+ * transcript alone 12; plus the AI's domain comments 12; plus the station's
+ * marksheets 8; marksheets with skills and comments 14; comments, grades and
+ * skills without the marksheets 14.
+ *
+ * THE MARKSHEETS ARE OUT, on the only measured downside in the set. Worst
+ * recall, and the one source that made the model willing to assert what had
+ * NOT happened. Both absences it produced that way failed adversarial
+ * checking by two independent readers: it wrote "no direct screening for
+ * spinal cord compression red flags such as ... bladder or bowel dysfunction"
+ * about a consultation containing "You're passing urine alright?" and
+ * "Opening bowels fine?" at 4:19. A wrong criticism going to a candidate
+ * under a GP's name is the worst thing this product can produce.
+ *
+ * The skills assessment, the domain comments and the grades stay, at
+ * Brandon's request. The circularity risk he accepted did not show: with a
+ * domain comment planted to claim two things that never happened, autofill
+ * returned null for both rather than repeating them, and the grades produced
+ * no verdict leakage in any run.
+ *
  * NOTHING FOUND IS A REAL ANSWER, and the prompt says so four times. A model
  * that can only return an example returns one for every tick, including the
  * ticks where the candidate did not quite do the thing — and an invented
@@ -389,16 +412,6 @@ export async function autofillTickedAction(args: {
   transcript: string;
   /** Ticked phrases with no comment yet, each with the half it belongs to. */
   items: { id: string; phrase: string; half: "well" | "improve"; domain: string }[];
-  /**
-   * The case author's list of what this station is designed to cover.
-   *
-   * A transcript on its own is a record with no standard in it: it says what
-   * was said and nothing about whether that was enough. This is the standard,
-   * and it is human-written, which is what makes it usable here. "The case
-   * expects a urine culture and nothing in the transcript mentions one" is
-   * checkable against two records with no model opinion in between.
-   */
-  expected?: { dataGathering: string[]; management: string[] } | null;
   /**
    * The skills assessment, as a POINTER and not as a source.
    *
@@ -435,8 +448,13 @@ export async function autofillTickedAction(args: {
   const examiner = await getExaminer();
   if (!examiner) return { error: "Not authorised." };
 
-  const items = (args.items ?? []).filter((i) => i && i.id && i.phrase?.trim());
-  if (items.length === 0) return { error: "Nothing ticked that needs filling." };
+  /*
+    Did well only, enforced here and not just in the client, because a server
+    action is reachable by anything that can POST to it and the reason for the
+    restriction is a correctness one rather than a UI preference.
+  */
+  const items = (args.items ?? []).filter((i) => i && i.id && i.phrase?.trim() && i.half === "well");
+  if (items.length === 0) return { error: "No ticked Did Well phrase is waiting for a comment." };
   if (!args.transcript?.trim()) return { error: "No transcript to search." };
 
   const lines = items
@@ -463,9 +481,7 @@ export async function autofillTickedAction(args: {
         "",
         "DID WELL. Say where it happened, in one short phrase, with the timestamp if the transcript carries one: \"at 6:18, asked what she thought was causing it\". Describe the moment in your own words rather than quoting: the transcript is machine-written and carries filler and mis-heard words, and quoting puts sentences in the candidate's mouth. Null if the candidate did not visibly do it.",
         "",
-        "COULD IMPROVE. These are mostly things that did NOT happen, and a thing that did not happen has no moment. Never invent the point where it should have occurred. Two honest answers: state the absence, which can be checked (\"no mention of red flags anywhere in the consultation\"), or name the moment a gap shows (\"at 7:40 the patient raised the worry themselves, unprompted\"). Null if neither is true.",
-        "",
-        "WHAT THE CASE EXPECTED, where it is given, is the case author's list of what this station is designed to cover. The transcript says what happened; this says what good looks like. Use it to judge whether something is genuinely absent rather than merely unsaid, and to know what to search for. Do not quote it as though it were evidence: that a case expects something is not proof the candidate skipped it, the transcript is.",
+        "EVERY PHRASE YOU ARE SENT IS A DID WELL PHRASE. Could improve phrases are deliberately not sent to you, because evidence for them would have to be an absence and absence is the thing this gets wrong. If one reaches you anyway, return null for it rather than reasoning about what did not happen.",
         "",
         "THE SKILLS ASSESSMENT, where it is given, is an earlier automated pass over the same consultation. Treat it as a pointer to where to look and nothing more. Never cite it, never refer to it, and never write that something was marked down or rated: an examiner reading that in their own notes is reading a machine agreeing with itself. If it says a thing is missing, go and confirm the absence in the transcript before you report one.",
         "",
@@ -483,12 +499,6 @@ export async function autofillTickedAction(args: {
         role: "user",
         content: [
           `TRANSCRIPT:\n${args.transcript}`,
-          args.expected?.dataGathering?.length
-            ? `\nWHAT THE CASE EXPECTED, data gathering:\n${args.expected.dataGathering.map((x) => `- ${x}`).join("\n")}`
-            : "",
-          args.expected?.management?.length
-            ? `\nWHAT THE CASE EXPECTED, management:\n${args.expected.management.map((x) => `- ${x}`).join("\n")}`
-            : "",
           args.skills?.length
             ? `\nSKILLS ASSESSMENT, a pointer only, never to be cited:\n${args.skills
                 .map((s) => `- ${s.label}: ${s.rating}${s.improvement ? ` (${s.improvement})` : ""}`)
@@ -497,7 +507,7 @@ export async function autofillTickedAction(args: {
           args.aiDomains?.some((d) => d.comment)
             ? `\nAI DOMAIN COMMENTS, specifics reusable, verdicts not:\n${args.aiDomains
                 .filter((d) => d.comment)
-                .map((d) => `- ${d.domain}: ${d.comment}`)
+                .map((d) => `- ${d.domain}${d.grade ? ` [graded ${d.grade}]` : ""}: ${d.comment}`)
                 .join("\n")}`
             : "",
           `\nPHRASES:\n${lines}`,

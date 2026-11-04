@@ -787,17 +787,42 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     setAutofillError("");
     setAutofillNote("");
     const current = picked;
-    const items = PRESET_FIELDS.flatMap((field) => {
+    /*
+      DID WELL ONLY. Could improve ticks are not sent.
+
+      Not a limitation waiting to be engineered away. A Did well phrase names
+      something that happened, so there is a moment in the transcript to point
+      at. A Could improve phrase is a negative, and evidence for a negative is
+      an absence, and in a real consultation the candidate nearly always did
+      something adjacent, briefly or in other words, so the absence overstates.
+
+      Three ways of fixing it were tried and measured against two real
+      consultations. Giving it the case marksheets produced two absence claims,
+      both judged overstated by two independent readers: one said there was "no
+      direct screening for ... bladder or bowel dysfunction" about a
+      consultation containing "You're passing urine alright?". Giving it the
+      AI's own comments, grades and skills produced one, also overstated.
+      Telling it in the prompt to write only forward-looking recommendations
+      and never to state what did not happen produced three lines, and all
+      three stated what did not happen anyway, one of them asserting the
+      patient had "bony metastatic disease", a diagnosis the transcript never
+      mentions.
+
+      Six of six verification passes, across every approach, called the
+      absences wider than the truth. So this fills the half that works and
+      leaves the other half to the examiner, which is where the audit of
+      Brandon's own reviews says the examiner was adding the most anyway.
+    */
+    const items = PRESET_FIELDS.filter((f) => f.endsWith("_well")).flatMap((field) => {
       const selection = current[field] ?? {};
-      const half: "well" | "improve" = field.endsWith("_well") ? "well" : "improve";
       const domain = FIELD_LABEL[field].split(" — ")[0];
       return (presets[field] ?? [])
         .filter((p) => p.id in selection && !(selection[p.id] ?? "").trim())
-        .map((p) => ({ id: p.id, phrase: p.text, half, domain }));
+        .map((p) => ({ id: p.id, phrase: p.text, half: "well" as const, domain }));
     });
 
     if (items.length === 0) {
-      setAutofillError("Every ticked phrase already has a comment.");
+      setAutofillError("No ticked Did Well phrase is waiting for a comment.");
       return;
     }
 
@@ -821,11 +846,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
       const res = await autofillTickedAction({
         transcript,
         items,
-        // The case author's standard, so an absence can be judged against
-        // what the station was built to test rather than against nothing.
-        expected: station
-          ? { dataGathering: station.data_gathering ?? [], management: station.management ?? [] }
-          : null,
         // A pointer to where to look, named and labelled but never quotable.
         skills: aiSkills.map((s) => ({
           label: skillLabels[s.skill] ?? s.skill,
@@ -902,7 +922,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
           : `Filled ${ids.length} of ${items.length}. No evidence found for the other ${missed}, left empty.`
       );
     });
-  }, [picked, presets, turns, station, aiSkills, skillLabels, rec]);
+  }, [picked, presets, turns, aiSkills, skillLabels, rec]);
 
   const handlePresetsChange = useCallback(
     (field: PresetField, next: ExaminerPreset[]) =>
@@ -1906,10 +1926,28 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   Warning
                 </h2>
                 <p className="text-[13px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.75)" }}>
-                  This populates the ticked preset fields that should be filled by the examiner with
-                  AI comments. To ensure the honesty of our product please carefully review and edit
-                  these comments to match your honest assessment.
+                  This populates the ticked Did Well fields with AI comments. To ensure the honesty
+                  of our product please carefully review and edit these comments to match your
+                  honest assessment.
                 </p>
+
+                {/*
+                  Why Could Improve is not offered, in one line.
+
+                  The examiner will notice its absence and assume it is coming
+                  later, so it is better to say it is not. The reason is
+                  structural rather than a limitation to be engineered away:
+                  Did Well asks where something is, Could Improve asks to
+                  prove a negative. Three approaches were tried and all three
+                  produced absence claims, most of them wider than the truth,
+                  one of them inventing a diagnosis the consultation never
+                  mentioned.
+                */}
+                <p className="text-[12.5px] leading-relaxed m-0 mt-3" style={{ color: "#92400E" }}>
+                  Could Improve is left for you. The AI can find what happened in the transcript. It
+                  cannot reliably find what is missing, and when pushed it overstates.
+                </p>
+
                 <p className="text-[12px] leading-relaxed m-0 mt-3" style={{ color: "rgba(51,51,51,0.5)" }}>
                   Only empty boxes are filled, anything you have written is left alone, and each
                   filled box is marked until you edit it.
