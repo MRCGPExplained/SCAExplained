@@ -1827,6 +1827,25 @@ const BULLET = "• ";
  *  the whole browser rather than one per recording — see the toggle. */
 const PRESETS_HIDDEN_KEY = "sca_examiner_presets_hidden";
 
+/** Set when this examiner has hidden the six free-text boxes. One key for the
+ *  whole browser, for the same reason as PRESETS_HIDDEN_KEY above: it is how
+ *  they like the rail laid out, not part of the review in front of them. */
+const FREE_TEXT_HIDDEN_KEY = "sca_examiner_free_text_hidden";
+
+/**
+ * The notepad card's tint, flattened, for the sticky domain labels.
+ *
+ * The card itself is rgba(51,51,51,0.04) over the page's LIGHT_BG, which is
+ * fine until something inside it has to be opaque: a sticky label needs a
+ * background the notes cannot scroll through, and the same rgba value would
+ * composite a second time and read as a darker band sliding over the card.
+ *
+ * So this is that colour already resolved: 250,250,248 mixed 4% toward
+ * 51,51,51. If LIGHT_BG or the card's tint changes, this has to be worked out
+ * again, which is the cost of the only opaque thing in a translucent card.
+ */
+const NOTEPAD_BG = "#F2F2F0";
+
 const EMPTY_NOTES: AssistNotes = {
   dgWell: "", dgImprove: "",
   cmWell: "", cmImprove: "",
@@ -2032,6 +2051,42 @@ const Notepad = memo(function Notepad({
     });
   }
 
+  /*
+    And the same for the free-text boxes, for the examiner who works entirely
+    from the tick lists.
+
+    Hiding unmounts them, and that is safe rather than lucky: the boxes carry
+    no `name` attribute, so none of the FormData trouble documented further up
+    this file applies to them, and their text lives in `assist` in the parent
+    and is written to localStorage from there. The proof is already on the
+    page: this whole component unmounts every time the pill switches to
+    Comment, and the notes come back.
+
+    What is NOT safe is hiding them with CSS and leaving them mounted, or
+    clearing `assist` on the way out. Neither is done here.
+  */
+  const [showFreeText, setShowFreeText] = useState(true);
+  useEffect(() => {
+    try {
+      setShowFreeText(window.localStorage.getItem(FREE_TEXT_HIDDEN_KEY) !== "1");
+    } catch {
+      // As above: shown is the right fallback.
+    }
+  }, []);
+
+  function toggleFreeText() {
+    setShowFreeText((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.removeItem(FREE_TEXT_HIDDEN_KEY);
+        else window.localStorage.setItem(FREE_TEXT_HIDDEN_KEY, "1");
+      } catch {
+        // It just will not be remembered past this page.
+      }
+      return next;
+    });
+  }
+
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
   /*
@@ -2107,16 +2162,29 @@ const Notepad = memo(function Notepad({
         <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
           Notepad
         </h3>
-        {/* Same faint treatment as Edit presets. It is a thing you set once
-            and then forget, not part of marking a consultation. */}
-        <button
-          type="button"
-          onClick={togglePresets}
-          className="text-[10px]"
-          style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", flexShrink: 0 }}
-        >
-          {showPresets ? "Hide presets" : "Show presets"}
-        </button>
+        {/* Same faint treatment as Edit presets. These are things you set
+            once and then forget, not part of marking a consultation. Stacked
+            rather than side by side: two underlined phrases on one line read
+            as one sentence, and the rail has the vertical room where it has
+            no horizontal room at all. */}
+        <div className="flex flex-col items-end gap-0.5" style={{ flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={togglePresets}
+            className="text-[10px]"
+            style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+          >
+            {showPresets ? "Hide presets" : "Show presets"}
+          </button>
+          <button
+            type="button"
+            onClick={toggleFreeText}
+            className="text-[10px]"
+            style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+          >
+            {showFreeText ? "Hide free text" : "Show free text"}
+          </button>
+        </div>
       </div>
 
       {/*
@@ -2178,7 +2246,33 @@ const Notepad = memo(function Notepad({
       <div className="flex flex-col gap-3 mt-3">
         {DOMAINS.map((d) => (
           <div key={d.label}>
-            <div className="text-[12px] font-bold mb-1.5" style={{ color: NAVY }}>{d.label}</div>
+            {/*
+              Which domain you are in, without having to scroll back up for it.
+
+              Sticky, not a side gutter and not an observer. The rail is its
+              own scroll container, so a label with top: 0 pins to the top of
+              the rail while its domain is on screen and leaves with it when
+              the next one arrives, which is the question being asked. Nothing
+              to go stale, no scroll listener, no horizontal space given up by
+              a column that is the writing column.
+
+              The negative margin takes the background out to the notepad
+              card's own edge, and no further: the rail sets overflow-y, which
+              makes its overflow-x auto as well, so anything hung outside that
+              card would either be clipped or put a scrollbar inside the rail.
+              The padding it cancels is the card's p-5.
+
+              An opaque background is the load-bearing part. Without one the
+              notes scroll through the label and both become unreadable, and
+              the card's own tint is translucent, so this is the tint composited
+              over the page behind it rather than the same rgba value again.
+            */}
+            <div
+              className="text-[12px] font-bold -mx-5 px-5 pt-1 pb-1.5 mb-1.5"
+              style={{ position: "sticky", top: 0, zIndex: 2, color: NAVY, background: NOTEPAD_BG }}
+            >
+              {d.label}
+            </div>
 
             {/* Tick list, then the free text under it. The presets carry what
                 recurs; the box carries what does not, and every consultation
@@ -2194,7 +2288,7 @@ const Notepad = memo(function Notepad({
               tone="well"
               collapsed={!showPresets}
             />
-            {box(d.well, "well")}
+            {showFreeText && box(d.well, "well")}
 
             <div className="mt-2.5">
               <PresetChecklist
@@ -2208,11 +2302,20 @@ const Notepad = memo(function Notepad({
                 tone="improve"
                 collapsed={!showPresets}
               />
-              {box(d.improve, "improve")}
+              {showFreeText && box(d.improve, "improve")}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Both halves hidden leaves six domain labels and nothing to write in,
+          which looks broken rather than chosen. The two buttons above are
+          still there to undo it, so this only has to say what happened. */}
+      {!showPresets && !showFreeText && (
+        <p className="text-[11px] m-0 mt-3" style={{ color: "rgba(51,51,51,0.4)" }}>
+          Both the tick lists and the free-text boxes are hidden. Nothing has been lost.
+        </p>
+      )}
     </div>
   );
 });

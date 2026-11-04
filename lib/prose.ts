@@ -28,10 +28,14 @@
  * needs to know what the writing means, so neither is a judgement a model has
  * to be trusted with. Asking harder had already been tried on both.
  *
- *   - The third domain's heading. The prompt names "RTO:" as the only
- *     permitted spelling, but the notes handed to the model label that domain
- *     "Relating to Others" in full, so it harmonises the two. Stable at RTO
- *     until the closing rules were added, then one run in two.
+ *   - The third domain's heading, which must read "RELATING TO OTHERS:" in
+ *     full. The prompt says so and the notes handed to the model label the
+ *     domain the same way, so the pressure is now with the rule rather than
+ *     against it, and this only catches a model that shortens anyway. It
+ *     earns its place from the other direction: while the prompt asked for
+ *     the abbreviation instead, against those same notes, it came back in
+ *     full in one run of two. Whichever spelling is wanted, the prompt line
+ *     alone has been measured deciding it about half the time.
  *
  *   - A FINAL WORD heading with nothing underneath. On a review with no Could
  *     improve notes there are no takeaways to list, and the prompt says to
@@ -48,7 +52,7 @@ export function tidyExaminerComment(text: string): string {
   if (!text) return text;
 
   return text
-    .replace(/^RELATING TO OTHERS:[ \t]*$/gim, "RTO:")
+    .replace(/^RTO:[ \t]*$/gim, "RELATING TO OTHERS:")
     .replace(/\n*^FINAL WORD:[ \t]*\n+(?=(?:Well done\b|Overall well done\b|\s*$))/gim, "\n\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
