@@ -8,7 +8,7 @@ import DualTrackPlayer from "@/app/components/DualTrackPlayer";
 import RetryPipelineButton from "../RetryPipelineButton";
 import ExaminerSkills from "./ExaminerSkills";
 import TranscriptKaraoke from "./TranscriptKaraoke";
-import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
+import { AI_MARK, PresetChecklist, type PresetSelection } from "./PresetChecklist";
 import { useDictation } from "./useDictation";
 import { FIELD_LABEL, PRESET_FIELDS, TONE, type DomainHalfNotes, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
@@ -775,10 +775,34 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     });
   }, []);
 
-  const [autofillOpen, setAutofillOpen] = useState(false);
+  /*
+    One dictation instance for the whole review.
+
+    It lived in Notepad, which was right while the notepad was the only
+    place you could dictate into. The Could Improve dialog renders outside
+    the form, so a second instance would be a second MediaRecorder racing
+    the first for the microphone and two "Listening" indicators disagreeing
+    about whether anything is being recorded.
+  */
+  const [dictateError, setDictateError] = useState<string | null>(null);
+  const dictation = useDictation(rec.id, setDictateError);
+
+  /*
+    Two stages, which is what was asked for, with one thing done quietly.
+
+      warn    the warning, and what this will and will not do
+      improve the ticked Could Improve phrases, for the examiner to dictate
+
+    The Did Well generation fires as stage two OPENS, not when it closes. The
+    stages are for the person; the call has no reason to wait behind them, and
+    a few seconds of it land under the time spent dictating rather than under
+    a spinner afterwards. By the time Done is pressed the boxes are usually
+    already filled.
+  */
+  const [autofillStage, setAutofillStage] = useState<"warn" | "improve" | null>(null);
   // Stable, because Notepad is memo'd and an inline arrow here would rebuild
   // forty-eight tick rows on every keystroke in any box.
-  const openAutofill = useCallback(() => setAutofillOpen(true), []);
+  const openAutofill = useCallback(() => setAutofillStage("warn"), []);
   const [autofillError, setAutofillError] = useState("");
   const [autofillNote, setAutofillNote] = useState("");
   const [autofillPending, startAutofill] = useTransition();
@@ -909,8 +933,12 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         // Nothing to undo: the state above is what matters this session.
       }
 
-      setAutofillOpen(false);
       /*
+        The dialog is NOT closed here. It is on stage two by now and the
+        examiner is in the middle of dictating into it; closing the thing
+        somebody is typing in, because a network call they cannot see has
+        come back, would be the rudest possible way to deliver good news.
+
         Say how many were left alone. A run that fills everything has almost
         certainly invented something, so the count is not trivia: it is the
         number worth being suspicious of, reported the other way round.
@@ -1853,7 +1881,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 {railTab === "notes" && !isSent && (
                   <Notepad
                     notes={assist}
-                    recordingId={rec.id}
                     presets={presets}
                     picked={picked}
                     onPickedChange={handlePickedChange}
@@ -1873,6 +1900,8 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     onTogglePresets={togglePresets}
                     showFreeText={showFreeText}
                     onToggleFreeText={toggleFreeText}
+                    dictation={dictation}
+                    dictateError={dictateError}
                   />
                 )}
             </aside>
@@ -1907,12 +1936,12 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
           the step should not be frictionless; the thing actually doing the
           work is the marker beside each filled comment.
         */}
-        {autofillOpen && (
+        {autofillStage === "warn" && (
           <div
             className="fixed inset-0 flex items-center justify-center px-4"
             style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
             onMouseDown={(e) => {
-              if (e.target === e.currentTarget && !autofillPending) setAutofillOpen(false);
+              if (e.target === e.currentTarget) setAutofillStage(null);
             }}
           >
             <div
@@ -1960,8 +1989,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
               <div className="px-6 py-5 flex gap-2 justify-end flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setAutofillOpen(false)}
-                  disabled={autofillPending}
+                  onClick={() => setAutofillStage(null)}
                   className="rounded-lg px-4 py-2 text-[13px] font-bold"
                   style={{ background: "rgba(51,51,51,0.07)", color: NAVY, border: "none", cursor: autofillPending ? "default" : "pointer" }}
                 >
@@ -1969,16 +1997,37 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                 </button>
                 <button
                   type="button"
-                  onClick={runAutofill}
-                  disabled={autofillPending}
+                  onClick={() => {
+                    // Stage two and the call, in that order and in the same
+                    // click. The examiner starts dictating while it runs.
+                    setAutofillStage("improve");
+                    runAutofill();
+                  }}
                   className="rounded-lg px-4 py-2 text-[13px] font-bold"
-                  style={{ background: NAVY, color: "white", border: "none", cursor: autofillPending ? "default" : "pointer", opacity: autofillPending ? 0.6 : 1 }}
+                  style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
                 >
-                  {autofillPending ? "Searching the transcript…" : "Yes, I understand"}
+                  Yes, I understand
                 </button>
               </div>
             </div>
           </div>
+        )}
+
+        {autofillStage === "improve" && (
+          <ImproveDialog
+            presets={presets}
+            picked={picked}
+            onPickedChange={handlePickedChange}
+            aiFilled={aiFilled}
+            dictation={dictation}
+            dictateError={dictateError}
+            pending={autofillPending}
+            error={autofillError}
+            note={autofillNote}
+            onConvert={handleConvert}
+            willOverwrite={!!overallComment.trim()}
+            onClose={() => setAutofillStage(null)}
+          />
         )}
 
         {/* Same reasoning as above, and read-only besides: nothing in here is
@@ -2412,12 +2461,10 @@ function NoteBox({ value, onChange, onKeyDown, tone }: {
  */
 const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
-  recordingId, hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled, autofillNote,
-  showPresets, onTogglePresets, showFreeText, onToggleFreeText,
+  hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled, autofillNote,
+  showPresets, onTogglePresets, showFreeText, onToggleFreeText, dictation, dictateError,
 }: {
   notes: AssistNotes;
-  /** Only so a dictation can be costed against the review it was spoken into. */
-  recordingId: string;
   onChange: (n: AssistNotes) => void;
   presets: PresetMap;
   picked: Record<PresetField, PresetSelection>;
@@ -2448,10 +2495,12 @@ const Notepad = memo(function Notepad({
   onTogglePresets: () => void;
   showFreeText: boolean;
   onToggleFreeText: () => void;
+  /** Lifted to the parent so the Could Improve dialog, which renders outside
+   *  this component, can hold the same microphone rather than a second one. */
+  dictation: ReturnType<typeof useDictation>;
+  dictateError: string | null;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const [dictateError, setDictateError] = useState<string | null>(null);
-  const dictation = useDictation(recordingId, setDictateError);
 
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
@@ -2750,6 +2799,271 @@ const Notepad = memo(function Notepad({
  * which is safe because neither carries the form field any more. See the
  * hidden inputs at the top of the form.
  */
+/**
+ * Stage two: the Could Improve phrases, for the examiner to fill in their own
+ * words while the Did Well search runs behind it.
+ *
+ * This exists because the honest answer to "can the AI do Could Improve" is
+ * no, and a product that says so and then does nothing has only moved the
+ * work without naming it. Asking here turns the one thing the machine cannot
+ * do into the one moment the examiner is asked to do it, batched into a
+ * single pass rather than scattered across six boxes in three domains.
+ *
+ * DICTATION IS THE POINT. These are spoken sentences, not typed ones, and
+ * holding slash here has to work exactly as it does in the notepad. The
+ * handlers come from the parent's single useDictation, so this dialog and the
+ * notepad share one microphone and one indicator rather than racing for both.
+ *
+ * Only phrases with nothing written yet. A ticked phrase with no comment is
+ * already a complete recommendation — "Try to ask ICE earlier" stands up on
+ * its own — so blank is not an empty field, it is the general version, and
+ * what is typed here is the version specific to this candidate.
+ */
+function ImproveDialog({
+  presets, picked, onPickedChange, aiFilled, dictation, dictateError, pending, error, note, onConvert, willOverwrite, onClose,
+}: {
+  presets: PresetMap;
+  picked: Record<PresetField, PresetSelection>;
+  onPickedChange: (field: PresetField, next: PresetSelection) => void;
+  aiFilled: Record<string, string>;
+  dictation: ReturnType<typeof useDictation>;
+  dictateError: string | null;
+  pending: boolean;
+  error: string;
+  note: string;
+  /** Runs the notepad Convert and flips the rail to the comment. */
+  onConvert: () => void;
+  /** An overall comment already exists, so Convert would replace it. */
+  willOverwrite: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // Not while the microphone is open: slash is held down to dictate and
+      // Escape is how you abandon a sentence, not the whole dialog.
+      if (e.key === "Escape" && dictation.state === "idle") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose, dictation.state]);
+
+  /*
+    Frozen on mount. The list is "what was empty when the dialog opened", so a
+    row cannot vanish from under the cursor the moment the first word of
+    dictation lands in it.
+  */
+  const [rows] = useState(() => {
+    const collect = (suffix: "_well" | "_improve") =>
+      PRESET_FIELDS.filter((f) => f.endsWith(suffix)).flatMap((field) => {
+        const selection = picked[field] ?? {};
+        const domain = FIELD_LABEL[field].split(" — ")[0];
+        return (presets[field] ?? [])
+          .filter((p) => p.id in selection && !(selection[p.id] ?? "").trim())
+          .map((p) => ({ field, id: p.id, phrase: p.text, domain }));
+      });
+    // The well side is exactly what runAutofill was given, computed the same
+    // way from the same snapshot, so the left column lists what is in flight.
+    return { well: collect("_well"), improve: collect("_improve") };
+  });
+
+  const [confirming, setConfirming] = useState(false);
+
+  function setComment(field: PresetField, id: string, value: string) {
+    onPickedChange(field, { ...(picked[field] ?? {}), [id]: value });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && dictation.state === "idle") onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label="Could Improve, in your words"
+        className="rounded-2xl w-full flex flex-col"
+        style={{ background: "white", maxWidth: 1000, maxHeight: "88vh", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
+        onKeyDownCapture={dictation.onKeyDownCapture}
+        onKeyUp={dictation.onKeyUp}
+        onBlurCapture={dictation.onBlurCapture}
+      >
+        <div className="px-6 pt-6 pb-3" style={{ flexShrink: 0 }}>
+          <h2 className="font-display font-bold text-[16px] m-0 mb-2" style={{ color: NAVY }}>
+            Did Well, filling. Could Improve, over to you.
+          </h2>
+          <p className="text-[10.5px] m-0" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
+            {dictateError
+              ? dictateError
+              : dictation.state === "listening"
+              ? "● Listening — let go of / to stop"
+              : dictation.state === "transcribing"
+              ? "Transcribing…"
+              : "Hold / in any box to dictate"}
+          </p>
+        </div>
+
+        {/*
+          Two columns, one per half, which is what makes the stage worth
+          having. The left fills itself while the right is being dictated, so
+          the wait is spent working rather than watching, and the two halves
+          of a domain are read side by side instead of scrolled between.
+        */}
+        <div className="px-6 pb-2 grid gap-5" style={{ gridTemplateColumns: "1fr 1fr", overflowY: "auto", flex: 1, alignItems: "start" }}>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Did Well {pending && <span style={{ color: AI_MARK }}>· filling…</span>}
+            </div>
+            {rows.well.length === 0 ? (
+              <p className="text-[12px] m-0" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Nothing ticked under Did Well was waiting for a comment.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {rows.well.map((r) => {
+                  const value = picked[r.field]?.[r.id] ?? "";
+                  const isAi = aiFilled[r.id] !== undefined && aiFilled[r.id] === value;
+                  return (
+                    <div key={r.id}>
+                      <div className="text-[9.5px] font-bold uppercase tracking-[0.05em]" style={{ color: "rgba(51,51,51,0.3)" }}>
+                        {r.domain}
+                      </div>
+                      <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>{r.phrase}</div>
+                      <textarea
+                        data-dictate
+                        rows={2}
+                        value={value}
+                        onChange={(e) => setComment(r.field, r.id, e.target.value)}
+                        placeholder={pending && !value ? "searching the transcript…" : "nothing found — add your own, or leave blank"}
+                        className="w-full rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none"
+                        style={{
+                          border: `1px solid ${TONE.well.border}`,
+                          borderLeft: isAi ? `2px solid ${AI_MARK}` : `1px solid ${TONE.well.border}`,
+                          background: TONE.well.bg,
+                          color: NAVY,
+                          resize: "vertical",
+                        }}
+                      />
+                      {isAi && (
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.05em] mt-0.5" style={{ color: AI_MARK }}>
+                          AI wrote this — check it
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Could Improve
+            </div>
+            <p className="text-[11.5px] leading-relaxed m-0 mb-2" style={{ color: "rgba(51,51,51,0.5)" }}>
+              Leave any blank and the phrase stands on its own as a general recommendation. What you
+              add makes it specific to this candidate or station.
+            </p>
+            {rows.improve.length === 0 ? (
+              <p className="text-[12px] m-0" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Nothing ticked under Could Improve is waiting for a comment.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {rows.improve.map((r) => (
+                  <div key={r.id}>
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.05em]" style={{ color: "rgba(51,51,51,0.3)" }}>
+                      {r.domain}
+                    </div>
+                    <div className="text-[12px] font-semibold mb-1" style={{ color: NAVY }}>{r.phrase}</div>
+                    <textarea
+                      data-dictate
+                      rows={2}
+                      value={picked[r.field]?.[r.id] ?? ""}
+                      onChange={(e) => setComment(r.field, r.id, e.target.value)}
+                      placeholder="Hold / and say what happened here, or leave blank…"
+                      className="w-full rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none"
+                      style={{
+                        border: `1px solid ${TONE.improve.border}`,
+                        background: TONE.improve.bg,
+                        color: NAVY,
+                        resize: "vertical",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-between gap-3 flex-wrap" style={{ flexShrink: 0, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+          <span className="text-[11px]" style={{ color: error ? "#B91C1C" : "rgba(51,51,51,0.45)" }}>
+            {error
+              ? error
+              : pending
+              ? "Filling the Did Well boxes…"
+              : note || "Did Well boxes filled."}
+          </span>
+          <div className="flex gap-2 flex-wrap">
+            {/* Everything typed here is already in `picked`, so leaving is
+                free: the boxes behind this dialog hold it, and the examiner
+                can scrub the audio and come back. */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-[13px] font-bold"
+              style={{ background: "rgba(51,51,51,0.07)", color: NAVY, border: "none", cursor: "pointer" }}
+            >
+              Return to transcript
+            </button>
+            {/*
+              Straight on to the comment, for a review the examiner is
+              already sure of.
+
+              Two presses when there is a comment to lose. Convert replaces
+              the overall comment outright, and from in here the examiner
+              cannot see what is about to go: the notepad's own Convert asks
+              first for exactly that reason, and a second door into the same
+              action has no business being quieter than the first.
+
+              Disabled while the search is running, because converting then
+              would build the report out of the boxes it is still filling.
+            */}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                if (willOverwrite && !confirming) {
+                  setConfirming(true);
+                  return;
+                }
+                onConvert();
+                onClose();
+              }}
+              className="rounded-lg px-4 py-2 text-[13px] font-bold"
+              style={{
+                background: confirming ? "#B45309" : NAVY,
+                color: "white",
+                border: "none",
+                cursor: pending ? "default" : "pointer",
+                opacity: pending ? 0.5 : 1,
+              }}
+            >
+              {pending
+                ? "Still filling…"
+                : confirming
+                ? "Replace the comment you have written?"
+                : "Convert to report"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** The tabs of the station modal, in reading order. */
 const STATION_TABS = [
   ["dg", "Data Gathering"],

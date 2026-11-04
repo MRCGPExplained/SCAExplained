@@ -4,6 +4,17 @@ import { useRef, useState, useEffect } from "react";
 
 const NAVY = "#333333";
 
+/**
+ * Playback speeds, in one place because this row is rendered twice: once in
+ * the full player and once in the compact sticky bar.
+ *
+ * 1.75 is here because 1.5 is slower than an examiner needs by the second
+ * listen and 2 is fast enough to lose the pauses that carry meaning in a
+ * consultation, which is where a candidate letting a silence run is the
+ * thing being marked.
+ */
+const SPEEDS = [1, 1.5, 1.75, 2];
+
 function fmtTime(secs: number) {
   const m = Math.floor(secs / 60);
   const s = Math.floor(secs % 60);
@@ -245,7 +256,7 @@ export default function DualTrackPlayer({
           </div>
 
           <div className="flex gap-1">
-            {[1, 1.5, 2].map((r) => (
+            {SPEEDS.map((r) => (
               <button
                 key={r}
                 type="button"
@@ -323,7 +334,7 @@ export default function DualTrackPlayer({
 
           {compact && (
             <div className="flex gap-1 flex-shrink-0">
-              {[1, 1.5, 2].map((r) => (
+              {SPEEDS.map((r) => (
                 <button
                   key={r}
                   type="button"

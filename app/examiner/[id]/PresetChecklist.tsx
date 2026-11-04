@@ -13,7 +13,7 @@ import { MAX_PRESETS_PER_FIELD } from "@/lib/examiner-presets-store";
  * box read as part of the tone rather than as a warning about the text.
  * This belongs to no half, which is the point.
  */
-const AI_MARK = "#6D28D9";
+export const AI_MARK = "#6D28D9";
 
 const NAVY = "#333333";
 
