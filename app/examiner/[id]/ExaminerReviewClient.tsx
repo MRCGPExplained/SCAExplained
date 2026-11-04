@@ -697,6 +697,84 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     feature taking back the judgement it is supposed to be supporting, and
     there would be no way to tell afterwards which sentences were theirs.
   */
+  /*
+    Whether the tick lists are on screen at all.
+
+    Two ways of working, and neither is wrong: one examiner picks from the
+    presets and types the exception, another types the lot and finds eight
+    tick boxes above every box in the way. So it is a preference rather than
+    a setting, and it belongs to the person.
+
+    NOT KEYED BY RECORDING, unlike every other stored key in this file. The
+    notes and the ticks are a draft of one review and must not follow the
+    examiner to the next consultation; how they like the rail laid out is the
+    opposite — having to hide the lists again on every review in the queue
+    would make the toggle not worth having.
+
+    Shown is the default, so the lists are not invisible to someone who has
+    never heard of this button. Read on mount rather than in the initialiser,
+    because this renders on the server first: reaching for localStorage
+    during render is what makes a hydration mismatch.
+  */
+  const [showPresets, setShowPresets] = useState(true);
+  useEffect(() => {
+    try {
+      setShowPresets(window.localStorage.getItem(PRESETS_HIDDEN_KEY) !== "1");
+    } catch {
+      // Storage blocked. Shown is the right fallback and the toggle still
+      // works for this page.
+    }
+  }, []);
+
+  const togglePresets = useCallback(() => {
+    setShowPresets((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
+        else window.localStorage.setItem(PRESETS_HIDDEN_KEY, "1");
+      } catch {
+        // It just will not be remembered past this page.
+      }
+      return next;
+    });
+  }, []);
+
+  /*
+    And the same for the free-text boxes, for the examiner who works entirely
+    from the tick lists.
+
+    Hiding unmounts them, and that is safe rather than lucky: the boxes carry
+    no `name` attribute, so none of the FormData trouble documented further up
+    this file applies to them, and their text lives in `assist` in the parent
+    and is written to localStorage from there. The proof is already on the
+    page: this whole component unmounts every time the pill switches to
+    Comment, and the notes come back.
+
+    What is NOT safe is hiding them with CSS and leaving them mounted, or
+    clearing `assist` on the way out. Neither is done here.
+  */
+  const [showFreeText, setShowFreeText] = useState(true);
+  useEffect(() => {
+    try {
+      setShowFreeText(window.localStorage.getItem(FREE_TEXT_HIDDEN_KEY) !== "1");
+    } catch {
+      // As above: shown is the right fallback.
+    }
+  }, []);
+
+  const toggleFreeText = useCallback(() => {
+    setShowFreeText((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.removeItem(FREE_TEXT_HIDDEN_KEY);
+        else window.localStorage.setItem(FREE_TEXT_HIDDEN_KEY, "1");
+      } catch {
+        // It just will not be remembered past this page.
+      }
+      return next;
+    });
+  }, []);
+
   const [autofillOpen, setAutofillOpen] = useState(false);
   // Stable, because Notepad is memo'd and an inline arrow here would rebuild
   // forty-eight tick rows on every keystroke in any box.
@@ -790,6 +868,27 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
         for (const id of ids) next[id] = filled[id];
         return next;
       });
+
+      /*
+        Force the tick lists open, and clear the stored preference with them.
+
+        Hidden, a PresetChecklist renders its label and nothing else: no
+        comment boxes and so no "AI wrote this" markers. Autofilling into a
+        collapsed list would put unreviewed machine text into the review with
+        the one thing meant to flag it rendered nowhere, which is the exact
+        failure this feature is built to avoid.
+
+        The stored preference goes too, not just the state. Leaving it set
+        would hide the lists again on the next load, with the unchecked text
+        still sitting in them.
+      */
+      setShowPresets(true);
+      try {
+        window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
+      } catch {
+        // Nothing to undo: the state above is what matters this session.
+      }
+
       setAutofillOpen(false);
       /*
         Say how many were left alone. A run that fills everything has almost
@@ -1750,6 +1849,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     onAutofill={isSent ? undefined : openAutofill}
                     aiFilled={aiFilled}
                     autofillNote={autofillNote}
+                    showPresets={showPresets}
+                    onTogglePresets={togglePresets}
+                    showFreeText={showFreeText}
+                    onToggleFreeText={toggleFreeText}
                   />
                 )}
             </aside>
@@ -2271,6 +2374,7 @@ function NoteBox({ value, onChange, onKeyDown, tone }: {
 const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
   recordingId, hasNotes, willOverwrite, pending, error, onConvert, onOpenStation, onAutofill, aiFilled, autofillNote,
+  showPresets, onTogglePresets, showFreeText, onToggleFreeText,
 }: {
   notes: AssistNotes;
   /** Only so a dictation can be costed against the review it was spoken into. */
@@ -2298,88 +2402,18 @@ const Notepad = memo(function Notepad({
   aiFilled: Record<string, string>;
   /** What the last autofill run did, or empty. */
   autofillNote: string;
+  /** The two layout toggles. Owned by the parent because autofill has to be
+   *  able to force the tick lists back open, and an examiner cannot check
+   *  what an AI wrote inside a list that is collapsed. */
+  showPresets: boolean;
+  onTogglePresets: () => void;
+  showFreeText: boolean;
+  onToggleFreeText: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [dictateError, setDictateError] = useState<string | null>(null);
   const dictation = useDictation(recordingId, setDictateError);
 
-  /*
-    Whether the tick lists are on screen at all.
-
-    Two ways of working, and neither is wrong: one examiner picks from the
-    presets and types the exception, another types the lot and finds eight
-    tick boxes above every box in the way. So it is a preference rather than
-    a setting, and it belongs to the person.
-
-    NOT KEYED BY RECORDING, unlike every other stored key in this file. The
-    notes and the ticks are a draft of one review and must not follow the
-    examiner to the next consultation; how they like the rail laid out is the
-    opposite — having to hide the lists again on every review in the queue
-    would make the toggle not worth having.
-
-    Shown is the default, so the lists are not invisible to someone who has
-    never heard of this button. Read on mount rather than in the initialiser,
-    because this renders on the server first: reaching for localStorage
-    during render is what makes a hydration mismatch.
-  */
-  const [showPresets, setShowPresets] = useState(true);
-  useEffect(() => {
-    try {
-      setShowPresets(window.localStorage.getItem(PRESETS_HIDDEN_KEY) !== "1");
-    } catch {
-      // Storage blocked. Shown is the right fallback and the toggle still
-      // works for this page.
-    }
-  }, []);
-
-  function togglePresets() {
-    setShowPresets((prev) => {
-      const next = !prev;
-      try {
-        if (next) window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
-        else window.localStorage.setItem(PRESETS_HIDDEN_KEY, "1");
-      } catch {
-        // It just will not be remembered past this page.
-      }
-      return next;
-    });
-  }
-
-  /*
-    And the same for the free-text boxes, for the examiner who works entirely
-    from the tick lists.
-
-    Hiding unmounts them, and that is safe rather than lucky: the boxes carry
-    no `name` attribute, so none of the FormData trouble documented further up
-    this file applies to them, and their text lives in `assist` in the parent
-    and is written to localStorage from there. The proof is already on the
-    page: this whole component unmounts every time the pill switches to
-    Comment, and the notes come back.
-
-    What is NOT safe is hiding them with CSS and leaving them mounted, or
-    clearing `assist` on the way out. Neither is done here.
-  */
-  const [showFreeText, setShowFreeText] = useState(true);
-  useEffect(() => {
-    try {
-      setShowFreeText(window.localStorage.getItem(FREE_TEXT_HIDDEN_KEY) !== "1");
-    } catch {
-      // As above: shown is the right fallback.
-    }
-  }, []);
-
-  function toggleFreeText() {
-    setShowFreeText((prev) => {
-      const next = !prev;
-      try {
-        if (next) window.localStorage.removeItem(FREE_TEXT_HIDDEN_KEY);
-        else window.localStorage.setItem(FREE_TEXT_HIDDEN_KEY, "1");
-      } catch {
-        // It just will not be remembered past this page.
-      }
-      return next;
-    });
-  }
 
   const set = (k: keyof AssistNotes) => (v: string) => onChange({ ...notes, [k]: v });
 
@@ -2484,7 +2518,7 @@ const Notepad = memo(function Notepad({
           )}
           <button
             type="button"
-            onClick={togglePresets}
+            onClick={onTogglePresets}
             className="text-[10px]"
             style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
           >
@@ -2492,7 +2526,7 @@ const Notepad = memo(function Notepad({
           </button>
           <button
             type="button"
-            onClick={toggleFreeText}
+            onClick={onToggleFreeText}
             className="text-[10px]"
             style={{ background: "none", border: "none", color: "rgba(51,51,51,0.35)", cursor: "pointer", textDecoration: "underline", padding: 0 }}
           >
