@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadAllSkillLabels, type SkillAnswer } from "@/lib/skill-framework";
 import { mergedTurns } from "@/lib/transcript";
 import { loadPresetMap } from "@/lib/examiner-presets-store";
+import type { StationMaterial } from "@/lib/case-bank-types";
 import ExaminerReviewClient from "./ExaminerReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +69,31 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
   let patientAudioUrl: string | null = null;
   let voiceNoteUrl: string | null = null;
 
-  const [doctorResult, patientResult, voiceResult] = await Promise.all([
+  /*
+    The case behind the consultation, for the station modal.
+
+    EVERY COLUMN IS NAMED, and select("*") must not be used here. Whatever a
+    server component hands a client component is serialised into the HTML the
+    browser receives, and `stations` holds the marking scheme: data_gathering
+    and management are wanted and listed below, but example_explanation,
+    key_takeaways and the three marking_notes_* columns are not, and a lazy
+    select would ship all of them. This has already happened once on the
+    candidate side — see the comment in app/case-bank/[station_number]/page.tsx
+    about marking notes travelling inside the source of the case a candidate
+    was about to be graded on.
+
+    Joined on the number, because station_recordings has no station id. There
+    is no foreign key, so this is a value lookup that can miss: maybeSingle,
+    not single, so a recording whose station has been renumbered or removed
+    loses the modal rather than 404ing a review someone is part-way through.
+
+    Folded into the Promise.all below so it costs no extra round trip. A
+    consequence worth knowing: these are today's case fields, not a snapshot
+    of what was in the room. If a case is re-authored after a consultation,
+    the examiner reads a brief the candidate never saw, and nothing in the
+    schema versions it.
+  */
+  const [doctorResult, patientResult, voiceResult, stationResult] = await Promise.all([
     rec.doctor_audio_path
       ? admin.storage.from("consultation-recordings").createSignedUrl(rec.doctor_audio_path, 3600)
       : Promise.resolve({ data: null }),
@@ -78,11 +103,25 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
     rec.examiner_voice_note_path
       ? admin.storage.from("consultation-recordings").createSignedUrl(rec.examiner_voice_note_path, 3600)
       : Promise.resolve({ data: null }),
+    admin
+      .from("stations")
+      .select(
+        "title, consultation_type, patient_name, patient_age, pmh, medications_and_allergies, " +
+          "recent_notes, reason_for_consultation, image_urls, dilemma, opening_statement, " +
+          "if_asked_further, only_if_asked, social_history, ice_ideas, ice_concerns, " +
+          "ice_expectations, question_for_doctor, scenarios, data_gathering, management"
+      )
+      .eq("number", rec.station_number)
+      .maybeSingle<StationMaterial>(),
   ]);
 
   doctorAudioUrl = doctorResult.data?.signedUrl ?? null;
   patientAudioUrl = patientResult.data?.signedUrl ?? null;
   voiceNoteUrl = voiceResult.data?.signedUrl ?? null;
+  // supabase-js reports a failure in `error` rather than throwing, so a miss
+  // here is indistinguishable from a station that is simply not there, and
+  // both mean the same thing to the page: no modal.
+  const station = stationResult.data ?? null;
 
   /*
     Turned into turns here rather than in the browser.
@@ -125,6 +164,7 @@ export default async function ExaminerReviewPage({ params }: PageProps) {
       aiSkills={aiSkills}
       examinerSkills={rec.examiner_skills_assessment?.skills ?? null}
       skillLabels={skillLabels}
+      station={station}
     />
   );
 }

@@ -12,6 +12,8 @@ import { PresetChecklist, type PresetSelection } from "./PresetChecklist";
 import { useDictation } from "./useDictation";
 import { PRESET_FIELDS, TONE, type DomainHalfNotes, type ExaminerPreset, type PresetField, type Tone } from "@/lib/examiner-presets";
 import type { PresetMap } from "@/lib/examiner-presets-store";
+import type { StationMaterial } from "@/lib/case-bank-types";
+import { DoctorBriefContent, PatientStoryContent } from "@/app/case-bank/components/BriefContent";
 import type { TimedTurn } from "@/lib/transcript";
 import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
 import type { SkillAnswer } from "@/lib/skill-framework";
@@ -176,9 +178,12 @@ interface Props {
   aiSkills: SkillAnswer[];
   examinerSkills: SkillAnswer[] | null;
   skillLabels: Record<string, string>;
+  /** The case behind the consultation, for the station modal. Null when the
+   *  station_number matches no row, since the join has no foreign key. */
+  station: StationMaterial | null;
 }
 
-export default function ExaminerReviewClient({ recording: rec, turns, presets: initialPresets, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels }: Props) {
+export default function ExaminerReviewClient({ recording: rec, turns, presets: initialPresets, doctorAudioUrl, patientAudioUrl, voiceNoteUrl, aiSkills, examinerSkills, skillLabels, station }: Props) {
   const router = useRouter();
 
   /*
@@ -793,6 +798,25 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [confirmingSend, setConfirmingSend] = useState(false);
   /** Which domain's comment is open in the dialog, by key, or none. */
   const [openDomain, setOpenDomain] = useState<string | null>(null);
+  /*
+    Which tab of the station modal is open, or none.
+
+    Separate state from openDomain rather than one "what is open" union: the
+    two modals are opened from different places for different reasons, and a
+    shared slot is how you end up with the comment dialog closing because
+    somebody clicked a notepad heading.
+  */
+  const [stationTab, setStationTab] = useState<StationTab | null>(null);
+  /*
+    The setter goes to Notepad as-is, with no useCallback around it.
+
+    Something stable is required — Notepad is memo'd and an inline arrow here
+    would rebuild it on every render, re-rendering forty-eight tick rows on
+    every keystroke in every box. A setState setter already is stable, React
+    guarantees it, so wrapping one in useCallback buys nothing and costs
+    something: the compiler reported it could not preserve the memoization
+    and skipped the component.
+  */
 
   /*
     Which half of the writing column is showing.
@@ -996,11 +1020,50 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             where it started and only for the cases that need it.
           */}
           <div className="rounded-2xl px-6 py-4 mb-4" style={{ background: NAVY, color: "white" }}>
+            {/*
+              Both halves open the case. Buttons rather than a wrapper with an
+              onClick, so they are reachable by keyboard and announce
+              themselves; type="button" because this header sits above the
+              form and Enter on a submit-typed control once sent a report.
+
+              Underlined rather than given a hover colour: this is white text
+              on navy, where a tint change is close to invisible, and the
+              DG/CM/RO buttons in the score bar already use an underline to
+              mean the same thing.
+
+              Plain text with no affordance when there is no station row to
+              show, which is a value join that can miss rather than an error.
+            */}
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-[11px] font-bold uppercase tracking-[0.07em] opacity-50 whitespace-nowrap">
-                Station {rec.station_number}
-              </span>
-              <h1 className="font-display font-extrabold text-[21px] m-0">{rec.station_title}</h1>
+              {station ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStationTab("brief")}
+                    title="Open the doctor's brief and the patient's story"
+                    className="text-[11px] font-bold uppercase tracking-[0.07em] opacity-50 whitespace-nowrap"
+                    style={{ background: "none", border: "none", padding: 0, color: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+                  >
+                    Station {rec.station_number}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStationTab("brief")}
+                    title="Open the doctor's brief and the patient's story"
+                    className="font-display font-extrabold text-[21px] m-0 text-left"
+                    style={{ background: "none", border: "none", padding: 0, color: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}
+                  >
+                    {rec.station_title}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.07em] opacity-50 whitespace-nowrap">
+                    Station {rec.station_number}
+                  </span>
+                  <h1 className="font-display font-extrabold text-[21px] m-0">{rec.station_title}</h1>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-4 text-[12px] opacity-60 flex-wrap mt-1.5">
               <span>Doctor: {rec.doctor_display_name}</span>
@@ -1542,6 +1605,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     pending={aiGenPending}
                     error={aiGenError}
                     onConvert={handleConvert}
+                    onOpenStation={station ? setStationTab : undefined}
                   />
                 )}
             </aside>
@@ -1566,6 +1630,18 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             />
           );
         })()}
+
+        {/* Same reasoning as above, and read-only besides: nothing in here is
+            a field, so it has no business inside the form. */}
+        {stationTab && station && (
+          <StationDialog
+            station={station}
+            stationNumber={rec.station_number}
+            recordedTitle={rec.station_title}
+            initialTab={stationTab}
+            onClose={() => setStationTab(null)}
+          />
+        )}
 
       </div>
     </div>
@@ -1986,7 +2062,7 @@ function NoteBox({ value, onChange, onKeyDown, tone }: {
  */
 const Notepad = memo(function Notepad({
   notes, onChange, presets, picked, onPickedChange, onPresetsChange, disabled,
-  recordingId, hasNotes, willOverwrite, pending, error, onConvert,
+  recordingId, hasNotes, willOverwrite, pending, error, onConvert, onOpenStation,
 }: {
   notes: AssistNotes;
   /** Only so a dictation can be costed against the review it was spoken into. */
@@ -2004,6 +2080,9 @@ const Notepad = memo(function Notepad({
   pending: boolean;
   error: string;
   onConvert: () => void;
+  /** Opens the station modal on a domain's tab. Absent when the recording's
+   *  station_number matched no row, which leaves the headings plain. */
+  onOpenStation?: (tab: StationTab) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [dictateError, setDictateError] = useState<string | null>(null);
@@ -2132,10 +2211,17 @@ const Notepad = memo(function Notepad({
     improve: keyof AssistNotes;
     wellField: PresetField;
     improveField: PresetField;
+    /** Which tab of the station modal this heading opens, or null when the
+     *  case bank has nothing to show for that domain. */
+    tab: StationTab | null;
   }[] = [
-    { label: "Data Gathering", well: "dgWell", improve: "dgImprove", wellField: "dg_well", improveField: "dg_improve" },
-    { label: "Clinical Management", well: "cmWell", improve: "cmImprove", wellField: "cm_well", improveField: "cm_improve" },
-    { label: "Relating to Others", well: "roWell", improve: "roImprove", wellField: "ro_well", improveField: "ro_improve" },
+    { label: "Data Gathering", well: "dgWell", improve: "dgImprove", wellField: "dg_well", improveField: "dg_improve", tab: "dg" },
+    { label: "Clinical Management", well: "cmWell", improve: "cmImprove", wellField: "cm_well", improveField: "cm_improve", tab: "cm" },
+    /* No tab. The case bank holds per-domain material for the first two
+       domains and none at all for this one: marking_notes_relating_to_others
+       is set on 2 of 246 stations. A heading that opened an empty panel would
+       be worse than one that does not open. */
+    { label: "Relating to Others", well: "roWell", improve: "roImprove", wellField: "ro_well", improveField: "ro_improve", tab: null },
   ];
 
   return (
@@ -2271,7 +2357,23 @@ const Notepad = memo(function Notepad({
               className="text-[12px] font-bold -mx-5 px-5 pt-1 pb-1.5 mb-1.5"
               style={{ position: "sticky", top: 0, zIndex: 2, color: NAVY, background: NOTEPAD_BG }}
             >
-              {d.label}
+              {/* The heading opens the case material for its domain, where
+                  there is any. A button inside the sticky band rather than a
+                  sticky button, so the opaque strip stays full width whether
+                  or not this domain has anything to open. */}
+              {d.tab && onOpenStation ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenStation(d.tab!)}
+                  title={`Open the case material for ${d.label}`}
+                  className="text-[12px] font-bold"
+                  style={{ background: "none", border: "none", padding: 0, color: NAVY, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+                >
+                  {d.label}
+                </button>
+              ) : (
+                d.label
+              )}
             </div>
 
             {/* Tick list, then the free text under it. The presets carry what
@@ -2333,6 +2435,158 @@ const Notepad = memo(function Notepad({
  * which is safe because neither carries the form field any more. See the
  * hidden inputs at the top of the form.
  */
+/** The tabs of the station modal, in reading order. */
+const STATION_TABS = [
+  ["dg", "Data Gathering"],
+  ["cm", "Clinical Management"],
+  ["brief", "Doctor's Brief"],
+  ["story", "Patient's Story"],
+] as const;
+
+type StationTab = (typeof STATION_TABS)[number][0];
+
+/**
+ * The case behind the consultation, without leaving the review.
+ *
+ * One modal with four tabs rather than a popup per label: every way in opens
+ * the same thing on a different tab, which is one control to learn instead of
+ * three, and it means the examiner can go from "what was she supposed to
+ * reveal" to "what should have been gathered" without closing anything.
+ *
+ * The two bullet tabs are the case's own expected content. The two brief tabs
+ * are the real case-bank components, imported rather than rewritten, so they
+ * cannot drift from what the candidate and the role-player actually saw.
+ *
+ * What is NOT here: the example explanation, the key takeaways and the
+ * marking notes. A model answer in front of someone mid-marking changes what
+ * they mark against, and that was a deliberate call rather than an oversight.
+ *
+ * The briefs bring the case bank's own palette with them, which is a different
+ * navy and a different tint from this page. Boxed on a plain white panel so
+ * that reads as a quotation from elsewhere rather than as a styling mistake.
+ */
+function StationDialog({
+  station, stationNumber, recordedTitle, initialTab, onClose,
+}: {
+  station: StationMaterial;
+  stationNumber: number;
+  /** The title stored on the recording, for the drift check below. */
+  recordedTitle: string;
+  initialTab: StationTab;
+  onClose: () => void;
+}) {
+  const [tab, setTab] = useState<StationTab>(initialTab);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /*
+    The station is found by number, not by id, because station_recordings
+    holds no station id. Nothing stops a case being rewritten after the
+    consultation, and then this modal shows a brief the candidate never saw
+    without saying so. The titles are the only evidence available: the
+    recording snapshots one at the time, the station carries today's.
+  */
+  const titleDrifted = station.title.trim() !== recordedTitle.trim();
+
+  const bullets = tab === "dg" ? station.data_gathering : station.management;
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label={`Station ${stationNumber}`}
+        className="rounded-2xl w-full flex flex-col"
+        style={{ background: "white", maxWidth: 820, maxHeight: "86vh", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
+      >
+        <div className="px-6 pt-6 pb-3" style={{ flexShrink: 0 }}>
+          <div className="flex items-baseline gap-2 flex-wrap mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: "rgba(51,51,51,0.35)" }}>
+              Station {stationNumber}
+            </span>
+            <h2 className="font-display font-bold text-[16px] m-0" style={{ color: NAVY }}>{station.title}</h2>
+          </div>
+
+          {titleDrifted && (
+            <p className="text-[11px] m-0 mb-3 rounded-lg px-3 py-2" style={{ background: "rgba(245,158,11,0.1)", color: "#92400E" }}>
+              This case has been edited since the consultation was recorded. It was called
+              {" "}&ldquo;{recordedTitle}&rdquo; at the time, so what follows may not be what the candidate saw.
+            </p>
+          )}
+
+          <div className="flex p-1 rounded-xl" style={{ background: "rgba(51,51,51,0.06)" }}>
+            {STATION_TABS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className="flex-1 rounded-lg py-1.5 text-[12px] font-bold"
+                style={{
+                  background: tab === key ? "white" : "transparent",
+                  color: tab === key ? NAVY : "rgba(51,51,51,0.45)",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: tab === key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-6 pb-2" style={{ overflowY: "auto", flex: 1 }}>
+          {(tab === "dg" || tab === "cm") && (
+            bullets.length === 0 ? (
+              <p className="text-[12.5px] m-0 py-4" style={{ color: "rgba(51,51,51,0.4)" }}>
+                Nothing recorded against this domain for this case.
+              </p>
+            ) : (
+              <ul className="m-0 pl-0 flex flex-col gap-2" style={{ listStyle: "none" }}>
+                {bullets.map((b, i) => (
+                  <li key={i} className="text-[13px] leading-relaxed flex gap-2.5" style={{ color: "rgba(51,51,51,0.8)" }}>
+                    <span style={{ color: "rgba(51,51,51,0.3)", flexShrink: 0 }}>•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+
+          {(tab === "brief" || tab === "story") && (
+            <div className="rounded-xl px-4 py-3" style={{ background: "#F3F2FB" }}>
+              {tab === "brief" ? <DoctorBriefContent station={station} /> : <PatientStoryContent station={station} />}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 flex justify-end" style={{ flexShrink: 0, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-[13px] font-bold"
+            style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DomainCommentDialog({
   label, aiGrade, aiComment, value, onChange, disabled, onClose,
 }: {

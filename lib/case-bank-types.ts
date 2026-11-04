@@ -65,6 +65,61 @@ export const EXAMINER_ONLY_STATION_FIELDS = [
 
 export type ExaminerOnlyStationField = (typeof EXAMINER_ONLY_STATION_FIELDS)[number];
 
+/**
+ * Just enough of a station to render the doctor's brief and the patient's
+ * story — the eighteen fields those two components actually read.
+ *
+ * They were typed as CandidateStation, which is the whole row minus the
+ * marking notes. That was fine while the case page was the only caller; the
+ * examiner's review page is the second, and it has no business selecting
+ * trainer_qa, the model-consultation URLs or the example explanation in order
+ * to show a brief. Narrowing the prop is what lets that page select eighteen
+ * columns and no more, which matters because everything handed to a client
+ * component is serialised into the HTML the browser receives.
+ *
+ * CandidateStation still satisfies this structurally, so the case page passes
+ * its whole station as before.
+ */
+export type BriefFields = Pick<
+  Station,
+  | "consultation_type"
+  | "dilemma"
+  | "ice_concerns"
+  | "ice_expectations"
+  | "ice_ideas"
+  | "if_asked_further"
+  | "image_urls"
+  | "medications_and_allergies"
+  | "only_if_asked"
+  | "opening_statement"
+  | "patient_age"
+  | "patient_name"
+  | "pmh"
+  | "question_for_doctor"
+  | "reason_for_consultation"
+  | "recent_notes"
+  | "scenarios"
+  | "social_history"
+>;
+
+/**
+ * What the examiner's station modal needs: both briefs, plus the two
+ * per-domain lists it shows beside them.
+ *
+ * Deliberately NOT the whole row and deliberately not CandidateStation
+ * either. `title` is here only so a caller can compare it with the title
+ * snapshotted on the recording and notice when a case has been re-authored
+ * since the consultation.
+ *
+ * What is absent is the point: example_explanation, key_takeaways and the
+ * three marking_notes_* columns. The first two are a model answer, and a
+ * model answer put in front of an examiner mid-marking changes what they are
+ * marking against. The marking notes are empty in production anyway, which is
+ * exactly what would make shipping them by accident easy to miss.
+ */
+export type StationMaterial = BriefFields &
+  Pick<Station, "title" | "data_gathering" | "management">;
+
 /** A station as the candidate is allowed to see it. */
 export type CandidateStation = Omit<Station, ExaminerOnlyStationField>;
 
