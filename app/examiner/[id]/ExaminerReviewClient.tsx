@@ -3170,12 +3170,20 @@ function ImproveDialog({
   );
 }
 
-/** The tabs of the station modal, in reading order. */
+/**
+ * The tabs of the station modal, in the order the case is read rather than
+ * the order the review is written.
+ *
+ * The briefs come first because they are the case: what the candidate was
+ * given and what the role-player was playing. What the station expected of
+ * them follows. Which tab opens is set by where it was clicked from, so the
+ * order here only decides what sits next to what.
+ */
 const STATION_TABS = [
-  ["dg", "Data Gathering"],
-  ["cm", "Clinical Management"],
   ["brief", "Doctor's Brief"],
   ["story", "Patient's Story"],
+  ["dg", "Data Gathering"],
+  ["cm", "Clinical Management"],
 ] as const;
 
 type StationTab = (typeof STATION_TABS)[number][0];
