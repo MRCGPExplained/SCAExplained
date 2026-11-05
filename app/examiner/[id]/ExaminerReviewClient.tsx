@@ -716,10 +716,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     because this renders on the server first: reaching for localStorage
     during render is what makes a hydration mismatch.
   */
-  const [showPresets, setShowPresets] = useState(true);
+  const [showPresets, setShowPresets] = useState(RAIL_DEFAULTS.presets);
   useEffect(() => {
     try {
-      setShowPresets(window.localStorage.getItem(PRESETS_HIDDEN_KEY) !== "1");
+      setShowPresets(readRail(PRESETS_HIDDEN_KEY, RAIL_DEFAULTS.presets));
     } catch {
       // Storage blocked. Shown is the right fallback and the toggle still
       // works for this page.
@@ -729,12 +729,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const togglePresets = useCallback(() => {
     setShowPresets((prev) => {
       const next = !prev;
-      try {
-        if (next) window.localStorage.removeItem(PRESETS_HIDDEN_KEY);
-        else window.localStorage.setItem(PRESETS_HIDDEN_KEY, "1");
-      } catch {
-        // It just will not be remembered past this page.
-      }
+      writeRail(PRESETS_HIDDEN_KEY, next);
       return next;
     });
   }, []);
@@ -753,10 +748,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     What is NOT safe is hiding them with CSS and leaving them mounted, or
     clearing `assist` on the way out. Neither is done here.
   */
-  const [showFreeText, setShowFreeText] = useState(true);
+  const [showFreeText, setShowFreeText] = useState(RAIL_DEFAULTS.freeText);
   useEffect(() => {
     try {
-      setShowFreeText(window.localStorage.getItem(FREE_TEXT_HIDDEN_KEY) !== "1");
+      setShowFreeText(readRail(FREE_TEXT_HIDDEN_KEY, RAIL_DEFAULTS.freeText));
     } catch {
       // As above: shown is the right fallback.
     }
@@ -765,12 +760,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const toggleFreeText = useCallback(() => {
     setShowFreeText((prev) => {
       const next = !prev;
-      try {
-        if (next) window.localStorage.removeItem(FREE_TEXT_HIDDEN_KEY);
-        else window.localStorage.setItem(FREE_TEXT_HIDDEN_KEY, "1");
-      } catch {
-        // It just will not be remembered past this page.
-      }
+      writeRail(FREE_TEXT_HIDDEN_KEY, next);
       return next;
     });
   }, []);
@@ -811,10 +801,10 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     `picked` in this component, and PresetChecklist stops rendering the box
     rather than clearing it.
   */
-  const [showPresetInputs, setShowPresetInputs] = useState(true);
+  const [showPresetInputs, setShowPresetInputs] = useState(RAIL_DEFAULTS.presetInputs);
   useEffect(() => {
     try {
-      setShowPresetInputs(window.localStorage.getItem(PRESET_INPUTS_HIDDEN_KEY) !== "1");
+      setShowPresetInputs(readRail(PRESET_INPUTS_HIDDEN_KEY, RAIL_DEFAULTS.presetInputs));
     } catch {
       // Shown is the right fallback, as with its two siblings.
     }
@@ -823,12 +813,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const togglePresetInputs = useCallback(() => {
     setShowPresetInputs((prev) => {
       const next = !prev;
-      try {
-        if (next) window.localStorage.removeItem(PRESET_INPUTS_HIDDEN_KEY);
-        else window.localStorage.setItem(PRESET_INPUTS_HIDDEN_KEY, "1");
-      } catch {
-        // It just will not be remembered past this page.
-      }
+      writeRail(PRESET_INPUTS_HIDDEN_KEY, next);
       return next;
     });
   }, []);
@@ -2025,9 +2010,8 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   mentioned.
                 */}
                 <p className="text-[12.5px] leading-relaxed m-0 mt-3" style={{ color: "#92400E" }}>
-                  Could Improve is left for you. The AI can find what happened in the transcript. It
-                  cannot reliably find what is missing, and when pushed to do so it overstates or
-                  exaggerates.
+                  Could Improve is left for you. The AI cannot reliably do this. It tends to invent
+                  things.
                 </p>
 
                 {autofillError && (
@@ -2345,18 +2329,36 @@ const NO_SELECTION: PresetSelection = {};
 /** The marker the notes boxes show. Never leaves the notepad — see bulletLines. */
 const BULLET = "• ";
 
-/** Set when this examiner has hidden the tick lists. Deliberately one key for
- *  the whole browser rather than one per recording — see the toggle. */
-const PRESETS_HIDDEN_KEY = "sca_examiner_presets_hidden";
+/**
+ * How the rail is laid out, per examiner, across every review.
+ *
+ * HOW A NEW EXAMINER STARTS: tick lists open, free-text boxes closed, detail
+ * boxes closed. That is the shape Brandon settled on in use rather than one
+ * chosen up front, and it suits the listening pass the rail is mostly used
+ * for: a column of phrases to click, with nothing expanding underneath to
+ * push the next tick out of reach. Both hidden halves are one click away and
+ * their buttons say so.
+ *
+ * STORED AS "1" OR "0", NOT AS PRESENCE. The old keys were named for the
+ * hidden state and written only when hiding, so an absent key meant shown.
+ * That stops working the moment a default is hidden: there is no way to tell
+ * "never touched it" from "chose to show it". These store the state and fall
+ * back to the default when absent, so a default can change later without
+ * silently flipping what anyone chose.
+ *
+ * New names on purpose. Reusing the old ones with inverted meaning would read
+ * an existing "hidden" as "shown" for the two examiners who have set them.
+ *
+ * Not keyed by recording. The notes and the ticks belong to one consultation;
+ * how somebody likes the rail follows them to the next.
+ */
+const RAIL_DEFAULTS = { presets: true, freeText: false, presetInputs: false };
 
-/** Set when this examiner has hidden the six free-text boxes. One key for the
- *  whole browser, for the same reason as PRESETS_HIDDEN_KEY above: it is how
- *  they like the rail laid out, not part of the review in front of them. */
-const FREE_TEXT_HIDDEN_KEY = "sca_examiner_free_text_hidden";
+const PRESETS_HIDDEN_KEY = "sca_examiner_rail_presets";
 
-/** Set when this examiner keeps the per-tick detail boxes closed. Same scope
- *  as its two siblings: a layout preference, not part of any one review. */
-const PRESET_INPUTS_HIDDEN_KEY = "sca_examiner_preset_inputs_hidden";
+const FREE_TEXT_HIDDEN_KEY = "sca_examiner_rail_free_text";
+
+const PRESET_INPUTS_HIDDEN_KEY = "sca_examiner_rail_preset_inputs";
 
 /**
  * The notepad card's tint, flattened, for the sticky domain labels.
@@ -2371,6 +2373,26 @@ const PRESET_INPUTS_HIDDEN_KEY = "sca_examiner_preset_inputs_hidden";
  * again, which is the cost of the only opaque thing in a translucent card.
  */
 const NOTEPAD_BG = "#F2F2F0";
+
+/** The stored rail preference, or the default when nothing is stored. */
+function readRail(key: string, fallback: boolean): boolean {
+  try {
+    const v = window.localStorage.getItem(key);
+    return v === null ? fallback : v === "1";
+  } catch {
+    // Storage blocked. The default is the right answer and the toggle still
+    // works for this page.
+    return fallback;
+  }
+}
+
+function writeRail(key: string, shown: boolean) {
+  try {
+    window.localStorage.setItem(key, shown ? "1" : "0");
+  } catch {
+    // It just will not be remembered past this page.
+  }
+}
 
 const EMPTY_NOTES: AssistNotes = {
   dgWell: "", dgImprove: "",
@@ -2727,16 +2749,6 @@ const Notepad = memo(function Notepad({
         the recording indicator, which has to be visible anyway: a page that
         is quietly holding the microphone open should say so.
       */}
-      <p className="text-[10.5px] m-0 mb-2.5" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
-        {dictateError
-          ? dictateError
-          : dictation.state === "listening"
-          ? "● Listening — let go of / to stop"
-          : dictation.state === "transcribing"
-          ? "Transcribing…"
-          : "Hold / in any box to dictate"}
-      </p>
-
       <button
         type="button"
         disabled={!hasNotes || pending}
@@ -2776,6 +2788,16 @@ const Notepad = memo(function Notepad({
           Write at least one note first.
         </p>
       )}
+
+      <p className="text-[10.5px] m-0 mb-2.5" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
+        {dictateError
+          ? dictateError
+          : dictation.state === "listening"
+          ? "● Listening — let go of / to stop"
+          : dictation.state === "transcribing"
+          ? "Transcribing…"
+          : "Hold / in any box to dictate"}
+      </p>
 
       <div className="flex flex-col gap-3 mt-3">
         {DOMAINS.filter((d) => domainOnly === "all" || d.wellField.startsWith(domainOnly)).map((d) => (
