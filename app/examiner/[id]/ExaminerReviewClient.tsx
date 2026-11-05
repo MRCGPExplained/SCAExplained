@@ -992,6 +992,24 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     []
   );
 
+  /*
+    Which half of the writing column is showing.
+
+    Notes and the overall comment are used one after the other, never
+    together — the examiner jots throughout and the comment appears at the
+    end — which is what the Overall Comment accordion's own comment said
+    when it was closed-by-default for the same reason. Two things used in
+    sequence do not need to share a 360px column; they can take turns and
+    have half the page each.
+
+    Notes first, because that is where a review starts. A sent review has no
+    notepad at all, so it opens on the comment, which is the only thing
+    there is to look at.
+  */
+  const [railTab, setRailTab] = useState<"notes" | "comment">(
+    rec.sent_to_candidate_at ? "comment" : "notes"
+  );
+
   const handleConvert = useCallback(() => {
     setAiGenError("");
     startAiGen(async () => {
@@ -1140,23 +1158,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
     and skipped the component.
   */
 
-  /*
-    Which half of the writing column is showing.
-
-    Notes and the overall comment are used one after the other, never
-    together — the examiner jots throughout and the comment appears at the
-    end — which is what the Overall Comment accordion's own comment said
-    when it was closed-by-default for the same reason. Two things used in
-    sequence do not need to share a 360px column; they can take turns and
-    have half the page each.
-
-    Notes first, because that is where a review starts. A sent review has no
-    notepad at all, so it opens on the comment, which is the only thing
-    there is to look at.
-  */
-  const [railTab, setRailTab] = useState<"notes" | "comment">(
-    rec.sent_to_candidate_at ? "comment" : "notes"
-  );
   // One announcement per send. The effect below runs twice per state in
   // React's development double-invoke, and the navbar would count down twice.
   const announced = useRef(false);
@@ -2332,12 +2333,15 @@ const BULLET = "• ";
 /**
  * How the rail is laid out, per examiner, across every review.
  *
- * HOW A NEW EXAMINER STARTS: tick lists open, free-text boxes closed, detail
- * boxes closed. That is the shape Brandon settled on in use rather than one
- * chosen up front, and it suits the listening pass the rail is mostly used
- * for: a column of phrases to click, with nothing expanding underneath to
- * push the next tick out of reach. Both hidden halves are one click away and
- * their buttons say so.
+ * HOW A NEW EXAMINER STARTS: tick lists open, free-text boxes open, per-tick
+ * detail boxes closed. The shape Brandon settled on in use rather than one
+ * chosen up front.
+ *
+ * Only the detail boxes start closed, and they are the ones that earn it:
+ * they appear and disappear as phrases are ticked, so during the listening
+ * pass every open one pushes the next tick further down a rail the examiner
+ * is clicking at speed. The free-text boxes do not move, so they cost
+ * nothing to leave open and are where anything not covered by a phrase goes.
  *
  * STORED AS "1" OR "0", NOT AS PRESENCE. The old keys were named for the
  * hidden state and written only when hiding, so an absent key meant shown.
@@ -2352,7 +2356,7 @@ const BULLET = "• ";
  * Not keyed by recording. The notes and the ticks belong to one consultation;
  * how somebody likes the rail follows them to the next.
  */
-const RAIL_DEFAULTS = { presets: true, freeText: false, presetInputs: false };
+const RAIL_DEFAULTS = { presets: true, freeText: true, presetInputs: false };
 
 const PRESETS_HIDDEN_KEY = "sca_examiner_rail_presets";
 
@@ -2757,7 +2761,11 @@ const Notepad = memo(function Notepad({
           setConfirming(false);
           onConvert();
         }}
-        className="w-full rounded-lg py-2 text-[12.5px] font-bold mb-1.5"
+        /* Sized to its text, not to the column. It belongs with the pills
+           above it rather than reading as a banner across the rail, and a
+           full-width navy bar was the loudest thing on a page whose job is
+           to be read. */
+        className="rounded-lg px-4 py-2 text-[12.5px] font-bold mb-1.5"
         style={{
           background: NAVY, border: "none", color: "white",
           cursor: !hasNotes || pending ? "default" : "pointer",
@@ -2775,7 +2783,7 @@ const Notepad = memo(function Notepad({
         <button
           type="button"
           onClick={() => setConfirming(false)}
-          className="w-full text-[11.5px] mb-1.5"
+          className="text-[11.5px] mb-1.5 ml-3"
           style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
         >
           Cancel, keep what is written
