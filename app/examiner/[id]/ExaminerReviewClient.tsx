@@ -821,12 +821,42 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   /*
     One domain at a time, from the pills beside the heading.
 
-    NOT persisted, unlike the three layout toggles. Which domain you are
-    working on belongs to the half hour you are in, not to how you like the
-    rail laid out, and a filter that survived into the next review would hide
-    two thirds of it from someone who had forgotten they set it.
+    Starts on Data Gathering rather than on all three, because a review is
+    worked through in that order and the whole rail at once is six boxes of
+    which four are not the one being filled.
+
+    KEYED BY RECORDING, unlike the three layout toggles. That is what gives
+    both halves of what was asked: a review never opened before has no key,
+    so it starts on DG, while a reload of one in progress finds its key and
+    comes back where it was. A single shared key could only do one of those.
+
+    I had this unpersisted at first, reasoning that a filter surviving into
+    the next review would hide two thirds of the notepad from someone who had
+    forgotten they set it. Keying it by recording answers that: it cannot
+    follow anyone anywhere.
   */
-  const [domainOnly, setDomainOnly] = useState<"all" | "dg" | "cm" | "ro">("all");
+  const domainKey = `sca_examiner_notepad_domain_${rec.id}`;
+  const [domainOnly, setDomainOnly] = useState<"all" | "dg" | "cm" | "ro">("dg");
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(domainKey);
+      if (v === "all" || v === "dg" || v === "cm" || v === "ro") setDomainOnly(v);
+    } catch {
+      // Storage blocked. DG is the right place to start.
+    }
+  }, [domainKey]);
+
+  const changeDomainOnly = useCallback(
+    (d: "all" | "dg" | "cm" | "ro") => {
+      setDomainOnly(d);
+      try {
+        window.localStorage.setItem(domainKey, d);
+      } catch {
+        // It just will not survive a reload.
+      }
+    },
+    [domainKey]
+  );
 
   const [autofillStage, setAutofillStage] = useState<"warn" | "improve" | null>(null);
   // Stable, because Notepad is memo'd and an inline arrow here would rebuild
@@ -969,7 +999,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
       */
       setShowPresets(true);
       setShowPresetInputs(true);
-      setDomainOnly("all");
+      setDomainOnly("all"); // state only, as with the two toggles above
 
       /*
         The dialog is NOT closed here. It is on stage two by now and the
@@ -1937,7 +1967,7 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                     showPresetInputs={showPresetInputs}
                     onTogglePresetInputs={togglePresetInputs}
                     domainOnly={domainOnly}
-                    onDomainOnlyChange={setDomainOnly}
+                    onDomainOnlyChange={changeDomainOnly}
                     dictation={dictation}
                     dictateError={dictateError}
                   />
@@ -2070,6 +2100,8 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             stationNumber={rec.station_number}
             recordedTitle={rec.station_title}
             initialTab={stationTab}
+            domains={DOMAINS.map((d) => ({ key: d.key, label: d.label, comment: d.comment, setComment: d.setComment }))}
+            disabled={isSent}
             onClose={() => setStationTab(null)}
           />
         )}
@@ -3228,13 +3260,25 @@ type StationTab = (typeof STATION_TABS)[number][0];
  * that reads as a quotation from elsewhere rather than as a styling mistake.
  */
 function StationDialog({
-  station, stationNumber, recordedTitle, initialTab, onClose,
+  station, stationNumber, recordedTitle, initialTab, domains, disabled, onClose,
 }: {
   station: StationMaterial;
   stationNumber: number;
   /** The title stored on the recording, for the drift check below. */
   recordedTitle: string;
   initialTab: StationTab;
+  /**
+   * The three domain comments, editable here beside the case material.
+   *
+   * ALL THREE, ALWAYS, rather than the one matching the open tab. Two of the
+   * four tabs are the briefs, which belong to no domain, so a panel tied to
+   * the tab would be empty on half of them. Constant also allows the pairing
+   * that is probably the most useful thing in this dialog: reading the
+   * patient's story while writing the Relating to Others comment.
+   */
+  domains: { key: string; label: string; comment: string; setComment: (v: string) => void }[];
+  /** The review is sent. Read the case, change nothing. */
+  disabled: boolean;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<StationTab>(initialTab);
@@ -3271,7 +3315,7 @@ function StationDialog({
         role="dialog"
         aria-label={`Station ${stationNumber}`}
         className="rounded-2xl w-full flex flex-col"
-        style={{ background: "white", maxWidth: 820, maxHeight: "86vh", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
+        style={{ background: "white", maxWidth: 1150, maxHeight: "88vh", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
       >
         <div className="px-6 pt-6 pb-3" style={{ flexShrink: 0 }}>
           <div className="flex items-baseline gap-2 flex-wrap mb-3">
@@ -3309,29 +3353,78 @@ function StationDialog({
           </div>
         </div>
 
-        <div className="px-6 pb-2" style={{ overflowY: "auto", flex: 1 }}>
-          {(tab === "dg" || tab === "cm") && (
-            bullets.length === 0 ? (
-              <p className="text-[12.5px] m-0 py-4" style={{ color: "rgba(51,51,51,0.4)" }}>
-                Nothing recorded against this domain for this case.
-              </p>
-            ) : (
-              <ul className="m-0 pl-0 flex flex-col gap-2" style={{ listStyle: "none" }}>
-                {bullets.map((b, i) => (
-                  <li key={i} className="text-[13px] leading-relaxed flex gap-2.5" style={{ color: "rgba(51,51,51,0.8)" }}>
-                    <span style={{ color: "rgba(51,51,51,0.3)", flexShrink: 0 }}>•</span>
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
+        {/*
+          The case on the left, the examiner's own three comments on the
+          right, each column scrolling on its own.
 
-          {(tab === "brief" || tab === "story") && (
-            <div className="rounded-xl px-4 py-3" style={{ background: "#F3F2FB" }}>
-              {tab === "brief" ? <DoctorBriefContent station={station} /> : <PatientStoryContent station={station} />}
+          Independent scroll is the point of the split. Scrolling a long
+          patient's story must not carry the comment boxes off the screen,
+          which is what a single scrolling body would do and what makes a
+          two-column dialog worth more than a tall one. minHeight 0 is the
+          part that makes it work: without it a grid track refuses to shrink
+          below its content and neither column ever scrolls.
+        */}
+        <div
+          className="px-6 pb-2 grid gap-5"
+          style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr)", flex: 1, minHeight: 0 }}
+        >
+          <div style={{ overflowY: "auto", minHeight: 0 }}>
+            {(tab === "dg" || tab === "cm") && (
+              bullets.length === 0 ? (
+                <p className="text-[12.5px] m-0 py-4" style={{ color: "rgba(51,51,51,0.4)" }}>
+                  Nothing recorded against this domain for this case.
+                </p>
+              ) : (
+                <ul className="m-0 pl-0 flex flex-col gap-2" style={{ listStyle: "none" }}>
+                  {bullets.map((b, i) => (
+                    <li key={i} className="text-[13px] leading-relaxed flex gap-2.5" style={{ color: "rgba(51,51,51,0.8)" }}>
+                      <span style={{ color: "rgba(51,51,51,0.3)", flexShrink: 0 }}>•</span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+
+            {(tab === "brief" || tab === "story") && (
+              <div className="rounded-xl px-4 py-3" style={{ background: "#F3F2FB" }}>
+                {tab === "brief" ? <DoctorBriefContent station={station} /> : <PatientStoryContent station={station} />}
+              </div>
+            )}
+          </div>
+
+          <div style={{ overflowY: "auto", minHeight: 0 }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.06em] mb-2" style={{ color: "rgba(51,51,51,0.4)" }}>
+              Your domain comments
             </div>
-          )}
+            <div className="flex flex-col gap-3">
+              {domains.map((d) => (
+                <div key={d.key}>
+                  <div className="text-[11.5px] font-semibold mb-1" style={{ color: NAVY }}>{d.label}</div>
+                  {/*
+                    The same state the domain cards and the score bar dialog
+                    write to, which is what makes a third door safe: they are
+                    three views of one value, and the hidden field that
+                    carries it into the form does not care which was used.
+                  */}
+                  <textarea
+                    value={d.comment}
+                    disabled={disabled}
+                    onChange={(e) => d.setComment(e.target.value)}
+                    rows={5}
+                    placeholder={disabled ? "" : "What the candidate will read for this domain…"}
+                    className="w-full rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none"
+                    style={{
+                      border: "1px solid rgba(51,51,51,0.15)",
+                      background: disabled ? "rgba(51,51,51,0.03)" : "white",
+                      color: NAVY,
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="px-6 py-4 flex justify-end" style={{ flexShrink: 0, borderTop: "1px solid rgba(51,51,51,0.07)" }}>
