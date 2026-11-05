@@ -16,6 +16,7 @@ import type { StationMaterial } from "@/lib/case-bank-types";
 import { DoctorBriefContent, PatientStoryContent } from "@/app/case-bank/components/BriefContent";
 import type { TimedTurn } from "@/lib/transcript";
 import { REVIEW_SENT_EVENT } from "@/lib/nav-events";
+import { scoreColour } from "@/lib/report-score";
 import type { SkillAnswer } from "@/lib/skill-framework";
 
 const NAVY = "#333333";
@@ -1166,8 +1167,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
   const [showSuccess, setShowSuccess] = useState(false);
   /** Send has been asked for once and is waiting to be confirmed. */
   const [confirmingSend, setConfirmingSend] = useState(false);
-  /** Which domain's comment is open in the dialog, by key, or none. */
-  const [openDomain, setOpenDomain] = useState<string | null>(null);
   /*
     Which tab of the station modal is open, or none.
 
@@ -1488,12 +1487,35 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                         checking what you wrote means scrolling. It carries
                         the points too now they are off the bar: the one
                         place anyone would think to look for them. */}
+                    {/*
+                      Opens the station dialog, where the comment now lives
+                      beside the case material and the grade, rather than the
+                      comment-only dialog it used to open. Relating to Others
+                      lands on the patient's story: the case bank has no
+                      expected list for that domain on 244 of 246 stations,
+                      and the story is the nearest thing to one, being where
+                      the dilemma and the patient's ideas and concerns are.
+
+                      Coloured by the grade once there is one, so the three
+                      letters carry the shape of the mark without being read.
+                      Grey while unmarked, which is also what says a domain
+                      has not been graded yet.
+                    */}
                     <button
                       type="button"
-                      onClick={() => setOpenDomain(d.key)}
+                      onClick={() => setStationTab(d.key === "ro" ? "story" : (d.key as StationTab))}
+                      disabled={!station}
                       className="text-[10px] font-bold uppercase tracking-[0.06em]"
-                      style={{ background: "none", border: "none", padding: 0, color: "rgba(51,51,51,0.4)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
-                      title={`${d.label} — ${d.points !== null ? `${d.points} of ${d.max} points` : `max ${d.max} points`}. Opens the comment.`}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        color: d.grade ? GRADE_STYLE[d.grade].color : "rgba(51,51,51,0.4)",
+                        cursor: station ? "pointer" : "default",
+                        textDecoration: station ? "underline" : "none",
+                        textUnderlineOffset: 2,
+                      }}
+                      title={`${d.label} — ${d.points !== null ? `${d.points} of ${d.max} points` : `max ${d.max} points`}${station ? ". Opens the case and your comment." : ""}`}
                     >
                       {d.short}
                     </button>
@@ -1505,7 +1527,18 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
                   does not need to be the same size as the thing it reminds
                   you about. Shrinking it is also most of what keeps this row
                   on one line at 564px. */}
-              <span className="font-extrabold text-[20px] tabular-nums whitespace-nowrap" style={{ color: NAVY }}>
+              {/*
+                Coloured by where it falls, from the same function the report
+                and the sample use: green from the pass mark of 7, orange
+                from 5, red below. The examiner is the one deciding the
+                grades that produce it, so the number should say what it
+                means while they are still deciding, rather than first
+                telling them on the report the candidate reads.
+              */}
+              <span
+                className="font-extrabold text-[20px] tabular-nums whitespace-nowrap"
+                style={{ color: totalPts !== null ? scoreColour(totalPts) : NAVY }}
+              >
                 {totalPts !== null ? totalPts : "—"}
                 <span className="font-semibold text-[12px]" style={{ color: "rgba(51,51,51,0.35)" }}> / 10.5</span>
               </span>
@@ -1977,23 +2010,6 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
           </div>
         </form>
 
-        {/* Outside the form: it is a view onto state the form already
-            carries in its hidden fields, not a field of its own. */}
-        {openDomain && (() => {
-          const d = DOMAINS.find((x) => x.key === openDomain);
-          if (!d) return null;
-          return (
-            <DomainCommentDialog
-              label={d.label}
-              aiGrade={d.aiGrade}
-              aiComment={d.aiComment}
-              value={d.comment}
-              onChange={d.setComment}
-              disabled={isSent}
-              onClose={() => setOpenDomain(null)}
-            />
-          );
-        })()}
 
         {/*
           Shown on every use, deliberately, and not relied on.
@@ -2100,7 +2116,14 @@ export default function ExaminerReviewClient({ recording: rec, turns, presets: i
             stationNumber={rec.station_number}
             recordedTitle={rec.station_title}
             initialTab={stationTab}
-            domains={DOMAINS.map((d) => ({ key: d.key, label: d.label, comment: d.comment, setComment: d.setComment }))}
+            domains={DOMAINS.map((d) => ({
+              key: d.key,
+              label: d.label,
+              comment: d.comment,
+              setComment: d.setComment,
+              grade: d.grade,
+              setGrade: d.setGrade,
+            }))}
             disabled={isSent}
             onClose={() => setStationTab(null)}
           />
@@ -2667,11 +2690,13 @@ const Notepad = memo(function Notepad({
   }[] = [
     { label: "Data Gathering", well: "dgWell", improve: "dgImprove", wellField: "dg_well", improveField: "dg_improve", tab: "dg" },
     { label: "Clinical Management", well: "cmWell", improve: "cmImprove", wellField: "cm_well", improveField: "cm_improve", tab: "cm" },
-    /* No tab. The case bank holds per-domain material for the first two
-       domains and none at all for this one: marking_notes_relating_to_others
-       is set on 2 of 246 stations. A heading that opened an empty panel would
-       be worse than one that does not open. */
-    { label: "Relating to Others", well: "roWell", improve: "roImprove", wellField: "ro_well", improveField: "ro_improve", tab: null },
+    /* The patient's story, not an expected list, because there is no expected
+       list for this domain: marking_notes_relating_to_others is set on 2 of
+       246 stations where data_gathering and management are set on all 246.
+       The story is the nearest honest thing, holding the dilemma and the
+       patient's ideas, concerns and expectations, which is the material a
+       Relating to Others mark is actually about. */
+    { label: "Relating to Others", well: "roWell", improve: "roImprove", wellField: "ro_well", improveField: "ro_improve", tab: "story" },
   ];
 
   return (
@@ -3276,7 +3301,14 @@ function StationDialog({
    * that is probably the most useful thing in this dialog: reading the
    * patient's story while writing the Relating to Others comment.
    */
-  domains: { key: string; label: string; comment: string; setComment: (v: string) => void }[];
+  domains: {
+    key: string;
+    label: string;
+    comment: string;
+    setComment: (v: string) => void;
+    grade: Grade | "";
+    setGrade: (g: Grade) => void;
+  }[];
   /** The review is sent. Read the case, change nothing. */
   disabled: boolean;
   onClose: () => void;
@@ -3400,7 +3432,32 @@ function StationDialog({
             <div className="flex flex-col gap-3">
               {domains.map((d) => (
                 <div key={d.key}>
-                  <div className="text-[11.5px] font-semibold mb-1" style={{ color: NAVY }}>{d.label}</div>
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                    <span className="text-[11.5px] font-semibold" style={{ color: NAVY }}>{d.label}</span>
+                    {/*
+                      The grade, beside the comment it belongs to. Reading
+                      what the case expected and then deciding the grade is
+                      one thought, and until now it needed the dialog shut.
+
+                      A DIFFERENT INPUT NAME from the score bar's, which
+                      matters because GradeSelector renders a hidden input of
+                      its own. Two inputs sharing a name would put two values
+                      in the FormData for one field, and this file has been
+                      bitten by that shape of bug more than once. This dialog
+                      renders outside the form so it could not collide today,
+                      but the name should not be the only thing standing
+                      between the two if either ever moves. The grade reaches
+                      the server through the score bar's input either way,
+                      because both selectors write the same state.
+                    */}
+                    <GradeSelector
+                      name={`${d.key}_grade_dialog`}
+                      value={d.grade}
+                      onChange={d.setGrade}
+                      compact
+                      disabled={disabled}
+                    />
+                  </div>
                   {/*
                     The same state the domain cards and the score bar dialog
                     write to, which is what makes a third door safe: they are
@@ -3433,97 +3490,6 @@ function StationDialog({
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
             style={{ background: NAVY, color: "white", border: "none", cursor: "pointer" }}
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DomainCommentDialog({
-  label, aiGrade, aiComment, value, onChange, disabled, onClose,
-}: {
-  label: string;
-  aiGrade: string | null;
-  aiComment: string | null;
-  value: string;
-  onChange: (v: string) => void;
-  disabled: boolean;
-  onClose: () => void;
-}) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const boxRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    // Straight into the box: this is opened to read or to write, and a
-    // caret already there saves the click that would otherwise follow.
-    boxRef.current?.focus();
-    return () => document.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.max(el.scrollHeight, 160)}px`;
-  }, [value]);
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center px-4"
-      style={{ background: "rgba(0,0,0,0.35)", zIndex: 3000 }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-label={label}
-        className="rounded-2xl w-full"
-        style={{ background: "white", maxWidth: 680, maxHeight: "82vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}
-      >
-        <div className="px-6 pt-6 pb-2 flex items-center gap-2">
-          <h2 className="font-display font-bold text-[16px] m-0" style={{ color: NAVY }}>{label}</h2>
-        </div>
-
-        {(aiGrade || aiComment) && (
-          <div className="mx-6 mb-4 rounded-xl px-4 py-3" style={{ background: "rgba(51,51,51,0.03)" }}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.35)" }}>AI Pre-Assessment</span>
-              {aiGrade && <GradeBadge grade={aiGrade} />}
-            </div>
-            {aiComment && (
-              <p className="text-[12.5px] leading-relaxed m-0" style={{ color: "rgba(51,51,51,0.6)", whiteSpace: "pre-wrap" }}>{aiComment}</p>
-            )}
-          </div>
-        )}
-
-        <div className="px-6">
-          <textarea
-            ref={boxRef}
-            value={value}
-            disabled={disabled}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Add a comment…"
-            className="w-full rounded-lg px-3 py-2 text-[13px] resize-none overflow-hidden"
-            style={{ border: "1px solid rgba(51,51,51,0.12)", color: NAVY, background: LIGHT_BG, outline: "none", fontFamily: "inherit", lineHeight: 1.6, minHeight: 160 }}
-          />
-        </div>
-
-        <div className="px-6 py-4 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-[12.5px] font-bold px-4 py-2 rounded-lg"
-            style={{ background: NAVY, border: "none", color: "white", cursor: "pointer" }}
           >
             Done
           </button>
