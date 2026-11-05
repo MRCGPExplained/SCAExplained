@@ -2663,94 +2663,105 @@ const Notepad = memo(function Notepad({
           "could improve" explain themselves, and the sentence that was here
           cost 32px of a rail that has none to spare. */}
       {/*
-        Heading and pills, with Convert directly under them, and the layout
-        toggles alongside.
+        One row: heading, the domain pills, and Convert as the last pill,
+        with the dictation hint directly under them and the layout toggles
+        alongside.
 
-        Convert lives inside this row rather than below it because the
-        toggle stack on the right is four lines tall and the heading was
-        one, so anything after the row began four lines down with nothing
-        in between. Putting Convert in the left column fills that gap with
-        the button instead of air, and items-start is what lets the two
-        columns be different heights.
+        Convert sits in the pill row rather than below it because the toggle
+        stack on the right is four lines tall against a one-line heading, so
+        anything placed after the row began four lines down with nothing in
+        between. items-start is what lets the two columns be different
+        heights; the row was items-baseline, which pinned them to one line.
+
+        No All pill. Clicking the domain that is already showing turns the
+        filter off, so nothing highlighted means everything is showing. I had
+        argued for an explicit All, on the grounds that clicking the active
+        thing to unset it is a convention people learn rather than guess;
+        Brandon wanted the row shorter and it is his rail. Worth knowing that
+        an examiner who does not find their way back sees two thirds of the
+        notepad missing, so if it ever bites, that is why.
       */}
       <div className="flex items-start justify-between gap-2 mb-1">
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
-            Notepad
-          </h3>
-          {/*
-            One domain at a time, for an examiner working through the rail
-            domain by domain rather than top to bottom.
-
-            Sits beside the heading rather than above the lists so it reads
-            as what the notepad is showing, not as a fourth thing to fill in.
-            The sticky headings are kept: these two answer different
-            questions, this one "show me only this", those one "which am I
-            in", and the sticky labels still do their job inside a filter.
-
-            ALL is a pill rather than a second click on the active one.
-            Clicking the thing that is already on to turn it off is a
-            convention people learn, not one they guess, and the cost of
-            guessing wrong here is two thirds of the notepad staying hidden.
-          */}
-          <div className="flex gap-1">
-            {([["all", "All"], ["dg", "DG"], ["cm", "CM"], ["ro", "RTO"]] as const).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onDomainOnlyChange(key)}
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                style={{
-                  background: domainOnly === key ? NAVY : "rgba(51,51,51,0.06)",
-                  color: domainOnly === key ? "white" : "rgba(51,51,51,0.45)",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          </div>
+        <div className="flex flex-col gap-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          disabled={!hasNotes || pending}
-          onClick={() => {
-            if (willOverwrite && !confirming) { setConfirming(true); return; }
-            setConfirming(false);
-            onConvert();
-          }}
-          /* Sized to its text, not to the column. It belongs with the pills
-             above it rather than reading as a banner across the rail, and a
-             full-width navy bar was the loudest thing on a page whose job is
-             to be read. */
-          className="rounded-lg px-4 py-2 text-[12.5px] font-bold mb-1.5"
-          style={{
-            background: NAVY, border: "none", color: "white",
-            cursor: !hasNotes || pending ? "default" : "pointer",
-            opacity: !hasNotes || pending ? 0.4 : 1,
-          }}
-        >
-          {pending ? "Converting…" : confirming ? "Replace the comment?" : "Convert to Examiner Report"}
-        </button>
-  
-        {/*
-          Replacing a comment already written is the one thing here that cannot
-          be undone, so it asks. Only when there is something to lose.
-        */}
-        {confirming && (
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="text-[11.5px] mb-1.5 ml-3"
-            style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
-          >
-            Cancel, keep what is written
-          </button>
-        )}
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
+              Notepad
+            </h3>
+            <div className="flex gap-1">
+              {([["dg", "DG"], ["cm", "CM"], ["ro", "RTO"]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onDomainOnlyChange(domainOnly === key ? "all" : key)}
+                  title={domainOnly === key ? "Showing only this domain. Click again for all three." : "Show only " + label}
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  style={{
+                    background: domainOnly === key ? NAVY : "rgba(51,51,51,0.06)",
+                    color: domainOnly === key ? "white" : "rgba(51,51,51,0.45)",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/*
+              Convert as the last pill. Same height and shape as the three
+              beside it so the row reads as one strip, but it is an action
+              rather than a state: it carries a sentence where they carry
+              three letters, which is what tells them apart when a domain
+              filter is on and two pills are navy at once.
+            */}
+            <button
+              type="button"
+              disabled={!hasNotes || pending}
+              onClick={() => {
+                if (willOverwrite && !confirming) { setConfirming(true); return; }
+                setConfirming(false);
+                onConvert();
+              }}
+              className="text-[10px] font-bold px-2.5 py-0.5 rounded"
+              style={{
+                background: confirming ? "#B45309" : NAVY,
+                color: "white",
+                border: "none",
+                cursor: !hasNotes || pending ? "default" : "pointer",
+                opacity: !hasNotes || pending ? 0.35 : 1,
+              }}
+            >
+              {pending ? "Converting…" : confirming ? "Replace the comment?" : "Convert to Examiner Report"}
+            </button>
+            {/* Replacing a comment already written is the one thing here that
+                cannot be undone, so it asks. Only when there is something to
+                lose. */}
+            {confirming && (
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="text-[10px]"
+                style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer", textDecoration: "underline" }}
+              >
+                Cancel
+              </button>
+            )}
           </div>
+
+          {/*
+            The only sign that dictation exists, so it says the key when idle
+            rather than only appearing once something is happening. It doubles
+            as the recording indicator, which has to be visible anyway: a page
+            quietly holding the microphone open should say so.
+          */}
+          <p className="text-[10.5px] m-0" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
+            {dictateError
+              ? dictateError
+              : dictation.state === "listening"
+              ? "● Listening — let go of / to stop"
+              : dictation.state === "transcribing"
+              ? "Transcribing…"
+              : "Hold / in any box to dictate"}
+          </p>
         </div>
         {/* Same faint treatment as Edit presets. These are things you set
             once and then forget, not part of marking a consultation. Stacked
@@ -2798,12 +2809,6 @@ const Notepad = memo(function Notepad({
         </div>
       </div>
 
-      {/*
-        The only sign that dictation exists, so it says the key when idle
-        rather than only appearing once something is happening. It doubles as
-        the recording indicator, which has to be visible anyway: a page that
-        is quietly holding the microphone open should say so.
-      */}
 
       {error && <p className="text-[11px] m-0 mb-2" style={{ color: "#B91C1C" }}>{error}</p>}
       {!hasNotes && !error && (
@@ -2812,15 +2817,6 @@ const Notepad = memo(function Notepad({
         </p>
       )}
 
-      <p className="text-[10.5px] m-0 mb-2.5" style={{ color: dictateError ? "#B91C1C" : "rgba(51,51,51,0.4)" }}>
-        {dictateError
-          ? dictateError
-          : dictation.state === "listening"
-          ? "● Listening — let go of / to stop"
-          : dictation.state === "transcribing"
-          ? "Transcribing…"
-          : "Hold / in any box to dictate"}
-      </p>
 
       <div className="flex flex-col gap-3 mt-3">
         {DOMAINS.filter((d) => domainOnly === "all" || d.wellField.startsWith(domainOnly)).map((d) => (
