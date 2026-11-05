@@ -2662,8 +2662,20 @@ const Notepad = memo(function Notepad({
       {/* No explanatory line under this. Six boxes headed "did well" and
           "could improve" explain themselves, and the sentence that was here
           cost 32px of a rail that has none to spare. */}
-      <div className="flex items-baseline justify-between gap-2 mb-1">
-        <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+      {/*
+        Heading and pills, with Convert directly under them, and the layout
+        toggles alongside.
+
+        Convert lives inside this row rather than below it because the
+        toggle stack on the right is four lines tall and the heading was
+        one, so anything after the row began four lines down with nothing
+        in between. Putting Convert in the left column fills that gap with
+        the button instead of air, and items-start is what lets the two
+        columns be different heights.
+      */}
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
           <h3 className="text-[11px] font-bold uppercase tracking-[0.07em] m-0" style={{ color: "rgba(51,51,51,0.45)" }}>
             Notepad
           </h3>
@@ -2699,6 +2711,45 @@ const Notepad = memo(function Notepad({
                 {label}
               </button>
             ))}
+          </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          disabled={!hasNotes || pending}
+          onClick={() => {
+            if (willOverwrite && !confirming) { setConfirming(true); return; }
+            setConfirming(false);
+            onConvert();
+          }}
+          /* Sized to its text, not to the column. It belongs with the pills
+             above it rather than reading as a banner across the rail, and a
+             full-width navy bar was the loudest thing on a page whose job is
+             to be read. */
+          className="rounded-lg px-4 py-2 text-[12.5px] font-bold mb-1.5"
+          style={{
+            background: NAVY, border: "none", color: "white",
+            cursor: !hasNotes || pending ? "default" : "pointer",
+            opacity: !hasNotes || pending ? 0.4 : 1,
+          }}
+        >
+          {pending ? "Converting…" : confirming ? "Replace the comment?" : "Convert to Examiner Report"}
+        </button>
+  
+        {/*
+          Replacing a comment already written is the one thing here that cannot
+          be undone, so it asks. Only when there is something to lose.
+        */}
+        {confirming && (
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="text-[11.5px] mb-1.5 ml-3"
+            style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
+          >
+            Cancel, keep what is written
+          </button>
+        )}
           </div>
         </div>
         {/* Same faint treatment as Edit presets. These are things you set
@@ -2753,42 +2804,6 @@ const Notepad = memo(function Notepad({
         the recording indicator, which has to be visible anyway: a page that
         is quietly holding the microphone open should say so.
       */}
-      <button
-        type="button"
-        disabled={!hasNotes || pending}
-        onClick={() => {
-          if (willOverwrite && !confirming) { setConfirming(true); return; }
-          setConfirming(false);
-          onConvert();
-        }}
-        /* Sized to its text, not to the column. It belongs with the pills
-           above it rather than reading as a banner across the rail, and a
-           full-width navy bar was the loudest thing on a page whose job is
-           to be read. */
-        className="rounded-lg px-4 py-2 text-[12.5px] font-bold mb-1.5"
-        style={{
-          background: NAVY, border: "none", color: "white",
-          cursor: !hasNotes || pending ? "default" : "pointer",
-          opacity: !hasNotes || pending ? 0.4 : 1,
-        }}
-      >
-        {pending ? "Converting…" : confirming ? "Replace the comment?" : "Convert to Examiner Report"}
-      </button>
-
-      {/*
-        Replacing a comment already written is the one thing here that cannot
-        be undone, so it asks. Only when there is something to lose.
-      */}
-      {confirming && (
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          className="text-[11.5px] mb-1.5 ml-3"
-          style={{ background: "none", border: "none", color: "rgba(51,51,51,0.5)", cursor: "pointer" }}
-        >
-          Cancel, keep what is written
-        </button>
-      )}
 
       {error && <p className="text-[11px] m-0 mb-2" style={{ color: "#B91C1C" }}>{error}</p>}
       {!hasNotes && !error && (
