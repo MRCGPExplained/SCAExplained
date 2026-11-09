@@ -18,28 +18,35 @@
  * what Brandon pays a reviewer, so it is the real number and the config row
  * is stale.
  *
- * THE £55 ON INTENSIVE IS GROSS, AND AI COMES OUT OF IT. Brandon's decision,
- * made with the arithmetic in front of him, and it replaces the rule this
- * table used to keep: that every tier clears its own allowance at the worst
- * observed AI cost. Intensive does not. £295 less £4.63 of Stripe less £240
- * of reviewers leaves £50.38, and 500 gradings cost £56 at the measured
- * average and £111.50 at the worst seen.
+ * INTENSIVE'S ALLOWANCE IS SET WHERE IT STOPS LOSING MONEY ON A TYPICAL
+ * CONSULTATION. £295 less £4.62 of Stripe less £240 of reviewers leaves
+ * £50.38 for AI and margin, so the plan breaks even at 398 gradings at the
+ * average and 372 at the ninetieth percentile. 350 is under both:
  *
- * It is a reasonable bet rather than an oversight. Measured usage is 15.5
- * gradings per candidate, where the margin is £48.64 whatever number the
- * card prints. 400 and 500 are the same decision in practice: £22 apart at
- * the worst case and nothing apart in expectation, and both already exceed
- * the 246 cases in the bank, so the larger number costs almost nothing and
- * sells better. The exposure is one heavy user wiping out the margin on
- * their own plan, capped near £60.
+ *   350 at the mean   £44.27  margin  £6.10
+ *   350 at the p90    £47.39  margin  £2.98
+ *   350 at the worst  £81.90  margin  £31.53 LOST
  *
- * What it rests on: two candidates. Not enough to know how rare that user
- * is. If anyone ever grades more than about 450 consultations, that plan
- * sold at a loss, and the number to revisit is this one.
+ * It was briefly 500, which loses £12.88 at the average, and 400 before
+ * that, which loses £0.23. 350 is still 40% more than the 246 cases in the
+ * bank, so nothing is given up on the card by choosing the number that
+ * works.
  *
- * The other two tiers still clear their allowances comfortably at the worst
- * case, Starter by £61.69 and Premium by £39.75. Intensive is the exception
- * because £240 of its £295 leaves the business before anything is graded.
+ * THE CEILING IS £19.26 AND NO ALLOWANCE CHANGES IT. Grading the bank once
+ * costs £31.12 at the average, which is what a candidate who works through
+ * the cases actually spends. That is the most Intensive can earn from such a
+ * candidate whatever this number says, because the cost follows what people
+ * do rather than what the card promises. The allowance only binds people who
+ * would go past 246, and they are already the ones costing money.
+ *
+ * At the 15.5 gradings actually measured the margin is £48.41, on a sample
+ * of two candidates, which is not enough to know how rare a heavy user is.
+ *
+ * STARTER AND PREMIUM ARE FINE AT EVERY COST LEVEL. Starter clears £60.37 at
+ * the worst case and Premium £36.45; Premium could afford 455 gradings at
+ * worst-case cost and promises 300. Intensive is the exception because £240
+ * of its £295 leaves the business before anything is graded: it is a GP
+ * review product that includes AI, not a plan with a margin.
  */
 export type PlanKey = "starter" | "premium" | "intensive";
 
@@ -49,8 +56,21 @@ export interface Plan {
   /** Pence, because that is what Stripe wants and rounding twice is how
    *  a price ends up a penny out from the one advertised. */
   pricePence: number;
-  /** AI gradings granted. Recording and transcribing stay free: they are 5%
-   *  of the bill, and metering them would tax the habit rather than the cost. */
+  /**
+   * AI gradings granted.
+   *
+   * Recording and transcribing stay free. This used to say they were 5% of
+   * the bill; they are 75% of it. Measured over 31 consultations: Deepgram
+   * £0.0745 and Daily £0.0200 against £0.0173 of Claude, so the metered step
+   * is the cheap one and the free steps are the expensive ones.
+   *
+   * THE HOLE THAT LEAVES is that an allowance does not bound the bill. Record
+   * and transcribe 1,500 consultations, grade 350, and this number is honoured
+   * while the unmetered 1,500 cost about £142. Four of the 31 recordings were
+   * transcribed and never graded, so it is not hypothetical, only small so
+   * far. Nothing here fixes it: closing it means metering transcription or
+   * capping recordings, both of which change what the product promises.
+   */
   aiGradings: number;
   /** GP reviews granted. The scarce one: twenty minutes of a person. */
   gpReviews: number;
@@ -98,13 +118,13 @@ export const PLANS: Record<PlanKey, Plan> = {
     key: "intensive",
     name: "Intensive",
     pricePence: 29500,
-    aiGradings: 500,
+    aiGradings: 350,
     gpReviews: 12,
     months: 4,
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
-      "500 AI-graded consultations",
+      "350 AI-graded consultations",
       "12 consultations reviewed by a GP",
       "4 months access",
     ],
