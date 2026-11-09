@@ -26,7 +26,7 @@
  * price to encourage exactly the behaviour that runs out the capacity.
  */
 export type TopUpKind = "ai" | "gp";
-export type TopUpKey = "ai25" | "ai50" | "ai100" | "ai200" | "gp1" | "gp3" | "gp5";
+export type TopUpKey = "ai25" | "ai50" | "ai100" | "ai200" | "gp1" | "gp5" | "gp10" | "gp20";
 
 export interface TopUp {
   key: TopUpKey;
@@ -55,30 +55,41 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
     £9 lost £11, and the 20-pack lost £220 a sale. Nothing had been bought
     yet, which is the only reason that is a correction rather than a refund.
 
-    £25 leaves £4.43 after Stripe on a single and £4.58 each on a five-pack,
-    which is deliberately the same margin per review the Intensive plan makes
-    (£55 over 12). A top-up and a plan should not disagree about what a
-    review is worth.
+    IT DOES STEP DOWN WITH VOLUME, which reverses what this file used to say
+    and is worth explaining rather than quietly flipping. The old argument was
+    that a volume discount encourages buying more, and GP reviews are twenty
+    minutes each of the one thing there is no more of, so discounting the big
+    pack would use price to encourage the behaviour that exhausts capacity.
 
-    FLAT, with no discount for buying more, which is the opposite of the AI
-    ladder above and the whole reason the two are listed apart. A volume
-    discount exists to encourage buying more; GP reviews are twenty minutes
-    each of the one thing there is no more of, so discounting the big pack
-    would use price to encourage exactly the behaviour that exhausts the
-    capacity.
+    That argument still has force and it was overruled deliberately. What
+    changed is that a reviewer is now paid per review, so capacity is bought
+    rather than fixed: more demand funds more reviewers instead of consuming
+    a pool. Two examiners is still two examiners, so the risk has moved from
+    the price list to the recruiting, which is the honest place for it.
 
-    Sizes are 1, 3 and 5, not the single 20-pack this replaces. A plan now
-    grants 12, so a 20-pack top-up was larger than the allowance it tops up,
-    and £500 is not a thing anyone buys a fortnight before an exam. One is
-    there because the commonest need is one more review of one more case.
+    The ladder only exists because the single moved to £28. At a £25 flat
+    base there is £5 of room, and a discount eats it: 20 at £23 each leaves
+    £2.64 a review, which one re-review wipes out. Starting at £28 buys a
+    real saving at every step while the margin holds.
+
+      1  at £28 each  margin £7.38
+      5  at £27 each  margin £6.56 each
+      10 at £26 each  margin £5.59 each
+      20 at £25 each  margin £4.62 each
+
+    The bottom of the ladder lands on £25, which is what the Intensive plan
+    works out at per review. The biggest top-up and the plan agreeing is a
+    tidy place for it to stop: buying twenty at a time is as good as being on
+    the plan, and never better.
   */
-  gp1: { key: "gp1", kind: "gp", units: 1, pricePence: 2500,  label: "1 GP review",  detail: "£25.00" },
-  gp3: { key: "gp3", kind: "gp", units: 3, pricePence: 7500,  label: "3 GP reviews", detail: "£25.00 each" },
-  gp5: { key: "gp5", kind: "gp", units: 5, pricePence: 12500, label: "5 GP reviews", detail: "£25.00 each" },
+  gp1:  { key: "gp1",  kind: "gp", units: 1,  pricePence: 2800,  label: "1 GP review",   detail: "£28.00" },
+  gp5:  { key: "gp5",  kind: "gp", units: 5,  pricePence: 13500, label: "5 GP reviews",  detail: "£27.00 each" },
+  gp10: { key: "gp10", kind: "gp", units: 10, pricePence: 26000, label: "10 GP reviews", detail: "£26.00 each" },
+  gp20: { key: "gp20", kind: "gp", units: 20, pricePence: 50000, label: "20 GP reviews", detail: "£25.00 each" },
 };
 
 export const AI_TOPUPS: TopUpKey[] = ["ai25", "ai50", "ai100", "ai200"];
-export const GP_TOPUPS: TopUpKey[] = ["gp1", "gp3", "gp5"];
+export const GP_TOPUPS: TopUpKey[] = ["gp1", "gp5", "gp10", "gp20"];
 
 export function isTopUpKey(value: string): value is TopUpKey {
   return value in TOPUPS;

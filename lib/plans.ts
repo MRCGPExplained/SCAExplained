@@ -18,18 +18,28 @@
  * what Brandon pays a reviewer, so it is the real number and the config row
  * is stale.
  *
- * THE RULE THIS TABLE USED TO KEEP IS NOW BROKEN ON PURPOSE. Every tier used
- * to clear its own allowance at the worst observed AI cost. Intensive no
- * longer does: £295 less £4.63 of Stripe less £240 of GP leaves £50, and 500
- * gradings cost £56 at the average and £111 at the worst seen. A candidate
- * who used the whole allowance would cost more than they paid.
+ * THE £55 ON INTENSIVE IS GROSS, AND AI COMES OUT OF IT. Brandon's decision,
+ * made with the arithmetic in front of him, and it replaces the rule this
+ * table used to keep: that every tier clears its own allowance at the worst
+ * observed AI cost. Intensive does not. £295 less £4.63 of Stripe less £240
+ * of reviewers leaves £50.38, and 500 gradings cost £56 at the measured
+ * average and £111.50 at the worst seen.
  *
- * That is a deliberate trade and worth stating plainly rather than leaving
- * for someone to rediscover. The allowance is advertising: measured usage is
- * 15.5 gradings per candidate, so nobody is within an order of magnitude of
- * 500. The exposure is not the average customer, it is a single heavy user
- * wiping out the margin on their own plan, and it is capped at roughly £60.
- * Two candidates is not enough to know how rare that is.
+ * It is a reasonable bet rather than an oversight. Measured usage is 15.5
+ * gradings per candidate, where the margin is £48.64 whatever number the
+ * card prints. 400 and 500 are the same decision in practice: £22 apart at
+ * the worst case and nothing apart in expectation, and both already exceed
+ * the 246 cases in the bank, so the larger number costs almost nothing and
+ * sells better. The exposure is one heavy user wiping out the margin on
+ * their own plan, capped near £60.
+ *
+ * What it rests on: two candidates. Not enough to know how rare that user
+ * is. If anyone ever grades more than about 450 consultations, that plan
+ * sold at a loss, and the number to revisit is this one.
+ *
+ * The other two tiers still clear their allowances comfortably at the worst
+ * case, Starter by £61.69 and Premium by £39.75. Intensive is the exception
+ * because £240 of its £295 leaves the business before anything is graded.
  */
 export type PlanKey = "starter" | "premium" | "intensive";
 
