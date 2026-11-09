@@ -153,7 +153,7 @@ interface ReplyRow {
  * Everything, not a page of it, because the badge counts over this list and a
  * page would make the count a lie: an older unread item past the cut-off
  * would show as zero, which is worse than no badge at all. Both sets are
- * small by construction — the largest plan grants 20 GP reviews — so CAP sits
+ * small by construction — the largest plan grants 12 GP reviews — so CAP sits
  * far above any real inbox and exists only so a runaway query cannot happen.
  * If it is ever hit the count becomes a floor, which is worth knowing, so it
  * says so rather than quietly truncating.

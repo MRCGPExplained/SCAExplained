@@ -52,7 +52,10 @@ export function SubmitForReviewButton({
       const res = await fetch("/api/topup/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topup: "gp20" }),
+        // One review, because this button is reached by someone who wants to
+        // submit one more consultation. A 20-pack was what existed, not what
+        // was being asked for.
+        body: JSON.stringify({ topup: "gp1" }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout failed");
@@ -194,7 +197,7 @@ export function SubmitForReviewButton({
                       opacity: toppingUp ? 0.7 : 1,
                     }}
                   >
-                    {toppingUp ? "Redirecting…" : "Top up 20 GP reviews"}
+                    {toppingUp ? "Redirecting…" : "Buy 1 GP review, £25"}
                   </button>
                 </div>
 

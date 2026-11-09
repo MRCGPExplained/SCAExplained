@@ -7,11 +7,29 @@
  * — the case count was 250+ in the hero, 256 in a card and 246 in the
  * database — so there is one table and everything reads it.
  *
- * Priced against measured cost, not guessed. A graded consultation costs
- * £0.32-£0.63 of AI (mean £0.42) and a GP review is £4.00 in the pricing
- * config, though no GP has been paid for one yet. Each tier clears its own
- * allowance at the worst observed AI cost, which is the column that matters:
- * the mean is five consultations wide and not firmly pinned down.
+ * PRICED AGAINST MEASURED COST, and the measurements have moved twice.
+ *
+ * AI is far cheaper than this comment used to claim. Over 31 consultations
+ * in consultation_costs, Claude plus Deepgram runs £0.092 on average and
+ * £0.203 at worst, with Daily adding about £0.02. The old figures here said
+ * £0.32-£0.63 from a sample of five.
+ *
+ * A GP REVIEW IS £20, not the £4.00 still sitting in pricing_config. That is
+ * what Brandon pays a reviewer, so it is the real number and the config row
+ * is stale.
+ *
+ * THE RULE THIS TABLE USED TO KEEP IS NOW BROKEN ON PURPOSE. Every tier used
+ * to clear its own allowance at the worst observed AI cost. Intensive no
+ * longer does: £295 less £4.63 of Stripe less £240 of GP leaves £50, and 500
+ * gradings cost £56 at the average and £111 at the worst seen. A candidate
+ * who used the whole allowance would cost more than they paid.
+ *
+ * That is a deliberate trade and worth stating plainly rather than leaving
+ * for someone to rediscover. The allowance is advertising: measured usage is
+ * 15.5 gradings per candidate, so nobody is within an order of magnitude of
+ * 500. The exposure is not the average customer, it is a single heavy user
+ * wiping out the margin on their own plan, and it is capped at roughly £60.
+ * Two candidates is not enough to know how rare that is.
  */
 export type PlanKey = "starter" | "premium" | "intensive";
 
@@ -61,18 +79,23 @@ export const PLANS: Record<PlanKey, Plan> = {
       "4 months access",
     ],
   },
+  /*
+    £295 = £240 to the reviewers (12 x £20) + £55 to the business, before
+    Stripe takes £4.63 and before any AI. See the note at the top of this
+    file for what that leaves and why the AI allowance is set above it.
+  */
   intensive: {
     key: "intensive",
     name: "Intensive",
     pricePence: 29500,
-    aiGradings: 400,
-    gpReviews: 20,
+    aiGradings: 500,
+    gpReviews: 12,
     months: 4,
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
-      "400 AI-graded consultations",
-      "20 consultations reviewed by a GP",
+      "500 AI-graded consultations",
+      "12 consultations reviewed by a GP",
       "4 months access",
     ],
   },
