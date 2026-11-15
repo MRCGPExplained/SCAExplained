@@ -46,6 +46,26 @@ const { logStatus, logError, logDuration, setLogContext } = (() => {
 const DAILY_JOIN_TIMEOUT_MS = 5000;
 
 /**
+ * How long to wait for a leave before carrying on without it.
+ *
+ * daily-js resolves leave() immediately only when the call object is already
+ * out of the meeting; otherwise it posts to the call machine and waits for a
+ * reply that a dead network or a sleeping tab may never send. Every line
+ * after such an await is then never reached.
+ *
+ * That is survivable when nothing waits on it and fatal when something does.
+ * Both leaves added to fix the wrong-room bug are on the path that starts the
+ * next consultation, so an unbounded one would trade a call that connects to
+ * the wrong room for a consultation that never begins — which is worse,
+ * because at least the first one records.
+ *
+ * Shorter than the join timeout on purpose. A leave that has not answered in
+ * three seconds is not going to, and the join behind it has its own five to
+ * spend.
+ */
+const DAILY_LEAVE_TIMEOUT_MS = 3000;
+
+/**
  * Inlined at build time. The study room is the only thing here that needs
  * Supabase in the browser, and it now renders on every page — so where the app
  * is running without these (a local checkout with no keys), it should quietly
@@ -1700,7 +1720,7 @@ export function StudyRoomProvider({
       if (before === "joined-meeting" || before === "joining-meeting") {
         logStatus("call object still in a meeting — leaving before rejoining", { before, roomName });
         try {
-          await call.leave();
+          await withTimeout(call.leave(), DAILY_LEAVE_TIMEOUT_MS);
         } catch (err) {
           logError("DailyCo leave before rejoin", err, { roomName });
         }
@@ -2457,7 +2477,7 @@ export function StudyRoomProvider({
       const state = dailyCallRef.current.meetingState();
       if (state === "joined-meeting" || state === "joining-meeting") {
         logStatus("still in a previous call — leaving before starting the next", { state });
-        await leaveDailyCall();
+        await withTimeout(leaveDailyCall(), DAILY_LEAVE_TIMEOUT_MS);
       }
     }
     setRecordingState("starting");
