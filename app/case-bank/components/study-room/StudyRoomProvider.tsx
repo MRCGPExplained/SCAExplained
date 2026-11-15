@@ -1388,6 +1388,28 @@ export function StudyRoomProvider({
     // out from under everyone, so the only thing left to do here is stop
     // counting down toward a close that has already happened.
     channel.on("broadcast", { event: "debrief-ended" }, () => {
+      /*
+        ONLY IF THIS BROWSER HAS A DEBRIEF OPEN.
+
+        Without this the broadcast is a room-wide teardown that anyone can
+        fire at any time, and a late one lands on a live consultation: the
+        host's endDebrief would delete the call it is currently in and leave
+        it, mid-station.
+
+        That is reachable now that the natural expiry broadcasts too. A tab
+        that was backgrounded has its setTimeout frozen, not cancelled, so a
+        phone unlocked ten minutes later fires a debrief that ended for
+        everyone else long ago — by which time the room may be two cases on.
+
+        The timers are the honest test of "is a debrief open here", because
+        startDebrief arms both and clearDebriefTimers nulls both, so they
+        cannot disagree with each other the way a piece of state and a ref
+        can. Nothing open means nothing to end, and nothing to tear down.
+      */
+      if (!debriefTimeoutRef.current && !debriefIntervalRef.current) {
+        logStatus("debrief-ended ignored — no debrief open here");
+        return;
+      }
       logStatus("debrief ended for the room");
       latest.current.endDebrief();
     });
