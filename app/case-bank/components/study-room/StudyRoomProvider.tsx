@@ -1368,7 +1368,7 @@ export function StudyRoomProvider({
     // out from under everyone, so the only thing left to do here is stop
     // counting down toward a close that has already happened.
     channel.on("broadcast", { event: "debrief-ended" }, () => {
-      logStatus("debrief ended by the host");
+      logStatus("debrief ended for the room");
       latest.current.endDebrief();
     });
 
@@ -1682,8 +1682,48 @@ export function StudyRoomProvider({
         setDailyFailed(true);
         return false;
       }
+      /*
+        LEAVE WHATEVER MEETING THIS OBJECT IS ALREADY IN, FIRST.
+
+        getOrCreateDailyCall hands back one long-lived call object for the
+        whole session, and daily-js refuses a second join on it without
+        throwing: it logs "already joined meeting, call leave() before joining
+        again" and returns undefined. So `await call.join(...)` resolved, the
+        lines below reported success, and the browser stayed in the PREVIOUS
+        room with the badge reading Call Connected.
+
+        That is how a consultation was recorded with the doctor in one Daily
+        room and the patient in another, neither able to hear the other, and
+        nothing anywhere saying so.
+      */
+      const before = call.meetingState();
+      if (before === "joined-meeting" || before === "joining-meeting") {
+        logStatus("call object still in a meeting — leaving before rejoining", { before, roomName });
+        try {
+          await call.leave();
+        } catch (err) {
+          logError("DailyCo leave before rejoin", err, { roomName });
+        }
+      }
+
       setDailyRoomName(roomName);
       await call.join({ url: roomUrl, token: tokenResult.token });
+
+      /*
+        And verify it, rather than taking the absence of a throw as success.
+        A refused join is silent, so the only honest test is what state the
+        object is actually in afterwards. Failing here routes into the
+        existing voice-call-failed path, which refunds and unwinds, instead
+        of leaving three people in a call that is not happening.
+      */
+      const after = call.meetingState();
+      if (after !== "joined-meeting") {
+        logError("DailyCo join did not take", `meetingState is ${after}`, { roomName });
+        setDailyFailed(true);
+        setCallConnected(false);
+        return false;
+      }
+
       setCallConnected(true);
       logDuration("DailyCo join", t0);
       return true;
@@ -1806,7 +1846,23 @@ export function StudyRoomProvider({
     }, 1000);
     debriefTimeoutRef.current = setTimeout(() => {
       logStatus("debrief window ended — closing call");
-      endDebrief();
+      /*
+        Through the ref, and told to the room.
+
+        Through the ref because this closure is armed eight minutes before it
+        runs and captures the render that armed it, including iAmHost — which
+        changes when roles change, and the teardown inside endDebrief is
+        host-only.
+
+        Told to the room because there is otherwise no shared end to a
+        debrief at all: every browser relies on its own setTimeout, and a
+        phone that locks or a tab that is backgrounded freezes it. One client
+        whose timer never fires keeps the Daily room and the study_rooms row
+        alive after everyone else has moved on, which is the stale state
+        behind the reported fault. Whoever fires first now ends it for all.
+      */
+      channelRef.current?.send({ type: "broadcast", event: "debrief-ended", payload: {} });
+      latest.current.endDebrief();
     }, DEBRIEF_DURATION_SECONDS * 1000);
   }
 
@@ -1822,9 +1878,26 @@ export function StudyRoomProvider({
    * host announces it.
    */
   function endDebriefForEveryone() {
-    if (iAmHost) {
-      channelRef.current?.send({ type: "broadcast", event: "debrief-ended", payload: {} });
-    }
+    /*
+      ANYONE MAY END IT, AND IT ENDS FOR EVERYONE.
+
+      This used to broadcast only when the presser was the host, while the
+      End Call Now button is rendered to all three participants. A guest
+      pressing it therefore stopped their own countdown and nothing else:
+      the host and the third member carried on counting, the Daily room was
+      never deleted, and study_rooms.daily_room_name went on naming a call
+      that one person had already left.
+
+      That stale row is the start of the reported fault. The guest goes idle
+      with the row still set, the late-join effect reads it as "they missed
+      the broadcast" and puts them straight back into the old room, and the
+      next case's join then lands on a call object that is already in a
+      meeting.
+
+      The teardown inside endDebrief stays host-only. This only makes sure
+      the host is told, so the host's copy runs it.
+    */
+    channelRef.current?.send({ type: "broadcast", event: "debrief-ended", payload: {} });
     endDebrief();
   }
 
@@ -1835,10 +1908,18 @@ export function StudyRoomProvider({
       endDailyCallAction(dailyRoomName);
       // Take the call off the room as it is torn down, or the next person
       // through the door is sent to join a room that no longer exists.
+      /*
+        Matched on the room name as well as the row, so a late teardown
+        cannot erase a call that is already live. Without the second clause
+        an endDebrief arriving after the next case has started would null the
+        new call off the row, and anyone joining the room afterwards would
+        find nothing to join.
+      */
       void supabase
         .from("study_rooms")
         .update({ daily_room_name: null, daily_room_url: null })
         .eq("id", room?.id ?? "")
+        .eq("daily_room_name", dailyRoomName)
         .then(({ error }) => {
           if (error) logError("clear daily room on study_rooms", error.message);
         });
@@ -2353,11 +2434,31 @@ export function StudyRoomProvider({
       setRecordingError("Doctor and patient must be different participants.");
       return false;
     }
-    // Starting a new recording always wins — any leftover debrief call from
-    // a previous take is closed immediately, no grace period.
+    /*
+      Starting a new recording always wins — any leftover call from a previous
+      take is closed immediately, no grace period.
+
+      GATED ON THE CALL, NOT ON THE COUNTDOWN. This used to run only while
+      debriefSecondsLeft was non-null, which reads as "is a debrief open" and
+      is not the same question. A browser can be sitting in the previous
+      Daily room with its counter already at null: it ended its own debrief,
+      or its debrief ended while the room row still named the old call and the
+      late-join effect put it back in. In that state this did nothing, and the
+      join below landed on a call object that was already in a meeting.
+
+      Awaited, so the leave has finished before the next join is issued rather
+      than racing it.
+    */
     if (debriefSecondsLeft !== null) {
       logStatus("new recording starting — ending previous debrief call immediately");
       endDebrief();
+    }
+    if (dailyCallRef.current) {
+      const state = dailyCallRef.current.meetingState();
+      if (state === "joined-meeting" || state === "joining-meeting") {
+        logStatus("still in a previous call — leaving before starting the next", { state });
+        await leaveDailyCall();
+      }
     }
     setRecordingState("starting");
     setRecordingError("");
