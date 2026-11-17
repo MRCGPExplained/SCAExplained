@@ -1,0 +1,90 @@
+-- WHAT IS ACTUALLY SCHEDULED IN THE DATABASE, as of 17 Nov 2026.
+--
+-- Nothing else in this repo records this. The files in supabase/ are scripts
+-- somebody pasted into the SQL editor once; their presence does not mean they
+-- were run and their absence does not mean they were not. That gap is how a
+-- job nobody remembered installing ran nightly for 106 days (see
+-- audio_cleanup_cron.sql), and how two others failed 20,000 times between
+-- them without anybody seeing it.
+--
+-- To check the real state, which is the only authority:
+--
+--   select jobid, jobname, schedule, active, command from cron.job order by jobid;
+--   select jobid, status, count(*), max(start_time), max(return_message)
+--     from cron.job_run_details group by jobid, status order by jobid, status;
+--
+-- The second query is the one worth running. A job that has failed every run
+-- for four months looks exactly like a job that is working, until you read it.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- LIVE NOW
+--
+--   7  delete-old-study-rooms    30 * * * *   (command replaced 17 Nov, below)
+--   8  delete-old-room-messages  0 * * * *
+--
+-- REMOVED 17 Nov 2026
+--
+--   1  expire-pending-bookings   */10 * * * *
+--   9  mark-audio-for-deletion   0 3 * * *
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 1. expire-pending-bookings — REMOVED, it could never succeed.
+--
+-- `update bookings set status = 'cancelled' where status = 'pending' ...`
+--
+-- The bookings table does not exist and no table matching %booking% does
+-- either. It was dropped or renamed on 7 July 2026 and the job was left
+-- behind: 947 successes before that date, then 19,182 consecutive failures
+-- with `relation "bookings" does not exist`, 144 a day for over four months.
+-- Nothing was lost by its failing - there was nothing to update - but it wrote
+-- 19,182 error rows into cron.job_run_details, which is the log you would want
+-- to be legible when something real breaks.
+--
+--   select cron.unschedule('expire-pending-bookings');   -- run 17 Nov 2026
+--
+-- If pending-booking expiry is still wanted, it belongs against whatever
+-- replaced that table, not against its name.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 2. delete-old-study-rooms — COMMAND REPLACED, it was half working.
+--
+-- It was: `delete from study_rooms where last_activity_at < now() - interval
+-- '14 days';`
+--
+-- room_participants_room_id_fkey has no ON DELETE action, so any room that
+-- still had a participant row refused to go. Of the three tables referencing
+-- study_rooms, it is the only one like that - room_messages CASCADEs and
+-- station_recordings SET NULLs - so it was the whole problem. The job
+-- succeeded 1,958 times on rooms that happened to be empty and failed 1,290
+-- times on the rest, which is why it never looked completely broken.
+--
+-- The command now clears the participants first:
+--
+--   select cron.alter_job(7, command := $$
+--     delete from room_participants
+--      where room_id in (select id from study_rooms
+--                         where last_activity_at < now() - interval '14 days');
+--     delete from study_rooms where last_activity_at < now() - interval '14 days';
+--   $$);                                                 -- run 17 Nov 2026
+--
+-- Verified by running both statements inside a DO block that raised at the end
+-- to force a rollback: both executed with no FK violation, reporting 3
+-- participant rows and 4 rooms, and nothing was committed.
+--
+-- THE PROPER FIX IS DDL and is refused by tooling on this project, so it is
+-- left here for whoever has the console:
+--
+--   alter table room_participants
+--     drop constraint room_participants_room_id_fkey,
+--     add constraint room_participants_room_id_fkey
+--       foreign key (room_id) references study_rooms(id) on delete cascade;
+--
+-- After that the command can go back to the single delete it used to be.
+--
+-- SIDE EFFECT WORTH KNOWING: this also unblocks job 8. Because room_messages
+-- CASCADEs, messages are removed when their room is, so job 8's
+-- `room_id not in (select id from study_rooms)` matches nothing and it has
+-- been reporting DELETE 0 on every one of its 3,248 runs. It looked like
+-- message cleanup was working. What was actually happening is that messages in
+-- rooms too old to keep but undeletable were accumulating, out of reach of
+-- both jobs. Rooms going now takes their messages with them.
