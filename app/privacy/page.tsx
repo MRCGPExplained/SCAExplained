@@ -81,6 +81,16 @@ export default function PrivacyPage() {
         deleted. We may retain anonymised booking counts for longer for our own
         internal records (e.g. how many sessions we have run).
       </P>
+      <P>
+        Audio recordings of your practice consultations, and any spoken feedback
+        a GP reviewer records on them, are kept while your access is live and
+        for three months after it ends, after which they are permanently
+        deleted. Nothing is deleted less than three months after it was
+        recorded. We keep the transcript, the AI assessment and your
+        reviewer&apos;s written feedback for up to two years from the date of
+        submission, so your reports remain readable after the audio itself has
+        gone.
+      </P>
 
       <Divider />
       <H2>Who we share your data with</H2>

@@ -94,10 +94,13 @@ export default function TermsPage() {
         not be shared, resold, or transferred.
       </P>
       <P>
-        Audio recordings submitted through the platform are stored for up to
-        3 months from the date of submission, after which they are permanently
-        deleted from our systems. Transcripts and examiner feedback are retained
-        for up to 2 years from the date of submission.
+        Audio recordings of your consultations, including any spoken feedback
+        recorded by a GP reviewer, are kept while your access is live and for
+        three months after it ends, after which they are permanently deleted.
+        Nothing is deleted less than three months after it was recorded.
+        Transcripts, AI grades and your reviewer&apos;s written feedback are
+        retained for up to 2 years from the date of submission, so your reports
+        stay readable after the audio has gone.
       </P>
       <P>
         This does not affect your statutory rights in respect of defective or
