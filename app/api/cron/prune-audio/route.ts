@@ -17,24 +17,31 @@ export const dynamic = "force-dynamic";
  * that a retention policy which depends on somebody remembering is not a
  * retention policy.
  *
- * WHAT IT WILL NOT DELETE is the thing to understand before changing the
- * window below. findOldCandidateAudio holds back any recording whose
- * candidate still has live case_bank_access, however old it is. The window is
- * therefore a floor and not a ceiling: audio survives until it is older than
- * the window AND the candidate it belongs to has run out of access. A
- * candidate in month four of a plan keeps everything.
+ * THE POLICY IS NOT HERE. It is KEEP_AFTER_EXPIRY_DAYS in
+ * lib/audio-retention.ts: audio goes three months after the candidate's
+ * access ends. That is the sentence to change if the keeping period should
+ * change, and the one to put in the Terms.
  */
 
 /**
- * How old audio has to be before it is considered at all.
+ * The age floor, and ONLY a floor.
  *
- * Plans run four months, about 122 days, so 180 is the longest plan plus two
- * months. The access check is what actually protects a paying candidate; this
- * number is the grace period AFTER they stop paying, during which they can
- * still be sent a link to their own consultation. Shortening it saves storage
- * sooner and is a product decision, not a technical one.
+ * Nothing is deleted before a recording is this old, whatever any date says.
+ * It is deliberately the same number as the keeping period, because that
+ * makes it provably redundant for every customer whose dates make sense: a
+ * recording can only be made while access is live, so created_at is never
+ * after the expiry date, so created_at + 90 is never after expiry + 90. The
+ * expiry test is always the binding one.
+ *
+ * What it is for is the dates that do NOT make sense. The expiry column is
+ * hand-typed on an admin form with no minimum, is nulled outright when an
+ * account is revoked, and is absent entirely for anyone who never bought.
+ * Without this floor, each of those reads as "expired long ago" and the next
+ * sweep deletes that account's audio - including a consultation recorded the
+ * same morning. With it, the worst case costs three months rather than
+ * everything, which is the difference between a mistake and a catastrophe.
  */
-const RETAIN_DAYS = 180;
+const FLOOR_DAYS = 90;
 
 /** A cron that deletes files is not something to leave open to the web.
  *  Vercel sends this header when CRON_SECRET is set in the project. */
@@ -52,7 +59,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
-  const before = new Date(Date.now() - RETAIN_DAYS * 86_400_000).toISOString();
+  const before = new Date(Date.now() - FLOOR_DAYS * 86_400_000).toISOString();
 
   // Counted before deleting so the log says what was held back as well as what
   // went. "0 deleted" alone cannot tell a working access check apart from a
@@ -67,9 +74,10 @@ export async function GET(request: Request) {
 
   console.log("[cron/prune-audio] swept", {
     before,
-    retainDays: RETAIN_DAYS,
+    floorDays: FLOOR_DAYS,
     deleted: result.deleted ?? 0,
     heldForLiveAccess: sweep.heldForLiveAccess,
+    heldForRecentExpiry: sweep.heldForRecentExpiry,
   });
 
   return NextResponse.json({
@@ -77,5 +85,6 @@ export async function GET(request: Request) {
     before,
     deleted: result.deleted ?? 0,
     heldForLiveAccess: sweep.heldForLiveAccess,
+    heldForRecentExpiry: sweep.heldForRecentExpiry,
   });
 }

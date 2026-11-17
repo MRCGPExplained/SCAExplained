@@ -42,11 +42,31 @@ interface AudioRow {
  */
 export interface AudioSweep {
   eligible: number;
-  /** Old enough, but left alone because the candidate's programme is live. */
+  /** Left alone because the candidate's access has not run out yet. */
   heldForLiveAccess: number;
+  /**
+   * Left alone because their access ended less than KEEP_AFTER_EXPIRY_DAYS
+   * ago - inside the grace period, not forgotten.
+   */
+  heldForRecentExpiry: number;
 }
 
-export const EMPTY_AUDIO_SWEEP: AudioSweep = { eligible: 0, heldForLiveAccess: 0 };
+export const EMPTY_AUDIO_SWEEP: AudioSweep = { eligible: 0, heldForLiveAccess: 0, heldForRecentExpiry: 0 };
+
+/**
+ * How long a candidate's audio is kept after their access ends.
+ *
+ * THIS IS THE POLICY. Everything else in this file is the safety net under it.
+ * The sentence it is meant to make true is "we keep your recordings for three
+ * months after your access ends" - a promise keyed to the customer's own dates
+ * rather than to our billing calendar, and the same for every recording they
+ * ever made: one purchase, one deletion date.
+ *
+ * It replaced a rule keyed to each recording's own age, which gave a customer
+ * no date they could predict - their last case outlived their first by four
+ * months for no reason anybody could defend.
+ */
+const KEEP_AFTER_EXPIRY_DAYS = 90;
 
 /**
  * Recordings looked at per sweep.
@@ -70,26 +90,44 @@ const ROWS_PER_SWEEP = 500;
 const PATHS_PER_CALL = 100;
 
 /**
- * Audio old enough to remove, from candidates who no longer have access.
+ * Audio whose keeping period has run out.
  *
- * Two conditions, not one. Age says nobody is likely to want it; access says
- * nobody can still be using it. Age alone used to decide, which meant a
- * customer four months into a live programme lost the audio of their own
- * consultation — and the GP's spoken feedback on it — at ninety days, while
- * they were still paying to work through it.
+ * THREE CONDITIONS, and only the middle one is the policy:
  *
- * "Has access" is the product's own test, from lib/case-bank-access.ts:
- * has_case_bank set AND an expiry still in the future. Both halves, because
- * either alone is a different question. A candidate who has it keeps their
- * audio however old it is; the sweep comes back to them once it runs out.
+ *   1. the recording is past the age floor (`beforeDate`, the caller's)
+ *   2. their access ended over KEEP_AFTER_EXPIRY_DAYS ago
+ *   3. their access is not live right now
  *
- * A read that fails yields nothing eligible rather than everything — that is
- * the one failure here that could delete an entire table's audio.
+ * WHY THE FLOOR IS NOT A SECOND POLICY. A recording can only be made while
+ * access is live, so created_at <= case_bank_expires_at for every row that
+ * exists. Add the same number of days to both and created_at + 90 always
+ * falls on or before expiry + 90 - so for any candidate whose expiry date is
+ * sane, condition 2 is the binding one and the floor decides nothing. The
+ * floor only bites when the date is ABSENT, NULLED or BACK-DATED, which are
+ * exactly the states that would otherwise delete a paying customer's audio
+ * the same night. It costs nothing and bounds every one of them.
  *
- * Expiry is compared as an instant rather than as an ISO string. The rest of
- * the product compares case_bank_expires_at to an ISO string directly, which
- * works there because the values are years from now; it is not a thing to rely
- * on where being wrong deletes what somebody paid for.
+ * That matters because this column is not only a subscription date. It holds
+ * hand-typed admin dates from an input with no `min`, forever-sentinels for
+ * staff (2099 and 2999 both exist), and NULL - which means both "revoked" and
+ * "never granted". Keying permanent deletion to it alone, with no floor, was
+ * measured as a one-keystroke path to destroying a whole account's audio.
+ *
+ * ABSENT EVIDENCE IS ELIGIBLE, NOT EXEMPT: no access row, no doctor on the
+ * recording, or a NULL expiry all age out at the floor. The opposite reading
+ * is tidier to argue for and it is how 989 MB accumulated - a row that
+ * nothing can ever judge is a row whose audio is kept for ever.
+ *
+ * TWO READ FAILURES GO THE OTHER WAY, because they are OUR fault rather than
+ * a fact about the customer: a failed query yields nothing eligible rather
+ * than everything, and a date that will not parse holds the audio so somebody
+ * can go and look at the row.
+ *
+ * NULL IS CHECKED BEFORE PARSING, NOT BY THE PARSE. new Date(null).getTime()
+ * is 0 - the Unix epoch, which is finite and reads as a date fifty-six years
+ * past. The unreadable-date guard below does NOT catch absence, so an
+ * implementation leaning on it would treat every revoked customer as long
+ * expired and delete their audio that night.
  */
 export async function findOldCandidateAudio(
   beforeDate: string
@@ -103,6 +141,11 @@ export async function findOldCandidateAudio(
     .is("audio_deleted_at", null)
     .lt("created_at", beforeDate)
     .or("doctor_audio_path.not.is.null,patient_audio_path.not.is.null,examiner_voice_note_path.not.is.null")
+    // Oldest first. Without an order the 500 are whatever the planner hands
+    // back, so a window full of held rows could repeat nightly while eligible
+    // ones outside it are never reached - a sweep reporting "0 deleted" while
+    // storage climbs, which is the failure this module exists to end.
+    .order("created_at", { ascending: true })
     .limit(ROWS_PER_SWEEP)
     .returns<(AudioRow & { doctor_user_id: string | null })[]>();
   // supabase-js returns { data, error } rather than throwing. A failed read
@@ -125,24 +168,48 @@ export async function findOldCandidateAudio(
     would delete every one of them.
   */
   if (accessError || !accessRows) {
-    return { rows: [], sweep: { eligible: 0, heldForLiveAccess: data.length } };
+    return { rows: [], sweep: { eligible: 0, heldForLiveAccess: data.length, heldForRecentExpiry: 0 } };
   }
 
   const now = Date.now();
-  const liveAccess = new Set(
-    accessRows
-      .filter((a) => {
-        if (!a.has_case_bank || !a.case_bank_expires_at) return false;
-        const expiry = new Date(a.case_bank_expires_at).getTime();
-        // An unreadable date is not an expired one. Treated as live, so the
-        // audio stays and somebody can look at the row.
-        return !Number.isFinite(expiry) || expiry > now;
-      })
-      .map((a) => a.user_id)
-  );
+  const graceEnds = now - KEEP_AFTER_EXPIRY_DAYS * 86_400_000;
 
-  const rows = data.filter((r) => !(r.doctor_user_id && liveAccess.has(r.doctor_user_id)));
-  return { rows, sweep: { eligible: rows.length, heldForLiveAccess: data.length - rows.length } };
+  /** Why one candidate's audio is or is not ready to go. */
+  type Verdict = "live" | "in-grace" | "expired";
+
+  const verdicts = new Map<string, Verdict>();
+  for (const a of accessRows) {
+    // Absence first. See the note above on new Date(null) reading as 1970:
+    // this branch is what stops a revoked customer looking long expired.
+    if (!a.case_bank_expires_at) {
+      verdicts.set(a.user_id, "expired");
+      continue;
+    }
+    const expiry = new Date(a.case_bank_expires_at).getTime();
+    if (!Number.isFinite(expiry)) {
+      // Our data problem, not a fact about them. Hold it.
+      verdicts.set(a.user_id, "live");
+      continue;
+    }
+    if (a.has_case_bank && expiry > now) {
+      verdicts.set(a.user_id, "live");
+      continue;
+    }
+    verdicts.set(a.user_id, expiry < graceEnds ? "expired" : "in-grace");
+  }
+
+  let heldForLiveAccess = 0;
+  let heldForRecentExpiry = 0;
+  const rows = data.filter((r) => {
+    // No doctor, or no access row for them: nobody's grace period to sit in,
+    // and the age floor has already been cleared to get this far.
+    const verdict = r.doctor_user_id ? verdicts.get(r.doctor_user_id) ?? "expired" : "expired";
+    if (verdict === "live") { heldForLiveAccess += 1; return false; }
+    if (verdict === "in-grace") { heldForRecentExpiry += 1; return false; }
+    return true;
+  });
+
+  return { rows, sweep: { eligible: rows.length, heldForLiveAccess, heldForRecentExpiry } };
 }
 
 /**

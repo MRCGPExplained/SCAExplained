@@ -1079,21 +1079,35 @@ export async function revokeUserAccess(userId: string): Promise<ActionResult> {
   if (!supabase) return { error: "Database not available." };
 
   /*
-    Clear the flags, keep the row.
+    Clear the flags, keep the row AND KEEP THE DATES.
 
-    This used to DELETE, which took ai_allowance and ai_uses_count with it.
-    An Intensive customer revoked over a billing query and then re-granted
-    came back with none of their 400, and since the counter went too, nobody
-    could work out how many they had left. The button offers to remove
-    programme access; it should not also destroy what they bought.
+    This used to DELETE the row, which took ai_allowance and ai_uses_count
+    with it. An Intensive customer revoked over a billing query and then
+    re-granted came back with none of their 400, and since the counter went
+    too, nobody could work out how many they had left. The button offers to
+    remove programme access; it should not also destroy what they bought.
+
+    The dates used to be nulled for the same reason the row used to be
+    deleted, and it is the same mistake one level down. Retention now keys
+    off case_bank_expires_at: audio goes three months after access ends (see
+    KEEP_AFTER_EXPIRY_DAYS in lib/audio-retention.ts). Nulling it on revoke
+    erased the only record of when that was, and the sweep reads a missing
+    date as "expired, long ago" - so revoking a customer mid-plan over a
+    billing query queued their consultation audio for deletion, three months
+    after the recording instead of three months after the four months they
+    had paid for.
+
+    Clearing has_case_bank alone removes access everywhere. Every reader
+    requires BOTH halves - lib/case-bank-access.ts:20,
+    app/api/topup/checkout/route.ts, app/dashboard/page.tsx and
+    app/admin/case-bank-users/page.tsx all test the flag and the date - so
+    leaving the date behind grants nothing. It only remembers what they had.
   */
   const { error } = await supabase
     .from("user_access")
     .update({
       has_programme: false,
-      expires_at: null,
       has_case_bank: false,
-      case_bank_expires_at: null,
     })
     .eq("user_id", userId);
   if (error) return { error: error.message };

@@ -297,7 +297,7 @@ export function CleanupClient({
 
       <CleanupCard
         title="Old Candidate Audio"
-        description="Deletes doctor/patient audio and the GP examiner's voice note for recordings older than the cutoff below, and only for candidates whose programme access has run out. Anyone still on a live programme keeps their audio however old it is. The transcript, AI grades, and the GP's marks and written feedback always stay. Trainer Insight and Sample Consultation audio are never affected."
+        description="Deletes doctor/patient audio and the GP examiner's voice note once a candidate's access ended more than three months ago. Anyone whose access is live, or who is inside that three-month grace, keeps their audio however old it is. The cutoff below is only a floor: nothing is ever deleted before a recording is that old, whatever the dates say. The transcript, AI grades, and the GP's marks and written feedback always stay. Trainer Insight and Sample Consultation audio are never affected."
         count={audioSweep?.eligible ?? null}
         loading={audioLoading}
         onRefresh={refreshAudio}
@@ -315,14 +315,21 @@ export function CleanupClient({
           audioSweep && (
             <p className="rounded-lg px-3 py-2.5 mb-4 text-[12px] leading-[1.6] m-0" style={{ background: "rgba(51,51,51,0.04)", color: "rgba(51,51,51,0.6)" }}>
               <strong style={{ color: NAVY }}>{audioSweep.heldForLiveAccess} held back</strong>
-              {" "}— old enough, but the candidate still has programme access.
+              {" "}— past the floor, but the candidate still has access.
+              {audioSweep.heldForRecentExpiry > 0 && (
+                <>
+                  {" "}
+                  <strong style={{ color: NAVY }}>{audioSweep.heldForRecentExpiry} in grace</strong>
+                  {" "}— access has ended, but less than three months ago.
+                </>
+              )}
             </p>
           )
         }
         extraControls={
           <div className="mb-4">
             <label className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5 text-navy/50">
-              Older than
+              Floor — never delete anything newer than
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -334,6 +341,11 @@ export function CleanupClient({
               />
               <span className="text-[13px] text-navy/60">days</span>
             </div>
+            <p className="text-[11px] leading-[1.5] mt-1.5 mb-0 text-navy/45">
+              Lowering this does not delete more. What goes is decided by the
+              three months since each candidate&apos;s access ended; this only
+              stops anything newer going at all.
+            </p>
           </div>
         }
       />
