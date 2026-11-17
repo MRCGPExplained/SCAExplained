@@ -43,6 +43,29 @@ const { logStatus, logError, logDuration, setLogContext } = (() => {
   return { ...l, setLogContext: l.setContext };
 })();
 
+/**
+ * What a consultation track is recorded at.
+ *
+ * MediaRecorder was left on the browser default, which measured at 144 kbps
+ * — near music quality for two people talking. Over 52 consultations that is
+ * 11 MB a track, 19 MB a consultation, and 989 MB of the 1 GB Supabase
+ * allowed before it wrote to say the quota had gone.
+ *
+ * 48 kbps mono Opus is comfortably transparent for speech and a third of
+ * that: about 6 MB a consultation, so the same storage holds roughly three
+ * times as many. Opus is designed for voice at this range and Deepgram is
+ * given the webm container rather than raw samples, so nothing downstream
+ * needs to know.
+ *
+ * NOT 32 kbps, which Opus also handles and which would have saved a third
+ * again. The transcript is what the grading reads and what the examiner
+ * marks against, so the cheap direction is the wrong one to be brave in,
+ * and storage at $0.0213 a GB is not where this product's money goes. Worth
+ * revisiting downward once a few consultations have been transcribed at 48
+ * and compared.
+ */
+const AUDIO_BITS_PER_SECOND = 48000;
+
 const DAILY_JOIN_TIMEOUT_MS = 5000;
 
 /**
@@ -2153,7 +2176,7 @@ export function StudyRoomProvider({
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : "audio/webm";
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: AUDIO_BITS_PER_SECOND });
       audioChunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);

@@ -553,7 +553,8 @@ export default function GroupRecordingTest({ stations }: { stations: Station[] }
           ? "audio/webm;codecs=opus"
           : "audio/webm";
 
-        const mr = new MediaRecorder(stream, { mimeType });
+        // Matches the study room, so what is tested here is what ships.
+        const mr = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 48000 });
         mrRef.current = mr;
 
         mr.ondataavailable = (e) => {

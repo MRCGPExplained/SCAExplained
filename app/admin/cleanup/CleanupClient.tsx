@@ -13,8 +13,8 @@ import {
   countOrphanStationImagesAction,
   deleteOrphanStationImagesAction,
   type OrphanSweep,
-  type AudioSweep,
 } from "../actions";
+import type { AudioSweep } from "@/lib/audio-retention";
 
 const NAVY = "#333333";
 
