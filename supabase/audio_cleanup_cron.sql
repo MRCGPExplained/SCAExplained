@@ -1,22 +1,52 @@
--- Audio cleanup cron job (run once in Supabase SQL editor)
--- Requires pg_cron (enabled by default on Supabase Pro plans).
--- Marks audio paths as deleted on recordings older than 3 months.
--- The actual storage deletion must be triggered separately via a cleanup
--- function or Edge Function that calls storage.remove() for those paths.
+-- SUPERSEDED. This file used to INSTALL a nightly job. It now REMOVES it.
 --
--- After running this SQL, schedule the Edge Function separately, or use
--- a nightly function that queries WHERE audio_deleted_at IS NULL
--- AND created_at < now() - interval '3 months'.
+-- Run this once in the Supabase SQL editor. Retention is handled by
+-- app/api/cron/prune-audio, which actually deletes the files.
+--
+-- WHAT WAS WRONG WITH THE JOB THIS FILE USED TO CREATE
+--
+-- 'mark-audio-for-deletion' ran every night at 03:00 UTC and did this:
+--
+--     update station_recordings set audio_deleted_at = now()
+--     where audio_deleted_at is null
+--       and created_at < now() - interval '3 months'
+--       and (doctor_audio_path is not null or patient_audio_path is not null);
+--
+-- It stamps the row and leaves the bytes in the bucket. Its own header said
+-- so and said the storage delete "must be triggered separately via a cleanup
+-- function or Edge Function". That function was never written.
+--
+-- Three consequences, in order of how bad they are.
+--
+-- 1. IT ORPHANS THE FILES PERMANENTLY. Everything that deletes audio from
+--    storage — the admin sweep and the new cron — selects WHERE
+--    audio_deleted_at IS NULL, because a stamped row is supposed to mean
+--    "already dealt with". So the stamp is what puts the files beyond reach
+--    of the only thing that removes them. Not a leak that a later pass tidies
+--    up: a one-way door.
+--
+-- 2. IT TAKES AUDIO FROM PEOPLE WHO ARE STILL PAYING. There is no access
+--    check. Plans run four months, so a candidate in month four loses the
+--    playback of their own consultation, and the GP's spoken feedback on it,
+--    at the three-month mark while still inside the plan they bought.
+--
+-- 3. IT FREES NO STORAGE AT ALL, which is the thing it was written for. The
+--    1 GB quota email that prompted all of this would have arrived just the
+--    same with this job running every night for a year.
+--
+-- It also silently defeats app/api/cron/prune-audio. That sweep looks for
+-- unstamped rows older than 180 days; this job stamps them at 90. Nothing can
+-- be in both sets, so with this job installed the new cron would run nightly,
+-- report a clean sweep and delete nothing, forever.
+--
+-- NOTHING HAS BEEN LOST YET. Checked on 17 Nov 2026: the oldest recording in
+-- the table is 27 Oct 2026, three weeks old, so this job has matched zero rows
+-- on every run since it was scheduled. It would have started stamping in late
+-- January 2027. The five rows that do carry audio_deleted_at are user
+-- discards from app/case-bank/actions.ts, which removes the files first and
+-- is correct.
 
--- Schedule a daily job to flag recordings for audio deletion after 3 months.
-select cron.schedule(
-  'mark-audio-for-deletion',
-  '0 3 * * *',  -- 3 AM UTC daily
-  $$
-    update station_recordings
-    set audio_deleted_at = now()
-    where audio_deleted_at is null
-      and created_at < now() - interval '3 months'
-      and (doctor_audio_path is not null or patient_audio_path is not null);
-  $$
-);
+select cron.unschedule('mark-audio-for-deletion');
+
+-- Confirm it is gone, and that nothing else is stamping rows:
+--   select jobname, schedule from cron.job;

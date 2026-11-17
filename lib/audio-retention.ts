@@ -13,6 +13,15 @@
  * Nothing about WHAT is deleted changed in the move. The two conditions, the
  * failure-is-not-eligibility reads and the storage-before-row ordering are
  * the originals.
+ *
+ * ANYTHING THAT STAMPS audio_deleted_at WITHOUT DELETING THE FILES BREAKS
+ * THIS. Every query here starts from audio_deleted_at IS NULL, so the stamp
+ * is what puts a row's files beyond the reach of the only code that removes
+ * them. A pg_cron job doing exactly that, 'mark-audio-for-deletion', was
+ * found installed in production on 17 Nov 2026 and would have made this
+ * module a silent no-op from late January; see supabase/audio_cleanup_cron.sql
+ * for the removal and the full account. If audio is ever stamped somewhere
+ * new, delete the bytes in the same breath.
  */
 import { getSupabaseAdmin } from "@/lib/supabase";
 
