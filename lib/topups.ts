@@ -101,24 +101,44 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
       10 at £26 each  margin £5.59 each
       20 at £25 each  margin £4.62 each
 
-    £20 IS A FLOOR, NOT A FIXED COST, so what matters is how far each rung
-    can move before it stops working. The margin above IS the headroom:
+    THOSE ARE THE OLD PRICES and they are kept here because the reasoning
+    above is still why a ladder exists at all. What they could not do is take
+    a rise in the reviewer rate; see the block below for what replaced them.
 
-      pack  breakeven payout   at £25 a review
-      gp1        £27.38          +£2.38
-      gp5        £26.55          +£7.78
-      gp10       £25.59          +£5.90
-      gp20       £24.62          -£7.70   <- breaks first
+    £20 IS A FLOOR, NOT A FIXED COST, and these prices are set so that the
+    floor can move.
 
-    So the ladder tolerates a reviewer rate up to £24.62 and gp20 is the rung
-    that fails, which is the opposite of the intuition that the biggest pack
-    is the safest. It is the thinnest per review BECAUSE it is discounted, so
-    the volume discount and the payout headroom come out of the same £5. If
-    the rate ever goes to £25, gp20 has to go to £535 or be withdrawn.
+    THE OLD LADDER COULD NOT TAKE A RISE. At £28/£27/£26/£25 the rungs broke
+    even at £27.38, £26.55, £25.59 and £24.62, so the whole thing tolerated a
+    reviewer rate of £24.62 and gp20 went £7.70 underwater at £25. The
+    biggest pack was the most fragile, which is the opposite of the
+    intuition: it is thinnest per review BECAUSE it is discounted, so the
+    volume discount and the payout headroom were being taken out of the same
+    £5.
 
-    The Intensive plan is more robust than any of them: after Stripe and
-    grading the whole bank it breaks even at £26.38 a review, and still
-    clears £13.76 with the rate at £25.
+    THE TARGET IS £28 A REVIEW, a 40% rise. £20 for twenty minutes is £60 an
+    hour, and UK GP sessional work runs £80-£120, so £20 is what the founders
+    accept rather than what a hired reviewer will cost. The ladder should not
+    need rebuilding the week a third reviewer starts.
+
+      pack  price  per review  breakeven  margin at £20 / £25 / £28
+      gp1    £32     £32.00     £31.32     £11.32  £ 6.32  £ 3.32
+      gp5   £155     £31.00     £30.49     £52.48  £27.48  £12.47
+      gp10  £300     £30.00     £29.53     £95.30  £45.30  £15.30
+      gp20  £580     £29.00     £28.55    £171.10  £71.10  £11.10
+
+    Every rung clears at £28, and the ladder is flatter - £32 down to £29
+    rather than £28 down to £25. The flattening IS the fix: the discount was
+    what ate the headroom, so there is less of it. It also partly restores
+    the argument three paragraphs up that GP should not discount at all,
+    without going back to a flat price.
+
+    THE PLAN IS NOW THE THINNER SIDE, which reverses what this file said
+    before. Intensive breaks even at £26.38 a review, below every rung here,
+    so a rate above that breaks the plan before it breaks a top-up. That is
+    the right way round: the plan is the volume product and still clears
+    £13.76 at £25, while the a la carte route, which exists for people who do
+    not want a plan, should be the one that is hard to lose money on.
 
     THE OLD REASON FOR THE £25 FLOOR IS GONE. It used to be "what the
     Intensive plan works out at per review", from £295 / 12 = £24.58. At ten
@@ -133,37 +153,34 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
     is what an earlier version of this comment compared against and got the
     crossover wrong by two:
 
-      1  review   Starter + gp1        £108   top-ups win, correctly - one
+      1  review   Starter + gp1          £112   top-ups win, correctly - one
                                               review should not cost £295
-      5  reviews  Starter + gp5        £215   top-ups win by £80
-      7  reviews  Starter + gp5 + 2xgp1 £271  top-ups win by £24
-      8  reviews  Starter + gp5 + 3xgp1 £299  INTENSIVE wins
-      10 reviews  Starter + gp10       £340   INTENSIVE wins by £45
+      5  reviews  Starter + gp5          £235   top-ups win by £60
+      6  reviews  Starter + gp5 + gp1    £267   top-ups win by £28
+      7  reviews  Starter + gp5 + 2xgp1  £299   INTENSIVE wins
+      10 reviews  Starter + gp10         £380   INTENSIVE wins by £85
+      20 reviews  Starter + gp20         £660   INTENSIVE wins by £70
 
-    So the crossover is EIGHT and Intensive is the cheapest route to ten,
-    which is the thing that needed protecting.
+    So the crossover is SEVEN - it was eight before this repricing - and
+    Intensive is the cheapest route to ten and to twenty. Making the ladder
+    sturdier tightened the funnel as a side effect: twenty reviews used to be
+    £10 cheaper bought as a top-up than as two Intensives, and is now £70
+    dearer.
 
-    ABOVE TEN, TOP-UPS WIN AGAIN, and that is the mechanism working rather
-    than a leak: 12 reviews is £396 as Starter+gp10+2xgp1 against £590 for
-    two Intensives, and 20 is £580 against £590. Buying one plan and topping
-    up past its count is exactly what top-ups are for. The rule only has to
-    hold AT the plan's count, and it does.
+    THE BAND INTENSIVE LOSES IS FIVE TO SIX, by £28 to £60, down from five to
+    seven. That is where payout is decided - a Starter+gp5 buyer generates
+    £100 of contracted work against £200 from an Intensive buyer - but
+    somebody who will not pay £295 is not a lost Intensive sale, so the band
+    is left alone.
 
-    THE BAND INTENSIVE LOSES IS FIVE TO SEVEN, by £24 to £80. Worth knowing
-    because that is where payout is decided: a Starter+gp5 buyer generates
-    £100 of contracted work against £200 from an Intensive buyer. They are
-    probably not the same person - somebody who will not pay £295 is not an
-    Intensive sale lost - but if that band ever needs closing, the lever is
-    gp5, not the plan price.
-
-    ALSO WORTH KNOWING: the 5-review buyer used to get there via £210
-    Premium and now pays £215. Near enough unchanged, which is better than
-    the £284 an earlier reading of this suggested.
+    THE 5-REVIEW BUYER now pays £235, against £210 for the old Premium that
+    included five. A £25 rise, where an earlier and wronger reading of this
+    comment claimed £74.
   */
-  gp1:  { key: "gp1",  kind: "gp", units: 1,  pricePence: 2800,  label: "1 GP review",   detail: "£28.00" },
-  gp5:  { key: "gp5",  kind: "gp", units: 5,  pricePence: 13500, label: "5 GP reviews",  detail: "£27.00 each" },
-  gp10: { key: "gp10", kind: "gp", units: 10, pricePence: 26000, label: "10 GP reviews", detail: "£26.00 each" },
-  gp20: { key: "gp20", kind: "gp", units: 20, pricePence: 50000, label: "20 GP reviews", detail: "£25.00 each" },
+  gp1:  { key: "gp1",  kind: "gp", units: 1,  pricePence: 3200,  label: "1 GP review",   detail: "£32.00" },
+  gp5:  { key: "gp5",  kind: "gp", units: 5,  pricePence: 15500, label: "5 GP reviews",  detail: "£31.00 each" },
+  gp10: { key: "gp10", kind: "gp", units: 10, pricePence: 30000, label: "10 GP reviews", detail: "£30.00 each" },
+  gp20: { key: "gp20", kind: "gp", units: 20, pricePence: 58000, label: "20 GP reviews", detail: "£29.00 each" },
 };
 
 export const AI_TOPUPS: TopUpKey[] = ["ai25", "ai50"];
