@@ -1,5 +1,5 @@
 import { ContentPage } from "../components/ContentPage";
-import { PLANS, PLAN_ORDER, planPrice } from "@/lib/plans";
+import { PLANS, PLAN_ORDER, planPrice, FAIR_USE_AI } from "@/lib/plans";
 
 const DARK = "#333333";
 
@@ -14,7 +14,11 @@ const DARK = "#333333";
 const PLAN_SUMMARY = PLAN_ORDER.map((key) => {
   const p = PLANS[key];
   const reviews = p.gpReviews > 0 ? ` and ${p.gpReviews} GP review${p.gpReviews === 1 ? "" : "s"}` : "";
-  return `${p.name} at ${planPrice(p)} (${p.aiGradings} AI gradings${reviews})`;
+  // Generated from the plans, so it cannot claim an allowance they do not
+  // grant - but a plan at the fair-use number is sold as unlimited, and
+  // printing "600 AI gradings" here would contradict its own card.
+  const ai = p.aiGradings >= FAIR_USE_AI ? "unlimited AI gradings" : `${p.aiGradings} AI gradings`;
+  return `${p.name} at ${planPrice(p)} (${ai}${reviews})`;
 }).join(", ");
 
 const FAQS = [

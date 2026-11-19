@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase-case-bank";
-import { PLANS, isPlanKey } from "@/lib/plans";
+import { PLANS, isPlanKey, FAIR_USE_AI } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,14 @@ export async function POST(req: Request) {
           unit_amount: plan.pricePence,
           product_data: {
             name: `SCA Focus ${plan.name}`,
-            description: `240+ cases, ${plan.aiGradings} AI-graded consultations${reviews}. ${plan.months} months access.`,
+            // Premium and Intensive carry a fair-use number that their cards
+            // call unlimited. A receipt reading "600 AI-graded consultations"
+            // would contradict what the buyer was shown, so say both.
+            description: `240+ cases, ${
+              plan.aiGradings >= FAIR_USE_AI
+                ? `unlimited AI-graded consultations (fair use ${FAIR_USE_AI})`
+                : `${plan.aiGradings} AI-graded consultations`
+            }${reviews}. ${plan.months} months access.`,
           },
         },
         quantity: 1,

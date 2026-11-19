@@ -7,12 +7,24 @@
  * — the case count was 250+ in the hero, 256 in a card and 246 in the
  * database — so there is one table and everything reads it.
  *
- * PRICED AGAINST MEASURED COST, and the measurements have moved twice.
+ * PRICED AGAINST MEASURED COST. The measurements have moved three times and
+ * the third move was a correction to how they were read, not to the data.
  *
- * AI is far cheaper than this comment used to claim. Over 31 consultations
- * in consultation_costs, Claude plus Deepgram runs £0.092 on average and
- * £0.203 at worst, with Daily adding about £0.02. The old figures here said
- * £0.32-£0.63 from a sample of five.
+ * THE WHOLE DISTRIBUTION, from consultation_costs on 19 Nov 2026, n=58:
+ *
+ *   mean £0.1082   median £0.1170   p90 £0.1197   p95 £0.1304   max £0.2340
+ *
+ * USE p95, NOT max. Exactly ONE row of 58 is above £0.20 and two above
+ * £0.15, so the max is a 1.7% outlier. Every "worst case" in this file used
+ * to apply £0.2340 to all 246 cases, which is not a scenario any candidate
+ * can produce - it is a stress bound, and reading it as a forecast talked us
+ * into treating healthy plans as marginal. p95 is the honest pessimistic
+ * figure and it is 44% lower.
+ *
+ * WHERE THE MONEY GOES, per consultation: Deepgram £0.0739, Daily £0.0191,
+ * Claude £0.0156. Transcription is 68% of it and the AI grading is 1.6p.
+ * That is why unlimited AI is cheap to promise and why an allowance on
+ * gradings was never protecting anything.
  *
  * A GP REVIEW COSTS £20 TO BUY AND £0 TODAY, and every number below is built
  * on the £20. Three figures get confused here, so all three:
@@ -20,10 +32,11 @@
  *   £0   what a review actually costs right now. Brandon and his cofounder
  *        are the first two reviewers and they are not paying themselves, so
  *        no money leaves the business for one.
- *   £20  what a review costs once a third reviewer is hired, which is the
- *        whole point of the price: £240 of Intensive's £295 is twelve of
- *        these. Pricing on £0 would be pricing on founder time being free,
- *        and the plan would have to be rebuilt the day it stops being.
+ *   £20  what a review costs once a third reviewer is hired, and what every
+ *        number here is built on: £200 of Intensive's £295 is ten of these.
+ *        Pricing on £0 would be pricing on founder time being free. Because
+ *        the £20 IS costed below, nothing here has to be rebuilt when a paid
+ *        reviewer starts - the margins already assume one.
  *   £4   a guess in pricing_config from before anyone knew, and the one
  *        value in that table that was never measured. It is neither of the
  *        above.
@@ -34,19 +47,40 @@
  * today are founders reviewing testers. Move it when a paid reviewer starts,
  * and the versioning will cost the ones before and after correctly.
  *
- * INTENSIVE'S ALLOWANCE IS SET WHERE IT STOPS LOSING MONEY ON A TYPICAL
- * CONSULTATION. £295 less £4.62 of Stripe less £240 of reviewers leaves
- * £50.38 for AI and margin, so the plan breaks even at 398 gradings at the
- * average and 372 at the ninetieth percentile. 350 is under both:
+ * EVERY TIER IS JUDGED ON ITS OWN MARGIN, NOT AGAINST THE TIER BELOW IT.
+ * That is a deliberate decision and it was argued out, so here is the
+ * argument. Priced incrementally, Intensive looks bad: once Premium is £149
+ * with unlimited AI and the same bank, the only thing £146 of extra price
+ * buys is ten reviews costing £200, so the STEP loses £56 a sale. Three
+ * separate reviews called that fatal.
  *
- *   350 at the mean   £44.27  margin  £6.10
- *   350 at the p90    £47.39  margin  £2.98
- *   350 at the worst  £81.90  margin  £31.53 LOST
+ * It is not, because the step is not a thing anybody buys. Intensive's buyer
+ * wants a GP to listen to their consultation; unlimited AI does not serve
+ * that need, so an Intensive sale is overwhelmingly new revenue rather than
+ * a Premium sale given up. And ten reviews at £20 IS the product - the
+ * payout is what is being sold, not a cost to be squeezed. Judge the tier on
+ * whether it clears its own costs with the reviewers paid, which it does.
  *
- * It was briefly 500, which loses £12.88 at the average, and 400 before
- * that, which loses £0.23. 350 is still 40% more than the 246 cases in the
- * bank, so nothing is given up on the card by choosing the number that
- * works.
+ * WHAT THE THREE TIERS ACTUALLY CLEAR. Stripe is 1.5% + £0.20. "Bank once"
+ * is grading all 246 cases, which is what a candidate who works through the
+ * product really spends; the p95 column is the honest pessimistic one.
+ *
+ *                  price  Stripe  payout  headroom   bank once    margin
+ *   Starter          £80   £1.40      £0    £78.60  £16.2/£19.6  £62.4/£59.0
+ *   Premium         £149   £2.44      £0   £146.57  £26.6/£32.1  £119.9/£114.5
+ *   Intensive       £295   £4.63    £200    £90.38  £26.6/£32.1  £63.8/£58.3
+ *
+ * All three are healthy at every cost level in the measured distribution,
+ * Intensive included and with its reviewers fully paid.
+ *
+ * THE ONE THING NOT IN THAT TABLE, OR IN ANY LEDGER: fixed costs. Vercel Pro
+ * $20/mo plus Supabase Pro $25/mo is about £35.55 a month, £142.20 per
+ * 4-month cohort. consultation_costs is a record of metered provider charges
+ * and allocating rent into it would turn a measurement into a model, so it
+ * stays out - but it means /admin/economics reports GROSS margin. Three
+ * paying customers a cohort covers the whole infrastructure bill. Below
+ * that, overhead is the dominant cost of the business and the per-customer
+ * margins above are not what is kept.
  *
  * THE CEILING IS £19.26 AND NO ALLOWANCE CHANGES IT. Grading the bank once
  * costs £31.12 at the average, which is what a candidate who works through
@@ -88,60 +122,107 @@ export interface Plan {
    * capping recordings, both of which change what the product promises.
    */
   aiGradings: number;
-  /** GP reviews granted. The scarce one: twenty minutes of a person. */
+  /**
+   * GP reviews granted. The scarce one: twenty minutes of a person.
+   *
+   * THIS IS THE PRODUCT, not an overhead. Reviews are contracted work paid
+   * out at £20 each and the founders are the first two reviewers, so every
+   * one of these sold is £20 of contracted work created. Maximising them is
+   * the point; the margin on the rest is secondary.
+   *
+   * It is also the real capacity ceiling. Ten reviews is 3.3 hours of a
+   * person per customer, so two reviewers at five hours a week each cap the
+   * business near fifty Intensive customers a cohort. That is a recruiting
+   * problem rather than a pricing one, which is the honest place for it.
+   */
   gpReviews: number;
   months: number;
   /** Shown on the card, in order. */
   features: string[];
 }
 
+/**
+ * What "unlimited AI" actually means, and why it is a number.
+ *
+ * 600 recorded-and-graded consultations in a four-month term. The card says
+ * unlimited because for every real candidate it is: 600 is 4.9 a day every
+ * day for 122 days, and 1.5x the heaviest user we think exists. Nobody will
+ * see it. But a promise with no number behind it is a promise we cannot
+ * price, so there is a number and it is on the card rather than buried in
+ * the Terms.
+ *
+ * IT IS DELIBERATELY NOT A SENTINEL. ai_allowance is integer NOT NULL and
+ * DDL is refused on this project, so "truly uncapped" would have meant a
+ * magic 1,000,000 and a branch at every reader - the checkout line item, the
+ * ai_gradings metadata round-trip, add_ai_allowance, the credits endpoint and
+ * the grading gate. A real number keeps all of those identical and keeps the
+ * remaining-credits display honest instead of reading "999,851 left".
+ *
+ * WHAT IT COSTS IF SOMEONE SOMEHOW REACHES IT: £64.98 at the mean, £78.24 at
+ * p95. Inside Premium's £146.57 of headroom and inside Intensive's £90.38.
+ *
+ * THE HOLE IT DOES NOT CLOSE is the one described on aiGradings below:
+ * recording and transcription are 68% of the cost and are not metered by
+ * this or anything else. Capping gradings is capping the 1.6p step. The
+ * right ceiling would count station_recordings rows in the current term, and
+ * that is a behaviour change nobody has asked for yet.
+ */
+export const FAIR_USE_AI = 600;
+
 export const PLANS: Record<PlanKey, Plan> = {
   starter: {
     key: "starter",
     name: "Starter",
-    pricePence: 9000,
-    aiGradings: 120,
+    pricePence: 8000,
+    aiGradings: 150,
     gpReviews: 0,
     months: 4,
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
-      "120 AI-graded consultations",
+      "150 AI-graded consultations",
       "4 months access",
     ],
   },
   premium: {
     key: "premium",
     name: "Premium",
-    pricePence: 21000,
-    aiGradings: 300,
-    gpReviews: 5,
+    pricePence: 14900,
+    aiGradings: FAIR_USE_AI,
+    gpReviews: 0,
     months: 4,
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
-      "300 AI-graded consultations",
-      "5 consultations reviewed by a GP",
+      "Unlimited AI-graded consultations (fair use: 600 per term)",
       "4 months access",
     ],
   },
   /*
-    £295 = £240 to the reviewers (12 x £20) + £55 to the business, before
-    Stripe takes £4.63 and before any AI. See the note at the top of this
-    file for what that leaves and why the AI allowance is set above it.
+    £295 = £200 of contracted review work (10 x £20) + £95 to the business,
+    before Stripe takes £4.63 and before any AI. That leaves £90.38, and
+    grading the whole bank costs £26.64, so the tier clears £63.76 with its
+    reviewers fully paid.
+
+    TEN, DOWN FROM TWELVE. Twelve left £50.38 for AI and margin and broke on
+    a heavy user. Ten leaves £90.38 and does not. The two reviews bought £40
+    of headroom and three and a half hours of a person back.
+
+    Read the header on why this tier is judged standalone and not against
+    Premium below it.
   */
   intensive: {
     key: "intensive",
     name: "Intensive",
     pricePence: 29500,
-    aiGradings: 350,
-    gpReviews: 12,
+    aiGradings: FAIR_USE_AI,
+    gpReviews: 10,
     months: 4,
     features: [
       "240+ realistic SCA stations",
       "Unlimited recording and transcription",
-      "350 AI-graded consultations",
-      "12 consultations reviewed by a GP",
+      "Unlimited AI-graded consultations (fair use: 600 per term)",
+      "10 consultations reviewed by a GP",
       "4 months access",
     ],
   },
@@ -167,12 +248,19 @@ export function planBlurb(plan: Plan): string {
   if (plan.key === "starter") {
     return `Starter pack to identify strengths and weaknesses. Access to all 240+ cases and ${plan.aiGradings} instant AI reviews.`;
   }
+  // Premium and Intensive both carry FAIR_USE_AI, so neither can print a
+  // count here without contradicting the "unlimited" on its own card.
+  if (plan.gpReviews === 0) {
+    return "Access to the entire case bank with unlimited AI reviews, for registrars working through cases on their own.";
+  }
   const reviews = `${plan.gpReviews} GP review${plan.gpReviews === 1 ? "" : "s"}`;
   const tail =
     plan.key === "intensive"
       ? `, for GP registrars seeking tailored feedback and support`
       : "";
-  return `Access to the entire case bank and enough AI reviews to cover the entire bank. Includes ${reviews}${tail}.`;
+  // "Enough to cover the bank" understated this the moment the tier went
+  // unlimited, and understating is still contradicting the card.
+  return `Access to the entire case bank with unlimited AI reviews. Includes ${reviews}${tail}.`;
 }
 
 export function planPrice(plan: Plan): string {

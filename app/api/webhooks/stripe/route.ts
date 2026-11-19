@@ -115,7 +115,7 @@ export async function POST(req: Request) {
 async function recordRevenueEvent(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
-  /** The tier or pack key ("intensive", "ai100"), falling back to the
+  /** The tier or pack key ("intensive", "ai50"), falling back to the
    *  purchase type for the retired flows that have no finer identity. */
   label: string
 ) {

@@ -90,7 +90,7 @@ export async function loadCustomerProfiles(admin: SupabaseClient, logger: EconLo
 
   // Which rows name a plan rather than a top-up. Assigning planType from
   // every row on a last-write-wins basis turned a Premium customer who bought
-  // an AI pack into an "ai100" customer, because the top-up was simply the
+  // an AI pack into an "ai50" customer, because the top-up was simply the
   // most recent row. Top-up revenue still counts; it just stops renaming them.
   const PLAN_ROWS = new Set([
     "starter",

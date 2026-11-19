@@ -8,25 +8,32 @@
  *
  * Two rules decide every number here.
  *
- * First, a top-up may never be cheaper per unit than a plan. An AI grading
- * costs £0.75 inside Starter (£90 for 120, the one tier with no GP reviews
- * muddying the arithmetic), so no AI top-up goes below that. Otherwise the
- * rational move is to buy the cheapest plan and top up forever, and the
- * ladder stops meaning anything.
+ * First, a top-up may never be cheaper per unit than a plan, or the
+ * rational move is to buy the cheapest plan and top up forever. Starter is
+ * the peg: £80 for 150 gradings is £0.533 each, so no AI top-up goes below
+ * that. It used to be £0.75 (£90 for 120) and the floor dropped when Starter
+ * was repriced - the rule did not change, the peg did.
  *
- * Second, every one of these has to clear its cost at the WORST measured
- * figure, not the average. A graded consultation has cost between £0.32 and
- * £0.63 across the five that have run, which is a four-fold spread on a
- * sample of five: the mean is not pinned down well enough to price against.
+ * Second, nothing above £35 of AI. Premium at £149 grants unlimited AI AND
+ * four more months, and a repeat purchase stacks both, so any top-up
+ * approaching £149 is a purchase nobody should make. Starter plus the
+ * largest AI pack is £115, which leaves real daylight before upgrading
+ * becomes the better buy. The £85 and £160 packs were deleted rather than
+ * repriced: there is no price for 200 gradings that beats £149 for unlimited.
+ *
+ * Third, cost is not the binding constraint, and pretending otherwise is how
+ * the old prices happened. A grading is £0.0156 of Claude; a whole
+ * consultation is £0.1082 at the mean and £0.1304 at p95 over 58 measured
+ * rows. This comment used to price against "£0.32 and £0.63 across the five
+ * that have run" - a four-fold spread on a sample of five, and about five
+ * times too high.
  *
  * AI steps down with volume because it is cheap and scales without limit, so
- * selling more is pure upside. GP does not, deliberately: a volume discount
- * exists to encourage buying more, and GP reviews are twenty minutes each of
- * the one thing there is no more of. Discounting the big pack would use
- * price to encourage exactly the behaviour that runs out the capacity.
+ * selling more is pure upside. GP steps down too, for the different reason
+ * set out below.
  */
 export type TopUpKind = "ai" | "gp";
-export type TopUpKey = "ai25" | "ai50" | "ai100" | "ai200" | "gp1" | "gp5" | "gp10" | "gp20";
+export type TopUpKey = "ai25" | "ai50" | "gp1" | "gp5" | "gp10" | "gp20";
 
 export interface TopUp {
   key: TopUpKey;
@@ -39,12 +46,19 @@ export interface TopUp {
 }
 
 export const TOPUPS: Record<TopUpKey, TopUp> = {
-  // £1.00 each. Priced above the others on purpose: Stripe's flat 20p bites
-  // hardest on a small basket, and this is the only size where it shows.
-  ai25:  { key: "ai25",  kind: "ai", units: 25,  pricePence: 2500,  label: "25 AI reviews",  detail: "£1.00 each" },
-  ai50:  { key: "ai50",  kind: "ai", units: 50,  pricePence: 4500,  label: "50 AI reviews",  detail: "£0.90 each" },
-  ai100: { key: "ai100", kind: "ai", units: 100, pricePence: 8500,  label: "100 AI reviews", detail: "£0.85 each" },
-  ai200: { key: "ai200", kind: "ai", units: 200, pricePence: 16000, label: "200 AI reviews", detail: "£0.80 each" },
+  /*
+    Two rungs, and both exist only for Starter. Premium and Intensive carry
+    unlimited AI, so nobody on those can use these at all.
+
+      25 at £20  £0.80 each  margin £16.79 at the mean, £13.65 at p95
+      50 at £35  £0.70 each  margin £28.86 at the mean, £22.58 at p95
+
+    Both clear Starter's £0.533 a grading and both sit far below the £149
+    that buys unlimited plus four more months, which is the ceiling the
+    second rule in the header is protecting.
+  */
+  ai25: { key: "ai25", kind: "ai", units: 25, pricePence: 2000, label: "25 AI reviews", detail: "£0.80 each" },
+  ai50: { key: "ai50", kind: "ai", units: 50, pricePence: 3500, label: "50 AI reviews", detail: "£0.70 each" },
 
   /*
     £25 each, flat, because a reviewer costs £20 of it to buy.
@@ -87,10 +101,31 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
       10 at £26 each  margin £5.59 each
       20 at £25 each  margin £4.62 each
 
-    The bottom of the ladder lands on £25, which is what the Intensive plan
-    works out at per review. The biggest top-up and the plan agreeing is a
-    tidy place for it to stop: buying twenty at a time is as good as being on
-    the plan, and never better.
+    THE OLD REASON FOR THE £25 FLOOR IS GONE. It used to be "what the
+    Intensive plan works out at per review", from £295 / 12 = £24.58. At ten
+    reviews that division gives £29.50, which would make every rung here
+    cheaper than the plan and break the header's first rule outright. The
+    division was always the wrong test: £295 is a bundle, and what it
+    includes beyond the reviews is not worth nothing.
+
+    THE TEST THAT ACTUALLY PROTECTS THE PLAN is whether the cheapest route to
+    N reviews is the plan itself, at and above the plan's own count. A top-up
+    needs a live plan to be usable, so the real comparison is Premium plus
+    top-ups:
+
+      1  review   Premium + gp1    £177  beats Intensive £295 - correct, one
+                                         review should not cost £295
+      5  reviews  Premium + gp5    £284  beats £295 by £11
+      6  reviews  Premium+gp5+gp1  £312  Intensive wins
+      10 reviews  Premium + gp10   £409  Intensive wins by £114
+
+    So the crossover is six, and the plan is never undercut at its own count,
+    which is the thing that needed protecting.
+
+    WORTH KNOWING: this moves the 5-review buyer from today's £210 Premium to
+    £284, a 35% rise on the configuration most current customers sit in.
+    Deliberate, since Premium shed its reviews, but it is the one price in
+    this change that went up.
   */
   gp1:  { key: "gp1",  kind: "gp", units: 1,  pricePence: 2800,  label: "1 GP review",   detail: "£28.00" },
   gp5:  { key: "gp5",  kind: "gp", units: 5,  pricePence: 13500, label: "5 GP reviews",  detail: "£27.00 each" },
@@ -98,7 +133,7 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
   gp20: { key: "gp20", kind: "gp", units: 20, pricePence: 50000, label: "20 GP reviews", detail: "£25.00 each" },
 };
 
-export const AI_TOPUPS: TopUpKey[] = ["ai25", "ai50", "ai100", "ai200"];
+export const AI_TOPUPS: TopUpKey[] = ["ai25", "ai50"];
 export const GP_TOPUPS: TopUpKey[] = ["gp1", "gp5", "gp10", "gp20"];
 
 export function isTopUpKey(value: string): value is TopUpKey {
