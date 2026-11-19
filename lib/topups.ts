@@ -108,24 +108,38 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
     division was always the wrong test: £295 is a bundle, and what it
     includes beyond the reviews is not worth nothing.
 
-    THE TEST THAT ACTUALLY PROTECTS THE PLAN is whether the cheapest route to
-    N reviews is the plan itself, at and above the plan's own count. A top-up
-    needs a live plan to be usable, so the real comparison is Premium plus
-    top-ups:
+    THE TEST THAT ACTUALLY PROTECTS THE PLAN is whether the plan is the
+    cheapest route to ITS OWN review count. A top-up needs a live plan to be
+    usable, and the cheapest live plan is Starter at £80 - not Premium, which
+    is what an earlier version of this comment compared against and got the
+    crossover wrong by two:
 
-      1  review   Premium + gp1    £177  beats Intensive £295 - correct, one
-                                         review should not cost £295
-      5  reviews  Premium + gp5    £284  beats £295 by £11
-      6  reviews  Premium+gp5+gp1  £312  Intensive wins
-      10 reviews  Premium + gp10   £409  Intensive wins by £114
+      1  review   Starter + gp1        £108   top-ups win, correctly - one
+                                              review should not cost £295
+      5  reviews  Starter + gp5        £215   top-ups win by £80
+      7  reviews  Starter + gp5 + 2xgp1 £271  top-ups win by £24
+      8  reviews  Starter + gp5 + 3xgp1 £299  INTENSIVE wins
+      10 reviews  Starter + gp10       £340   INTENSIVE wins by £45
 
-    So the crossover is six, and the plan is never undercut at its own count,
+    So the crossover is EIGHT and Intensive is the cheapest route to ten,
     which is the thing that needed protecting.
 
-    WORTH KNOWING: this moves the 5-review buyer from today's £210 Premium to
-    £284, a 35% rise on the configuration most current customers sit in.
-    Deliberate, since Premium shed its reviews, but it is the one price in
-    this change that went up.
+    ABOVE TEN, TOP-UPS WIN AGAIN, and that is the mechanism working rather
+    than a leak: 12 reviews is £396 as Starter+gp10+2xgp1 against £590 for
+    two Intensives, and 20 is £580 against £590. Buying one plan and topping
+    up past its count is exactly what top-ups are for. The rule only has to
+    hold AT the plan's count, and it does.
+
+    THE BAND INTENSIVE LOSES IS FIVE TO SEVEN, by £24 to £80. Worth knowing
+    because that is where payout is decided: a Starter+gp5 buyer generates
+    £100 of contracted work against £200 from an Intensive buyer. They are
+    probably not the same person - somebody who will not pay £295 is not an
+    Intensive sale lost - but if that band ever needs closing, the lever is
+    gp5, not the plan price.
+
+    ALSO WORTH KNOWING: the 5-review buyer used to get there via £210
+    Premium and now pays £215. Near enough unchanged, which is better than
+    the £284 an earlier reading of this suggested.
   */
   gp1:  { key: "gp1",  kind: "gp", units: 1,  pricePence: 2800,  label: "1 GP review",   detail: "£28.00" },
   gp5:  { key: "gp5",  kind: "gp", units: 5,  pricePence: 13500, label: "5 GP reviews",  detail: "£27.00 each" },

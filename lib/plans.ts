@@ -182,7 +182,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription (fair use: 600 per 4 months)",
+      "Unlimited recording and transcription",
       "150 AI-graded consultations",
       "4 months access",
     ],
@@ -196,7 +196,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription (fair use: 600 per 4 months)",
+      "Unlimited recording and transcription",
       "Unlimited AI-graded consultations",
       "4 months access",
     ],
@@ -223,7 +223,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription (fair use: 600 per 4 months)",
+      "Unlimited recording and transcription",
       "Unlimited AI-graded consultations",
       "10 consultations reviewed by a GP",
       "4 months access",
@@ -254,7 +254,10 @@ export function planBlurb(plan: Plan): string {
   // Premium and Intensive both carry FAIR_USE_AI, so neither can print a
   // count here without contradicting the "unlimited" on its own card.
   if (plan.gpReviews === 0) {
-    return "Access to the entire case bank with unlimited AI reviews, for registrars working through cases on their own.";
+    // Not "on their own", which read as the lesser option rather than a
+    // different one. This tier is the whole syllabus, not the solo version
+    // of the one above it.
+    return "Access to the entire case bank with unlimited AI reviews, for registrars who want full coverage of the syllabus.";
   }
   const reviews = `${plan.gpReviews} GP review${plan.gpReviews === 1 ? "" : "s"}`;
   const tail =
