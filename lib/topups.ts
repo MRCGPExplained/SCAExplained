@@ -47,7 +47,13 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
   ai200: { key: "ai200", kind: "ai", units: 200, pricePence: 16000, label: "200 AI reviews", detail: "£0.80 each" },
 
   /*
-    £25 each, flat, because a reviewer is paid £20 of it.
+    £25 each, flat, because a reviewer costs £20 of it to buy.
+
+    Not "is paid": today the reviewers are Brandon and his cofounder and
+    nobody is paid, so a review costs £0 in cash. £20 is what it costs the
+    day a third reviewer starts, and pricing against £0 would be pricing
+    against founder time being free. See the note at the top of lib/plans.ts
+    for why pricing_config still says £4.
 
     This used to be £9.00 a review, priced against the £4.00 in
     pricing_config. That figure is an estimate nobody had tested and it is
@@ -62,10 +68,14 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
     pack would use price to encourage the behaviour that exhausts capacity.
 
     That argument still has force and it was overruled deliberately. What
-    changed is that a reviewer is now paid per review, so capacity is bought
+    changed is that a reviewer is paid PER REVIEW, so capacity is bought
     rather than fixed: more demand funds more reviewers instead of consuming
     a pool. Two examiners is still two examiners, so the risk has moved from
     the price list to the recruiting, which is the honest place for it.
+
+    That is the model rather than today's position - the two examiners are
+    the founders and are unpaid - but the ladder has to hold once it is true,
+    because that is the point at which a thin margin becomes a real loss.
 
     The ladder only exists because the single moved to £28. At a £25 flat
     base there is £5 of room, and a discount eats it: 20 at £23 each leaves

@@ -14,9 +14,25 @@
  * £0.203 at worst, with Daily adding about £0.02. The old figures here said
  * £0.32-£0.63 from a sample of five.
  *
- * A GP REVIEW IS £20, not the £4.00 still sitting in pricing_config. That is
- * what Brandon pays a reviewer, so it is the real number and the config row
- * is stale.
+ * A GP REVIEW COSTS £20 TO BUY AND £0 TODAY, and every number below is built
+ * on the £20. Three figures get confused here, so all three:
+ *
+ *   £0   what a review actually costs right now. Brandon and his cofounder
+ *        are the first two reviewers and they are not paying themselves, so
+ *        no money leaves the business for one.
+ *   £20  what a review costs once a third reviewer is hired, which is the
+ *        whole point of the price: £240 of Intensive's £295 is twelve of
+ *        these. Pricing on £0 would be pricing on founder time being free,
+ *        and the plan would have to be rebuilt the day it stops being.
+ *   £4   a guess in pricing_config from before anyone knew, and the one
+ *        value in that table that was never measured. It is neither of the
+ *        above.
+ *
+ * pricing_config is DELIBERATELY LEFT AT £4 for now: consultation_costs
+ * pins a pricing_version_id per row, so moving it to £20 would start
+ * charging the ledger for cash that is not going out. The 13 reviews on it
+ * today are founders reviewing testers. Move it when a paid reviewer starts,
+ * and the versioning will cost the ones before and after correctly.
  *
  * INTENSIVE'S ALLOWANCE IS SET WHERE IT STOPS LOSING MONEY ON A TYPICAL
  * CONSULTATION. £295 less £4.62 of Stripe less £240 of reviewers leaves
