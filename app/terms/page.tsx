@@ -94,6 +94,15 @@ export default function TermsPage() {
         not be shared, resold, or transferred.
       </P>
       <P>
+        Plans described as including unlimited recording, transcription or AI
+        review are subject to fair use: up to 600 recorded consultations in
+        any four-month period. The limit exists to prevent automated or
+        shared use of a single account and is far above normal preparation —
+        600 consultations is roughly five every day for four months. If you
+        reach it and still need to record, contact us at
+        mrcgpexplained@outlook.com and we will sort it out.
+      </P>
+      <P>
         Audio recordings of your consultations, including any spoken feedback
         recorded by a GP reviewer, are kept while your access is live and for
         three months after it ends, after which they are permanently deleted.

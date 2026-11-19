@@ -142,30 +142,33 @@ export interface Plan {
 }
 
 /**
- * What "unlimited AI" actually means, and why it is a number.
+ * What "unlimited" actually means, as a number.
  *
- * 600 recorded-and-graded consultations in a four-month term. The card says
- * unlimited because for every real candidate it is: 600 is 4.9 a day every
- * day for 122 days, and 1.5x the heaviest user we think exists. Nobody will
- * see it. But a promise with no number behind it is a promise we cannot
- * price, so there is a number and it is on the card rather than buried in
- * the Terms.
+ * 600 consultations in any four months. The cards say unlimited because for
+ * every real candidate it is - 600 is 4.9 a day every day for 122 days, and
+ * 1.5x the heaviest user we think exists - but a promise with no number
+ * behind it is a promise that cannot be priced.
  *
- * IT IS DELIBERATELY NOT A SENTINEL. ai_allowance is integer NOT NULL and
- * DDL is refused on this project, so "truly uncapped" would have meant a
- * magic 1,000,000 and a branch at every reader - the checkout line item, the
- * ai_gradings metadata round-trip, add_ai_allowance, the credits endpoint and
- * the grading gate. A real number keeps all of those identical and keeps the
- * remaining-credits display honest instead of reading "999,851 left".
+ * THE REAL CEILING IS ON RECORDING, NOT GRADING, and lives in
+ * checkCaseBankAccess in app/case-bank/actions.ts, which counts
+ * station_recordings in a rolling 122-day window. That is where the money
+ * is: Deepgram and Daily are 9.3p of every consultation and run on every
+ * take, while the Claude grading is 1.6p and only runs when asked. A cap on
+ * gradings would bound the cheap step and leave the expensive one open.
+ * Capping recordings also makes a grading cap redundant, since nothing can
+ * be graded that was not recorded.
  *
- * WHAT IT COSTS IF SOMEONE SOMEHOW REACHES IT: £64.98 at the mean, £78.24 at
- * p95. Inside Premium's £146.57 of headroom and inside Intensive's £90.38.
+ * THIS CONSTANT IS THE SAME NUMBER, used as the plan's ai_allowance so the
+ * two can never disagree. It is deliberately a real integer rather than a
+ * sentinel: ai_allowance is integer NOT NULL and DDL is refused here, so
+ * "truly uncapped" would have meant a magic 1,000,000 and a branch at the
+ * checkout line item, the ai_gradings metadata round-trip, add_ai_allowance,
+ * the credits endpoint and the grading gate. A real number keeps all of
+ * those identical and keeps the remaining-credits display honest rather than
+ * reading "999,851 left".
  *
- * THE HOLE IT DOES NOT CLOSE is the one described on aiGradings below:
- * recording and transcription are 68% of the cost and are not metered by
- * this or anything else. Capping gradings is capping the 1.6p step. The
- * right ceiling would count station_recordings rows in the current term, and
- * that is a behaviour change nobody has asked for yet.
+ * WHAT IT COSTS IF ANYONE REACHES IT: £64.92 at the measured mean, £78.24 at
+ * p95. Inside all three tiers, Starter included.
  */
 export const FAIR_USE_AI = 600;
 
@@ -179,7 +182,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription",
+      "Unlimited recording and transcription (fair use: 600 per 4 months)",
       "150 AI-graded consultations",
       "4 months access",
     ],
@@ -193,8 +196,8 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription",
-      "Unlimited AI-graded consultations (fair use: 600 per term)",
+      "Unlimited recording and transcription (fair use: 600 per 4 months)",
+      "Unlimited AI-graded consultations",
       "4 months access",
     ],
   },
@@ -220,8 +223,8 @@ export const PLANS: Record<PlanKey, Plan> = {
     months: 4,
     features: [
       "240+ realistic SCA stations",
-      "Unlimited recording and transcription",
-      "Unlimited AI-graded consultations (fair use: 600 per term)",
+      "Unlimited recording and transcription (fair use: 600 per 4 months)",
+      "Unlimited AI-graded consultations",
       "10 consultations reviewed by a GP",
       "4 months access",
     ],

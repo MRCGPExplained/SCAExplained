@@ -903,21 +903,59 @@ async function checkRecordingBypass(email: string | undefined): Promise<boolean>
   return bypassList.includes(normalEmail);
 }
 
-/** Returns an error message if the user has no active Case Bank access;
- * null if they're clear to record.
+/**
+ * Fair use, counted in recorded consultations.
  *
- * It used to also refuse anyone whose ai_uses_count had reached a 500 "fair
- * use" cap, which was the right shape when AI review was unlimited and the
- * cap was the only thing standing between the product and an unbounded bill.
- * It is the wrong shape now and it was costing people recordings. Gradings
- * are bought: a plan grants 120, 300 or 400 of them and top-ups add up to 200
- * more, so someone who bought Intensive and two 100-packs owns 600 and would
- * have been stopped at 500 with a hundred paid gradings still in hand. Worse,
- * it stopped them RECORDING, which is free, unmetered and advertised as such
- * on every plan card.
+ * THIS IS A SECOND ATTEMPT AT A CAP AND THE FIRST ONE WAS REMOVED, so the
+ * reasons it is back and in a different place are worth having.
  *
- * The allowance is enforced where it is actually spent, in
- * requestAiGradingAction. Recording only needs to know the access is live. */
+ * The old cap refused anyone whose ai_uses_count reached 500. It was wrong
+ * twice over. It counted GRADINGS, which are bought, so somebody who owned
+ * 600 of them was stopped at 500 with a hundred paid gradings in hand. And
+ * it stopped them RECORDING, which every plan card called unlimited. It was
+ * costing people recordings they had paid for, and it was deleted.
+ *
+ * What changed is which step costs money, measured over 58 consultations:
+ *
+ *   Deepgram  £0.0739     recording + transcription, runs on EVERY take
+ *   Daily     £0.0191     the same
+ *   Claude    £0.0156     the grading
+ *
+ * A cap on gradings bounds 1.6p and leaves 9.3p running free, and
+ * transcription does not wait for a grading request - four of the first 31
+ * recordings were transcribed and never graded. So the only cap that bounds
+ * the bill is one on recordings, and capping recordings makes a grading cap
+ * redundant, because nothing can be graded that was not recorded first.
+ *
+ * 600 IS CHOSEN TO BE UNREACHABLE. A consultation is a fixed twelve minutes
+ * and needs a partner, lib/single-session.ts allows one live session per
+ * account so they cannot be run in parallel, and 600 is 4.9 a day every day
+ * for four months. It is 1.5x the heaviest user we think exists and it costs
+ * £64.92 at the measured mean, inside the headroom of all three tiers -
+ * Starter included, which clears £20 even at the cap.
+ *
+ * THE CARDS SAY SO. "Unlimited recording and transcription" would be a lie
+ * with this in place, so every plan now carries the number. A limit a
+ * customer can be stopped by belongs on the page they bought from, not only
+ * in the Terms.
+ */
+const FAIR_USE_RECORDINGS = 600;
+
+/** Four months, the length of every plan, as a rolling window. Rolling
+ *  rather than per-purchase because a renewal extends the existing expiry,
+ *  so there is no stored date that marks where the current term began. */
+const FAIR_USE_WINDOW_DAYS = 122;
+
+/* NOT exported. This is a "use server" file, where every export has to be an
+   async function - a string export fails the build with no obvious cause.
+   The client never needs the constant anyway: it receives the text as the
+   action's error and shows it. */
+const FAIR_USE_MESSAGE =
+  "Fair use limit reached. Please contact the system administrator at mrcgpexplained@outlook.com";
+
+/** Returns an error message if the user cannot record right now; null if
+ *  they are clear. Two reasons to refuse: access is not live, or they are
+ *  past fair use. */
 async function checkCaseBankAccess(
   admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   userId: string
@@ -930,6 +968,30 @@ async function checkCaseBankAccess(
 
   const hasAccess = !!data?.has_case_bank && !!data.case_bank_expires_at && data.case_bank_expires_at > new Date().toISOString();
   if (!hasAccess) return "Your Case Bank access has expired or is not active.";
+
+  const since = new Date(Date.now() - FAIR_USE_WINDOW_DAYS * 86_400_000).toISOString();
+  const { count, error } = await admin
+    .from("station_recordings")
+    .select("id", { count: "exact", head: true })
+    .eq("doctor_user_id", userId)
+    .gte("created_at", since);
+
+  /*
+    A failed count lets the recording through.
+
+    supabase-js returns { error } rather than throwing, and the alternative
+    reading - treat an unknown count as over the limit - would lock every
+    customer out of the product the moment this query broke. The cap exists
+    to stop an unbounded bill from one outlier, not to be the thing that
+    takes the site down, and 600 is set far enough above real use that
+    letting a few through while it is broken costs pennies.
+  */
+  if (error) {
+    console.error("[fair-use] could not count recordings, allowing", userId, error.message);
+    return null;
+  }
+
+  if ((count ?? 0) >= FAIR_USE_RECORDINGS) return FAIR_USE_MESSAGE;
 
   return null;
 }
