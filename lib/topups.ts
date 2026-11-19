@@ -101,6 +101,25 @@ export const TOPUPS: Record<TopUpKey, TopUp> = {
       10 at £26 each  margin £5.59 each
       20 at £25 each  margin £4.62 each
 
+    £20 IS A FLOOR, NOT A FIXED COST, so what matters is how far each rung
+    can move before it stops working. The margin above IS the headroom:
+
+      pack  breakeven payout   at £25 a review
+      gp1        £27.38          +£2.38
+      gp5        £26.55          +£7.78
+      gp10       £25.59          +£5.90
+      gp20       £24.62          -£7.70   <- breaks first
+
+    So the ladder tolerates a reviewer rate up to £24.62 and gp20 is the rung
+    that fails, which is the opposite of the intuition that the biggest pack
+    is the safest. It is the thinnest per review BECAUSE it is discounted, so
+    the volume discount and the payout headroom come out of the same £5. If
+    the rate ever goes to £25, gp20 has to go to £535 or be withdrawn.
+
+    The Intensive plan is more robust than any of them: after Stripe and
+    grading the whole bank it breaks even at £26.38 a review, and still
+    clears £13.76 with the rate at £25.
+
     THE OLD REASON FOR THE £25 FLOOR IS GONE. It used to be "what the
     Intensive plan works out at per review", from £295 / 12 = £24.58. At ten
     reviews that division gives £29.50, which would make every rung here
