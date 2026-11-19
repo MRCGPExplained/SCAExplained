@@ -46,16 +46,29 @@ const { logStatus, logError, logDuration, setLogContext } = (() => {
 /**
  * What a consultation track is recorded at.
  *
- * MediaRecorder was left on the browser default, which measured at 144 kbps
- * — near music quality for two people talking. Over 52 consultations that is
- * 11 MB a track, 19 MB a consultation, and 989 MB of the 1 GB Supabase
- * allowed before it wrote to say the quota had gone.
+ * MediaRecorder was left on the browser default - near music quality for two
+ * people talking. 89 tracks went up that way, and they filled the 1 GB
+ * Supabase allows before it wrote to say the quota had gone.
  *
- * 48 kbps mono Opus is comfortably transparent for speech and a third of
- * that: about 6 MB a consultation, so the same storage holds roughly three
- * times as many. Opus is designed for voice at this range and Deepgram is
- * given the webm container rather than raw samples, so nothing downstream
- * needs to know.
+ * THESE FIGURES ARE MEASURED, not estimated, from storage.objects joined to
+ * started_at/ended_at on 19 Nov 2026. The station is a fixed twelve minutes,
+ * so the before and after samples are the same length - 730s against 725s -
+ * and the whole difference is the bitrate:
+ *
+ *                  realised    a track    a consultation
+ *   browser default  127 kbps   11.1 MB      22.2 MB   (89 tracks)
+ *   this setting      41 kbps    3.55 MB      7.1 MB   (14 tracks)
+ *
+ * So 68% smaller, and the same storage holds a little over three times as
+ * many. Opus is designed for voice at this range and Deepgram is given the
+ * webm container rather than raw samples, so nothing downstream needs to
+ * know.
+ *
+ * REALISED IS BELOW NOMINAL IN BOTH ROWS, and that is Opus doing its job
+ * rather than the setting being ignored: audioBitsPerSecond is a target and
+ * Opus is variable-rate, so it spends far less than the target through the
+ * pauses that make up a good part of any consultation. 41 against a set 48 is
+ * the same undershoot as 127 against the browser's nominal 144.
  *
  * NOT 32 kbps, which Opus also handles and which would have saved a third
  * again. The transcript is what the grading reads and what the examiner

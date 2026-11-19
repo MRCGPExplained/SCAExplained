@@ -9,9 +9,11 @@ export const dynamic = "force-dynamic";
  * The sweep already existed as a button in /admin/cleanup. Nobody pressed it,
  * because there was no reason to think about storage until something said it
  * was full — and on 17 Nov Supabase did, with 989 MB of the 1 GB Free limit
- * used. Audio is effectively all of that: a consultation was recorded at the
- * browser's default 144 kbps and came to about 19 MB. (It is now 48 kbps and
- * about 6 MB; see AUDIO_BITS_PER_SECOND in the study room.)
+ * used. Audio is effectively all of that: a consultation recorded at the
+ * browser's default came to 22.2 MB, measured. (It is now 7.1 MB; see
+ * AUDIO_BITS_PER_SECOND in the study room for the measurements.) That was
+ * not enough on its own - the bucket passed 1 GB on 19 Nov regardless,
+ * because nothing in it was old enough for this sweep to touch.
  *
  * So the point of this route is not that deleting old audio is new. It is
  * that a retention policy which depends on somebody remembering is not a
