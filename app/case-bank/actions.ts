@@ -10,6 +10,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendConfirmationEmail, sendFeedbackEmail, sendVideoRequestEmail, sendExaminerNotificationEmail, sendReportFeedbackDisagreeEmail } from "@/lib/email";
 import type { Highlight, HighlightColor, StudyRoom } from "@/lib/case-bank-types";
 import { isDailyCoEnabled, createDailyRoom, createDailyMeetingToken, deleteDailyRoom } from "@/lib/daily";
+import { TRIAL_STATION, TRIAL_DAILY_CAP, TRIAL_CAP_MESSAGE, trialDayStart } from "@/lib/trial";
 
 export interface ActionResult {
   error?: string;
@@ -1064,12 +1065,69 @@ export async function startRecordingAction(args: {
   // checked here.
   if (await sessionWasRevoked(supabase, admin)) return { error: SESSION_TAKEN_OVER };
 
-  // Gated on the doctor/candidate's access — they're the one being AI-reviewed,
-  // regardless of who (host or patient role-player) actually clicks Start.
-  const bypassed = await checkRecordingBypass(user.email);
-  if (!bypassed) {
-    const capError = await checkCaseBankAccess(admin, args.doctorUserId);
-    if (capError) return { error: capError };
+  /*
+    Is this the free trial?
+
+    A guest-flagged profile in the doctor slot can only have got there one
+    way. setRoomRolesAction refuses a guest the doctor slot, so no paid room
+    can produce this state; the only thing that does is startTrialAction,
+    which makes the room with the trial account as doctor at creation and
+    never calls that action. So "the doctor is a guest" IS the trial marker,
+    and it needs no column on study_rooms and no new state anywhere.
+
+    Read before the access gate because a trial has no user_access row and
+    would otherwise be refused as an expired customer.
+  */
+  const { data: doctorProfile } = await admin
+    .from("user_profiles")
+    .select("is_guest")
+    .eq("id", args.doctorUserId)
+    .maybeSingle<{ is_guest: boolean | null }>();
+  const isTrial = !!doctorProfile?.is_guest;
+
+  if (isTrial) {
+    // One case, and only that one. Belt and braces: the trial UI cannot
+    // offer another station, but this is the server and it does not take the
+    // UI's word for it.
+    if (args.stationNumber !== TRIAL_STATION) {
+      return { error: "That case isn't part of the free trial." };
+    }
+
+    /*
+      The daily cap, checked here rather than at startTrialAction alone.
+
+      Both places check it. There, so a capped day does not walk somebody
+      through a tutorial before refusing; here, because that check happens
+      before a room is even made and a visitor could sit on the page for an
+      hour before pressing start. This is the one that actually bounds the
+      bill, because it is the one next to the insert.
+
+      It still is not atomic — count-then-insert, so two trials starting in
+      the same instant at 49 both pass. 51 is not a problem worth a lock.
+    */
+    const { count, error: capErr } = await admin
+      .from("station_recordings")
+      .select("id", { count: "exact", head: true })
+      .eq("is_trial", true)
+      .gte("created_at", trialDayStart());
+
+    // Fails CLOSED, unlike checkCaseBankAccess, which fails open. That one
+    // protects someone who has paid; this one protects a free giveaway from
+    // an unbounded bill.
+    if (capErr) {
+      console.error("[trial] cap count failed, refusing", capErr.message);
+      return { error: "Something went wrong at our end. Please try again." };
+    }
+    if ((count ?? 0) >= TRIAL_DAILY_CAP) return { error: TRIAL_CAP_MESSAGE };
+  } else {
+    // Gated on the doctor/candidate's access — they're the one being
+    // AI-reviewed, regardless of who (host or patient role-player) actually
+    // clicks Start.
+    const bypassed = await checkRecordingBypass(user.email);
+    if (!bypassed) {
+      const capError = await checkCaseBankAccess(admin, args.doctorUserId);
+      if (capError) return { error: capError };
+    }
   }
 
   // Fetch candidate email for the report
@@ -1107,6 +1165,7 @@ export async function startRecordingAction(args: {
       observer_user_ids: observerIds.length ? observerIds : null,
       station_number: args.stationNumber,
       station_title: args.stationTitle,
+      is_trial: isTrial,
       doctor_user_id: args.doctorUserId,
       patient_user_id: args.patientUserId,
       doctor_display_name: args.doctorDisplayName,
