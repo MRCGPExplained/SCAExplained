@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/current-user";
 import { Swash } from "./components/Swash";
 import { HowItWorks } from "./components/HowItWorks";
 import { PlanCards } from "./components/PlanCards";
@@ -53,6 +54,17 @@ function GreyCheck() {
 type Testimonial = { id: string; quote: string; name: string; vts: string | null; sca_date: string | null; photo_url: string | null; initials: string | null };
 
 export default async function HomePage() {
+  /*
+    Only to decide whether to offer the free trial, which is for people who
+    do not have an account. Free: getCurrentUser is wrapped in React cache()
+    and the layout has already paid for this call in the same render pass.
+
+    It is not cosmetic. Starting a trial calls signInAnonymously, which would
+    REPLACE a signed-in person's session with an anonymous one — so a
+    customer who clicked this out of curiosity would be silently logged out
+    of the thing they paid for.
+  */
+  const currentUser = await getCurrentUser();
   const supabaseAdmin = getSupabaseAdmin();
 
   // The case count is stated as "240+" here and in the terms, the FAQ, the
@@ -135,7 +147,7 @@ export default async function HomePage() {
               so you know what to improve before exam day.
             </p>
 
-            <div className="flex items-center gap-3 flex-wrap mb-7">
+            <div className="flex items-center gap-3 flex-wrap mb-4">
               <Link
                 href="/register"
                 className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-opacity hover:opacity-90"
@@ -144,6 +156,33 @@ export default async function HomePage() {
                 Register Now →
               </Link>
             </div>
+
+            {/*
+              The free trial, deliberately the second thing read rather than
+              the second thing on the same line. Outlined in the same navy as
+              the heading: a real alternative, not a competing primary. No
+              background — the hero band is the cream WASH, so a white or
+              off-white fill would read as a card dropped on the page.
+
+              The line underneath is not small print. The trial is a real
+              two-person consultation and somebody who gets four screens in
+              before discovering they need a partner has been wasted; saying
+              so here costs one sentence and saves that.
+            */}
+            {!currentUser && (
+              <div className="mb-7">
+                <Link
+                  href="/try"
+                  className="inline-block font-bold text-[15px] px-7 py-3.5 rounded-xl no-underline transition-colors"
+                  style={{ background: "transparent", color: DARK, border: `2px solid ${DARK}` }}
+                >
+                  Try a case free
+                </Link>
+                <p className="text-[13px] mt-2.5 mb-0" style={{ color: "rgba(51,51,51,0.6)" }}>
+                  One full case, no account needed. Grab a colleague — it takes about 15 minutes.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Right: report preview — the clearest proof of the product */}
