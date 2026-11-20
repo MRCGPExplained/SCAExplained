@@ -22,7 +22,22 @@ const DARK = "#333333";
  * which made two purchase paths to keep correct and, once the plans existed,
  * one of them was selling something that was no longer on the menu.
  */
-export default async function CaseBankUpgradePage() {
+export default async function CaseBankUpgradePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ source?: string }>;
+}) {
+  /*
+    Carried in from the free trial, through register, to here.
+
+    A trial visitor is by definition not signed in, so their click on a plan
+    cannot go straight to Stripe — /api/plan/checkout answers 401 — and
+    PlanButton sends them to register with this page as the destination. The
+    source has to survive that detour or every sale the trial produces
+    arrives unattributed, which would leave "did the free case sell
+    anything" permanently unanswerable.
+  */
+  const { source } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/case-bank/login?next=/case-bank/upgrade");
@@ -63,7 +78,7 @@ export default async function CaseBankUpgradePage() {
           </p>
         </div>
 
-        <PlanCards />
+        <PlanCards source={source} />
 
         <p className="text-[12.5px] mt-10 text-center" style={{ color: "rgba(51,51,51,0.45)" }}>
           <Link href="/" className="font-semibold no-underline" style={{ color: DARK }}>← Back to home</Link>

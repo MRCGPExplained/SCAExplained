@@ -153,6 +153,10 @@ async function recordRevenueEvent(
         stripe_fee_gbp: feeGbp,
         amount_net_gbp: grossGbp - feeGbp,
         stripe_session_id: session.id,
+        // Null for an ordinary sale. Set when the buyer arrived from
+        // somewhere worth counting — today that means the free trial, so
+        // "did the trial sell anything" is a query rather than an opinion.
+        source: session.metadata?.source ?? null,
       },
       { onConflict: "stripe_session_id" }
     );

@@ -18,7 +18,10 @@ export async function POST(req: Request) {
   const stripe = getStripe();
   if (!stripe) return NextResponse.json({ error: "Stripe not configured." }, { status: 500 });
 
-  const { plan: planKey } = (await req.json().catch(() => ({}))) as { plan?: string };
+  const { plan: planKey, source } = (await req.json().catch(() => ({}))) as {
+    plan?: string;
+    source?: string;
+  };
   if (!planKey || !isPlanKey(planKey)) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
@@ -26,7 +29,22 @@ export async function POST(req: Request) {
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  /*
+    An anonymous session is NOT a buyer, and this is the guard that stops a
+    free-trial visitor paying for nothing.
+
+    A trial account is a real Supabase user, so the plain !user test let one
+    through: they would reach Stripe, pay, and the webhook would grant four
+    months of access to an account the anonymous sweep deletes that night.
+    Money taken, nothing delivered, and no obvious trail.
+
+    401 rather than a refusal, because PlanButton already knows what to do
+    with a 401 — send them to register and bring them back to the plan they
+    picked, carrying the source so the sale is still attributed.
+  */
+  if (!user || user.is_anonymous) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
 
   /*
     No guard on buying again.
@@ -80,6 +98,10 @@ export async function POST(req: Request) {
       ai_gradings: String(plan.aiGradings),
       gp_reviews: String(plan.gpReviews),
       months: String(plan.months),
+      // Where the click came from, if anywhere. Stripe keeps session
+      // metadata for good, so this is readable in the dashboard as well as
+      // in revenue_events. Trimmed because it arrives from a query string.
+      ...(source ? { source: String(source).slice(0, 60) } : {}),
     },
     customer_email: user.email,
     success_url: `${origin}/case-bank?purchased=1`,

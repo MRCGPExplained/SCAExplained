@@ -27,7 +27,7 @@ function Tick() {
  * £295 into £24.60 and flatters it; dividing a four-month price by four
  * turns it into £73.75 and does the opposite.
  */
-export function PlanCards() {
+export function PlanCards({ source }: { source?: string } = {}) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
       {/*
@@ -90,7 +90,7 @@ export function PlanCards() {
               One-off payment · {plan.months} months access
             </p>
 
-            <PlanButton plan={plan.key} label={`Get ${plan.name}`} />
+            <PlanButton plan={plan.key} label={`Get ${plan.name}`} source={source} />
 
             <ul className="flex flex-col gap-2.5 mt-6 pt-6" style={{ borderTop: "1px solid rgba(51,51,51,0.09)" }}>
               {plan.features.map((f) => (

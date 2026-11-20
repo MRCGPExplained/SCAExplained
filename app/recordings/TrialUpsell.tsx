@@ -41,13 +41,15 @@ function PlanRow({ source }: { source: string }) {
           <Link
             key={key}
             /*
-              Register, not checkout. /api/plan/checkout returns 401 for
-              anyone logged out or on a guest session, and the whole point of
-              a trial is that they are one — so sending them at Stripe
-              dead-ends. The plan and the source ride through the query string
-              so neither the choice nor the attribution is lost on the way.
+              Register, not checkout. A trial visitor holds an anonymous
+              session, which /api/plan/checkout refuses with a 401 — on
+              purpose, since granting four months to an account the sweep
+              deletes tonight would take money for nothing. So they register
+              first and land on the upgrade page, with the source riding
+              through the query string so the sale is still attributed to the
+              trial that produced it.
             */
-            href={`/register?plan=${key}&source=${source}`}
+            href={`/register?next=${encodeURIComponent(`/case-bank/upgrade?source=${source}`)}`}
             className="block rounded-xl px-4 py-4 no-underline transition-transform hover:-translate-y-0.5"
             style={{ background: "white", border: `1.5px solid rgba(51,51,51,0.14)` }}
           >

@@ -57,7 +57,7 @@ export default async function TryPage() {
               Back to the homepage
             </Link>
           </div>
-          <PlanCards />
+          <PlanCards source="trial-capped" />
         </div>
       )}
     </main>

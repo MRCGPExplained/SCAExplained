@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isAdmin, getCurrentAdminName } from "@/lib/admin-auth";
 import { sendFeedbackReplyEmail } from "@/lib/email";
+import { findExpiredAnonymousIds, purgeExpiredAnonymous } from "@/lib/anonymous-cleanup";
 import {
   findOldCandidateAudio,
   pruneCandidateAudioBefore,
@@ -1859,54 +1860,54 @@ export async function deleteEmptyStudyRoomsAction(): Promise<ActionResult & { de
   return { success: true, deleted: emptyIds.length };
 }
 
-const GUEST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/*
+  The sweep itself lives in lib/anonymous-cleanup.ts.
 
-// Guest accounts are Supabase anonymous auth users past their 24h pass.
-// Paginates the admin user list looking for is_anonymous + stale created_at;
-// capped at 10k users as a sanity limit for a single cleanup pass.
-async function findExpiredGuestIds(): Promise<string[]> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return [];
-  const cutoff = Date.now() - GUEST_MAX_AGE_MS;
-  const expired: string[] = [];
-  const perPage = 1000;
-  for (let page = 1; page <= 10; page++) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-    if (error || !data) break;
-    for (const u of data.users) {
-      if (u.is_anonymous && new Date(u.created_at).getTime() < cutoff) expired.push(u.id);
-    }
-    if (data.users.length < perPage) break;
-  }
-  return expired;
-}
+  It moved there so app/api/cron/prune-anonymous could run it hourly, which
+  it has to now that the free trial mints an anonymous account per visitor
+  rather than one per invite link. The two must not drift: a button and a
+  cron deleting accounts by slightly different rules is the kind of thing
+  nobody notices until an account that should be gone is not.
 
+  WHAT CHANGED IN THE MOVE, because it is not a pure lift. The version here
+  cleared four tables; nine reference auth.users with no ON DELETE, so five
+  could refuse the delete — ai_report_feedback, friend_requests, user_access,
+  and study_rooms.host_user_id, which is NOT NULL and therefore needs the
+  room deleting rather than nulling. And it did `if (!error) deleted++`,
+  discarding every reason, so a refused account was indistinguishable from
+  one that was never there.
+*/
 export async function countExpiredGuestAccountsAction(): Promise<number> {
   if (!(await isAdmin())) return 0;
-  return (await findExpiredGuestIds()).length;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  return (await findExpiredAnonymousIds(supabase)).length;
 }
 
 export async function deleteExpiredGuestAccountsAction(): Promise<ActionResult & { deleted?: number }> {
   if (!(await isAdmin())) return { error: "Not authorised." };
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Database not available." };
 
-  const ids = await findExpiredGuestIds();
-  if (ids.length === 0) return { success: true, deleted: 0 };
+  const result = await purgeExpiredAnonymous();
 
-  // Clear the rows that reference the guest before deleting the auth user
-  // itself — most of these FKs are NO ACTION, not CASCADE.
-  await supabase.from("room_participants").delete().in("user_id", ids);
-  await supabase.from("station_reports").delete().in("user_id", ids);
-  await supabase.from("station_stars").delete().in("user_id", ids);
-  await supabase.from("user_profiles").delete().in("id", ids);
+  /*
+    Says what it could not do, which the version before this did not.
 
-  let deleted = 0;
-  for (const id of ids) {
-    const { error } = await supabase.auth.admin.deleteUser(id);
-    if (!error) deleted++;
+    It counted successes into `deleted` and threw every error away, so an
+    admin saw "Deleted 3 expired guest accounts" when five were attempted
+    and two were refused by a foreign key — a number that reads like a
+    total and is actually a score. If something is stuck now, the card says
+    so and the reason is in the server log.
+  */
+  if (result.failures.length) {
+    for (const f of result.failures) {
+      console.error("[cleanup] could not purge", f.userId, "—", f.reason);
+    }
+    return {
+      error: `Deleted ${result.deleted} of ${result.found}. ${result.failures.length} could not be removed — see the server log for why.`,
+    };
   }
-  return { success: true, deleted };
+
+  return { success: true, deleted: result.deleted };
 }
 
 /*
