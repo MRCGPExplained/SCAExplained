@@ -179,7 +179,7 @@ export default async function HomePage() {
                   Try a case free
                 </Link>
                 <p className="text-[13px] mt-2.5 mb-0" style={{ color: "rgba(51,51,51,0.6)" }}>
-                  One full case, no account needed. Grab a colleague — it takes about 15 minutes.
+                  One full case, no account needed. Bring one to three others — it takes about 15 minutes.
                 </p>
               </div>
             )}

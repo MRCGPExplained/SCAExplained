@@ -785,7 +785,36 @@ export async function setRoomRolesAction(
     .eq("id", doctorUserId)
     .maybeSingle<{ is_guest: boolean }>();
   if (doctorProfile?.is_guest) {
-    return { error: "Guest accounts can only be the patient." };
+    /*
+      A guest may KEEP the doctor's seat, but never TAKE it.
+
+      The rule used to be flat: no guest is ever the doctor. That was right
+      when the only guests were role-players somebody invited, and it is
+      what stops an invited guest quietly making themselves the candidate —
+      which also moves the host, because the line below ties the two
+      together.
+
+      The free trial broke the flat version. Its visitor is an anonymous
+      account that createStudyRoomAction makes the doctor at creation, so by
+      the time they go to pick their partner out of the Patient dropdown the
+      doctor slot already holds a guest: their own. A flat refusal failed
+      that call and left them with "Patient: None" and no way forward,
+      which is the one screen the whole trial has to get through.
+
+      So the test is now about MOVEMENT. If this call leaves the doctor
+      where it already is, the guest in that seat was put there by the
+      server and is allowed to stay. If it would move the slot onto a guest,
+      it is refused exactly as before.
+    */
+    const { data: roomRow } = await supabase
+      .from("study_rooms")
+      .select("doctor_user_id")
+      .eq("id", roomId)
+      .maybeSingle<{ doctor_user_id: string | null }>();
+
+    if (roomRow?.doctor_user_id !== doctorUserId) {
+      return { error: "Guest accounts can only be the patient." };
+    }
   }
 
   const { error } = await supabase

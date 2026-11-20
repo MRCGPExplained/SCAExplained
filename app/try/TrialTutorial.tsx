@@ -20,30 +20,39 @@ const WASH = "#F9F3D9";
  * past tense by the time they arrive — which is why that screen says "here
  * is yours" rather than "click here".
  */
+/**
+ * Four screens about the panel they are about to use, in the order they will
+ * use it.
+ *
+ * The first version of this was abstract — "a study group is a room for two"
+ * over cartoon circles — and it was wrong twice. It never named the Study
+ * Group panel or any control in it, so it prepared nobody for the screen
+ * they landed on; and a room is not for two, it is for two to four.
+ */
 const STEPS = [
   {
-    key: "group",
-    title: "You get a study group",
-    body: "A study group is a room for two. You take the doctor's seat, someone else plays the patient, and the case runs like the real thing — three minutes to read, twelve to consult.",
-    caption: "We have already made yours.",
+    key: "panel",
+    title: "The Study Group panel",
+    body: "Down the right of the case you will find a panel headed STUDY GROUP. Everything happens there: who is in the room, who is playing which part, a chat box, and the room code for inviting people. Yours is already open.",
+    caption: "Two to four people: a doctor, a patient, and up to two others who just watch.",
   },
   {
     key: "invite",
-    title: "Invite whoever is around",
-    body: "You get a link to send. Whoever opens it types a name and they are in — no account, no download, nothing to install. A partner, a flatmate or another registrar all work equally well.",
-    caption: "They do not need to be a doctor.",
+    title: "Copy link, at the bottom of the panel",
+    body: "Under the room code there is a Copy link. Send it to whoever is around. They open it, type a name, and they are in the room — no account, no download, nothing to install. They do not need to be a doctor.",
+    caption: "Observers are worth having. Watching someone else get marked is how most people learn fastest.",
   },
   {
-    key: "roles",
-    title: "You are the doctor",
-    body: "Your guest is the patient, and they get a short script telling them who they are and what to say. Today they are Karen Doyle, whose four-year-old has had a discharging ear for a week and who would quite like some antibiotics.",
-    caption: "Nothing to set up — the seats are already assigned.",
+    key: "seats",
+    title: "Doctor and Patient, from the dropdowns",
+    body: "You are already in the Doctor box. Once your partner appears in the room, pick them from the Patient box underneath. They get a short script telling them who they are — today, Karen Doyle, whose four-year-old has had a discharging ear for a week and who would quite like some antibiotics.",
+    caption: "The timer will not start until both seats are filled.",
   },
   {
     key: "start",
-    title: "Then press start",
-    body: "Three minutes to read the brief, then the consultation. When you hang up it is transcribed and marked against the same domains the RCGP examiners use, and your report is ready in a couple of minutes.",
-    caption: "You will get a predicted score and written feedback on all three domains.",
+    title: "Preparation, then Start",
+    body: "Top of the panel is a PREPARATION clock at 03:00 — your reading time, with Start, Skip and Reset. Skip it if you are ready. Then the consultation runs, and when you finish it is transcribed and marked against the same domains the RCGP examiners use.",
+    caption: "Your report lands a couple of minutes later, with a predicted score and written feedback on all three domains.",
   },
 ] as const;
 
@@ -58,21 +67,28 @@ function StepArt({ step }: { step: number }) {
       aria-hidden="true"
     >
       {step === 0 && (
-        <div className="flex items-center gap-3">
-          {["You", "?"].map((s, i) => (
-            <div
-              key={i}
-              className="rounded-full flex items-center justify-center font-bold text-[13px]"
-              style={{
-                width: 54, height: 54,
-                background: i === 0 ? YELLOW : "white",
-                color: DARK,
-                border: i === 0 ? "none" : `2px dashed rgba(51,51,51,0.3)`,
-              }}
-            >
-              {s}
-            </div>
-          ))}
+        <div className="rounded-lg px-4 py-3 w-[230px]" style={{ background: "#232B3A" }}>
+          <div className="text-[11px] font-bold tracking-[0.08em] mb-1" style={{ color: "white" }}>
+            STUDY GROUP
+          </div>
+          <div className="text-[10.5px] mb-2.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+            2–4 people
+          </div>
+          <div className="flex items-center gap-1.5">
+            {["D", "P", "+", "+"].map((s, i) => (
+              <div
+                key={i}
+                className="rounded-full flex items-center justify-center font-bold text-[10px]"
+                style={{
+                  width: 26, height: 26,
+                  background: i === 0 ? YELLOW : "rgba(255,255,255,0.14)",
+                  color: i === 0 ? DARK : "rgba(255,255,255,0.7)",
+                }}
+              >
+                {s}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {step === 1 && (
@@ -85,24 +101,36 @@ function StepArt({ step }: { step: number }) {
         </div>
       )}
       {step === 2 && (
-        <div className="flex items-center gap-6">
+        <div className="w-[260px]">
           {[
-            { label: "Doctor", who: "You", fill: YELLOW },
-            { label: "Patient", who: "Your guest", fill: "white" },
+            { label: "DOCTOR", value: "You", filled: true },
+            { label: "PATIENT", value: "None", filled: false },
           ].map((r) => (
-            <div key={r.label} className="text-center">
-              <div
-                className="rounded-full mx-auto mb-2"
-                style={{ width: 40, height: 40, background: r.fill, border: r.fill === "white" ? `2px solid rgba(51,51,51,0.2)` : "none" }}
-              />
-              <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: DARK }}>{r.label}</div>
-              <div className="text-[11px]" style={{ color: "rgba(51,51,51,0.55)" }}>{r.who}</div>
+            <div key={r.label} className="flex items-center gap-3 mb-2 last:mb-0">
+              <span className="text-[10.5px] font-bold tracking-[0.07em] w-[58px]" style={{ color: "rgba(51,51,51,0.5)" }}>
+                {r.label}
+              </span>
+              <span
+                className="flex-1 rounded-md px-2.5 py-1.5 text-[12px] flex items-center justify-between"
+                style={{
+                  background: "white",
+                  color: r.filled ? DARK : "rgba(51,51,51,0.4)",
+                  border: `1px solid rgba(51,51,51,0.15)`,
+                }}
+              >
+                {r.value}
+                <span style={{ opacity: 0.35 }}>⌄</span>
+              </span>
             </div>
           ))}
         </div>
       )}
       {step === 3 && (
         <div className="flex items-center gap-2">
+          <div className="rounded-lg px-3 py-2 text-center mr-1" style={{ background: "white", border: `1.5px solid rgba(51,51,51,0.15)` }}>
+            <div className="text-[9px] font-bold tracking-[0.07em]" style={{ color: "rgba(51,51,51,0.45)" }}>PREPARATION</div>
+            <div className="font-display font-extrabold text-[17px]" style={{ color: DARK }}>03:00</div>
+          </div>
           {[
             { t: "3 min", s: "read" },
             { t: "12 min", s: "consult" },

@@ -14,6 +14,7 @@ import { gradeDisplay } from "@/lib/grade-display";
 import { ReportRead } from "@/app/components/ReportRead";
 import { isUnreadReport } from "@/lib/inbox";
 import { recordingRole } from "@/lib/recording-roles";
+import { TrialUpsell, TrialFeedbackAnchor } from "@/app/recordings/TrialUpsell";
 
 const NAVY = "#333333";
 
@@ -127,6 +128,7 @@ type RecordingDetail = {
   sent_to_candidate_at: string | null;
   doctor_user_id: string;
   observer_user_ids: string[] | null;
+  is_trial: boolean;
   examiners: { name: string } | null;
 };
 
@@ -445,8 +447,11 @@ export default async function RecordingDetailPage({
           {rec.examiners?.name && <><span>·</span><span>Marked by Dr {rec.examiners.name}</span></>}
         </div>
 
-        {/* Ready to submit — AI-graded but not yet sent for GP review */}
-        {isDoctor && rec.status === "ai_graded" && (
+        {/* Ready to submit — AI-graded but not yet sent for GP review.
+            Not on a trial: that report already carries its own close, and a
+            free visitor has no GP reviews to spend, so offering them one is
+            a dead end competing with the offer that is not. */}
+        {isDoctor && rec.status === "ai_graded" && !rec.is_trial && (
           <div
             className="rounded-xl px-4 py-3 mb-5 text-[12.5px]"
             style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", color: "#1D4ED8" }}
@@ -618,6 +623,11 @@ export default async function RecordingDetailPage({
             ))}
           </div>
         )}
+
+        {/* Where the trial upsell is allowed to interrupt: everything above
+            is the specific feedback, so a reader who has passed this point
+            has seen what the product does. */}
+        {rec.is_trial && <TrialFeedbackAnchor />}
 
         {/* ── Case rules, examiner only ── */}
         {/* Its own panel rather than part of the skills strip: a rule can fire
@@ -809,6 +819,8 @@ export default async function RecordingDetailPage({
             </div>
           </details>
         )}
+
+        {rec.is_trial && <TrialUpsell viewerRole={viewerRole} />}
 
       </div>
     </div>
