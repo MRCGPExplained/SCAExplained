@@ -19,6 +19,17 @@ const POLL_MS = 2000;
 
 type Stage = "choose" | "invite" | "join" | "name";
 
+/**
+ * Which of the three steps a stage belongs to.
+ *
+ * invite and join are the same step seen from the two ends of it — one
+ * person reads a code out and the other types it in — so they share a
+ * number. Three total, which is worth showing: somebody deciding whether to
+ * start wants to know how far it is to the case.
+ */
+const STEP_OF: Record<Stage, number> = { choose: 1, invite: 2, join: 2, name: 3 };
+const TOTAL_STEPS = 3;
+
 export function TrialTutorial() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("choose");
@@ -89,8 +100,23 @@ export function TrialTutorial() {
     poll();
   }
 
+  const step = STEP_OF[stage];
+
   return (
     <div className="max-w-[460px] mx-auto">
+      <div className="flex items-center gap-1.5 mb-3" aria-hidden="true">
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+          <div
+            key={i}
+            className="h-1 flex-1 rounded-full transition-colors"
+            style={{ background: i < step ? YELLOW : "rgba(51,51,51,0.12)" }}
+          />
+        ))}
+      </div>
+      <p className="text-[11px] font-bold uppercase tracking-[0.07em] mb-5" style={{ color: "rgba(51,51,51,0.45)" }}>
+        Step {step} of {TOTAL_STEPS}
+      </p>
+
       {stage === "choose" && (
         <>
           <h1 className="font-display font-extrabold text-[26px] mb-6" style={{ color: DARK }}>
