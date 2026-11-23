@@ -1,260 +1,250 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { startTrialAction } from "./actions";
+import {
+  createTrialRoomAction,
+  joinTrialRoomAction,
+  setTrialNameAction,
+  trialRoomStatusAction,
+} from "./actions";
 
 const DARK = "#333333";
 const YELLOW = "#F6D44B";
 const WASH = "#F9F3D9";
 
-/**
- * The four things somebody has to understand before a study group makes
- * sense, in the order they will meet them.
- *
- * It explains rather than simulates. An interactive tour would have to track
- * the real panel's state and would break every time that panel changed; this
- * is four pictures and four sentences, and the room it describes is already
- * made by the time they read screen two. "Open a study group" is therefore
- * past tense by the time they arrive — which is why that screen says "here
- * is yours" rather than "click here".
- */
-/**
- * Four screens about the panel they are about to use, in the order they will
- * use it.
- *
- * The first version of this was abstract — "a study group is a room for two"
- * over cartoon circles — and it was wrong twice. It never named the Study
- * Group panel or any control in it, so it prepared nobody for the screen
- * they landed on; and a room is not for two, it is for two to four.
- */
-const STEPS = [
-  {
-    key: "panel",
-    title: "The Study Group panel",
-    body: "Down the right of the case you will find a panel headed STUDY GROUP. Everything happens there: who is in the room, who is playing which part, a chat box, and the room code for inviting people. Yours is already open.",
-    caption: "Two to four people: a doctor, a patient, and up to two others who just watch.",
-  },
-  {
-    key: "invite",
-    title: "Copy link, at the bottom of the panel",
-    body: "Under the room code there is a Copy link. Send it to whoever is around. They open it, type a name, and they are in the room — no account, no download, nothing to install. They do not need to be a doctor.",
-    caption: "Observers are worth having. Watching someone else get marked is how most people learn fastest.",
-  },
-  {
-    key: "seats",
-    title: "Doctor and Patient, from the dropdowns",
-    body: "You are already in the Doctor box. Once your partner appears in the room, pick them from the Patient box underneath. They get a short script telling them who they are — today, Karen Doyle, whose four-year-old has had a discharging ear for a week and who would quite like some antibiotics.",
-    caption: "The timer will not start until both seats are filled.",
-  },
-  {
-    key: "start",
-    title: "Preparation, then Start",
-    body: "Top of the panel is a PREPARATION clock at 03:00 — your reading time, with Start, Skip and Reset. Skip it if you are ready. Then the consultation runs, and when you finish it is transcribed and marked against the same domains the RCGP examiners use.",
-    caption: "Your report lands a couple of minutes later, with a predicted score and written feedback on all three domains.",
-  },
-] as const;
+/** How often the waiting panel asks whether the other person has arrived. */
+const POLL_MS = 2000;
 
-function StepArt({ step }: { step: number }) {
-  // Small, flat illustrations rather than screenshots: a screenshot of the
-  // panel goes stale the first time the panel changes, and these only have to
-  // carry the idea.
-  return (
-    <div
-      className="rounded-2xl flex items-center justify-center mb-6"
-      style={{ background: WASH, height: 150 }}
-      aria-hidden="true"
-    >
-      {step === 0 && (
-        <div className="rounded-lg px-4 py-3 w-[230px]" style={{ background: "#232B3A" }}>
-          <div className="text-[11px] font-bold tracking-[0.08em] mb-1" style={{ color: "white" }}>
-            STUDY GROUP
-          </div>
-          <div className="text-[10.5px] mb-2.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-            2–4 people
-          </div>
-          <div className="flex items-center gap-1.5">
-            {["D", "P", "+", "+"].map((s, i) => (
-              <div
-                key={i}
-                className="rounded-full flex items-center justify-center font-bold text-[10px]"
-                style={{
-                  width: 26, height: 26,
-                  background: i === 0 ? YELLOW : "rgba(255,255,255,0.14)",
-                  color: i === 0 ? DARK : "rgba(255,255,255,0.7)",
-                }}
-              >
-                {s}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {step === 1 && (
-        <div
-          className="rounded-lg px-4 py-3 font-mono text-[13px] flex items-center gap-3"
-          style={{ background: "white", color: DARK, border: `1.5px solid rgba(51,51,51,0.18)` }}
-        >
-          <span style={{ opacity: 0.55 }}>scafocus.com/room/</span>
-          <strong style={{ letterSpacing: "0.12em" }}>K4PX7M</strong>
-        </div>
-      )}
-      {step === 2 && (
-        <div className="w-[260px]">
-          {[
-            { label: "DOCTOR", value: "You", filled: true },
-            { label: "PATIENT", value: "None", filled: false },
-          ].map((r) => (
-            <div key={r.label} className="flex items-center gap-3 mb-2 last:mb-0">
-              <span className="text-[10.5px] font-bold tracking-[0.07em] w-[58px]" style={{ color: "rgba(51,51,51,0.5)" }}>
-                {r.label}
-              </span>
-              <span
-                className="flex-1 rounded-md px-2.5 py-1.5 text-[12px] flex items-center justify-between"
-                style={{
-                  background: "white",
-                  color: r.filled ? DARK : "rgba(51,51,51,0.4)",
-                  border: `1px solid rgba(51,51,51,0.15)`,
-                }}
-              >
-                {r.value}
-                <span style={{ opacity: 0.35 }}>⌄</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      {step === 3 && (
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg px-3 py-2 text-center mr-1" style={{ background: "white", border: `1.5px solid rgba(51,51,51,0.15)` }}>
-            <div className="text-[9px] font-bold tracking-[0.07em]" style={{ color: "rgba(51,51,51,0.45)" }}>PREPARATION</div>
-            <div className="font-display font-extrabold text-[17px]" style={{ color: DARK }}>03:00</div>
-          </div>
-          {[
-            { t: "3 min", s: "read" },
-            { t: "12 min", s: "consult" },
-            { t: "~2 min", s: "marked" },
-          ].map((b, i) => (
-            <div key={b.t} className="flex items-center gap-2">
-              <div className="rounded-lg px-3 py-2 text-center" style={{ background: "white", border: `1.5px solid rgba(51,51,51,0.15)` }}>
-                <div className="font-bold text-[13px]" style={{ color: DARK }}>{b.t}</div>
-                <div className="text-[10px] uppercase tracking-[0.05em]" style={{ color: "rgba(51,51,51,0.5)" }}>{b.s}</div>
-              </div>
-              {i < 2 && <span style={{ color: "rgba(51,51,51,0.3)" }}>→</span>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+type Stage = "choose" | "invite" | "join" | "name";
 
 export function TrialTutorial() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
+  const [stage, setStage] = useState<Stage>("choose");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [starting, setStarting] = useState(false);
 
-  const last = step === STEPS.length - 1;
+  const [roomId, setRoomId] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [name, setName] = useState("");
+  const [named, setNamed] = useState(false);
+  const [hostName, setHostName] = useState("");
+  const [guestName, setGuestName] = useState("");
 
-  async function start() {
-    if (!name.trim()) { setError("Please enter your name first."); return; }
-    setStarting(true);
-    setError("");
+  const isHost = stage === "invite" || (stage === "name" && !!roomCode);
+  const navigated = useRef(false);
 
-    const result = await startTrialAction(name);
-    if (result.error || !result.roomId) {
-      setError(result.error ?? "Could not start. Please try again.");
-      setStarting(false);
-      return;
+  // Polls only while there is a room and somebody still to arrive.
+  const poll = useCallback(async () => {
+    if (!roomId || navigated.current) return;
+    const status = await trialRoomStatusAction(roomId);
+    if (status.gone) { setError("That room has closed. Start again."); setRoomId(""); return; }
+    setHostName(status.hostName ?? "");
+    setGuestName(status.guestName ?? "");
+    if (status.roomCode) setRoomCode(status.roomCode);
+    if (status.ready) {
+      navigated.current = true;
+      router.push(`/case-bank/3?joinRoom=${roomId}`);
     }
+  }, [roomId, router]);
 
-    // joinRoom is how the provider in the root layout adopts an existing room
-    // after a navigation; it is the same path the invite link uses.
-    router.push(`/case-bank/3?joinRoom=${result.roomId}`);
+  useEffect(() => {
+    if (!roomId) return;
+    // The first check is scheduled rather than called here. poll() only sets
+    // state after an await, but the lint rule reads a call in an effect body
+    // as a synchronous setState and cannot see that; a 0ms timeout says what
+    // is actually meant and costs nothing.
+    const first = window.setTimeout(poll, 0);
+    const t = window.setInterval(poll, POLL_MS);
+    return () => { window.clearTimeout(first); window.clearInterval(t); };
+  }, [roomId, poll]);
+
+  async function invite() {
+    setBusy(true); setError("");
+    const r = await createTrialRoomAction();
+    setBusy(false);
+    if (r.error || !r.roomId) { setError(r.error ?? "Could not start."); return; }
+    setRoomId(r.roomId);
+    setRoomCode(r.roomCode ?? "");
+    setStage("invite");
+  }
+
+  async function join() {
+    setBusy(true); setError("");
+    const r = await joinTrialRoomAction(codeInput);
+    setBusy(false);
+    if (r.error || !r.roomId) { setError(r.error ?? "Could not join."); return; }
+    setRoomId(r.roomId);
+    setStage("name");
+  }
+
+  async function submitName() {
+    setBusy(true); setError("");
+    const r = await setTrialNameAction(name);
+    setBusy(false);
+    if (r.error) { setError(r.error); return; }
+    setNamed(true);
+    poll();
   }
 
   return (
-    <div className="max-w-[560px] mx-auto">
-      <div className="flex items-center gap-1.5 mb-6" aria-hidden="true">
-        {STEPS.map((s, i) => (
+    <div className="max-w-[460px] mx-auto">
+      {stage === "choose" && (
+        <>
+          <h1 className="font-display font-extrabold text-[26px] mb-6" style={{ color: DARK }}>
+            Try a case free
+          </h1>
+          <div className="flex gap-3">
+            <button
+              type="button" onClick={invite} disabled={busy}
+              className="flex-1 font-bold text-[15px] px-5 py-3.5 rounded-xl disabled:opacity-60"
+              style={{ background: YELLOW, color: DARK }}
+            >
+              Invite Friend
+            </button>
+            <button
+              type="button" onClick={() => { setStage("join"); setError(""); }} disabled={busy}
+              className="flex-1 font-bold text-[15px] px-5 py-3.5 rounded-xl disabled:opacity-60"
+              style={{ background: "transparent", color: DARK, border: `2px solid ${DARK}` }}
+            >
+              Join Friend
+            </button>
+          </div>
+        </>
+      )}
+
+      {stage === "invite" && (
+        <>
+          <h1 className="font-display font-extrabold text-[26px] mb-5" style={{ color: DARK }}>
+            Your room code
+          </h1>
           <div
-            key={s.key}
-            className="h-1 flex-1 rounded-full transition-colors"
-            style={{ background: i <= step ? YELLOW : "rgba(51,51,51,0.12)" }}
-          />
-        ))}
-      </div>
+            className="rounded-xl px-5 py-5 text-center mb-3"
+            style={{ background: WASH }}
+          >
+            <div className="font-display font-extrabold text-[34px] tracking-[0.18em]" style={{ color: DARK }}>
+              {roomCode}
+            </div>
+          </div>
+          <p className="text-[14px] leading-[1.6] mb-6" style={{ color: "rgba(51,51,51,0.65)" }}>
+            Share this with your friend and ask them to use Join Friend.
+          </p>
+          <button
+            type="button" onClick={() => setStage("name")}
+            className="font-bold text-[15px] px-7 py-3.5 rounded-xl"
+            style={{ background: YELLOW, color: DARK }}
+          >
+            Next
+          </button>
+        </>
+      )}
 
-      <StepArt step={step} />
-
-      <p className="text-[11px] font-bold uppercase tracking-[0.07em] mb-2" style={{ color: "rgba(51,51,51,0.45)" }}>
-        Step {step + 1} of {STEPS.length}
-      </p>
-      <h2 className="font-display font-extrabold text-[26px] leading-[1.2] mb-3" style={{ color: DARK }}>
-        {STEPS[step].title}
-      </h2>
-      <p className="text-[15px] leading-[1.65] mb-2" style={{ color: "rgba(51,51,51,0.72)" }}>
-        {STEPS[step].body}
-      </p>
-      <p className="text-[13px] mb-7" style={{ color: "rgba(51,51,51,0.5)" }}>
-        {STEPS[step].caption}
-      </p>
-
-      {last && (
-        <div className="mb-6">
-          <label htmlFor="trial-name" className="block text-[11px] font-bold uppercase tracking-[0.06em] mb-1.5" style={{ color: "rgba(51,51,51,0.5)" }}>
-            Your name
-          </label>
+      {stage === "join" && (
+        <>
+          <h1 className="font-display font-extrabold text-[26px] mb-5" style={{ color: DARK }}>
+            Enter the code
+          </h1>
           <input
-            id="trial-name"
-            value={name}
-            onChange={(e) => { setName(e.target.value); setError(""); }}
-            onKeyDown={(e) => { if (e.key === "Enter" && !starting) start(); }}
-            placeholder="So your guest knows who they are talking to"
-            maxLength={60}
-            className="w-full rounded-xl px-4 py-3 text-[15px] outline-none focus:border-navy/50"
+            value={codeInput}
+            onChange={(e) => { setCodeInput(e.target.value.toUpperCase()); setError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !busy) join(); }}
+            maxLength={6}
+            autoFocus
+            aria-label="Room code"
+            className="w-full rounded-xl px-4 py-3.5 text-[22px] font-bold tracking-[0.18em] text-center uppercase outline-none mb-4"
             style={{ border: `1.5px solid rgba(51,51,51,0.2)`, color: DARK }}
           />
-        </div>
+          {error && <p className="text-[13.5px] mb-4" style={{ color: "#B91C1C" }}>{error}</p>}
+          <div className="flex gap-3">
+            <button
+              type="button" onClick={() => { setStage("choose"); setError(""); }}
+              className="font-bold text-[14px] px-5 py-3 rounded-xl"
+              style={{ background: "transparent", color: "rgba(51,51,51,0.6)" }}
+            >
+              Back
+            </button>
+            <button
+              type="button" onClick={join} disabled={busy || codeInput.length !== 6}
+              className="font-bold text-[15px] px-7 py-3.5 rounded-xl disabled:opacity-50"
+              style={{ background: YELLOW, color: DARK }}
+            >
+              {busy ? "Checking…" : "Join"}
+            </button>
+          </div>
+        </>
       )}
 
-      {error && (
-        <p className="rounded-xl px-4 py-3 text-[13.5px] leading-[1.6] mb-5" style={{ background: "rgba(239,68,68,0.08)", color: "#B91C1C" }}>
-          {error}
+      {stage === "name" && (
+        <>
+          <h1 className="font-display font-extrabold text-[26px] mb-5" style={{ color: DARK }}>
+            What would you like your name to be?
+          </h1>
+
+          {!named && (
+            <>
+              <input
+                value={name}
+                onChange={(e) => { setName(e.target.value); setError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !busy) submitName(); }}
+                maxLength={60}
+                autoFocus
+                aria-label="Your name"
+                className="w-full rounded-xl px-4 py-3 text-[15px] outline-none mb-4"
+                style={{ border: `1.5px solid rgba(51,51,51,0.2)`, color: DARK }}
+              />
+              <button
+                type="button" onClick={submitName} disabled={busy || !name.trim()}
+                className="font-bold text-[15px] px-7 py-3.5 rounded-xl mb-6 disabled:opacity-50"
+                style={{ background: YELLOW, color: DARK }}
+              >
+                {busy ? "Saving…" : "Done"}
+              </button>
+            </>
+          )}
+
+          <div className="rounded-xl overflow-hidden" style={{ border: `1.5px solid rgba(51,51,51,0.12)` }}>
+            {([
+              ["Host", hostName],
+              ["Guest", guestName],
+            ] as const).map(([label, who], i) => (
+              <div
+                key={label}
+                className="flex items-center justify-between px-4 py-3"
+                style={{
+                  background: who ? WASH : "white",
+                  borderTop: i ? `1px solid rgba(51,51,51,0.1)` : undefined,
+                }}
+              >
+                <span className="text-[12px] font-bold uppercase tracking-[0.06em]" style={{ color: "rgba(51,51,51,0.5)" }}>
+                  {label}
+                </span>
+                <span className="text-[14px] font-semibold" style={{ color: who ? DARK : "rgba(51,51,51,0.4)" }}>
+                  {who || "Waiting"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {isHost && roomCode && (
+            <p className="text-[13px] mt-4 mb-0" style={{ color: "rgba(51,51,51,0.55)" }}>
+              Room code <strong style={{ color: DARK, letterSpacing: "0.12em" }}>{roomCode}</strong>
+            </p>
+          )}
+        </>
+      )}
+
+      {error && stage !== "join" && (
+        <p className="text-[13.5px] mt-5 mb-0" style={{ color: "#B91C1C" }}>{error}</p>
+      )}
+
+      {stage === "choose" && (
+        <p className="text-[12.5px] mt-7 mb-0" style={{ color: "rgba(51,51,51,0.45)" }}>
+          Already have an account?{" "}
+          <Link href="/login" className="underline" style={{ color: "rgba(51,51,51,0.6)" }}>Sign in</Link>
         </p>
       )}
-
-      <div className="flex items-center gap-3">
-        {step > 0 && (
-          <button
-            type="button"
-            onClick={() => { setStep(step - 1); setError(""); }}
-            disabled={starting}
-            className="font-bold text-[14px] px-5 py-3 rounded-xl transition-opacity hover:opacity-70 disabled:opacity-40"
-            style={{ background: "transparent", color: "rgba(51,51,51,0.6)" }}
-          >
-            Back
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => (last ? start() : setStep(step + 1))}
-          disabled={starting}
-          className="font-bold text-[15px] px-7 py-3.5 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-60"
-          style={{ background: YELLOW, color: DARK }}
-        >
-          {last ? (starting ? "Setting up…" : "Start my case") : "Next"}
-        </button>
-      </div>
-
-      <p className="text-[12.5px] mt-7 mb-0" style={{ color: "rgba(51,51,51,0.45)" }}>
-        Already have an account?{" "}
-        <Link href="/login" className="underline" style={{ color: "rgba(51,51,51,0.6)" }}>Sign in</Link>
-        {" "}instead — the free case is for people who have not tried us yet.
-      </p>
     </div>
   );
 }
