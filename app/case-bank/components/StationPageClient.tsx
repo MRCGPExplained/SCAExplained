@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CandidateStation } from "@/lib/case-bank-types";
 import { StudyRoomPanel } from "./StudyRoom";
+import { TrialCoach } from "./TrialCoach";
 import { StudyRoomTimer } from "./study-room/StudyRoomTimer";
 import { useStudyRoomStatus } from "./study-room/context";
 import { FeedbackModal } from "./ReportModal";
@@ -732,6 +733,8 @@ export function StationPageClient({
             <div style={{ display: showRoom ? undefined : "none" }}>
               <StudyRoomPanel />
             </div>
+            {/* Renders nothing unless this is a free-trial room. */}
+            <TrialCoach />
           </div>
         </div>
       </div>

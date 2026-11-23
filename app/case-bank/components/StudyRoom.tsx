@@ -284,7 +284,7 @@ export function StudyRoomPanel() {
         inside the examiner review client, so both were rendering here as plain
         static circles. */}
     <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(26,27,82,0.10)" }}>
+    <div data-study-panel className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(26,27,82,0.10)" }}>
       {/*
         Header. Wraps rather than overflowing: at panel widths this sits in on
         a phone, "Study Group" was breaking across two lines, "Call Connected"
