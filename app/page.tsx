@@ -165,9 +165,14 @@ export default async function HomePage() {
               off-white fill would read as a card dropped on the page.
 
               The line underneath is not small print. The trial is a real
-              two-person consultation and somebody who gets four screens in
-              before discovering they need a partner has been wasted; saying
-              so here costs one sentence and saves that.
+              two-person consultation and somebody who starts one alone
+              cannot finish it; saying so here costs a sentence and saves
+              them the walk.
+
+              It says partner, singular, because that is what the flow
+              admits: joinTrialRoomAction refuses once the patient seat is
+              taken. This line previously said "one to three others", which
+              was true of a study room and never true of a trial.
             */}
             {!currentUser && (
               <div className="mb-7">
@@ -179,7 +184,7 @@ export default async function HomePage() {
                   Try a case free
                 </Link>
                 <p className="text-[13px] mt-2.5 mb-0" style={{ color: "rgba(51,51,51,0.6)" }}>
-                  One full case, no account needed. Bring one to three others — it takes about 15 minutes.
+                  One full case, no account needed. You are able to invite your study partner. It takes about 15 minutes.
                 </p>
               </div>
             )}
